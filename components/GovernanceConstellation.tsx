@@ -298,7 +298,23 @@ function seededRandom(seed: number) {
   };
 }
 
+function makeCircleTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 32;
+  canvas.height = 32;
+  const ctx = canvas.getContext('2d')!;
+  const g = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+  g.addColorStop(0, 'rgba(255,255,255,1)');
+  g.addColorStop(0.5, 'rgba(255,255,255,0.4)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 32, 32);
+  return new THREE.CanvasTexture(canvas);
+}
+
 function AmbientStarfield({ count }: { count: number }) {
+  const circleMap = useMemo(makeCircleTexture, []);
+
   const points = useMemo(() => {
     const rand = seededRandom(42);
     const positions = new Float32Array(count * 3);
@@ -332,6 +348,7 @@ function AmbientStarfield({ count }: { count: number }) {
       </bufferGeometry>
       <pointsMaterial
         size={0.06}
+        map={circleMap}
         color="#c0d0ff"
         transparent
         opacity={0.5}
