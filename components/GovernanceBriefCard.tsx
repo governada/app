@@ -105,25 +105,30 @@ export function GovernanceBriefCard() {
         )}
 
         <div className="flex items-center justify-between pt-1">
-          {content.sections.length > 1 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-xs gap-1"
-              onClick={() => {
-                setExpanded(!expanded);
-                if (!expanded) {
-                  posthog.capture('governance_brief_opened', {
-                    brief_id: brief.id,
-                    source: 'in-app',
-                  });
-                }
-              }}
-            >
-              {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-              {expanded ? 'Show less' : `Show ${content.sections.length - 1} more`}
+          <div className="flex items-center gap-2">
+            {content.sections.length > 1 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs gap-1"
+                onClick={() => {
+                  setExpanded(!expanded);
+                  if (!expanded) {
+                    posthog.capture('governance_brief_opened', {
+                      brief_id: brief.id,
+                      source: 'in-app',
+                    });
+                  }
+                }}
+              >
+                {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                {expanded ? 'Show less' : `Show ${content.sections.length - 1} more`}
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" className="text-xs" asChild>
+              <a href="/pulse/report/latest">Full Report</a>
             </Button>
-          )}
+          </div>
           <Button variant="outline" size="sm" className="text-xs" asChild>
             <a href={content.ctaUrl}>{content.ctaText}</a>
           </Button>
