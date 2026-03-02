@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Code2, Blocks, Zap, Key, ArrowRight, Globe, BarChart3, Users } from 'lucide-react';
+import { Code2, Blocks, Zap, Key, ArrowRight, Globe, BarChart3, Users, ChevronRight } from 'lucide-react';
 import { fadeInUp, staggerContainer, spring } from '@/lib/animations';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';

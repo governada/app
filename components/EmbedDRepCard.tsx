@@ -2,7 +2,7 @@
 
 import { extractAlignments, getIdentityColor, getDominantDimension } from '@/lib/drepIdentity';
 import { getDRepPrimaryName } from '@/utils/display';
-import type { EnrichedDRep } from '@/types/drep';
+import type { EnrichedDRep } from '@/lib/koios';
 
 interface EmbedDRepCardProps {
   drep: EnrichedDRep;
