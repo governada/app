@@ -26,6 +26,7 @@ interface DRepProfileHeroProps {
   alignments: AlignmentScores;
   traitTags: string[];
   isActive: boolean;
+  matchScore?: number | null;
   children?: React.ReactNode;
 }
 
@@ -38,6 +39,7 @@ export function DRepProfileHero({
   alignments,
   traitTags,
   isActive,
+  matchScore,
   children,
 }: DRepProfileHeroProps) {
   const dominant = getDominantDimension(alignments);
@@ -72,6 +74,11 @@ export function DRepProfileHero({
             >
               {personality}
             </p>
+            {matchScore != null && matchScore > 0 && (
+              <p className="text-sm font-medium" style={{ color: identityColor.hex }}>
+                {matchScore}% match with your governance preferences
+              </p>
+            )}
           </div>
 
           {/* Trait tags */}

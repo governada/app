@@ -10,7 +10,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 import { Input } from '@/components/ui/input';
 import {
-  Sparkles,
   TrendingUp,
   TrendingDown,
   Minus,
@@ -18,10 +17,6 @@ import {
   ExternalLink,
   Wallet,
   ArrowRight,
-  Activity,
-  Clock,
-  Zap,
-  Award,
   CheckCircle2,
   AlertTriangle,
   XCircle,
@@ -34,7 +29,6 @@ import {
 import { ScoreHistoryChart } from '@/components/ScoreHistoryChart';
 import { DRepDashboard } from '@/components/DRepDashboard';
 import { GovernanceInboxWidget } from '@/components/GovernanceInboxWidget';
-import { ProfileViewStats } from '@/components/ProfileViewStats';
 import { DelegatorTrendChart } from '@/components/DelegatorTrendChart';
 import { CompetitiveContext } from '@/components/CompetitiveContext';
 import { OnboardingChecklist } from '@/components/OnboardingChecklist';
@@ -43,11 +37,12 @@ import { ScoreSimulator } from '@/components/ScoreSimulator';
 import { ActivityHeatmap } from '@/components/ActivityHeatmap';
 import { MilestoneBadges } from '@/components/MilestoneBadges';
 import { GovernancePhilosophyEditor } from '@/components/GovernancePhilosophyEditor';
-import { DRepReportCard } from '@/components/DRepReportCard';
 import { BadgeEmbed } from '@/components/BadgeEmbed';
 import { WrappedShareCard } from '@/components/WrappedShareCard';
 import { ScoreChangeMoment } from '@/components/ScoreChangeMoment';
-import { formatAda, getPillarStatus, applyRationaleCurve, getMissingProfileFields } from '@/utils/scoring';
+import { DashboardUrgentBar } from '@/components/DashboardUrgentBar';
+import { AnimatedTabs, type TabDefinition } from '@/components/AnimatedTabs';
+import { applyRationaleCurve, getMissingProfileFields } from '@/utils/scoring';
 import type { ScoreSnapshot } from '@/lib/data';
 import type { VoteRecord } from '@/types/drep';
 
@@ -259,72 +254,57 @@ export default function MyDRepPage() {
         />
       )}
 
-      {/* Hero Bar */}
-      <div className="mb-8">
-        <div className="flex items-center gap-2 mb-1">
+      {/* Executive Summary Hero */}
+      <div className="mb-6">
+        <div className="flex items-center gap-2 mb-3">
           <Shield className="h-5 w-5 text-primary" />
           <h1 className="text-2xl font-bold">
-            {isViewingOther ? 'DRep Dashboard' : 'My DRep Dashboard'}
+            {isViewingOther ? 'DRep Dashboard' : 'My Dashboard'}
           </h1>
           {isViewingOther && (
             <Badge variant="outline" className="text-[10px] bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
               Admin View
             </Badge>
           )}
-          {drep.isActive && <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Active</Badge>}
         </div>
-        <p className="text-sm text-muted-foreground">
-          {drep.name || drep.drepId.slice(0, 20) + '…'} — {isViewingOther ? 'Viewing as admin' : 'Your governance performance at a glance'}
-        </p>
+
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 py-3 px-4 rounded-lg border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+          <div className="flex items-center gap-2">
+            <span className="text-3xl font-bold tabular-nums">{drep.drepScore}</span>
+            {scoreChange !== null && (
+              <span className={`flex items-center gap-0.5 text-sm font-medium ${
+                scoreChange > 0 ? 'text-green-600 dark:text-green-400' :
+                scoreChange < 0 ? 'text-red-600 dark:text-red-400' :
+                'text-muted-foreground'
+              }`}>
+                {scoreChange > 0 ? <TrendingUp className="h-3.5 w-3.5" /> :
+                 scoreChange < 0 ? <TrendingDown className="h-3.5 w-3.5" /> :
+                 <Minus className="h-3.5 w-3.5" />}
+                {scoreChange > 0 ? '+' : ''}{scoreChange}
+              </span>
+            )}
+          </div>
+          <div className="text-sm text-muted-foreground">
+            Top <span className="font-semibold text-foreground">{Math.max(1, Math.round(100 - percentile))}%</span>
+          </div>
+          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+            <Users className="h-3.5 w-3.5" />
+            <span className="font-medium text-foreground">{drep.delegatorCount.toLocaleString()}</span> delegators
+          </div>
+          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+            <BarChart3 className="h-3.5 w-3.5" />
+            <span className="font-medium text-foreground">{inboxPendingCount}</span> pending
+          </div>
+          {drep.isActive && <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-[10px]">Active</Badge>}
+          <Link href={`/drep/${encodeURIComponent(drep.drepId)}`} className="ml-auto text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+            Public Profile <ExternalLink className="h-3 w-3" />
+          </Link>
+        </div>
       </div>
 
-      {/* Governance Inbox Widget */}
-      <GovernanceInboxWidget drepId={drep.drepId} />
-
-      {/* Score Hero */}
-      <Card className="mb-6 border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-            {/* Score + Change */}
-            <div className="flex items-center gap-6">
-              <div className="text-center">
-                <div className="text-5xl font-bold tabular-nums">{drep.drepScore}</div>
-                <div className="text-xs text-muted-foreground mt-1">DRep Score</div>
-                {lastSynced && (
-                  <div className="text-[10px] text-muted-foreground/60 mt-0.5">Updated {lastSynced}</div>
-                )}
-              </div>
-              {scoreChange !== null && (
-                <div className={`flex items-center gap-1 text-sm font-medium ${
-                  scoreChange > 0 ? 'text-green-600 dark:text-green-400' :
-                  scoreChange < 0 ? 'text-red-600 dark:text-red-400' :
-                  'text-muted-foreground'
-                }`}>
-                  {scoreChange > 0 ? <TrendingUp className="h-4 w-4" /> :
-                   scoreChange < 0 ? <TrendingDown className="h-4 w-4" /> :
-                   <Minus className="h-4 w-4" />}
-                  {scoreChange > 0 ? '+' : ''}{scoreChange} pts
-                </div>
-              )}
-              <div className="text-sm text-muted-foreground">
-                Top <span className="font-semibold text-foreground">{Math.max(1, Math.round(100 - percentile))}%</span> of DReps
-              </div>
-            </div>
-
-            {/* Quick Pillar Summary */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center w-full md:w-auto">
-              <PillarMini label="Participation" value={drep.effectiveParticipation} weight={30} />
-              <PillarMini label="Rationale" value={adjustedRationale} weight={35} />
-              <PillarMini label="Reliability" value={drep.reliabilityScore} weight={20} />
-              <PillarMini label="Profile" value={drep.profileCompleteness} weight={15} />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Onboarding Checklist (if incomplete) */}
+      {/* Onboarding Checklist */}
       {sessionAddress && (
-        <div className="mb-6">
+        <div className="mb-4">
           <OnboardingChecklist
             drepId={drep.drepId}
             walletAddress={sessionAddress}
@@ -336,184 +316,167 @@ export default function MyDRepPage() {
       {/* Score Change Moment */}
       <ScoreChangeMoment drepId={drep.drepId} drepName={drep.name || drep.drepId.slice(0, 20)} currentScore={drep.drepScore} />
 
-      {/* Two-Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column — Action Center (2/3) */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Recommendations + Explain Your Vote */}
-          <DRepDashboard drep={drep} scoreHistory={scoreHistory} />
+      {/* Urgent Actions Bar */}
+      <div className="mb-4">
+        <DashboardUrgentBar drepId={drep.drepId} />
+      </div>
 
-          {/* Score Simulator */}
-          <ScoreSimulator drepId={drep.drepId} pendingCount={inboxPendingCount} />
+      {/* Three-Tab Layout */}
+      <DashboardTabs
+        drep={drep}
+        scoreHistory={scoreHistory}
+        adjustedRationale={adjustedRationale}
+        inboxPendingCount={inboxPendingCount}
+        profileHealthy={profileHealthy}
+        missingFields={missingFields}
+      />
+    </div>
+  );
+}
 
-          {/* Score History */}
-          <ScoreHistoryChart history={scoreHistory} />
-        </div>
-
-        {/* Right Column — Intelligence (1/3) */}
+function DashboardTabs({
+  drep,
+  scoreHistory,
+  adjustedRationale,
+  inboxPendingCount,
+  profileHealthy,
+  missingFields,
+}: {
+  drep: DashboardDRep;
+  scoreHistory: ScoreSnapshot[];
+  adjustedRationale: number;
+  inboxPendingCount: number;
+  profileHealthy: boolean;
+  missingFields: string[];
+}) {
+  const tabs: TabDefinition[] = [
+    {
+      id: 'inbox',
+      label: 'Inbox & Actions',
+      icon: Inbox,
+      content: (
         <div className="space-y-6">
-          {/* Competitive Context */}
+          <GovernanceInboxWidget drepId={drep.drepId} />
+          <DRepDashboard drep={drep} scoreHistory={scoreHistory} />
+          <ScoreSimulator drepId={drep.drepId} pendingCount={inboxPendingCount} />
+        </div>
+      ),
+    },
+    {
+      id: 'performance',
+      label: 'Performance',
+      icon: BarChart3,
+      content: (
+        <div className="space-y-6">
+          <ScoreHistoryChart history={scoreHistory} />
           <CompetitiveContext drepId={drep.drepId} />
-
-          {/* Representation Scorecard */}
           <RepresentationScorecard drepId={drep.drepId} />
-
-          {/* Delegator Analytics */}
-          <DelegatorTrendChart drepId={drep.drepId} />
-
-          {/* At a Glance */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Sparkles className="h-4 w-4" />
-                At a Glance
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <GlanceStat label="Delegators" value={drep.delegatorCount.toLocaleString()} />
-              <GlanceStat label="Voting Power" value={formatAda(drep.votingPower)} />
-              <GlanceStat label="Total Votes" value={drep.votes.length.toString()} />
-              <GlanceStat label="Size Tier" value={drep.sizeTier} />
-              <ProfileViewStats drepId={drep.drepId} />
-              {lastSynced && (
-                <p className="text-[10px] text-muted-foreground/60 pt-1 border-t border-border/40">
-                  Data updated {lastSynced}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Activity Heatmap */}
           <ActivityHeatmap drepId={drep.drepId} />
-
-          {/* Achievements */}
           <MilestoneBadges drepId={drep.drepId} />
+        </div>
+      ),
+    },
+    {
+      id: 'sharing',
+      label: 'Sharing & Profile',
+      icon: Users,
+      content: (
+        <div className="space-y-6">
+          <GovernancePhilosophyEditor drepId={drep.drepId} />
+          <WrappedShareCard
+            variant="drep"
+            drepId={drep.drepId}
+            drepName={drep.name || drep.drepId.slice(0, 20)}
+            score={drep.drepScore}
+            participation={drep.effectiveParticipation}
+            rationale={adjustedRationale}
+            reliability={drep.reliabilityScore}
+            rank={null}
+            delegators={drep.delegatorCount}
+          />
+          <BadgeEmbed drepId={drep.drepId} drepName={drep.name || drep.drepId.slice(0, 20)} />
+          <ProfileHealthCard
+            profileHealthy={profileHealthy}
+            missingFields={missingFields}
+            brokenLinks={drep.brokenLinks}
+          />
+          <DelegatorTrendChart drepId={drep.drepId} />
+        </div>
+      ),
+    },
+  ];
 
-          {/* Profile Health Check */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm flex items-center gap-2">
-                {profileHealthy
-                  ? <CheckCircle2 className="h-4 w-4 text-green-600" />
-                  : <AlertTriangle className="h-4 w-4 text-amber-500" />}
-                Profile Health
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {profileHealthy ? (
-                <p className="text-xs text-green-600 dark:text-green-400 font-medium">
-                  All profile fields complete and links verified
+  return <AnimatedTabs tabs={tabs} defaultTab="inbox" stickyOffset={64} />;
+}
+
+function ProfileHealthCard({
+  profileHealthy,
+  missingFields,
+  brokenLinks,
+}: {
+  profileHealthy: boolean;
+  missingFields: string[];
+  brokenLinks: string[];
+}) {
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm flex items-center gap-2">
+          {profileHealthy
+            ? <CheckCircle2 className="h-4 w-4 text-green-600" />
+            : <AlertTriangle className="h-4 w-4 text-amber-500" />}
+          Profile Health
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {profileHealthy ? (
+          <p className="text-xs text-green-600 dark:text-green-400 font-medium">
+            All profile fields complete and links verified
+          </p>
+        ) : (
+          <>
+            {missingFields.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-amber-600 dark:text-amber-400 mb-1">
+                  Missing fields ({missingFields.length})
                 </p>
-              ) : (
-                <>
-                  {missingFields.length > 0 && (
-                    <div>
-                      <p className="text-xs font-medium text-amber-600 dark:text-amber-400 mb-1">
-                        Missing fields ({missingFields.length})
-                      </p>
-                      <ul className="text-xs text-muted-foreground space-y-0.5">
-                        {missingFields.map(f => (
-                          <li key={f} className="flex items-center gap-1.5">
-                            <XCircle className="h-3 w-3 text-amber-500 shrink-0" />
-                            <span className="capitalize">{f}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {drep.brokenLinks.length > 0 && (
-                    <div>
-                      <p className="text-xs font-medium text-red-600 dark:text-red-400 mb-1">
-                        Broken links ({drep.brokenLinks.length})
-                      </p>
-                      <ul className="text-xs text-muted-foreground space-y-0.5">
-                        {drep.brokenLinks.map(link => (
-                          <li key={link} className="flex items-center gap-1.5 truncate">
-                            <XCircle className="h-3 w-3 text-red-500 shrink-0" />
-                            <span className="truncate">{link}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  <p className="text-[10px] text-muted-foreground pt-1 border-t">
-                    Update your profile via{' '}
-                    <a href="https://gov.tools" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">gov.tools</a>
-                    {' '}or your wallet&apos;s governance section.
-                  </p>
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Public Profile Link */}
-          <Card>
-            <CardContent className="pt-6">
-              <Link href={`/drep/${encodeURIComponent(drep.drepId)}`} className="flex items-center justify-between text-sm hover:underline">
-                <span>View Public Profile</span>
-                <ExternalLink className="h-4 w-4" />
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Bottom Section — Full Width */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-        <GovernancePhilosophyEditor drepId={drep.drepId} />
-        <WrappedShareCard
-          variant="drep"
-          drepId={drep.drepId}
-          drepName={drep.name || drep.drepId.slice(0, 20)}
-          score={drep.drepScore}
-          participation={drep.effectiveParticipation}
-          rationale={adjustedRationale}
-          reliability={drep.reliabilityScore}
-          rank={null}
-          delegators={drep.delegatorCount}
-        />
-        <BadgeEmbed drepId={drep.drepId} drepName={drep.name || drep.drepId.slice(0, 20)} />
-      </div>
-    </div>
+                <ul className="text-xs text-muted-foreground space-y-0.5">
+                  {missingFields.map(f => (
+                    <li key={f} className="flex items-center gap-1.5">
+                      <XCircle className="h-3 w-3 text-amber-500 shrink-0" />
+                      <span className="capitalize">{f}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {brokenLinks.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-red-600 dark:text-red-400 mb-1">
+                  Broken links ({brokenLinks.length})
+                </p>
+                <ul className="text-xs text-muted-foreground space-y-0.5">
+                  {brokenLinks.map(link => (
+                    <li key={link} className="flex items-center gap-1.5 truncate">
+                      <XCircle className="h-3 w-3 text-red-500 shrink-0" />
+                      <span className="truncate">{link}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <p className="text-[10px] text-muted-foreground pt-1 border-t">
+              Update your profile via{' '}
+              <a href="https://gov.tools" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">gov.tools</a>
+              {' '}or your wallet&apos;s governance section.
+            </p>
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
-function PillarMini({ label, value, weight }: { label: string; value: number; weight: number }) {
-  const status = getPillarStatus(value);
-  const colorClass = status === 'strong' ? 'text-green-600 dark:text-green-400' :
-                     status === 'needs-work' ? 'text-amber-600 dark:text-amber-400' :
-                     'text-red-600 dark:text-red-400';
-  return (
-    <div>
-      <div className={`text-lg font-bold tabular-nums ${colorClass}`}>{value}%</div>
-      <div className="text-[10px] text-muted-foreground">{label} ({weight}%)</div>
-    </div>
-  );
-}
-
-function ReliabilityStat({ icon, label, value, detail }: { icon: React.ReactNode; label: string; value: string; detail: string }) {
-  return (
-    <div className="flex items-start gap-3">
-      <div className="mt-0.5 text-muted-foreground">{icon}</div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-baseline justify-between gap-2">
-          <span className="text-xs font-medium">{label}</span>
-          <span className="text-xs font-semibold tabular-nums">{value}</span>
-        </div>
-        <p className="text-[10px] text-muted-foreground">{detail}</p>
-      </div>
-    </div>
-  );
-}
-
-function GlanceStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <span className="text-sm font-semibold">{value}</span>
-    </div>
-  );
-}
 
 function DashboardSkeleton() {
   return (

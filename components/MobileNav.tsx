@@ -12,12 +12,8 @@ import {
 import { Button } from '@/components/ui/button';
 import {
   Menu,
-  ScrollText,
-  Compass,
   Activity,
   Landmark,
-  Vote,
-  Sparkles,
   Wallet,
   LogOut,
   User,
@@ -37,19 +33,12 @@ interface MobileNavProps {
   displayName: string | null;
 }
 
-const NAV_ITEMS = [
-  { href: '/discover', label: 'Discover', icon: Compass },
-  { href: '/proposals', label: 'Proposals', icon: ScrollText },
+const SECONDARY_NAV_ITEMS = [
   { href: '/pulse', label: 'Pulse', icon: Activity },
   { href: '/treasury', label: 'Treasury', icon: Landmark },
 ];
 
-const AUTH_NAV_ITEMS = [
-  { href: '/governance', label: 'My Governance', icon: Vote },
-];
-
 const DREP_NAV_ITEMS = [
-  { href: '/dashboard', label: 'DRep Dashboard', icon: Sparkles },
   { href: '/dashboard/inbox', label: 'Governance Inbox', icon: Inbox },
 ];
 
@@ -100,7 +89,10 @@ export function MobileNav({
           </SheetHeader>
 
           <nav className="flex flex-col gap-1 px-2">
-            {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
+            <p className="px-3 py-1 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Governance
+            </p>
+            {SECONDARY_NAV_ITEMS.map(({ href, label, icon: Icon }) => (
               <Link
                 key={href}
                 href={href}
@@ -115,27 +107,6 @@ export function MobileNav({
                 {label}
               </Link>
             ))}
-
-            {isAuthenticated && (
-              <>
-                <div className="my-2 border-t" />
-                {AUTH_NAV_ITEMS.map(({ href, label, icon: Icon }) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    className={cn(
-                      'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-colors',
-                      isActive(href)
-                        ? 'bg-primary/10 font-medium text-primary'
-                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                    )}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {label}
-                  </Link>
-                ))}
-              </>
-            )}
 
             {(ownDRepId || isAdmin) && (
               <>

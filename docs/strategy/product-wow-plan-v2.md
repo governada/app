@@ -1,6 +1,6 @@
 # Product "Wow" Plan v2 — DRepScore
 
-> From comprehensive governance tool to the app that makes the entire crypto space say "wow." Sessions 12-16 transform the product through emotional design, visual identity, architecture, intelligence, and social mechanics.
+> From comprehensive governance tool to the app that makes the entire crypto space say "wow." Sessions 12-17 transform the product through emotional design, visual identity, architecture, narrative, intelligence, and social mechanics.
 
 **Created:** March 2, 2026
 **Predecessors:** `product-wow-plan.md` (Sessions 1-7), `product-wow-plan-v1.5.md` (Sessions 8-11)
@@ -12,15 +12,17 @@
 
 1. [The Gap](#the-gap-impressive-tool-vs-transcendent-product)
 2. [Design Philosophy for v2](#design-philosophy-for-v2)
-3. [Current State Summary](#current-state-summary)
-4. [Session 12 — The 10-Second Hook](#session-12--the-10-second-hook)
-5. [Session 13 — DRep Identity System & Visual Signature](#session-13--drep-identity-system--visual-signature)
-6. [Session 14 — Experience Architecture Overhaul](#session-14--experience-architecture-overhaul)
-7. [Session 15 — Governance Intelligence Engine](#session-15--governance-intelligence-engine)
-8. [Session 16 — The Live Social Layer](#session-16--the-live-social-layer)
-9. [Execution Order](#execution-order-and-dependencies)
-10. [Anti-Patterns](#anti-patterns)
-11. [Deferred Items](#deferred-items)
+3. [North Star: The 100/100 Wow Score](#north-star-the-100100-wow-score)
+4. [Current State Summary](#current-state-summary)
+5. [Session 12 — The 10-Second Hook](#session-12--the-10-second-hook)
+6. [Session 13 — DRep Identity System & Visual Signature](#session-13--drep-identity-system--visual-signature)
+7. [Session 14 — Experience Architecture Overhaul](#session-14--experience-architecture-overhaul)
+8. [Session 15 — The Narrative & Feel Layer](#session-15--the-narrative--feel-layer)
+9. [Session 16 — Governance Intelligence Engine](#session-16--governance-intelligence-engine)
+10. [Session 17 — The Live Social Layer](#session-17--the-live-social-layer)
+11. [Execution Order](#execution-order-and-dependencies)
+12. [Anti-Patterns](#anti-patterns)
+13. [Deferred Items](#deferred-items)
 
 ---
 
@@ -54,6 +56,35 @@ These principles supersede all prior design guidance:
 - **Speed is a feature.** Every interaction must feel instant. If data takes time, the UI must feel alive while waiting — not empty.
 - **Every surface is shareable.** If it can't be screenshotted and look beautiful in a tweet, it's not done.
 - **Progressive complexity, not progressive disclosure.** Don't hide complexity — reveal it through narrative. "Your DRep scored 72 — here's what that means" is better than hiding the breakdown behind a toggle.
+
+---
+
+## North Star: The 100/100 Wow Score
+
+Our north star is getting DRepScore as close to 100/100 on a "wow" factor scale as possible. Every session plan should be evaluated against this metric. Agents working on independent sessions must assess how their changes move the needle.
+
+### Scoring Dimensions
+
+| Dimension | Weight | Description |
+|-----------|--------|-------------|
+| Visual Identity | 20% | Signature visuals, animation quality, screenshot shareability |
+| Emotional Impact | 20% | First-viewport hook, narrative, personality, delight moments |
+| IA & UX | 20% | Information architecture, navigation clarity, mobile experience |
+| Technical Excellence | 15% | Performance, SSR, loading states, error handling |
+| Content & Intelligence | 15% | Data narratives, AI summaries, cross-proposal insights |
+| Community & Social | 10% | Social proof, sharing, activity feeds, engagement loops |
+
+### Target Scores by Session
+
+| Session | Cumulative Score | Delta | Key Contributions |
+|---------|-----------------|-------|-------------------|
+| S12 + S13 (baseline) | ~48 | — | Visual identity, constellation, identity system |
+| S14 | ~62 | +14 | Architecture overhaul, nav, mobile-native, proposals feed |
+| S15 | ~85 | +23 | Narrative layer, page transitions, GHI, empty states |
+| S16 | ~93 | +8 | Intelligence engine, State of Governance, AI narratives |
+| S17 | ~97 | +4 | Social layer, activity feeds, developer platform |
+
+All agents working on sessions should internalize this scoring framework and proactively identify opportunities to push the score higher within their session's scope.
 
 ---
 
@@ -249,7 +280,7 @@ Session 12 gave the homepage a visual identity with the R3F constellation. Sessi
 - New route `/api/og/governance-identity/[drepId]`: Full-card image with DRep name, hex score, mini radar, identity-colored gradient background, DRepScore branding. This is what DReps share when they want to show their "governance personality."
 - Update existing `/api/og/drep/[drepId]`: Add mini radar, identity color gradient, modernized layout.
 - Update `/api/og/compare`: Both DReps' radars overlaid, dual identity-color gradients.
-- All OG images use `@vercel/og` `ImageResponse` with custom SVG rendering (not screenshots).
+- All OG images use `next/og` `ImageResponse` with custom SVG rendering (not screenshots).
 
 ### Current State (for agent context)
 
@@ -287,19 +318,28 @@ Session 12 gave the homepage a visual identity with the R3F constellation. Sessi
 
 Every major page stacks sections vertically in a linear scroll. The DRep profile is 8 sections. The dashboard is 15+. The governance page is 10+ cards. This creates cognitive overload and makes every page feel the same. This session establishes the "one-viewport answer" principle: every page answers its core question in the first viewport, with everything else organized as tabs or progressive depth.
 
-### What Changes
+### What Was Built
 
-**1. DRep profile page redesign.** Current: 8 sections stacked (ScoreCard → Milestones → ScoreHistory → TreasuryStance → Philosophy → Heatmap → About → VotingHistory). New: Hero viewport with Name + HexScore + Radar + identity label + key stats + Delegate/Compare CTAs, followed by tabbed depth ("Voting Record" / "Score Analysis" / "Treasury" / "About").
+**1. DRep profile page redesign with match score context.** 8 sections collapsed into 4 tabs (Score Analysis, Voting Record, Treasury & Philosophy, About) using a new `AnimatedTabs` component with directional Framer Motion transitions and URL hash deep-linking. Match score from DNA quiz is carried through to the profile hero via `?match=X` query param.
 
-**2. DRep Dashboard density reduction.** Current: 15+ sections in hero + 2-column layout. New: Executive summary card (score, rank, trend, delegators, open proposals) + three-tab layout ("Inbox & Actions" / "Performance" / "Delegators") + sidebar for onboarding, profile health, share tools.
+**2. Dashboard density reduction.** 15+ sections replaced with an executive summary hero strip (score + trend + rank + delegators + pending count), a `DashboardUrgentBar` for expiring proposals, and 3 tabs (Inbox & Actions, Performance, Sharing & Profile). 2-column layout removed.
 
-**3. Navigation simplification.** Current: 4-6 nav items (Proposals, Discover, Pulse, Treasury, My Governance, Dashboard). New: Discover + Governance (umbrella hub with sub-nav: Proposals | Pulse | Treasury | Calendar) + My Governance (auth) + Dashboard (DRep). Result: 2-4 items depending on auth state.
+**3. Navigation simplification.** Desktop: Discover | Proposals | My Delegation (auth) | Dashboard (DRep) — 2-4 items. "My Governance" renamed to "My Delegation". Pulse and Treasury removed from top-level nav, accessible via `GovernanceSubNav` on governance pages. Mobile: `MobileBottomNav` fixed bottom bar with auth-aware items, hamburger becomes secondary account/settings sheet.
 
-**4. Proposals as a feed.** Current: flat list with status tabs. New: prominence-ranked feed — critical proposals pinned, each card shows type badge + title + AI summary inline + vote progress bar + community sentiment + time remaining + "Your DRep's vote" badge.
+**4. Proposals feed enhancement.** Status tabs replaced with toggle filter chips. Prominence-ranked sort (default) based on expiry proximity + financial impact + vote count. Urgent proposals get red left border + "Urgent" badge.
 
-**5. Mobile-first layout pass.** Bottom navigation bar on mobile for primary actions (Discover / Governance / My Gov). Hamburger for secondary items. Touch targets minimum 44px. Tabs horizontal-scroll on mobile.
+**5. Pulse page SSR conversion.** Converted from client component to server component with Suspense boundaries. Leaderboard interactive filter extracted to `PulseLeaderboardClient`. `GovernanceSubNav` added.
 
-**6. Performance.** Server-render auth homepage governance summary (kill client fetch). Server-render pulse stats. Suspense boundaries with content-aware fallbacks. Lazy-load below-fold content.
+**6. Mobile-first polish.** 44px minimum touch targets on all tabs and nav items. Snap scrolling on tab bars. Safe area inset padding on bottom nav. Main content `pb-16` offset on mobile for bottom nav.
+
+### Decisions Made
+
+- **No URL restructuring.** Routes kept at `/proposals`, `/pulse`, `/treasury`. `GovernanceSubNav` provides lateral navigation instead.
+- **Dashboard stays client-rendered.** SSR complexity for an auth-gated page was not worth the marginal gain. Pulse page was SSR'd instead (higher impact for public visitors).
+- **No sidebar on dashboard.** Compact executive summary strip above tabs replaces the old 2-column layout.
+- **Proposals stays top-level in nav.** Highest-traffic governance page — burying it in a dropdown adds friction.
+- **"My Governance" renamed to "My Delegation."** More specific, avoids confusion with public governance pages. URL unchanged.
+- **Match score carried to DRep profile.** `DRepCardGrid` appends `?match=X` to profile links when match data exists. `DRepProfileHero` displays it in identity color.
 
 ### Current State (for agent context)
 
@@ -321,13 +361,65 @@ Every major page stacks sections vertically in a linear scroll. The DRep profile
 
 ### Risks
 
-- Navigation restructure changes URL structure — need redirects from old routes if `/pulse` and `/treasury` become sub-routes of `/governance`
-- Tabbed DRep profile changes how deep-linking to sections works (need hash or query-param based tab selection)
-- Bottom mobile nav z-index must layer correctly with existing sheets and modals
+- Tab deep-linking with SSR: Hash fragments aren't available server-side. `AnimatedTabs` defaults to first tab on SSR, reads hash client-side on mount.
+- Bottom nav z-index stacking: Must layer below modals (z-40) but above content. Tested with existing sheets and modals.
+- Proposals feed prominence sorting: Simple computation — expiry proximity + financial impact + vote count.
+- Strategy doc consistency: Session renumbering (S15→S16, S16→S17) required careful cross-reference updates.
 
 ---
 
-## Session 15 — Governance Intelligence Engine
+## Session 15 — The Narrative & Feel Layer
+
+### Thesis
+
+Session 14 restructured the architecture. Session 15 makes every page tell a story and feel alive. This session pulls forward the highest-impact emotional items that don't require the full intelligence engine (Session 16) or social infrastructure (Session 17).
+
+### What Changes
+
+**1. Template-based narrative summaries.** `NarrativeSummary` component with smart interpolation from existing data:
+- DRep profile (below hero): "A transparency-focused DRep who votes on 87% of proposals and always provides reasoning..."
+- Proposals page (hero): "14 proposals are open. 3 expire this epoch, requesting 42M ADA..."
+- Dashboard (hero): "You have 3 proposals awaiting your vote. Score up 5 points..."
+- Pulse page (hero): "Governance is heating up: 847 votes this week, up 34%..."
+
+**2. Page-level Framer Motion route transitions.** `AnimatePresence` at the layout level. Content slides directionally on navigation. The single strongest signal that separates "app" from "website."
+
+**3. Proposals command-center hero.** Compact hero above the feed: "X Open | Y Expiring Soon | Z ADA at Stake" with animated counters and urgency indicators.
+
+**4. Governance Health Index (GHI) — just the number.** Computed from existing data: Participation Rate (25%), Rationale Rate (20%), Delegation Concentration/Gini (15%), Proposal Throughput (15%), Representation Alignment (15%), DRep Diversity (10%). Displayed as large number + gauge on Pulse hero, homepage stat strip, treasury page. No State of Governance report or AI narration — that comes in Session 16.
+
+**5. Lightweight cross-proposal insights.** 2-3 static computations from existing `drep_votes`, `vote_rationales`, `proposals` tables. E.g., "DReps who provide rationale are X times more likely to vote No." Displayed as insight cards on Pulse page.
+
+**6. Social proof indicators.** Surface existing data: "X people viewed this DRep this week" (from `views` table), "X delegators polled on this" (from `poll_responses`).
+
+**7. Activity feed on Pulse page.** Reuse `ActivityTicker` component from homepage. Makes the governance section feel alive.
+
+**8. Content-aware loading skeletons.** Skeletons that match the shape of real content (tab skeletons, card skeletons, hero skeletons) instead of generic gray rectangles.
+
+**9. Enhanced empty states.** Identity-color gradient backgrounds, warm copy. Empty states should be charming, not clinical.
+
+**10. "What is Cardano Governance?" explainer for anonymous users.** Lightweight section accessible from homepage. Not a tutorial — 30 seconds of context for crypto-savvy non-Cardano users. Bridges the gap from "curious outsider" to "I understand what this is."
+
+**11. Mini GovernanceRadar badges on proposal voter lists.** In `ProposalVotersClient`, add `GovernanceRadar size="mini"` (32px) next to each voter's name. Connects the Session 13 identity system to the proposal experience.
+
+### Success Criteria
+
+- Every page tells a story in its first viewport — not just displays data
+- Page transitions make navigation feel like an app, not a website
+- GHI becomes a recognizable number in the Cardano community
+- Empty states make users smile, not bounce
+- Anonymous visitors understand what Cardano governance is within 30 seconds
+
+### Risks
+
+- GHI component weights are opinionated — publish methodology transparently
+- Route transitions can feel slow if animation duration is too high — keep under 300ms
+- Narrative summaries must handle edge cases (zero votes, new DReps, etc.) gracefully
+- "What is Cardano Governance?" must not feel like a tutorial — keep it under 30 seconds of reading
+
+---
+
+## Session 16 — Governance Intelligence Engine
 
 ### Thesis
 
@@ -346,6 +438,8 @@ DRepScore has all the data to generate insights nobody else in crypto can create
 **5. Cross-chain governance benchmarking.** Section comparing Cardano governance to Ethereum (Tally), Polkadot (OpenGov), Cosmos (Mintscan): participation rates, delegate counts, proposal throughput. Initially static/manually maintained data in a `governance_benchmarks` table. Positions DRepScore as THE governance platform, not just a Cardano tool.
 
 **6. Enhanced AI governance brief.** Upgrade `lib/governanceBrief.ts` from template-based to Claude-narrated: same data context, AI generates a warm 200-word narrative including cross-proposal insights and GHI change. Budget control via cached shared insights.
+
+**7. Post-vote rationale prompt for DReps.** Detect when a DRep has cast a new on-chain vote (from sync pipeline) and surface a contextual "Explain your vote on [Proposal X]" nudge in the dashboard urgent actions bar or inbox. Links directly to the VoteExplanationEditor with the proposal pre-selected.
 
 ### Current State (for agent context)
 
@@ -374,7 +468,7 @@ DRepScore has all the data to generate insights nobody else in crypto can create
 
 ---
 
-## Session 16 — The Live Social Layer
+## Session 17 — The Live Social Layer
 
 ### Thesis
 
@@ -392,12 +486,12 @@ DRepScore is a read-only analytical tool where all communication is one-directio
 
 **5. Developer experience for v1 API.** New `/developers` page: interactive API explorer, code examples (JS, Python, cURL), embed widget generator, use cases. API keys for Pro tier (manual approval initially). Rate limits: 100/min public, 1000/min Pro. Every Cardano dApp that integrates becomes a distribution channel.
 
-**6. Governance achievement NFTs (stretch goal).** Milestone badges as on-chain CIP-25 NFTs: mint when DRep achieves a milestone, NFT image features the milestone badge with governance identity radar. Builds minting transaction via MeshSDK. Only build if Sessions 12-15 ship cleanly.
+**6. Governance achievement NFTs (stretch goal).** Milestone badges as on-chain CIP-25 NFTs: mint when DRep achieves a milestone, NFT image features the milestone badge with governance identity radar. Builds minting transaction via MeshSDK. Only build if Sessions 12-16 ship cleanly.
 
 ### Current State (for agent context)
 
 - `components/DRepCommunicationFeed.tsx` — Shows one-way feed (explanations, positions, philosophy) from `/api/governance/drep-feed`
-- `components/ActivityTicker.tsx` — Built in Session 12, horizontal scrolling governance feed on homepage. Session 16 extends platform-wide.
+- `components/ActivityTicker.tsx` — Built in Session 12, horizontal scrolling governance feed on homepage. Session 17 extends platform-wide.
 - Profile views tracked in `views` table, `components/ProfileViewStats.tsx` exists
 - v1 API: 7 routes (`/api/v1/dreps`, `/api/v1/dreps/[drepId]`, `/api/v1/dreps/[drepId]/votes`, `/api/v1/dreps/[drepId]/history`, `/api/v1/proposals`, `/api/v1/embed/[drepId]`, `/api/v1/governance/health`)
 - Share infrastructure: 13 OG image routes, `ShareActions` component, `WrappedShareCard`, `DelegatorShareCard`, `DRepReportCard`, `BadgeEmbed`
@@ -426,14 +520,17 @@ DRepScore is a read-only analytical tool where all communication is one-directio
 graph LR
     S12[Session 12: Hook] --> S13[Session 13: Visual DNA]
     S13 --> S14[Session 14: Architecture]
-    S14 --> S15[Session 15: Intelligence]
-    S14 --> S16[Session 16: Social Layer]
+    S14 --> S15[Session 15: Narrative & Feel]
+    S15 --> S16[Session 16: Intelligence]
+    S16 --> S17[Session 17: Social Layer]
 ```
 
 - **Session 12** ships first — it's the front door. Everything else is less impactful if the first impression doesn't convert.
 - **Session 13** ships before 14 because the visual identity (radar, hex score, identity colors) is used in the architecture redesign.
-- **Session 14** establishes the layout framework that Sessions 15 and 16 content lives within.
-- **Sessions 15 and 16** can be parallelized or sequenced in either order.
+- **Session 14** establishes the layout framework that all subsequent content lives within.
+- **Session 15** adds the narrative and emotional layer that makes the architecture feel alive.
+- **Session 16** builds on Session 15's narrative infrastructure with full intelligence capabilities.
+- **Sessions 16 and 17** can be parallelized once Session 15 ships.
 
 Each session gets its own worktree (`drepscore-<session-name>`) and detailed implementation plan (`.cursor/plans/<session>.plan.md`) before building begins.
 
@@ -458,9 +555,11 @@ In addition to all anti-patterns from v1 and v1.5:
 |------|-----------|
 | On-chain rationale/voting submission | Monitor GovTool usage patterns first. If DReps consistently draft in DRepScore then context-switch to GovTool, demand signal is clear. |
 | AI score coach chatbot | Score Simulator + AI brief cover the "how do I improve" use case. Revisit when demand signal emerges. |
-| Proposal discussion threads | Q&A channel in Session 16 is the lightweight version. Full threading has high moderation overhead. |
+| Proposal discussion threads | Q&A channel in Session 17 is the lightweight version. Full threading has high moderation overhead. |
 | Multi-DRep team dashboard | Very few organizations run team DReps. Revisit when demand signals emerge. |
 | View Transitions API | Browser support still experimental in 2026. Framer Motion (Session 13) covers animation needs. |
 | Custom iconography | Lucide is high quality and consistent. Custom icons require a designer. |
+| Route-level URL restructuring for governance pages | Sub-nav achieves the same UX benefit without SEO/redirect risk. |
+| Floating compare tray while browsing DReps | Complex interaction design. Revisit post-S17. |
 | Sound design | Potential polish item after Sessions 12-16 ship. |
 | Internationalization | Important but separate workstream — doesn't affect the "wow" factor for English-speaking crypto audience. |

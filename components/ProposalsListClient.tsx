@@ -62,8 +62,7 @@ const TYPE_CONFIG: Record<string, { label: string; icon: typeof Landmark; color:
   UpdateConstitution: { label: 'Constitution', icon: Scale, color: 'bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/30', borderColor: 'border-l-purple-500', iconBg: 'bg-purple-500/15 text-purple-600 dark:text-purple-400' },
 };
 
-type SortKey = 'date' | 'votes' | 'title';
-type StatusTab = 'open' | 'closed' | 'all';
+type SortKey = 'prominence' | 'date' | 'votes' | 'title';
 
 interface DRepVoteMap {
   [key: string]: 'Yes' | 'No' | 'Abstain';
@@ -95,14 +94,32 @@ function DRepVoteIndicator({ vote }: { vote: 'Yes' | 'No' | 'Abstain' | null }) 
   );
 }
 
+function getProminenceScore(p: ProposalWithVoteSummary, currentEpoch: number): number {
+  let score = 0;
+  const status = getProposalStatus(p);
+  if (status !== 'open') return score;
+
+  const epochsLeft = (p.expirationEpoch ?? 999) - currentEpoch;
+  if (epochsLeft <= 2) score += 100;
+  else if (epochsLeft <= 5) score += 60;
+  else score += 20;
+
+  if (p.proposalType === 'TreasuryWithdrawals') score += 30;
+  else if (p.proposalType === 'ParameterChange' || p.proposalType === 'HardForkInitiation') score += 25;
+
+  score += Math.min(p.totalVotes, 50);
+  return score;
+}
+
 export function ProposalsListClient({ proposals, watchlist = [], currentEpoch }: ProposalsListClientProps) {
   const { delegatedDrepId } = useWallet();
   const [typeFilter, setTypeFilter] = useState<string>('all');
-  const [sortKey, setSortKey] = useState<SortKey>('date');
+  const [sortKey, setSortKey] = useState<SortKey>('prominence');
   const [searchQuery, setSearchQuery] = useState('');
   const [showWatchlistOnly, setShowWatchlistOnly] = useState(false);
   const [showMyDrepOnly, setShowMyDrepOnly] = useState(false);
-  const [statusTab, setStatusTab] = useState<StatusTab>('open');
+  const [showOpen, setShowOpen] = useState(true);
+  const [showClosed, setShowClosed] = useState(false);
   const [drepVotes, setDrepVotes] = useState<DRepVoteMap>({});
 
   // Fetch delegated DRep's votes client-side for the vote indicator
@@ -149,14 +166,13 @@ export function ProposalsListClient({ proposals, watchlist = [], currentEpoch }:
   const filtered = useMemo(() => {
     let result = proposals;
 
-    // Status tab filter
-    if (statusTab === 'open') {
+    // Status chip filters
+    if (showOpen && !showClosed) {
       result = result.filter(p => getProposalStatus(p) === 'open');
-    } else if (statusTab === 'closed') {
+    } else if (showClosed && !showOpen) {
       result = result.filter(p => getProposalStatus(p) !== 'open');
     }
 
-    // Search filter
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter(p =>
@@ -167,24 +183,23 @@ export function ProposalsListClient({ proposals, watchlist = [], currentEpoch }:
       );
     }
 
-    // Type filter
     if (typeFilter !== 'all') {
       result = result.filter(p => p.proposalType === typeFilter);
     }
 
-    // Watchlist filter
     if (showWatchlistOnly && watchlist.length > 0) {
       const wSet = new Set(watchlist);
       result = result.filter(p => p.voterDrepIds.some(id => wSet.has(id)));
     }
 
-    // My DRep filter
     if (showMyDrepOnly && delegatedDrepId) {
       result = result.filter(p => p.voterDrepIds.includes(delegatedDrepId));
     }
 
     result = [...result].sort((a, b) => {
       switch (sortKey) {
+        case 'prominence':
+          return getProminenceScore(b, currentEpoch) - getProminenceScore(a, currentEpoch);
         case 'date':
           return (b.blockTime || 0) - (a.blockTime || 0);
         case 'votes':
@@ -196,29 +211,10 @@ export function ProposalsListClient({ proposals, watchlist = [], currentEpoch }:
       }
     });
     return result;
-  }, [proposals, typeFilter, sortKey, searchQuery, showWatchlistOnly, showMyDrepOnly, watchlist, delegatedDrepId, statusTab]);
+  }, [proposals, typeFilter, sortKey, searchQuery, showWatchlistOnly, showMyDrepOnly, watchlist, delegatedDrepId, showOpen, showClosed, currentEpoch]);
 
   return (
     <div className="space-y-4">
-      {/* Status Tabs */}
-      <div className="flex gap-1 border-b">
-        {(['open', 'closed', 'all'] as StatusTab[]).map(tab => (
-          <button
-            key={tab}
-            onClick={() => preserveScroll(() => setStatusTab(tab))}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-              statusTab === tab
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {tab === 'open' ? `Open (${statusCounts.open})` :
-             tab === 'closed' ? `Closed (${statusCounts.closed})` :
-             `All (${statusCounts.all})`}
-          </button>
-        ))}
-      </div>
-
       {/* Search */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -230,31 +226,36 @@ export function ProposalsListClient({ proposals, watchlist = [], currentEpoch }:
         />
       </div>
 
-      {/* Filters Row */}
+      {/* Filter Chips */}
       <div className="flex flex-wrap items-center gap-2">
+        <Button
+          variant={showOpen ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => preserveScroll(() => setShowOpen(!showOpen))}
+          className="gap-1 text-xs h-7"
+        >
+          Open ({statusCounts.open})
+        </Button>
+        <Button
+          variant={showClosed ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => preserveScroll(() => setShowClosed(!showClosed))}
+          className="gap-1 text-xs h-7"
+        >
+          Closed ({statusCounts.closed})
+        </Button>
+
         <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filter by type" />
+          <SelectTrigger className="w-[160px] h-7 text-xs">
+            <SelectValue placeholder="Type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Types ({proposals.length})</SelectItem>
+            <SelectItem value="all">All Types</SelectItem>
             {types.map(t => (
               <SelectItem key={t} value={t}>
-                {TYPE_CONFIG[t]?.label || t} ({proposals.filter(p => p.proposalType === t).length})
+                {TYPE_CONFIG[t]?.label || t}
               </SelectItem>
             ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
-          <SelectTrigger className="w-[160px]">
-            <ArrowUpDown className="h-3.5 w-3.5 mr-1.5" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="date">Newest First</SelectItem>
-            <SelectItem value="votes">Most Votes</SelectItem>
-            <SelectItem value="title">Title A-Z</SelectItem>
           </SelectContent>
         </Select>
 
@@ -263,9 +264,9 @@ export function ProposalsListClient({ proposals, watchlist = [], currentEpoch }:
             variant={showMyDrepOnly ? 'default' : 'outline'}
             size="sm"
             onClick={() => preserveScroll(() => setShowMyDrepOnly(!showMyDrepOnly))}
-            className="gap-1.5"
+            className="gap-1 text-xs h-7"
           >
-            <UserCheck className="h-3.5 w-3.5" />
+            <UserCheck className="h-3 w-3" />
             My DRep
           </Button>
         )}
@@ -275,16 +276,30 @@ export function ProposalsListClient({ proposals, watchlist = [], currentEpoch }:
             variant={showWatchlistOnly ? 'default' : 'outline'}
             size="sm"
             onClick={() => preserveScroll(() => setShowWatchlistOnly(!showWatchlistOnly))}
-            className="gap-1.5"
+            className="gap-1 text-xs h-7"
           >
-            <Heart className="h-3.5 w-3.5" />
+            <Heart className="h-3 w-3" />
             Watchlist
           </Button>
         )}
 
-        <span className="text-sm text-muted-foreground ml-auto">
-          {filtered.length} proposals
-        </span>
+        <div className="ml-auto flex items-center gap-2">
+          <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
+            <SelectTrigger className="w-[150px] h-7 text-xs">
+              <ArrowUpDown className="h-3 w-3 mr-1" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="prominence">Most Relevant</SelectItem>
+              <SelectItem value="date">Newest First</SelectItem>
+              <SelectItem value="votes">Most Votes</SelectItem>
+              <SelectItem value="title">Title A-Z</SelectItem>
+            </SelectContent>
+          </Select>
+          <span className="text-xs text-muted-foreground whitespace-nowrap">
+            {filtered.length} result{filtered.length !== 1 ? 's' : ''}
+          </span>
+        </div>
       </div>
 
       {/* Proposals List */}
@@ -302,13 +317,15 @@ export function ProposalsListClient({ proposals, watchlist = [], currentEpoch }:
           const isOpen = status === 'open';
           const voteKey = `${p.txHash}-${p.proposalIndex}`;
           const drepVote = delegatedDrepId ? (drepVotes[voteKey] || null) : null;
+          const epochsLeft = (p.expirationEpoch ?? 999) - currentEpoch;
+          const isUrgent = isOpen && epochsLeft <= 2 && epochsLeft > 0;
 
           return (
             <Link
               key={voteKey}
               href={`/proposals/${p.txHash}/${p.proposalIndex}`}
             >
-              <Card className={`hover:bg-muted/30 transition-colors cursor-pointer group mb-3 border-l-4 ${config?.borderColor || 'border-l-primary'}`}>
+              <Card className={`hover:bg-muted/30 transition-colors cursor-pointer group mb-3 border-l-4 ${isUrgent ? 'border-l-red-500 bg-red-500/5' : (config?.borderColor || 'border-l-primary')}`}>
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
                     {TypeIcon && (
@@ -325,6 +342,11 @@ export function ProposalsListClient({ proposals, watchlist = [], currentEpoch }:
                           droppedEpoch={p.droppedEpoch}
                           expiredEpoch={p.expiredEpoch}
                         />
+                        {isUrgent && (
+                          <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4">
+                            Urgent
+                          </Badge>
+                        )}
                         <PriorityBadge proposalType={p.proposalType} />
                         <TypeExplainerTooltip proposalType={p.proposalType} />
                         {p.treasuryTier && <TreasuryTierBadge tier={p.treasuryTier} />}
