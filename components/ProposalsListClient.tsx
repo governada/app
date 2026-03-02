@@ -398,7 +398,16 @@ export function ProposalsListClient({ proposals, watchlist = [], currentEpoch }:
         })}
       </div>
 
-      {filtered.length === 0 && (
+      {filtered.length === 0 && proposals.length === 0 && (
+        <EmptyState
+          icon="clock"
+          title="Proposals syncing"
+          message="Proposal data hasn't been synced yet. This usually resolves within a few minutes — check back shortly."
+          compact
+          component="proposals_list"
+        />
+      )}
+      {filtered.length === 0 && proposals.length > 0 && (
         <EmptyState
           icon="search"
           title="The pipeline is quiet"
