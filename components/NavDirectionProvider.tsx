@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useRef, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { type NavDirection } from '@/lib/animations';
 
@@ -31,7 +31,6 @@ function inferDirection(prev: string, next: string): NavDirection {
   if (nextDepth > prevDepth) return 'forward';
   if (nextDepth < prevDepth) return 'backward';
 
-  // Same depth — lateral navigation between top-level sections
   const prevBase = '/' + (prev.split('/')[1] ?? '');
   const nextBase = '/' + (next.split('/')[1] ?? '');
   if (GOVERNANCE_ROUTES.has(prevBase) && GOVERNANCE_ROUTES.has(nextBase)) {
@@ -43,20 +42,16 @@ function inferDirection(prev: string, next: string): NavDirection {
 
 export function NavDirectionProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const prevPathRef = useRef('');
-  const directionRef = useRef<NavDirection>('neutral');
+  const prevPathRef = useRef(pathname);
+  const [direction, setDirection] = useState<NavDirection>('neutral');
 
-  const computeDirection = useCallback(() => {
-    if (prevPathRef.current && prevPathRef.current !== pathname) {
-      directionRef.current = inferDirection(prevPathRef.current, pathname);
-    } else {
-      directionRef.current = 'neutral';
+  useEffect(() => {
+    const prev = prevPathRef.current;
+    if (prev !== pathname) {
+      setDirection(inferDirection(prev, pathname));
+      prevPathRef.current = pathname;
     }
-    prevPathRef.current = pathname;
-    return directionRef.current;
   }, [pathname]);
-
-  const direction = computeDirection();
 
   return (
     <NavDirectionContext.Provider value={direction}>
