@@ -41,6 +41,8 @@ import { BadgeEmbed } from '@/components/BadgeEmbed';
 import { WrappedShareCard } from '@/components/WrappedShareCard';
 import { ScoreChangeMoment } from '@/components/ScoreChangeMoment';
 import { DashboardUrgentBar } from '@/components/DashboardUrgentBar';
+import { MilestoneCelebrationManager } from '@/components/MilestoneCelebration';
+import { DRepQuestionsInbox } from '@/components/DRepQuestionsInbox';
 import { AnimatedTabs, type TabDefinition } from '@/components/AnimatedTabs';
 import { applyRationaleCurve, getMissingProfileFields } from '@/utils/scoring';
 import { generateDashboardNarrative } from '@/lib/narratives';
@@ -114,6 +116,7 @@ export default function MyDRepPage() {
   const [selectedDRepId, setSelectedDRepId] = useState<string | null>(null);
   const [drepList, setDrepList] = useState<DRepListItem[]>([]);
   const [inboxPendingCount, setInboxPendingCount] = useState(0);
+  const [milestoneData, setMilestoneData] = useState<{ milestones: { milestoneKey: string; achievedAt: string }[]; lastVisit: string | null } | null>(null);
 
   // Check admin status — use sessionAddress if authenticated, fall back to connected address
   const adminCheckAddress = sessionAddress || address;
@@ -198,6 +201,19 @@ export default function MyDRepPage() {
       .then(d => { if (d?.pendingCount) setInboxPendingCount(d.pendingCount); })
       .catch(() => {});
   }, [activeDRepId]);
+
+  useEffect(() => {
+    if (!activeDRepId || !sessionAddress) return;
+    Promise.all([
+      fetch(`/api/dreps/${encodeURIComponent(activeDRepId)}/milestones`).then(r => r.ok ? r.json() : null),
+      fetch(`/api/users/last-visit?wallet=${encodeURIComponent(sessionAddress)}`).then(r => r.ok ? r.json() : null),
+    ]).then(([ms, lv]) => {
+      setMilestoneData({
+        milestones: ms?.milestones || [],
+        lastVisit: lv?.lastVisit || null,
+      });
+    }).catch(() => {});
+  }, [activeDRepId, sessionAddress]);
 
   const handleDRepSelect = (drepId: string) => {
     setSelectedDRepId(drepId);
@@ -335,6 +351,16 @@ export default function MyDRepPage() {
         <DashboardUrgentBar drepId={drep.drepId} />
       </div>
 
+      {/* Milestone Celebrations */}
+      {milestoneData && (
+        <MilestoneCelebrationManager
+          drepId={drep.drepId}
+          drepName={drep.name || drep.drepId.slice(0, 20)}
+          achievedMilestones={milestoneData.milestones}
+          lastVisit={milestoneData.lastVisit}
+        />
+      )}
+
       {/* Three-Tab Layout */}
       <DashboardTabs
         drep={drep}
@@ -371,6 +397,7 @@ function DashboardTabs({
       content: (
         <div className="space-y-6">
           <GovernanceInboxWidget drepId={drep.drepId} />
+          <DRepQuestionsInbox drepId={drep.drepId} />
           <DRepDashboard drep={drep} scoreHistory={scoreHistory} />
           <ScoreSimulator drepId={drep.drepId} pendingCount={inboxPendingCount} />
         </div>

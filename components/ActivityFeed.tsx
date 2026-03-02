@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Vote, FileText, Users, ScrollText } from 'lucide-react';
+import { Vote, FileText, Users, ScrollText, TrendingUp, CheckCircle2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Activity } from 'lucide-react';
 
 interface ActivityEvent {
-  type: 'vote' | 'rationale' | 'proposal';
+  type: 'vote' | 'rationale' | 'proposal' | 'score_change' | 'proposal_outcome';
   drepId: string;
   drepName: string | null;
   detail: string | null;
@@ -19,6 +19,8 @@ const EVENT_ICONS: Record<string, { icon: typeof Vote; color: string; bg: string
   rationale: { icon: ScrollText, color: 'text-blue-400', bg: 'bg-blue-500/10' },
   proposal: { icon: FileText, color: 'text-amber-400', bg: 'bg-amber-500/10' },
   delegation: { icon: Users, color: 'text-purple-400', bg: 'bg-purple-500/10' },
+  score_change: { icon: TrendingUp, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
+  proposal_outcome: { icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
 };
 
 function formatRelativeTime(timestamp: number): string {
@@ -41,6 +43,10 @@ function formatEventText(event: ActivityEvent): string {
       return `${name} published rationale`;
     case 'proposal':
       return event.detail ? `New: ${event.detail}` : 'New proposal submitted';
+    case 'score_change':
+      return event.detail || `${name} score changed`;
+    case 'proposal_outcome':
+      return event.detail || 'Proposal outcome recorded';
     default:
       return '';
   }

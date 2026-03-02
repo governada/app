@@ -98,3 +98,36 @@ export const hexMorph: Variants = {
     transition: spring.bouncy,
   },
 };
+
+/* ──────────────────────────────────────────────
+   Page transition variants — directional
+   Used by template.tsx via NavDirectionProvider.
+   ────────────────────────────────────────────── */
+
+export type NavDirection = 'forward' | 'backward' | 'neutral';
+
+const SLIDE_PX = 60;
+
+export const pageTransitionVariants: Variants = {
+  enterForward: { opacity: 0, x: SLIDE_PX },
+  enterBackward: { opacity: 0, x: -SLIDE_PX },
+  enterNeutral: { opacity: 0, y: 8 },
+  center: { opacity: 1, x: 0, y: 0 },
+};
+
+export function getPageTransition(direction: NavDirection): Transition {
+  return direction === 'neutral'
+    ? spring.smooth
+    : { type: 'spring', stiffness: 300, damping: 28, mass: 0.8 };
+}
+
+export function getPageInitial(direction: NavDirection) {
+  switch (direction) {
+    case 'forward':
+      return 'enterForward';
+    case 'backward':
+      return 'enterBackward';
+    default:
+      return 'enterNeutral';
+  }
+}

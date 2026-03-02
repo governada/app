@@ -26,6 +26,7 @@ import { SentimentPoll } from '@/components/SentimentPoll';
 import { FinancialImpactCard } from '@/components/FinancialImpactCard';
 import { TreasuryAccountabilityPoll } from '@/components/TreasuryAccountabilityPoll';
 import { SimilarProposalsCard } from '@/components/SimilarProposalsCard';
+import { SocialProofBadge } from '@/components/SocialProofBadge';
 
 interface ProposalDetailPageProps {
   params: Promise<{ txHash: string; index: string }>;
@@ -153,6 +154,9 @@ export default async function ProposalDetailPage({ params }: ProposalDetailPageP
 
       {/* DRep Vote Callout */}
       <DRepVoteCallout txHash={txHash} proposalIndex={proposalIndex} />
+
+      {/* Community Engagement */}
+      <SocialProofBadge proposalTxHash={txHash} proposalIndex={proposalIndex} variant="poll" />
 
       {/* Community Sentiment Poll */}
       <SentimentPoll txHash={txHash} proposalIndex={proposalIndex} isOpen={isOpen} />

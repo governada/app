@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Providers } from "@/components/Providers";
 import { BrandedLoader } from "@/components/BrandedLoader";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
+import { NavDirectionProvider } from "@/components/NavDirectionProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -54,19 +55,21 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <Providers>
-            <BrandedLoader />
-            <a
-              href="#main-content"
-              className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:outline-none"
-            >
-              Skip to main content
-            </a>
-            <HeaderClient />
-            <main id="main-content" className="min-h-screen pb-16 sm:pb-0" tabIndex={-1}>
-              {children}
-            </main>
-            <Footer />
-            <MobileBottomNav />
+            <NavDirectionProvider>
+              <BrandedLoader />
+              <a
+                href="#main-content"
+                className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:outline-none"
+              >
+                Skip to main content
+              </a>
+              <HeaderClient />
+              <main id="main-content" className="min-h-screen pb-16 sm:pb-0" tabIndex={-1}>
+                {children}
+              </main>
+              <Footer />
+              <MobileBottomNav />
+            </NavDirectionProvider>
           </Providers>
         </ThemeProvider>
       </body>

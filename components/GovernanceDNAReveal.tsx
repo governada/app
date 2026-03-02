@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Dna, RefreshCw, ArrowRight } from 'lucide-react';
+import { Dna, RefreshCw, ArrowRight, Share2 } from 'lucide-react';
 import Link from 'next/link';
 import { ShareActions } from '@/components/ShareActions';
 import { posthog } from '@/lib/posthog';
@@ -105,16 +105,26 @@ export function GovernanceDNAReveal({ result, onRetake }: GovernanceDNARevealPro
           The DRep grid below is now sorted by your match.
         </p>
 
-        {/* Share your Governance DNA */}
+        {/* Share your Governance DNA — prominent callout */}
         {result.topMatches.length > 0 && (
-          <ShareActions
-            url="https://drepscore.io/discover"
-            text={`I took the Governance DNA Quiz on @drepscore! My top match: ${result.topMatches[0].name} (${result.topMatches[0].matchScore}%). Find your ideal DRep:`}
-            imageUrl={`/api/og/governance-dna?votes=${result.votesCount}${result.topMatches.slice(0, 3).map((m, i) => `&m${i + 1}name=${encodeURIComponent(m.name)}&m${i + 1}score=${m.matchScore}`).join('')}`}
-            imageFilename="my-governance-dna.png"
-            surface="governance_dna"
-            metadata={{ votes_count: result.votesCount, top_match: result.topMatches[0]?.drepId }}
-          />
+          <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Share2 className="h-4 w-4 text-primary" />
+              <p className="text-sm font-medium">Share your Governance DNA</p>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Show the Cardano community your governance personality.
+              Your top match: <span className="font-semibold text-foreground">{result.topMatches[0].name}</span> ({result.topMatches[0].matchScore}%)
+            </p>
+            <ShareActions
+              url="https://drepscore.io/discover"
+              text={`I took the Governance DNA Quiz on @drepscore! My top match: ${result.topMatches[0].name} (${result.topMatches[0].matchScore}%). Find your ideal DRep:`}
+              imageUrl={`/api/og/governance-dna?votes=${result.votesCount}${result.topMatches.slice(0, 3).map((m, i) => `&m${i + 1}name=${encodeURIComponent(m.name)}&m${i + 1}score=${m.matchScore}`).join('')}`}
+              imageFilename="my-governance-dna.png"
+              surface="governance_dna"
+              metadata={{ votes_count: result.votesCount, top_match: result.topMatches[0]?.drepId }}
+            />
+          </div>
         )}
 
         <div className="flex gap-2 pt-1">
