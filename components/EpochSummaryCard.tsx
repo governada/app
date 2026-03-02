@@ -60,7 +60,9 @@ export function EpochSummaryCard({ epoch, summary }: EpochSummaryCardProps) {
         <CardAction>
           <ShareActions
             url={`${siteUrl}/?epoch=${epoch}`}
-            text={`Cardano Epoch ${epoch} governance recap via @DRepScore`}
+            text={`Cardano Epoch ${epoch} governance recap via @DRepScore — ${summary.drepVoteCount} DRep votes, ${summary.proposalsOpened} proposals opened.`}
+            imageUrl={`/api/og/epoch-summary?epoch=${epoch}&votes=${summary.drepVoteCount}&rationales=${summary.drepRationaleCount}&proposals=${summary.proposalsOpened}${summary.representationScore != null ? `&repScore=${summary.representationScore}` : ''}`}
+            imageFilename={`epoch-${epoch}-summary.png`}
             surface="epoch_summary_card"
             metadata={{ epoch }}
             variant="compact"

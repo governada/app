@@ -1,14 +1,22 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { spring } from '@/lib/animations';
+import { useNavDirection } from '@/components/NavDirectionProvider';
+import {
+  pageTransitionVariants,
+  getPageTransition,
+  getPageInitial,
+} from '@/lib/animations';
 
 export default function Template({ children }: { children: React.ReactNode }) {
+  const direction = useNavDirection();
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={spring.smooth}
+      variants={pageTransitionVariants}
+      initial={getPageInitial(direction)}
+      animate="center"
+      transition={getPageTransition(direction)}
     >
       {children}
     </motion.div>

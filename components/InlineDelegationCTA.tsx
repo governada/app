@@ -14,6 +14,7 @@ import {
 import { DelegationRisksModal } from './InfoModal';
 import { DelegationCeremony } from './DelegationCeremony';
 import { useState } from 'react';
+import { type AlignmentScores } from '@/lib/drepIdentity';
 
 interface InlineDelegationCTAProps {
   drepId: string;
@@ -40,6 +41,7 @@ export function InlineDelegationCTA({ drepId, drepName }: InlineDelegationCTAPro
   } = useDelegation();
   const [showCeremony, setShowCeremony] = useState(false);
   const [ceremonyScore, setCeremonyScore] = useState(0);
+  const [ceremonyAlignments, setCeremonyAlignments] = useState<AlignmentScores | undefined>(undefined);
 
   const isAlreadyDelegated = !!delegatedDrepId && delegatedDrepId === drepId;
 
@@ -56,7 +58,19 @@ export function InlineDelegationCTA({ drepId, drepName }: InlineDelegationCTAPro
     if (result) {
       fetch(`/api/dreps/${encodeURIComponent(drepId)}`)
         .then(r => r.ok ? r.json() : null)
-        .then(data => { if (data?.drepScore) setCeremonyScore(data.drepScore); })
+        .then(data => {
+          if (data?.drepScore) setCeremonyScore(data.drepScore);
+          if (data?.alignmentTreasuryConservative != null) {
+            setCeremonyAlignments({
+              treasuryConservative: data.alignmentTreasuryConservative ?? 50,
+              treasuryGrowth: data.alignmentTreasuryGrowth ?? 50,
+              decentralization: data.alignmentDecentralization ?? 50,
+              security: data.alignmentSecurity ?? 50,
+              innovation: data.alignmentInnovation ?? 50,
+              transparency: data.alignmentTransparency ?? 50,
+            });
+          }
+        })
         .catch(() => {});
       setShowCeremony(true);
     }
@@ -83,6 +97,7 @@ export function InlineDelegationCTA({ drepId, drepName }: InlineDelegationCTAPro
           drepId={drepId}
           drepName={drepName}
           score={ceremonyScore || 0}
+          alignments={ceremonyAlignments}
           onContinue={() => setShowCeremony(false)}
         />
       );

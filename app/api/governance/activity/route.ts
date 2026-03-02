@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase';
 export const dynamic = 'force-dynamic';
 
 interface ActivityEvent {
-  type: 'vote' | 'rationale' | 'proposal';
+  type: 'vote' | 'rationale' | 'proposal' | 'score_change' | 'proposal_outcome';
   drepId: string;
   drepName: string | null;
   detail: string | null;
@@ -18,24 +18,29 @@ export async function GET(request: NextRequest) {
       parseInt(request.nextUrl.searchParams.get('limit') || '30', 10),
       50
     );
+    const drepIdFilter = request.nextUrl.searchParams.get('drepId') || null;
     const supabase = createClient();
     const oneWeekAgo = Math.floor(Date.now() / 1000) - 604800;
 
+    let votesQuery = supabase
+      .from('drep_votes')
+      .select('drep_id, vote, block_time, proposal_tx_hash')
+      .gt('block_time', oneWeekAgo)
+      .order('block_time', { ascending: false })
+      .limit(limit);
+    if (drepIdFilter) votesQuery = votesQuery.eq('drep_id', drepIdFilter);
+
+    let rationalesQuery = supabase
+      .from('vote_rationales')
+      .select('drep_id, fetched_at')
+      .not('rationale_text', 'is', null)
+      .order('fetched_at', { ascending: false })
+      .limit(Math.ceil(limit / 3));
+    if (drepIdFilter) rationalesQuery = rationalesQuery.eq('drep_id', drepIdFilter);
+
     const [votesResult, rationalesResult, proposalsResult] = await Promise.all([
-      supabase
-        .from('drep_votes')
-        .select('drep_id, vote, block_time, proposal_tx_hash')
-        .gt('block_time', oneWeekAgo)
-        .order('block_time', { ascending: false })
-        .limit(limit),
-
-      supabase
-        .from('vote_rationales')
-        .select('drep_id, fetched_at')
-        .not('rationale_text', 'is', null)
-        .order('fetched_at', { ascending: false })
-        .limit(Math.ceil(limit / 3)),
-
+      votesQuery,
+      rationalesQuery,
       supabase
         .from('proposals')
         .select('tx_hash, title, created_at, ratified_epoch, enacted_epoch, dropped_epoch, expired_epoch')
@@ -113,6 +118,63 @@ export async function GET(request: NextRequest) {
         detail: p.title,
         timestamp: Math.floor(new Date(p.created_at).getTime() / 1000),
       });
+    }
+
+    // Proposal outcome events (ratified, enacted, dropped, expired)
+    for (const p of proposals) {
+      const outcomes: { epoch: number | null; label: string }[] = [
+        { epoch: p.ratified_epoch, label: 'Ratified' },
+        { epoch: p.enacted_epoch, label: 'Enacted' },
+        { epoch: p.dropped_epoch, label: 'Dropped' },
+        { epoch: p.expired_epoch, label: 'Expired' },
+      ];
+      for (const o of outcomes) {
+        if (o.epoch) {
+          events.push({
+            type: 'proposal_outcome',
+            drepId: '',
+            drepName: null,
+            detail: `${p.title || 'Proposal'} — ${o.label}`,
+            timestamp: Math.floor(new Date(p.created_at).getTime() / 1000),
+          });
+        }
+      }
+    }
+
+    // Score change events (significant moves >=5 pts in last week)
+    if (!drepIdFilter) {
+      const oneWeekAgoDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+      const { data: scoreChanges } = await supabase
+        .from('drep_score_history')
+        .select('drep_id, score, snapshot_date')
+        .gte('snapshot_date', oneWeekAgoDate)
+        .order('snapshot_date', { ascending: false })
+        .limit(50);
+
+      if (scoreChanges && scoreChanges.length > 1) {
+        const latestByDrep = new Map<string, { score: number; date: string }[]>();
+        for (const sc of scoreChanges) {
+          const arr = latestByDrep.get(sc.drep_id) || [];
+          arr.push({ score: sc.score, date: sc.snapshot_date });
+          latestByDrep.set(sc.drep_id, arr);
+        }
+        for (const [did, snapshots] of latestByDrep) {
+          if (snapshots.length >= 2) {
+            const delta = snapshots[0].score - snapshots[snapshots.length - 1].score;
+            if (Math.abs(delta) >= 5) {
+              const name = nameMap.get(did);
+              const direction = delta > 0 ? '↑' : '↓';
+              events.push({
+                type: 'score_change',
+                drepId: did,
+                drepName: name || null,
+                detail: `${name || did.slice(0, 8) + '…'} score ${direction}${Math.abs(delta)} pts`,
+                timestamp: Math.floor(new Date(snapshots[0].date).getTime() / 1000),
+              });
+            }
+          }
+        }
+      }
     }
 
     events.sort((a, b) => b.timestamp - a.timestamp);

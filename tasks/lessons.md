@@ -349,5 +349,19 @@ Server-side API routes also need `captureServerEvent` for success + error tracki
 **Pattern**: Cross-proposal insights had 3 hardcoded types with no trends, no share buttons, no methodology. Functional but not "wow." Session 16 expanded to 9 insights with trend indicators, per-insight share text, transparent methodology, and "Insight of the Week" highlight treatment.
 **Takeaway**: Data intelligence features need the same visual polish budget as hero components. Trends, share buttons, methodology transparency, and editorial hierarchy (highlight vs. regular) are not optional.
 
+### 2026-03-02: Hotfix protocol needs structural enforcement, not just prose
+**Promoted to rule**: Yes — `workflow.md` Hotfix Protocol rewritten with mandatory todo creation.
+**Issue**: Agent wrote a hotfix protocol, then immediately violated it by reporting "success" after pushing without monitoring Railway deploy or running smoke tests. The docs-only commit (`29a88af`) failed on Railway and went undetected. Prose rules are not enforceable — agents skip steps when they're listed in a paragraph.
+**Takeaway**: Use todo creation as a structural enforcement mechanism. Force the agent to create todos for ALL pipeline steps at the START of a hotfix, and explicitly block success reporting until the validation todo is complete. The rule now says "Do NOT send a summary message to the user until `hotfix-validate` is complete."
+
+### 2026-03-02: Ship It Checklist must execute as part of the session, not after
+**Pattern**: Session 16 implementation was completed across 6 phases but the agent stopped at "code written" without creating a branch, committing, opening a PR, waiting for CI, merging, or confirming deploy. This has happened in every session. The Ship It Checklist exists in `workflow.md` but the agent treats it as optional.
+**Root cause**: The Ship It Checklist is documented as a post-implementation step. Agents treat "implementation complete" as their finish line because todo lists end at the last code task. The deployment pipeline is never represented in the task list.
+**Takeaway**: Every session's todo list MUST include Ship It Checklist steps as explicit tasks: (1) create branch, (2) commit, (3) push + PR, (4) CI green, (5) merge, (6) confirm deploy. These are not post-session cleanup — they ARE the session. A feature is not done until it is in production. Never report completion until the deploy is confirmed.
+
+### 2026-03-02: Shell tool calls don't preserve working directory or branch across invocations
+**Pattern**: `git checkout -b feat/...` ran in one Shell call, but subsequent Shell calls reverted to `main` because each Shell invocation starts fresh. This caused the first commit attempt to only partially stage files and the branch context was lost.
+**Takeaway**: Always chain branch-dependent git commands in a single Shell call or verify `git branch --show-current` at the start of each new Shell call. Never assume a prior checkout persists.
+
 *Last updated: 2026-03-02*
 *Review this file at the start of every session.*

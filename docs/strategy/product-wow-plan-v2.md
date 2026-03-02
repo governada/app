@@ -515,23 +515,29 @@ DRepScore has all the data to generate insights nobody else in crypto can create
 
 DRepScore is a read-only analytical tool where all communication is one-directional. Governance is inherently social — debate, deliberation, persuasion, collective decision-making. This session adds the social dimension that transforms DRepScore from a tool you check into a platform you participate in. It also addresses the page-level route transitions that were planned for S15 but not built — the single strongest "app not website" signal.
 
-### What Changes
+### What Was Built (S17 Delivery)
 
-**0. Page-level Framer Motion route transitions (S15 gap).** `AnimatePresence` at the layout level with directional content slides. This was identified as the strongest missing "app feel" signal and carries forward from Session 15. Also: OG images for DRep radar/identity sharing if not already sufficient.
+**0. Directional page transitions (S15 gap).** `NavDirectionProvider` context tracks navigation direction (forward/backward/neutral) based on path depth. `app/template.tsx` upgraded from simple fade to directional slide-in using Framer Motion with spring physics. Deeper navigation slides left, shallower slides right, lateral crossfades. `lib/animations.ts` extended with `pageTransitionVariants`, `getPageTransition()`, `getPageInitial()`.
 
-**1. Unified governance activity feed (platform-wide).** Extend the Session 12 `ActivityTicker` component and `/api/governance/activity` API route from homepage-only to platform-wide: governance hub, sidebar widget. Add event types beyond the current set: score changes (significant), delegation shifts, proposal outcomes, poll results. Smart polling: refresh every 60s on active pages, pause when tab hidden.
+**1. Unified governance activity feed (platform-wide).** `ActivitySideWidget` component (compact 5-event feed) placed on DRep profile pages. `ActivityFeed` added to governance page. Activity API extended with DRep filtering (`?drepId=`), `score_change` events (>=5pt moves), and `proposal_outcome` events (ratified/enacted/dropped/expired). Both `ActivityFeed` and `ActivitySideWidget` handle new event types. Smart 60s polling with visibility-aware pause.
 
-**2. Social proof elements.** Subtle indicators: "Viewed by X people this week" on DRep profiles (from `views` table), "X delegators have polled on this" on proposals (from `poll_responses`), "You're one of Z active governance participants this epoch" on dashboards. Cached counts, not real-time.
+**2. Social proof indicators.** `SocialProofBadge` component with three variants: `views` (DRep weekly views), `poll` (community members polled on proposal), `participants` (active governance participants this week). Backed by `/api/social-proof` route with 15-minute cache TTL. Minimum display thresholds prevent embarrassing low numbers. Placed on DRep profiles and proposal detail pages.
 
-**3. DRep-delegator communication channel.** Extend `DRepCommunicationFeed` (currently one-way: explanations, positions, philosophy) with two-way Q&A: delegators submit questions (500 char, rate-limited), DReps reply via dashboard inbox, all communication is public. New tables: `drep_questions`, `drep_responses`.
+**3. Enhanced DelegationCeremony.** Upgraded from generic confetti + `AnimatedScore` to identity-aware celebration: `HexScore` (hero size) + `GovernanceRadar` (medium), identity-colored confetti (DRep's dominant alignment color), personality label reveal, Framer Motion staggered entrance animations, identity-tinted CTA button. `InlineDelegationCTA` now fetches and passes alignments to the ceremony.
 
-**4. Enhanced sharing infrastructure.** Make sharing organic, not mechanical: "Governance DNA card" auto-generated after significant actions (shows radar + level + stats), "State of Governance" shareable cards (GHI + key insight), DRep comparison cards (both radars), in-context share prompts after key moments (delegation, quiz, level-up) — subtle, not modal. Note: `ConstellationHero` already has segment-aware wallet-connect animation moments that "in-context share prompts after key moments" builds on.
+**4. Milestone celebration toasts.** `MilestoneCelebration` component — toast-style overlay (bottom-right, not full-screen) with confetti burst, badge + milestone name, share CTA via existing OG route. `MilestoneCelebrationManager` compares milestone `achievedAt` timestamps against last visit to trigger celebrations for new achievements. Wired into DRep dashboard. Supporting API routes: `/api/dreps/[drepId]/milestones`, `/api/users/last-visit`.
 
-**5. Developer experience for v1 API.** New `/developers` page: interactive API explorer, code examples (JS, Python, cURL), embed widget generator, use cases. API keys for Pro tier (manual approval initially). Rate limits: 100/min public, 1000/min Pro. Every Cardano dApp that integrates becomes a distribution channel.
+**5. In-context share prompts.** `GovernanceDNAReveal` enhanced with prominent callout-style share prompt (icon + descriptive text + `ShareActions`) instead of bare share buttons. Emphasizes governance personality and top match.
 
-**6. "Governance Wrapped" — periodic summary cards.** Monthly/epoch-level summary for delegators showing their governance participation: proposals their DRep voted on, how their delegation influenced outcomes, governance level progress. Shareable card format optimized for X/Twitter. Uses existing data from `drep_votes`, `poll_responses`, `governance_events`.
+**6. Epoch summary OG image.** New route `/api/og/epoch-summary` — displays epoch number, DRep votes, rationales, proposals, and optional rep score in branded card format. `EpochSummaryCard` now passes stats to OG route for shareable images.
 
-**7. Governance achievement NFTs (stretch goal).** Milestone badges as on-chain CIP-25 NFTs: mint when DRep achieves a milestone, NFT image features the milestone badge with governance identity radar. Builds minting transaction via MeshSDK. Only build if Sessions 12-16 ship cleanly.
+**7. DRep-delegator Q&A channel.** Database: `drep_questions` + `drep_responses` tables with RLS (public read, authenticated write). API: `POST /api/governance/questions` (submit, rate-limited 3/day/wallet/DRep), `GET /api/governance/questions?drepId=` (list with responses), `POST /api/governance/questions/[questionId]/respond` (DRep-only, verified via claimed profile). UI: `DRepCommunicationFeed` extended with "Statements" / "Q&A" tab bar. `QuestionForm` component with character counter and wallet auth. `DRepQuestionsInbox` component on dashboard inbox tab for DReps to reply.
+
+### What Was Removed From S17 Scope
+
+- **`/developers` page**: Moved exclusively to S18 where it makes strategic sense alongside cross-chain intelligence (developer-as-distribution-channel narrative).
+- **Governance achievement NFTs**: Deferred indefinitely — poor wow-per-effort ratio, CIP-25 metadata complexity, wallet UX friction for a feature ~5% of users would engage with.
+- **Full "Governance Wrapped" experience**: Replaced with lightweight epoch summary cards + OG route. Full multi-slide shareable story experience deferred to S20 (annual timing makes more sense).
 
 ### Current State (for agent context)
 

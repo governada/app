@@ -42,6 +42,8 @@ import { extractAlignments, getIdentityColor, getDominantDimension } from '@/lib
 import { getDRepTraitTags } from '@/lib/alignment';
 import { generateDRepNarrative } from '@/lib/narratives';
 import { NarrativeSummary } from '@/components/NarrativeSummary';
+import { ActivitySideWidget } from '@/components/ActivitySideWidget';
+import { SocialProofBadge } from '@/components/SocialProofBadge';
 import {
   getDRepById,
   getVotesByDRepId,
@@ -358,7 +360,11 @@ export default async function DRepDetailPage({ params, searchParams }: DRepDetai
         <SocialIconsLarge metadata={drep.metadata} brokenLinks={brokenLinks} />
         <CopyableAddress address={drep.drepId} className="text-xs" />
         <ProfileViewStats drepId={drep.drepId} />
+        <SocialProofBadge drepId={drep.drepId} variant="views" />
       </div>
+
+      {/* DRep-specific activity feed */}
+      <ActivitySideWidget drepId={drep.drepId} limit={5} />
 
       {/* Tabbed content — 4 tabs replacing 8 stacked sections */}
       <DRepProfileTabs
