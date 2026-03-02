@@ -8,17 +8,17 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { getProposalDisplayTitle } from '@/utils/display';
-import { getDRepPrimaryName, hasCustomMetadata } from '@/utils/display';
+import { getDRepPrimaryName } from '@/utils/display';
 import { formatAda, getSizeBadgeClass, applyRationaleCurve, getPillarStatus, getMissingProfileFields, getEasiestWin, getReliabilityHintFromStored } from '@/utils/scoring';
 import { VoteRecord } from '@/types/drep';
 import { VotingHistoryWithPrefs } from '@/components/VotingHistoryWithPrefs';
 import { InlineDelegationCTA } from '@/components/InlineDelegationCTA';
 import { ScoreHistoryChart } from '@/components/ScoreHistoryChart';
 import { ScoreCard } from '@/components/ScoreCard';
+import { DRepProfileTabs } from '@/components/DRepProfileTabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, TrendingUp, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, ShieldAlert } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -54,6 +54,7 @@ import { Suspense } from 'react';
 
 interface DRepDetailPageProps {
   params: Promise<{ drepId: string }>;
+  searchParams: Promise<{ match?: string }>;
 }
 
 export async function generateMetadata({ params }: DRepDetailPageProps): Promise<Metadata> {
@@ -204,13 +205,16 @@ async function getDRepData(drepId: string) {
   }
 }
 
-export default async function DRepDetailPage({ params }: DRepDetailPageProps) {
+export default async function DRepDetailPage({ params, searchParams }: DRepDetailPageProps) {
   const { drepId } = await params;
+  const { match } = await searchParams;
   const drep = await getDRepData(drepId);
 
   if (!drep) {
     notFound();
   }
+
+  const matchScore = match ? parseInt(match, 10) : null;
 
   const [scoreHistory, percentile, linkChecks, isClaimed] = await Promise.all([
     getScoreHistory(drep.drepId),
@@ -223,7 +227,6 @@ export default async function DRepDetailPage({ params }: DRepDetailPageProps) {
     linkChecks.filter(c => c.status === 'broken').map(c => c.uri)
   );
 
-  // Pillar values for the redesigned score card
   const adjustedRationale = applyRationaleCurve(drep.rationaleRate);
   const pillars = [
     { value: drep.effectiveParticipation, label: 'Effective Participation', weight: '30%', maxPoints: 30 },
@@ -234,7 +237,6 @@ export default async function DRepDetailPage({ params }: DRepDetailPageProps) {
   const pillarStatuses = pillars.map(p => getPillarStatus(p.value));
   const quickWin = getEasiestWin(pillars);
 
-  // Action hints per pillar — concrete, delegator-friendly counts
   const missingFields = getMissingProfileFields(drep.metadata);
   const participationHint = drep.deliberationModifier < 1.0
     ? `Discounted ${Math.round((1 - drep.deliberationModifier) * 100)}% for uniform voting pattern`
@@ -260,7 +262,7 @@ export default async function DRepDetailPage({ params }: DRepDetailPageProps) {
   return (
     <div className="container mx-auto px-4 py-8 space-y-6">
       <ProfileViewTracker drepId={drep.drepId} />
-      {/* Back button */}
+
       <Link href="/">
         <Button variant="ghost" className="gap-2 -ml-2">
           <ArrowLeft className="h-4 w-4" />
@@ -268,7 +270,7 @@ export default async function DRepDetailPage({ params }: DRepDetailPageProps) {
         </Button>
       </Link>
 
-      {/* ── Immersive Identity Hero ── */}
+      {/* Immersive Identity Hero */}
       <DRepProfileHero
         name={drepName}
         score={drep.drepScore}
@@ -278,6 +280,7 @@ export default async function DRepDetailPage({ params }: DRepDetailPageProps) {
         alignments={alignments}
         traitTags={traitTags}
         isActive={drep.isActive}
+        matchScore={matchScore}
       >
         <InlineDelegationCTA drepId={drep.drepId} drepName={drepName} />
         <CompareButton currentDrepId={drep.drepId} currentDrepName={drepName} />
@@ -335,57 +338,58 @@ export default async function DRepDetailPage({ params }: DRepDetailPageProps) {
         <CopyableAddress address={drep.drepId} className="text-xs" />
       </div>
 
-      {/* Claim / Owner banner */}
-      <Suspense fallback={null}>
-        <DRepDashboardWrapper
-          drepId={drep.drepId}
-          drepName={drepName}
-          isClaimed={isClaimed}
-        />
-      </Suspense>
-
-      {/* Score breakdown — detailed pillar analysis */}
-      <ScoreCard
-        drep={drep}
-        adjustedRationale={adjustedRationale}
-        pillars={pillars}
-        pillarStatuses={pillarStatuses}
-        quickWin={quickWin}
-        percentile={percentile}
-        participationHint={participationHint}
-        rationaleHint={rationaleHint}
-        reliabilityHint={reliabilityHint}
-        profileHint={profileHint}
+      {/* Tabbed content — 4 tabs replacing 8 stacked sections */}
+      <DRepProfileTabs
+        scoreAnalysisContent={
+          <div className="space-y-6">
+            <ScoreCard
+              drep={drep}
+              adjustedRationale={adjustedRationale}
+              pillars={pillars}
+              pillarStatuses={pillarStatuses}
+              quickWin={quickWin}
+              percentile={percentile}
+              participationHint={participationHint}
+              rationaleHint={rationaleHint}
+              reliabilityHint={reliabilityHint}
+              profileHint={profileHint}
+            />
+            <MilestoneBadges drepId={drep.drepId} compact />
+            <ScoreHistoryChart history={scoreHistory} />
+          </div>
+        }
+        votingRecordContent={
+          <div className="space-y-6">
+            <Suspense fallback={<DetailPageSkeleton />}>
+              <VotingHistoryWithPrefs votes={drep.votes} />
+            </Suspense>
+            <ActivityHeatmap drepId={drep.drepId} />
+          </div>
+        }
+        treasuryPhilosophyContent={
+          <div className="space-y-6">
+            <DRepTreasuryStance drepId={drep.drepId} />
+            <GovernancePhilosophyEditor drepId={drep.drepId} readOnly />
+          </div>
+        }
+        aboutContent={
+          <div className="space-y-6">
+            <AboutSection
+              description={drep.description}
+              bio={drep.metadata?.bio}
+              email={drep.metadata?.email}
+              references={drep.metadata?.references as Array<{ uri: string; label?: string }> | undefined}
+            />
+            <Suspense fallback={null}>
+              <DRepDashboardWrapper
+                drepId={drep.drepId}
+                drepName={drepName}
+                isClaimed={isClaimed}
+              />
+            </Suspense>
+          </div>
+        }
       />
-
-      {/* Milestone Badges */}
-      <MilestoneBadges drepId={drep.drepId} compact />
-
-      {/* Score History Chart */}
-      <ScoreHistoryChart history={scoreHistory} />
-
-      {/* Treasury Track Record */}
-      <DRepTreasuryStance drepId={drep.drepId} />
-
-      {/* Governance Philosophy */}
-      <GovernancePhilosophyEditor drepId={drep.drepId} readOnly />
-
-      {/* Activity Heatmap */}
-      <ActivityHeatmap drepId={drep.drepId} />
-
-      {/* About Section */}
-      <AboutSection 
-        description={drep.description}
-        bio={drep.metadata?.bio}
-        email={drep.metadata?.email}
-        references={drep.metadata?.references as Array<{ uri: string; label?: string }> | undefined}
-      />
-
-      {/* Voting History */}
-      <Suspense fallback={<DetailPageSkeleton />}>
-        <VotingHistoryWithPrefs votes={drep.votes} />
-      </Suspense>
-
     </div>
   );
 }

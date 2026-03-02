@@ -42,7 +42,6 @@ import {
   Clock,
   Activity,
   Inbox,
-  Landmark,
 } from 'lucide-react';
 import { MobileNav } from './MobileNav';
 
@@ -145,32 +144,24 @@ export function Header() {
         </Link>
 
         <nav className="flex items-center space-x-2 sm:space-x-4">
-          <Link href="/proposals" className={navLinkClass('/proposals')}>
-            <ScrollText className="h-4 w-4" />
-            <span>Proposals</span>
-          </Link>
           <Link href="/discover" className={navLinkClass('/discover')}>
             <Compass className="h-4 w-4" />
             <span>Discover</span>
           </Link>
-          <Link href="/pulse" className={navLinkClass('/pulse')}>
-            <Activity className="h-4 w-4" />
-            <span>Pulse</span>
-          </Link>
-          <Link href="/treasury" className={navLinkClass('/treasury')}>
-            <Landmark className="h-4 w-4" />
-            <span>Treasury</span>
+          <Link href="/proposals" className={navLinkClass('/proposals')}>
+            <ScrollText className="h-4 w-4" />
+            <span>Proposals</span>
           </Link>
           {isAuthenticated && (
             <Link href="/governance" className={navLinkClass('/governance')}>
               <Vote className="h-4 w-4" />
-              <span>My Governance</span>
+              <span>My Delegation</span>
             </Link>
           )}
           {(ownDRepId || isAdmin) && (
             <Link href="/dashboard" className={navLinkClass('/dashboard')}>
               <Sparkles className="h-4 w-4" />
-              <span>DRep Dashboard</span>
+              <span>Dashboard</span>
             </Link>
           )}
           
@@ -269,7 +260,7 @@ export function Header() {
                   <DropdownMenuItem asChild>
                     <Link href="/governance" className="cursor-pointer">
                       <Vote className="h-4 w-4 mr-2" />
-                      My Governance
+                      My Delegation
                     </Link>
                   </DropdownMenuItem>
                   {(ownDRepId || isAdmin) && (

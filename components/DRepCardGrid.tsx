@@ -29,7 +29,9 @@ export function DRepCardGrid({
     if (onCardClick) {
       onCardClick(drep);
     } else {
-      router.push(`/drep/${encodeURIComponent(drep.drepId)}`);
+      const match = matchData[drep.drepId];
+      const matchParam = match != null ? `?match=${Math.round(match)}` : '';
+      router.push(`/drep/${encodeURIComponent(drep.drepId)}${matchParam}`);
     }
   };
 

@@ -392,6 +392,22 @@ button:not(:disabled):active,
 }
 
 /* ============================================================
+   Scrollbar & snap utilities
+   ============================================================ */
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scroll-snap-align-start {
+  scroll-snap-align: start;
+}
+
+/* ============================================================
    Reduced motion — respect user preferences
    ============================================================ */
 

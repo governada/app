@@ -6,6 +6,7 @@ import { Footer } from "@/components/Footer";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Providers } from "@/components/Providers";
 import { BrandedLoader } from "@/components/BrandedLoader";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -61,10 +62,11 @@ export default function RootLayout({
               Skip to main content
             </a>
             <HeaderClient />
-            <main id="main-content" className="min-h-screen" tabIndex={-1}>
+            <main id="main-content" className="min-h-screen pb-16 sm:pb-0" tabIndex={-1}>
               {children}
             </main>
             <Footer />
+            <MobileBottomNav />
           </Providers>
         </ThemeProvider>
       </body>
