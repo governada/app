@@ -35,8 +35,8 @@ If lint/type-check errors are in YOUR changes, fix them. If they're pre-existing
 
 Before committing, classify the change to determine the release path.
 
-**Direct to main (autonomous, no PR):**
-- Single-commit bug fixes with all tests passing
+**Direct to main (autonomous, no PR) — see also "Hotfix Protocol" in `workflow.md`:**
+- Single-commit bug fixes with all tests passing (user says "hotfix" → full autonomous deploy pipeline)
 - Cursor rule / documentation updates
 - Copy/content/config changes
 - Dependency patches

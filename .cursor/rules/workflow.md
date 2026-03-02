@@ -57,12 +57,31 @@ Before any plan is finalized, answer:
 - **On debugging**: When debugging takes more than 2 attempts, log the root cause
 - **Rule promotion**: During planning, if a lesson has appeared 2+ times or represents a permanent architectural decision, propose creating/updating a cursor rule
 
+## Hotfix Protocol
+
+When the user says **"hotfix"**, **"hotfix this"**, or **"hotfix to production"**, this is a trigger to autonomously fix, commit, push, and validate — end to end. Do NOT stop at "code complete" and wait for instructions. The full sequence is mandatory:
+
+1. **Fix the bug** on `main` (hotfixes are direct-to-main, no branch/PR)
+2. **Stage only bug fix files** — never stage docs, cursor rules, or unrelated changes
+3. **Write commit message** to `commit-msg.txt` (PowerShell has no heredoc), prefix with `fix:`
+4. **Commit**: `git commit -F commit-msg.txt`
+5. **Push**: `git push origin main` (pre-push hook runs type-check + tests ~25-40s — wait for it)
+6. **Monitor CI**: Poll `gh run list --branch main --limit 1` until conclusion is `success` or `failure`. If failure, read logs, fix, re-push.
+7. **Wait for Railway deploy** (~5 min after push). Budget the time — do not skip.
+8. **Post-deploy validation**: Run the full validation sequence from `deploy.md` (health check, Inngest sync, smoke tests, feature-specific verification)
+9. **Report**: Concise summary of what shipped, deploy status, and validation results
+
+**Key distinction from Ship It Checklist**: Hotfixes skip branch creation, skip PR creation, skip CI watch for PR checks. They go straight to main because the bug is already triaged and the fix is confirmed.
+
+**When to use hotfix path vs. PR path**: If the user explicitly says "hotfix" and the fix is a targeted bug fix (not a new feature, not a migration, not a security change), use this path. If the change touches auth/security, scoring, or database schema, push back and recommend the PR path even if the user says "hotfix".
+
 ## Ship It Checklist (Mandatory after implementation)
 
-When all code changes compile clean (`npx tsc --noEmit`), run these steps **immediately and autonomously**. Do not report "code complete" and wait — the feature is not done until step 8 passes. Deploy failures caused by your changes are your responsibility; fix and re-push immediately.
+When all code changes compile clean (`npx tsc --noEmit`), run these steps **immediately and autonomously**. Do not report "code complete" and wait — the feature is not done until step 9 passes. Deploy failures caused by your changes are your responsibility; fix and re-push immediately.
 
+0. **Verify GitHub CLI auth**: Run `gh auth status`. If the active account is NOT `drepscore`, run `gh auth switch --user drepscore` before any `gh` commands. The `tim-dd` account lacks collaborator perms on `drepscore/drepscore-app` — PRs and merges will fail silently or with cryptic errors.
 1. **Check branch**: `git branch --show-current`. If on `main`, create a feature branch first: `git checkout -b feat/<name>`.
-2. **Railway parity check**: Verify any new `app/` files that import Supabase have `export const dynamic = 'force-dynamic'`.
+2. **Parity check**: Verify any new `app/` files that import Supabase have `export const dynamic = 'force-dynamic'`.
 3. **Stage specific files** (never `git add -A`):
    ```
    git add <files>
@@ -71,7 +90,7 @@ When all code changes compile clean (`npx tsc --noEmit`), run these steps **imme
 4. **Commit** (write message to file — PowerShell has no heredoc):
    ```
    # Use Write tool to create .git/COMMIT_MSG, then:
-   git commit --no-verify -F .git/COMMIT_MSG
+   git commit -F .git/COMMIT_MSG
    ```
 5. **Push** (pre-push hook runs type-check + tests ~25s):
    ```
@@ -82,16 +101,24 @@ When all code changes compile clean (`npx tsc --noEmit`), run these steps **imme
    # Use Write tool to create .git/PR_BODY.md, then:
    gh pr create --title "feat: description" --body-file .git/PR_BODY.md --base main
    ```
-7. **Merge** (squash always, `--admin` if branch protection blocks):
+7. **Wait for CI** (~3-5 min). Branch protection requires `type-check`, `lint`, `test`, `build` to pass. Poll every 30s:
+   ```
+   gh pr checks <number> --watch
+   # Or manual poll:
+   Start-Sleep -Seconds 30 ; gh pr checks <number>
+   ```
+   Do NOT attempt to merge while any required check is `in_progress` or `pending`.
+8. **Merge** (squash always, `--admin` bypasses branch protection if needed):
    ```
    gh pr merge <number> --squash --delete-branch --admin
    ```
-8. **Monitor Railway deploy** (~3-7 min). Poll every 60-120s:
+9. **Confirm Railway production deploy**. Railway auto-deploys on push to `main` via GitHub integration. After merge, verify CI on `main` passes (~3-5 min), then Railway builds the Docker image and swaps (~5-8 min total). Poll CI:
    ```
-   $sha = git rev-parse HEAD
-   gh api repos/drepscore/drepscore-app/commits/$sha/status --jq '.statuses[] | select(.context | test("railway")) | {state, description}'
+   $run = (gh run list --branch main --limit 1 --json databaseId --jq '.[0].databaseId')
+   Start-Sleep -Seconds 60 ; gh run view $run --json conclusion --jq '.conclusion'
+   # Repeat until 'success'
    ```
-   When `success`, hit the affected endpoint/page on `drepscore.io` to confirm. If `failure`, check the `target_url` field for Railway logs, fix, and re-push.
+   When CI passes, Railway deploy follows automatically. Hit the affected page on `drepscore.io` to smoke-test.
 
 **After deploying:**
 - Check if something was learned during the build → update `tasks/lessons.md`
@@ -118,7 +145,7 @@ DRepScore must be unmistakably premium. Every user-facing surface should look an
 1. **Default to the most visually distinctive option.** When choosing between Recharts vs. custom SVG, CSS animations vs. physics-based (Framer Motion/spring), standard components vs. bespoke visualizations — default to the one that produces a result no other app has. The user must explicitly request the simpler option.
 2. **Performance is a constraint, not a goal.** Lazy-loading (`next/dynamic`, `ssr: false`), code splitting, adaptive quality tiers (GPU detection), and progressive enhancement handle most bundle concerns. A 200KB lazy-loaded package with zero LCP impact is always acceptable if it produces a premium result.
 3. **Every screenshot must be unmistakably DRepScore.** If a component could exist in any shadcn/Next.js app, it needs more work. Custom visualizations (radar, hex score, constellation), branded animations, identity-colored accents, and dark-mode-first polish are the baseline.
-4. **"Good enough" creates rework; "premium" ships once.** Session 12 proved this: Canvas 2D was "feasible" but required a full R3F rebuild. The premium path (WebGL from day one) would have been faster net.
+4. **"Good enough" creates rework; "premium" ships once.** The constellation hero is React Three Fiber with WebGL bloom — that's the baseline for hero-level visuals. Lazy-loaded, zero LCP impact, GPU-adaptive quality tiers. When choosing between a "simpler" and a "premium" approach for any user-facing visual, the premium path is almost always faster net because it ships once.
 
 **Apply this to:** hero sections, profile pages, data visualizations, OG images, share cards, onboarding flows, and any surface that represents the brand. **Exception:** admin tools, internal dashboards, and developer-facing surfaces can be functional over beautiful.
 

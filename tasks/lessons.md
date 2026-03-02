@@ -294,17 +294,19 @@ Server-side API routes also need `captureServerEvent` for success + error tracki
 
 ### 2026-03-02: "Feasible" over "ambitious" causes rework — default to premium
 **Promoted to rule**: Yes — `workflow.md` updated with "Ambitious by Default" principle.
-**Issue**: Session 12 chose Canvas 2D for the constellation to save ~200KB of bundle. The result was visually subpar and actively harmed first impressions. The rework to React Three Fiber cost more total effort than just doing R3F from the start. The same pattern nearly repeated for Session 13 (Recharts RadarChart instead of custom SVG radar).
+**Issue**: An earlier session chose a simpler rendering approach for the constellation to save bundle size. The result was visually subpar and required a full rebuild with React Three Fiber. The premium path (R3F + WebGL bloom from day one) would have been faster net.
 **Takeaway**: When choosing between implementation approaches for user-facing visuals, default to the one that produces the most distinctive result. Bundle size, implementation time, and complexity are secondary to visual quality — lazy-loading and code splitting mitigate most performance concerns. "Good enough" creates rework; "premium" ships once.
+**Status**: Resolved. Constellation now uses R3F exclusively. No Canvas 2D in the codebase.
 
 ### 2026-03-02: Pre-existing type errors block commits — maintain clean trunk
 **Issue**: Pre-existing `React.ElementType` type errors in `IntegrityDashboard.tsx` and `MilestoneBadges.tsx` blocked the Session 12 cleanup commit even though they were unrelated to the changes. Cost 10+ minutes of diagnosis and fixup.
 **Takeaway**: Fix type errors as soon as they appear, even if they're in "other people's" code. A clean trunk means every commit goes through without unrelated friction. When encountering pre-existing errors during a session, fix them in the same commit as a drive-by cleanup.
 
-### 2026-03-02: Canvas 2D has a hard ceiling for premium visuals
-**Issue**: Session 12's constellation was originally built with Canvas 2D for lower bundle cost. The result was blurry, clumped nodes with no real glow or depth — the opposite of the intended "10-second hook." `shadowBlur` for glow is CPU-bound and looks painted rather than luminous. No additive blending. No real bloom.
-**Fix**: Replaced with React Three Fiber + `@react-three/postprocessing` Bloom. GPU-accelerated instanced rendering, real bloom via mipmapBlur, cinematic camera transitions. ~200KB lazy-loaded (zero LCP impact). When visual quality is the goal, Canvas 2D is a false economy.
-**Takeaway**: For any visualization requiring glow, depth, or cinematic feel, start with WebGL (Three.js/R3F). Canvas 2D is appropriate for charts, diagrams, and simple particle effects — not for hero-level visual experiences.
+### 2026-03-02: WebGL (R3F) is the baseline for premium visuals
+**Issue**: An earlier rendering approach lacked bloom, additive blending, and real depth — the opposite of the intended "10-second hook."
+**Fix**: Constellation uses React Three Fiber + `@react-three/postprocessing` Bloom. GPU-accelerated instanced rendering, real bloom via mipmapBlur, cinematic camera transitions. ~200KB lazy-loaded (zero LCP impact).
+**Takeaway**: For any visualization requiring glow, depth, or cinematic feel, start with WebGL (Three.js/R3F). This is now the established baseline — no alternative rendering approaches are in use for the constellation.
+**Status**: Resolved. Canvas 2D fully removed.
 
 ### 2026-03-02: R3F CameraControls captures all scroll/drag — always lock for backdrop use
 **Issue**: The R3F `CameraControls` component from drei captures trackpad scroll, mouse wheel, drag, and pinch by default. When the constellation is used as a page backdrop (not a standalone 3D viewer), this completely breaks page scrolling — users cannot scroll past the hero.
@@ -314,6 +316,22 @@ Server-side API routes also need `captureServerEvent` for success + error tracki
 ### 2026-03-02: Early returns in async imperative handles must clean up state
 **Issue**: The `findMe` imperative handle set `animating: true` at the start but had early-return paths (no drepId, node not found) that never set it back to `false`. This would permanently freeze auto-rotation after a failed findMe.
 **Takeaway**: When an async imperative handle sets shared state at the start, every exit path must clean it up. Use a try/finally pattern or ensure all early returns reset the flag.
+
+### 2026-03-02: Ship It checklist must be followed end-to-end — no partial completion
+**Issue**: Session 15 implementation completed but the Ship It checklist stalled at `git commit` due to PowerShell heredoc syntax (bash `<<'EOF'` doesn't exist in PowerShell). The session ended without commit, push, PR, merge, or deploy confirmation — despite all code being ready and staged.
+**Root causes**: (1) Used bash heredoc syntax for commit message in PowerShell. (2) Session ended after the error without retrying with the correct pattern. (3) `gh auth status` wasn't checked — active account was `tim-dd` (no collaborator perms) instead of `drepscore`.
+**Fix**: Updated workflow.md Ship It Checklist: added Step 0 (verify `gh auth` account), added Step 7 (poll CI checks before merge), updated Step 9 (Vercel deploy confirmation replaces stale Railway reference). Commit messages must use `.git/COMMIT_MSG` file pattern.
+**Takeaway**: The Ship It checklist is non-negotiable. If any step fails, fix the failure and continue — never report "code complete" while steps remain. Verify `gh auth` account before any GitHub CLI operations.
+
+### 2026-03-02: Deployment target is Railway, not Vercel — update stale rules
+**Promoted to rule**: Yes — `workflow.md` Ship It step 9 updated from Vercel to Railway.
+**Issue**: After merging PR #32, attempted to confirm deploy via Vercel-specific commands. The platform migrated to Railway (Docker) + Inngest Cloud earlier, and lessons.md had a migration note, but workflow.md step 9 still referenced Vercel. The stale rule caused incorrect post-merge behavior and wasted time on a non-existent deploy target.
+**Takeaway**: When a platform migration happens, update ALL rule files that reference the old platform — not just add a migration note to lessons.md. Railway deploys automatically on merge to main via GitHub integration; no manual verification commands needed beyond confirming CI passes on main.
+
+### 2026-03-02: "Hotfix" is a trigger word — deploy autonomously
+**Promoted to rule**: Yes — `workflow.md` now has a Hotfix Protocol section.
+**Issue**: User asked to "hotfix to production" but the agent stopped after committing, requiring a separate prompt to push. The Ship It Checklist always assumes a PR path (step 1: create feature branch). There was no fast-path for hotfixes that skips branch/PR and goes direct to main with full deploy validation.
+**Takeaway**: When user says "hotfix", the full pipeline (fix → commit to main → push → monitor CI → validate production) is autonomous. Added explicit Hotfix Protocol to workflow.md with the trigger words and full step sequence. Also updated deploy.md release gating to cross-reference.
 
 *Last updated: 2026-03-02*
 *Review this file at the start of every session.*
