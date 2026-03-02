@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { getStoredSession } from '@/lib/supabaseAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -126,7 +127,7 @@ export function GovernanceBriefCard() {
               </Button>
             )}
             <Button variant="ghost" size="sm" className="text-xs" asChild>
-              <a href="/pulse/report/latest">Full Report</a>
+              <Link href="/pulse/report/latest">Full Report</Link>
             </Button>
           </div>
           <Button variant="outline" size="sm" className="text-xs" asChild>
