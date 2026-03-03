@@ -2,13 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient, getSupabaseAdmin } from '@/lib/supabase';
 import { getSpendingEffectiveness } from '@/lib/treasury';
 import { captureServerEvent } from '@/lib/posthog-server';
-import { logger } from '@/lib/logger';
+import { withRouteHandler } from '@/lib/api/withRouteHandler';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
+export const GET = withRouteHandler(async (request: NextRequest) => {
+  const { searchParams } = new URL(request.url);
     const txHash = searchParams.get('txHash');
     const index = searchParams.get('index');
 
@@ -36,17 +35,12 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const effectiveness = await getSpendingEffectiveness();
-    return NextResponse.json(effectiveness);
-  } catch (error) {
-    logger.error('Error', { context: 'treasury/accountability', error: error });
-    return NextResponse.json({ error: 'Failed to fetch accountability data' }, { status: 500 });
-  }
-}
+  const effectiveness = await getSpendingEffectiveness();
+  return NextResponse.json(effectiveness);
+});
 
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
+export const POST = withRouteHandler(async (request: NextRequest) => {
+  const body = await request.json();
     const {
       txHash,
       index,
@@ -119,9 +113,5 @@ export async function POST(request: NextRequest) {
       userAddress,
     );
 
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    logger.error('POST error', { context: 'treasury/accountability', error: error });
-    return NextResponse.json({ error: 'Failed to submit vote' }, { status: 500 });
-  }
-}
+  return NextResponse.json({ success: true });
+});

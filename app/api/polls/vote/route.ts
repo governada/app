@@ -1,40 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateSessionToken } from '@/lib/supabaseAuth';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { blockTimeToEpoch } from '@/lib/koios';
 import { updateUserProfile } from '@/lib/matching/userProfile';
 import { captureServerEvent } from '@/lib/posthog-server';
 import { logger } from '@/lib/logger';
-
-const VALID_VOTES = ['yes', 'no', 'abstain'] as const;
-type Vote = (typeof VALID_VOTES)[number];
-
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMIT_MAX = 10;
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-
-function checkRateLimit(walletAddress: string): boolean {
-  const now = Date.now();
-  const entry = rateLimitMap.get(walletAddress);
-
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(walletAddress, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
-    return true;
-  }
-
-  if (entry.count >= RATE_LIMIT_MAX) return false;
-  entry.count++;
-  return true;
-}
-
-async function authenticateRequest(request: NextRequest): Promise<string | null> {
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) return null;
-
-  const token = authHeader.slice(7);
-  const session = await validateSessionToken(token);
-  return session?.walletAddress ?? null;
-}
+import { withRouteHandler, type RouteContext } from '@/lib/api/withRouteHandler';
+import { PollVoteSchema } from '@/lib/api/schemas/governance';
 
 async function lookupDelegation(stakeAddress: string): Promise<string | null> {
   try {
@@ -76,40 +47,10 @@ function aggregateCounts(rows: { vote: string }[]): {
   return counts;
 }
 
-export async function POST(request: NextRequest) {
-  const walletAddress = await authenticateRequest(request);
-  if (!walletAddress) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  if (!checkRateLimit(walletAddress)) {
-    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
-  }
-
-  let body: {
-    proposalTxHash?: string;
-    proposalIndex?: number;
-    vote?: string;
-    stakeAddress?: string;
-    delegatedDrepId?: string;
-  };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-  }
-
-  const { proposalTxHash, proposalIndex, vote, stakeAddress, delegatedDrepId } = body;
-
-  if (!proposalTxHash || typeof proposalTxHash !== 'string') {
-    return NextResponse.json({ error: 'proposalTxHash required' }, { status: 400 });
-  }
-  if (proposalIndex === undefined || typeof proposalIndex !== 'number') {
-    return NextResponse.json({ error: 'proposalIndex required' }, { status: 400 });
-  }
-  if (!vote || !VALID_VOTES.includes(vote as Vote)) {
-    return NextResponse.json({ error: 'vote must be yes, no, or abstain' }, { status: 400 });
-  }
+export const POST = withRouteHandler(async (request: NextRequest, { requestId, wallet }: RouteContext) => {
+  const walletAddress = wallet!;
+  const { proposalTxHash, proposalIndex, vote, stakeAddress, delegatedDrepId } =
+    PollVoteSchema.parse(await request.json());
 
   const resolvedStakeAddress = stakeAddress || null;
   let resolvedDrepId = delegatedDrepId || null;
@@ -161,7 +102,6 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Write governance event for timeline (fire-and-forget, don't block the response)
   const currentEpoch = blockTimeToEpoch(Math.floor(Date.now() / 1000));
   let proposalTitle: string | null = null;
   try {
@@ -190,7 +130,6 @@ export async function POST(request: NextRequest) {
       if (evtErr) logger.error('governance_event write failed', { context: 'poll-vote', error: evtErr?.message });
     });
 
-  // Update user governance profile (fire-and-forget, don't block response)
   updateUserProfile(walletAddress).catch((err) => {
     logger.error('Failed to update user profile', { context: 'poll-vote', error: err });
   });
@@ -214,4 +153,4 @@ export async function POST(request: NextRequest) {
     userVote: vote,
     hasVoted: true,
   });
-}
+}, { auth: 'required', rateLimit: { max: 10, window: 60 } });

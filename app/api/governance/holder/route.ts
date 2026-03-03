@@ -5,7 +5,6 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { validateSessionToken } from '@/lib/supabaseAuth';
 import { createClient } from '@/lib/supabase';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { getDRepById } from '@/lib/data';
@@ -13,7 +12,7 @@ import { blockTimeToEpoch } from '@/lib/koios';
 import { getProposalPriority } from '@/utils/proposalPriority';
 import { getDRepPrimaryName } from '@/utils/display';
 import { calculateRepresentationMatch, findBestMatchDReps } from '@/lib/representationMatch';
-import { logger } from '@/lib/logger';
+import { withRouteHandler, type RouteContext } from '@/lib/api/withRouteHandler';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,25 +20,12 @@ function normalizeVote(vote: string): string {
   return vote.charAt(0).toUpperCase() + vote.slice(1).toLowerCase();
 }
 
-async function authenticateRequest(request: NextRequest): Promise<string | null> {
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) return null;
-  const token = authHeader.slice(7);
-  const session = await validateSessionToken(token);
-  return session?.walletAddress ?? null;
-}
-
-export async function GET(request: NextRequest) {
-  const walletAddress = await authenticateRequest(request);
-  if (!walletAddress) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+export const GET = withRouteHandler(async (request: NextRequest, { wallet }: RouteContext) => {
+  const walletAddress = wallet!;
 
   const delegatedDrepId = request.nextUrl.searchParams.get('drepId');
   const supabase = createClient();
   const currentEpoch = blockTimeToEpoch(Math.floor(Date.now() / 1000));
-
-  try {
     const admin = getSupabaseAdmin();
 
     // Parallel fetch: user's poll votes, DRep data, open proposals, DRep votes, user profile
@@ -262,26 +248,22 @@ export async function GET(request: NextRequest) {
 
     const userProfile = userResult.data;
 
-    return NextResponse.json({
-      delegationHealth,
-      representationScore: {
-        score: repScore,
-        aligned: alignedCount,
-        misaligned: comparisons.length - alignedCount,
-        total: comparisons.length,
-        comparisons,
-      },
-      activeProposals,
-      pollHistory,
-      redelegationSuggestions,
-      currentEpoch,
-      repScoreDelta,
-      governanceLevel: userProfile?.governance_level ?? 'observer',
-      pollCount: userProfile?.poll_count ?? 0,
-      visitStreak: userProfile?.visit_streak ?? 0,
-    });
-  } catch (error) {
-    logger.error('Error', { context: 'governance-dashboard-api', error: error });
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
-  }
-}
+  return NextResponse.json({
+    delegationHealth,
+    representationScore: {
+      score: repScore,
+      aligned: alignedCount,
+      misaligned: comparisons.length - alignedCount,
+      total: comparisons.length,
+      comparisons,
+    },
+    activeProposals,
+    pollHistory,
+    redelegationSuggestions,
+    currentEpoch,
+    repScoreDelta,
+    governanceLevel: userProfile?.governance_level ?? 'observer',
+    pollCount: userProfile?.poll_count ?? 0,
+    visitStreak: userProfile?.visit_streak ?? 0,
+  });
+}, { auth: 'required' });

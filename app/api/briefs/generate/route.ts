@@ -12,24 +12,13 @@ import {
 } from '@/lib/governanceBrief';
 import { notifyUser } from '@/lib/notifications';
 import { getSupabaseAdmin } from '@/lib/supabase';
-import { validateSessionToken } from '@/lib/supabaseAuth';
 import { captureServerEvent } from '@/lib/posthog-server';
-import { logger } from '@/lib/logger';
+import { withRouteHandler, type RouteContext } from '@/lib/api/withRouteHandler';
 
 export const dynamic = 'force-dynamic';
 
-export async function POST(request: NextRequest) {
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const session = await validateSessionToken(authHeader.slice(7));
-  if (!session?.walletAddress) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const wallet = session.walletAddress;
+export const POST = withRouteHandler(async (request: NextRequest, ctx: RouteContext) => {
+  const wallet = ctx.wallet!;
   const supabase = getSupabaseAdmin();
 
   const { data: user } = await supabase
@@ -44,47 +33,42 @@ export async function POST(request: NextRequest) {
 
   const isDRep = !!user.claimed_drep_id;
 
-  try {
-    let brief;
-    if (isDRep) {
-      const ctx = await assembleDRepBriefContext(user.claimed_drep_id!, wallet);
-      if (!ctx)
-        return NextResponse.json({ error: 'Could not assemble DRep context' }, { status: 500 });
-      brief = generateDRepBrief(ctx);
-      await storeBrief(wallet, 'drep', brief, ctx.epoch);
-    } else {
-      const history = user.delegation_history as Array<{ drepId: string }> | null;
-      const currentDrep = history?.length ? history[history.length - 1].drepId : null;
-      const ctx = await assembleHolderBriefContext(wallet, currentDrep);
-      brief = generateHolderBrief(ctx);
-      await storeBrief(wallet, 'holder', brief, ctx.epoch);
-    }
-
-    await notifyUser(wallet, {
-      eventType: 'governance-brief',
-      fallback: {
-        title: 'Your Weekly Governance Brief',
-        body: brief.greeting,
-        url: '/dashboard',
-      },
-      data: {
-        briefType: isDRep ? 'drep' : 'holder',
-        greeting: brief.greeting,
-        sections: brief.sections,
-        ctaText: brief.ctaText,
-        ctaUrl: brief.ctaUrl,
-      },
-    });
-
-    captureServerEvent(
-      'brief_generation_requested',
-      { wallet_address: wallet, brief_type: isDRep ? 'drep' : 'holder' },
-      wallet,
-    );
-
-    return NextResponse.json({ ok: true, brief });
-  } catch (err) {
-    logger.error('Error', { context: 'briefgenerate', error: err });
-    return NextResponse.json({ error: 'Generation failed' }, { status: 500 });
+  let brief;
+  if (isDRep) {
+    const briefCtx = await assembleDRepBriefContext(user.claimed_drep_id!, wallet);
+    if (!briefCtx)
+      return NextResponse.json({ error: 'Could not assemble DRep context' }, { status: 500 });
+    brief = generateDRepBrief(briefCtx);
+    await storeBrief(wallet, 'drep', brief, briefCtx.epoch);
+  } else {
+    const history = user.delegation_history as Array<{ drepId: string }> | null;
+    const currentDrep = history?.length ? history[history.length - 1].drepId : null;
+    const briefCtx = await assembleHolderBriefContext(wallet, currentDrep);
+    brief = generateHolderBrief(briefCtx);
+    await storeBrief(wallet, 'holder', brief, briefCtx.epoch);
   }
-}
+
+  await notifyUser(wallet, {
+    eventType: 'governance-brief',
+    fallback: {
+      title: 'Your Weekly Governance Brief',
+      body: brief.greeting,
+      url: '/dashboard',
+    },
+    data: {
+      briefType: isDRep ? 'drep' : 'holder',
+      greeting: brief.greeting,
+      sections: brief.sections,
+      ctaText: brief.ctaText,
+      ctaUrl: brief.ctaUrl,
+    },
+  });
+
+  captureServerEvent(
+    'brief_generation_requested',
+    { wallet_address: wallet, brief_type: isDRep ? 'drep' : 'holder' },
+    wallet,
+  );
+
+  return NextResponse.json({ ok: true, brief });
+}, { auth: 'required', rateLimit: { max: 5, window: 60 } });

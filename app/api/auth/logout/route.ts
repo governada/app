@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
+import { withRouteHandler } from '@/lib/api/withRouteHandler';
 
-export async function POST() {
+export const POST = withRouteHandler(async () => {
   const response = NextResponse.json({ ok: true });
 
   response.cookies.set('drepscore_session', '', {
@@ -12,4 +13,4 @@ export async function POST() {
   });
 
   return response;
-}
+});

@@ -1,24 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateSessionToken } from '@/lib/supabaseAuth';
 import { createClient } from '@/lib/supabase';
 import { blockTimeToEpoch } from '@/lib/koios';
-import { logger } from '@/lib/logger';
+import { withRouteHandler, type RouteContext } from '@/lib/api/withRouteHandler';
 
 export const dynamic = 'force-dynamic';
 
-async function authenticateRequest(request: NextRequest): Promise<string | null> {
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) return null;
-  const token = authHeader.slice(7);
-  const session = await validateSessionToken(token);
-  return session?.walletAddress ?? null;
-}
-
-export async function GET(request: NextRequest) {
-  const walletAddress = await authenticateRequest(request);
-  if (!walletAddress) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+export const GET = withRouteHandler(async (request: NextRequest, { wallet }: RouteContext) => {
+  const walletAddress = wallet!;
 
   const since = request.nextUrl.searchParams.get('since');
   const drepId = request.nextUrl.searchParams.get('drepId');
@@ -36,8 +24,7 @@ export async function GET(request: NextRequest) {
   const sinceEpoch = blockTimeToEpoch(sinceBlockTime);
   const supabase = createClient();
 
-  try {
-    const [openedResult, closedResult] = await Promise.all([
+  const [openedResult, closedResult] = await Promise.all([
       supabase
         .from('proposals')
         .select('tx_hash', { count: 'exact', head: true })
@@ -129,17 +116,13 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({
-      proposalsOpened,
-      proposalsClosed,
-      drepVotesCast,
-      drepScoreChange,
-      delegatorChange,
-      proposalOutcomes,
-      drepActivity,
-    });
-  } catch (err) {
-    logger.error('Error', { context: 'since-visit-api', error: err });
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
-  }
-}
+  return NextResponse.json({
+    proposalsOpened,
+    proposalsClosed,
+    drepVotesCast,
+    drepScoreChange,
+    delegatorChange,
+    proposalOutcomes,
+    drepActivity,
+  });
+}, { auth: 'required' });

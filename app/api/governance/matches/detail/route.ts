@@ -1,23 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateSessionToken } from '@/lib/supabaseAuth';
 import { createClient } from '@/lib/supabase';
 import { calculateRepresentationMatch } from '@/lib/representationMatch';
 import { captureServerEvent } from '@/lib/posthog-server';
+import { withRouteHandler, type RouteContext } from '@/lib/api/withRouteHandler';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const token = authHeader.slice(7);
-  const session = await validateSessionToken(token);
-  if (!session?.walletAddress) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+export const GET = withRouteHandler(async (request: NextRequest, { wallet }: RouteContext) => {
   const drepId = request.nextUrl.searchParams.get('drepId');
   if (!drepId) {
     return NextResponse.json({ error: 'drepId required' }, { status: 400 });
@@ -28,7 +17,7 @@ export async function GET(request: NextRequest) {
   const { data: pollVotes } = await supabase
     .from('poll_responses')
     .select('proposal_tx_hash, proposal_index, vote')
-    .eq('wallet_address', session.walletAddress);
+    .eq('wallet_address', wallet!);
 
   if (!pollVotes || pollVotes.length === 0) {
     return NextResponse.json({ comparisons: [], agreed: 0, total: 0, matchScore: 0 });
@@ -59,7 +48,7 @@ export async function GET(request: NextRequest) {
       comparisons_count: result.comparisons.length,
       match_score: result.score,
     },
-    session.walletAddress,
+    wallet!,
   );
 
   return NextResponse.json({
@@ -73,4 +62,4 @@ export async function GET(request: NextRequest) {
       agreed: c.agreed,
     })),
   });
-}
+}, { auth: 'required' });

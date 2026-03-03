@@ -1,18 +1,9 @@
 import { NextResponse, NextRequest } from 'next/server';
-import { validateSessionToken } from '@/lib/supabaseAuth';
 import { createClient } from '@/lib/supabase';
 import { blockTimeToEpoch } from '@/lib/koios';
-import { logger } from '@/lib/logger';
+import { withRouteHandler, type RouteContext } from '@/lib/api/withRouteHandler';
 
 export const dynamic = 'force-dynamic';
-
-async function authenticateRequest(request: NextRequest): Promise<string | null> {
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) return null;
-  const token = authHeader.slice(7);
-  const session = await validateSessionToken(token);
-  return session?.walletAddress ?? null;
-}
 
 function deriveGovernanceLevel(
   hasDelegation: boolean,
@@ -30,17 +21,12 @@ function deriveParticipationTier(pollCount: number, drepVotesCast: number): stri
   return 'passive';
 }
 
-export async function GET(request: NextRequest) {
-  const walletAddress = await authenticateRequest(request);
-  if (!walletAddress) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+export const GET = withRouteHandler(async (request: NextRequest, { wallet }: RouteContext) => {
+  const walletAddress = wallet!;
   const supabase = createClient();
   const currentEpoch = blockTimeToEpoch(Math.floor(Date.now() / 1000));
 
-  try {
-    const [
+  const [
       statsRow,
       userRow,
       proposalsCreatedResult,
@@ -135,22 +121,18 @@ export async function GET(request: NextRequest) {
     );
     const participationTier = deriveParticipationTier(yourPollsTaken, drepVotesCast);
 
-    return NextResponse.json({
-      epoch,
-      stats: {
-        proposalsCreated,
-        drepVotesCast,
-        yourPollsTaken,
-        activeDReps,
-        yourDRepName,
-        yourDRepScore,
-        yourDRepScoreTrend,
-        governanceLevel,
-        participationTier,
-      },
-    });
-  } catch (err) {
-    logger.error('Error', { context: 'epoch-review', error: err });
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
-  }
-}
+  return NextResponse.json({
+    epoch,
+    stats: {
+      proposalsCreated,
+      drepVotesCast,
+      yourPollsTaken,
+      activeDReps,
+      yourDRepName,
+      yourDRepScore,
+      yourDRepScoreTrend,
+      governanceLevel,
+      participationTier,
+    },
+  });
+}, { auth: 'required' });

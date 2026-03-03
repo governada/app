@@ -6,7 +6,6 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { validateSessionToken } from '@/lib/supabaseAuth';
 import { projectUserVector, cosineSimilarity } from '@/lib/representationMatch';
 import { loadActivePCA } from '@/lib/alignment/pca';
 import { calculateMatchConfidence } from '@/lib/matching/confidence';
@@ -15,7 +14,7 @@ import { extractAlignments } from '@/lib/drepIdentity';
 import type { AlignmentDimension, AlignmentScores } from '@/lib/drepIdentity';
 import { createClient } from '@/lib/supabase';
 import { captureServerEvent } from '@/lib/posthog-server';
-import { logger } from '@/lib/logger';
+import { withRouteHandler, type RouteContext } from '@/lib/api/withRouteHandler';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,27 +22,14 @@ function normalizeVote(vote: string): string {
   return vote.charAt(0).toUpperCase() + vote.slice(1).toLowerCase();
 }
 
-export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const token = authHeader.slice(7);
-  const session = await validateSessionToken(token);
-  if (!session?.walletAddress) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+export const GET = withRouteHandler(async (request: NextRequest, { wallet }: RouteContext) => {
   const excludeDrepId = request.nextUrl.searchParams.get('currentDrepId') || undefined;
-
-  try {
-    const supabase = createClient();
+  const supabase = createClient();
 
     const { data: pollVotes } = await supabase
       .from('poll_responses')
       .select('proposal_tx_hash, proposal_index, vote')
-      .eq('wallet_address', session.walletAddress);
+      .eq('wallet_address', wallet!);
 
     if (!pollVotes?.length) {
       return NextResponse.json({
@@ -242,21 +228,17 @@ export async function GET(request: NextRequest) {
         user_vote_count: pollVotes.length,
         overall_confidence: overallConfidence,
       },
-      session.walletAddress,
+      wallet!,
     );
 
-    return NextResponse.json({
-      matches,
-      currentDRepMatch,
-      overallConfidence,
-      matchMethod,
-      userAlignments,
-    });
-  } catch (error) {
-    logger.error('Error', { context: 'governance-matches-api', error: error });
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
-  }
-}
+  return NextResponse.json({
+    matches,
+    currentDRepMatch,
+    overallConfidence,
+    matchMethod,
+    userAlignments,
+  });
+}, { auth: 'required' });
 
 function rankByOverlap(overlapMap: Map<string, { agreed: number; total: number }>): string[] {
   return [...overlapMap.entries()]

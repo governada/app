@@ -10,17 +10,11 @@ import { sendEmail, generateVerificationUrl } from '@/lib/email';
 import { EmailVerificationEmail } from '@/lib/emailTemplates';
 import { captureServerEvent } from '@/lib/posthog-server';
 import { getSupabaseAdmin } from '@/lib/supabase';
-import { requireAuth } from '@/lib/supabaseAuth';
+import { withRouteHandler, type RouteContext } from '@/lib/api/withRouteHandler';
+import { EmailSchema } from '@/lib/api/schemas/user';
 
-export async function POST(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (auth instanceof NextResponse) return auth;
-  const wallet = auth.wallet;
-
-  const { email } = await request.json();
-  if (!email || typeof email !== 'string' || !email.includes('@')) {
-    return NextResponse.json({ error: 'Invalid email' }, { status: 400 });
-  }
+export const POST = withRouteHandler(async (request: NextRequest, { requestId, wallet }: RouteContext) => {
+  const { email } = EmailSchema.parse(await request.json());
 
   const supabase = getSupabaseAdmin();
 
@@ -29,14 +23,14 @@ export async function POST(request: NextRequest) {
     .update({ email, email_verified: false })
     .eq('wallet_address', wallet);
 
-  const verifyUrl = generateVerificationUrl(wallet, email);
+  const verifyUrl = generateVerificationUrl(wallet!, email);
   const sent = await sendEmail(
     email,
     'Verify your email — DRepScore',
     React.createElement(EmailVerificationEmail, { verifyUrl }),
   );
 
-  captureServerEvent('email_subscribed', { digest_frequency: 'weekly' }, wallet);
+  captureServerEvent('email_subscribed', { digest_frequency: 'weekly' }, wallet!);
 
   return NextResponse.json({ ok: true, sent });
-}
+}, { auth: 'required', rateLimit: { max: 5, window: 60 } });

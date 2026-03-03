@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateSessionToken } from '@/lib/supabaseAuth';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import type { PollResultsResponse } from '@/types/supabase';
 import { logger } from '@/lib/logger';
+import { withRouteHandler, type RouteContext } from '@/lib/api/withRouteHandler';
 
 function aggregateCounts(rows: { vote: string }[]): {
   yes: number;
@@ -19,7 +19,7 @@ function aggregateCounts(rows: { vote: string }[]): {
   return counts;
 }
 
-export async function GET(request: NextRequest) {
+export const GET = withRouteHandler(async (request: NextRequest, { wallet }: RouteContext) => {
   const { searchParams } = new URL(request.url);
   const proposalTxHash = searchParams.get('proposalTxHash');
   const proposalIndexStr = searchParams.get('proposalIndex');
@@ -37,12 +37,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'proposalIndex must be a number' }, { status: 400 });
   }
 
-  let walletAddress: string | null = null;
-  const authHeader = request.headers.get('Authorization');
-  if (authHeader?.startsWith('Bearer ')) {
-    const session = await validateSessionToken(authHeader.slice(7));
-    walletAddress = session?.walletAddress ?? null;
-  }
+  const walletAddress = wallet ?? null;
 
   const supabase = getSupabaseAdmin();
 
@@ -78,4 +73,4 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.json(result);
-}
+}, { auth: 'optional' });

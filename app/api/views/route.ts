@@ -2,43 +2,33 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { validateSessionToken } from '@/lib/supabaseAuth';
 import { captureServerEvent } from '@/lib/posthog-server';
+import { withRouteHandler, type RouteContext } from '@/lib/api/withRouteHandler';
+import { ViewSchema } from '@/lib/api/schemas/governance';
 
-/**
- * POST: Record a profile view (non-blocking, fire-and-forget from client)
- */
-export async function POST(request: NextRequest) {
-  try {
-    const { drepId, sessionToken } = await request.json();
-    if (!drepId || typeof drepId !== 'string') {
-      return NextResponse.json({ error: 'Missing drepId' }, { status: 400 });
-    }
+export const POST = withRouteHandler(async (request: NextRequest, { requestId }: RouteContext) => {
+  const body = await request.json();
+  const { drepId, sessionToken } = ViewSchema.parse(body);
 
-    let viewerWallet: string | null = null;
-    if (sessionToken) {
-      const parsed = await validateSessionToken(sessionToken);
-      if (parsed) viewerWallet = parsed.walletAddress;
-    }
-
-    const supabase = getSupabaseAdmin();
-    await supabase.from('profile_views').insert({
-      drep_id: drepId,
-      viewer_wallet: viewerWallet,
-    });
-
-    captureServerEvent(
-      'profile_viewed',
-      { drep_id: drepId, authenticated: !!viewerWallet },
-      viewerWallet || 'anonymous',
-    );
-    return NextResponse.json({ ok: true });
-  } catch {
-    return NextResponse.json({ ok: false }, { status: 500 });
+  let viewerWallet: string | null = null;
+  if (sessionToken) {
+    const parsed = await validateSessionToken(sessionToken);
+    if (parsed) viewerWallet = parsed.walletAddress;
   }
-}
 
-/**
- * GET: Fetch view stats for a DRep (used by dashboard)
- */
+  const supabase = getSupabaseAdmin();
+  await supabase.from('profile_views').insert({
+    drep_id: drepId,
+    viewer_wallet: viewerWallet,
+  });
+
+  captureServerEvent(
+    'profile_viewed',
+    { drep_id: drepId, authenticated: !!viewerWallet },
+    viewerWallet || 'anonymous',
+  );
+  return NextResponse.json({ ok: true });
+}, { auth: 'none', rateLimit: { max: 60, window: 60 } });
+
 export async function GET(request: NextRequest) {
   const drepId = request.nextUrl.searchParams.get('drepId');
   if (!drepId) {

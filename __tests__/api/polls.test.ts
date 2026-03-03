@@ -8,7 +8,10 @@ const mockEq = vi.fn();
 const mockSingle = vi.fn();
 const mockLimit = vi.fn();
 
+const mockRequireAuth = vi.fn();
+
 vi.mock('@/lib/supabaseAuth', () => ({
+  requireAuth: (...args: unknown[]) => mockRequireAuth(...args),
   validateSessionToken: vi.fn(),
 }));
 
@@ -46,8 +49,29 @@ vi.mock('@/lib/supabase', () => ({
   }),
 }));
 
+vi.mock('@/lib/logger', () => ({
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+}));
+
+vi.mock('@/lib/api/response', () => ({
+  generateRequestId: () => 'req_test',
+  normalizeEndpoint: (p: string) => p.replace(/^\/api/, ''),
+}));
+
+vi.mock('@/lib/posthog-server', () => ({
+  captureServerEvent: vi.fn(),
+}));
+
+vi.mock('@/lib/koios', () => ({
+  blockTimeToEpoch: () => 500,
+}));
+
+vi.mock('@/lib/matching/userProfile', () => ({
+  updateUserProfile: vi.fn().mockResolvedValue(undefined),
+}));
+
+import { NextResponse } from 'next/server';
 import { POST } from '@/app/api/polls/vote/route';
-import { validateSessionToken } from '@/lib/supabaseAuth';
 
 describe('POST /api/polls/vote', () => {
   beforeEach(() => {
@@ -55,7 +79,9 @@ describe('POST /api/polls/vote', () => {
   });
 
   it('returns 401 without auth token', async () => {
-    vi.mocked(validateSessionToken).mockResolvedValue(null);
+    mockRequireAuth.mockResolvedValue(
+      NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
+    );
     const req = createRequest('/api/polls/vote', {
       method: 'POST',
       body: { proposalTxHash: 'abc', proposalIndex: 0, vote: 'yes' },
@@ -65,7 +91,7 @@ describe('POST /api/polls/vote', () => {
   });
 
   it('returns 400 when proposalTxHash is missing', async () => {
-    vi.mocked(validateSessionToken).mockResolvedValue({ walletAddress: 'addr1...' } as any);
+    mockRequireAuth.mockResolvedValue({ wallet: 'addr1test' });
     const req = createRequest('/api/polls/vote', {
       method: 'POST',
       headers: { Authorization: 'Bearer valid-token' },
@@ -76,7 +102,7 @@ describe('POST /api/polls/vote', () => {
   });
 
   it('returns 400 when vote is invalid', async () => {
-    vi.mocked(validateSessionToken).mockResolvedValue({ walletAddress: 'addr1...' } as any);
+    mockRequireAuth.mockResolvedValue({ wallet: 'addr1test' });
     const req = createRequest('/api/polls/vote', {
       method: 'POST',
       headers: { Authorization: 'Bearer valid-token' },
@@ -87,7 +113,7 @@ describe('POST /api/polls/vote', () => {
   });
 
   it('inserts a new vote for first-time voter', async () => {
-    vi.mocked(validateSessionToken).mockResolvedValue({ walletAddress: 'addr1test' } as any);
+    mockRequireAuth.mockResolvedValue({ wallet: 'addr1test' });
     mockSingle.mockResolvedValue({ data: null, error: null });
     mockInsert.mockResolvedValue({ error: null });
     mockSelect.mockReturnValue({

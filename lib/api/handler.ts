@@ -56,7 +56,7 @@ export function withApiHandler(handler: ApiHandler, options: HandlerOptions = {}
       }
 
       if (options.requiredTier && tier === 'anon') {
-        return apiError('tier_required', { required: options.requiredTier }, { requestId });
+        return apiError('tier_insufficient', { required_tier: options.requiredTier, current_tier: tier }, { requestId });
       }
 
       const ipHash = hashIp(
