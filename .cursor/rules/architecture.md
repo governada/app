@@ -18,7 +18,7 @@ Cardano governance tool for casual ADA holders to discover DReps aligned with th
 - **Data**: Koios API (mainnet) → Supabase (cache) → Next.js (reads)
 - **Hosting**: Railway (Docker, health checks, auto-deploy from `main`). **NOT Vercel** — see Platform Constraints below
 - **CDN/DNS**: Cloudflare
-- **Background Jobs**: Inngest Cloud (16 durable functions — syncs, integrity, notifications, treasury, cross-chain benchmarks, all feature-flagged)
+- **Background Jobs**: Inngest Cloud (19 durable functions — syncs, scoring, alignment, integrity, notifications, treasury, cross-chain benchmarks, all feature-flagged)
 - **Error Tracking**: Sentry (Next.js SDK)
 - **Analytics**: PostHog (JS + Node SDKs)
 
@@ -60,13 +60,14 @@ Next.js App (server components + API routes + client components)
 | Base URL for server-side fetches     | `lib/constants.ts` (`BASE_URL`)                                                                                         |
 | Supabase reads (primary data source) | `lib/data.ts`                                                                                                           |
 | Koios API helpers (used by sync)     | `utils/koios.ts`                                                                                                        |
-| Scoring & enrichment logic           | `lib/koios.ts`, `utils/scoring.ts`                                                                                      |
+| Scoring V3 (pillar computation)      | `lib/scoring/` (engagementQuality, effectiveParticipation, reliability, governanceIdentity, drepScore, percentile, types) |
+| Scoring & enrichment (legacy helpers)| `lib/koios.ts`, `utils/scoring.ts`                                                                                      |
 | Supabase client                      | `lib/supabase.ts`                                                                                                       |
 | **Sync logic (durable, callable)**   | `lib/sync/dreps.ts`, `lib/sync/votes.ts`, `lib/sync/secondary.ts`, `lib/sync/slow.ts`                                   |
 | Sync HTTP routes (thin wrappers)     | `app/api/sync/dreps/`, `app/api/sync/votes/`, `app/api/sync/secondary/`, `app/api/sync/slow/`                           |
 | Proposals sync (inline in Inngest)   | `inngest/functions/sync-proposals.ts`                                                                                   |
 | DRep types                           | `types/drep.ts`, `types/koios.ts`                                                                                       |
-| Alignment scoring                    | `lib/alignment.ts`, `utils/scoring.ts`                                                                                  |
+| Alignment scoring (PCA)              | `lib/alignment/` (pca, voteMatrix, classifyProposals, normalize, dimensions, rationaleQuality, validate), `lib/alignment.ts` |
 | Admin integrity                      | `app/api/admin/integrity/route.ts`, `app/admin/integrity/page.tsx`                                                      |
 | Feature flags                        | `lib/featureFlags.ts`, `components/FeatureGate.tsx`, `app/api/admin/feature-flags/route.ts`, `app/admin/flags/page.tsx` |
 | Cross-chain governance               | `lib/crossChain.ts`, `inngest/functions/sync-governance-benchmarks.ts`                                                  |
@@ -98,19 +99,25 @@ All admin-only pages and tools follow a standard pattern:
 - **Sitemap exclusion**: `robots.ts` already disallows `/admin/`
 - **When adding a new admin page**: Add the route under `app/admin/`, implement the auth guard, and add a nav link to both `Header.tsx` (wallet dropdown Admin section) and `MobileNav.tsx` (Admin section).
 
-## Scoring Model (V3, Feb 2026)
+## Scoring Model (V3, Mar 2026)
 
 ```
-DRep Score (0-100) =
-  Rationale Quality (35%) +
-  Effective Participation (30%) +
-  Reliability (20%) +
-  Profile Completeness (15%)
+DRep Score (0-100, percentile-normalized) =
+  Engagement Quality (35%) +
+  Effective Participation (25%) +
+  Reliability (25%) +
+  Governance Identity (15%)
 ```
 
+Each pillar is computed as a raw score, then percentile-normalized across the full DRep population. The composite is a weighted sum of percentile scores. Implementation: `lib/scoring/`.
+
+- **Engagement Quality**: provision rate (decay-weighted), AI rationale quality, deliberation signal (diversity, dissent, breadth)
+- **Effective Participation**: importance-weighted participation with treasury scaling and close-margin bonus
+- **Reliability**: consistency, abstention penalty, responsiveness (median days to vote)
+- **Governance Identity**: quality-tiered profile completeness + delegator count percentile
+- **Momentum**: linear regression slope over score history (stored as `score_momentum`)
 - Influence/voting power intentionally excluded (conflicts with decentralization mission)
-- Abstention penalty: <25% mild, 25-50% moderate, >50% severe
-- Size tiers: Small (<10k), Medium (10k-1M, optimal), Large (1M-10M), Whale (>10M)
+- Temporal decay: exponential with 180-day half-life on vote-related metrics
 
 ## Sync Architecture
 
@@ -121,7 +128,7 @@ DRep Score (0-100) =
 
 ## Database (Supabase)
 
-28+ migrations. Key tables: `dreps`, `drep_votes`, `vote_rationales`, `proposals`, `drep_score_history`, `proposal_voting_summary`, `drep_power_snapshots`, `poll_responses`, `sync_log`, `integrity_snapshots`, `api_keys`, `api_usage_log`, `drep_milestones`, `position_statements`, `vote_explanations`, `governance_philosophy`, `governance_benchmarks`, `feature_flags` (with `category` column, 41 rows)
+30 migrations. Key tables: `dreps`, `drep_votes`, `vote_rationales`, `proposals`, `drep_score_history`, `proposal_voting_summary`, `drep_power_snapshots`, `poll_responses`, `sync_log`, `integrity_snapshots`, `api_keys`, `api_usage_log`, `drep_milestones`, `position_statements`, `vote_explanations`, `governance_philosophy`, `governance_benchmarks`, `feature_flags` (with `category` column, 41 rows), `proposal_classifications`, `pca_results`, `drep_pca_coordinates`, `alignment_snapshots`
 
 ### `dreps` Table Schema Convention
 
@@ -155,6 +162,8 @@ When adding or removing functions, update this list AND the count in the Tech St
 - `sync-freshness-guard` — every 30 min (detects stale sync_log entries, re-triggers via `inngest.send()`)
 - `sync-treasury-snapshot` — daily 22:30 UTC (Koios /totals → treasury_snapshots)
 - `sync-governance-benchmarks` — weekly Sunday 06:00 UTC (Tally/SubSquare → governance_benchmarks, feature-flagged via `cross_chain_sync`)
+- `sync-alignment` — `drepscore/sync.alignment` event (PCA alignment computation → pca_results, drep_pca_coordinates)
+- `sync-drep-scores` — `drepscore/sync.scores` event, chained after sync-dreps (V3 pillar computation → dreps columns + drep_score_history)
 
 **Alerts & health:**
 

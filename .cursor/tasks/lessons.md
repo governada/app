@@ -31,12 +31,6 @@
 - **Fix**: Cast validated output: `validProposals as unknown as ProposalListResponse`. The Zod validation has already verified structural correctness.
 - **Pattern**: When adding Zod validation to an existing typed pipeline, expect to need casts at consumption sites.
 
-### PowerShell does not support heredoc syntax
-
-- **Context**: `cat <<'EOF'` fails in PowerShell. Hit this when creating git commits and PRs with multi-line bodies.
-- **Fix**: Write body to a temp file, use `--body-file`, then delete. Or use simple single-line messages.
-- **Pattern**: Always use temp files for multi-line strings in PowerShell shell commands.
-
 ### DB CHECK constraints must match actual writes
 
 - **Context**: `sync_log` had a CHECK constraint allowing only 3 sync types, but 7+ types were being written. SyncLogger silently caught the violation, leaving `v_sync_health` blind to most syncs.
@@ -59,11 +53,6 @@
 - **Context**: `app/sitemap.ts` defaulted to static generation (`○`), meaning Next.js tries to prerender it at build time. Railway's build phase either lacks Supabase env vars or the query fails in the build container. Deploy failed silently.
 - **Fix**: Add `export const dynamic = 'force-dynamic'` to sitemap.ts. Now it's `ƒ` (dynamic) — generated on request, not at build time.
 - **Pattern**: Any `app/sitemap.ts` or `app/robots.ts` that queries a database MUST be force-dynamic. Static generation at build time will fail on CI/CD platforms that don't inject runtime env vars during the build phase.
-
-### Always merge PR then deploy — don't skip steps
-
-- **Context**: Completed all code, pushed, created PR, but didn't merge or deploy. The user had to ask.
-- **Pattern**: The full workflow is: commit → push → create PR → merge PR → pull to main → push main → monitor deploy → verify live. Every step is mandatory. Don't stop at "PR created."
 
 ## 2026-03-02 — Session 12 (Constellation Hero)
 
@@ -95,11 +84,6 @@
 - **Pattern**: Always import `BASE_URL` from `@/lib/constants` (reads `NEXT_PUBLIC_SITE_URL`, falls back to localhost). Never reference Vercel-specific env vars.
 - **Promoted to rule**: `architecture.md` — added "Platform Constraints (Railway, NOT Vercel)" section with explicit prohibitions and `BASE_URL` as canonical pattern.
 
-### PowerShell heredoc (<<'EOF') doesn't work — use file-based commit messages
-
-- **Context**: `git commit -m "$(cat <<'EOF' ... EOF)"` fails in PowerShell because heredocs are a bash feature.
-- **Pattern**: Write commit message to `commit-msg.txt`, then `git commit -F commit-msg.txt`.
-
 ## 2026-03-02 — Session 15 (Hero Constellation Polish)
 
 ### Auto-deploy: don't stop at "code complete"
@@ -128,12 +112,23 @@
 - **Pattern**: `deploy.md` already says "Apply via Supabase MCP `apply_migration`" — follow it literally. Never try the CLI path. The MCP authenticates through Cursor's integration, not through env vars or `SUPABASE_ACCESS_TOKEN`.
 - **Promoted to rule**: Strengthened deploy.md to explicitly say "use MCP, never CLI."
 
-### Prettier first-time setup requires full codebase format
-
-- **Context**: Added `.prettierrc` + `format:check` CI step to an existing codebase. CI failed on 457 files. Ran `prettier --write .` locally, pushed — still 3 files failed (test files + a client component). Required a second pass targeting those specific files.
-- **Pattern**: When adding Prettier to an existing project: (1) run `prettier --write .` locally, (2) run `prettier --check .` locally to verify zero issues before pushing, (3) don't trust a single `--write` pass — some files may be missed due to caching or ignore rules.
-
 ### `git add -A` is acceptable for codebase-wide formatting
 
 - **Context**: `workflow.md` says "Do NOT use `git add -A`" — but after `prettier --write .` reformats 457 files, targeted `git add` is impractical. Used `git add -A` then amended the commit.
 - **Pattern**: `git add -A` is acceptable when the ENTIRE diff is a mechanical transformation (formatting, rename, etc.) with no manual edits mixed in. The rule exists to prevent accidentally staging workspace artifacts — not to prevent bulk staging of intentional changes.
+
+## 2026-03-03 — Session (DRep Score V3)
+
+### New Inngest functions require PUT sync after deployment
+
+- **Context**: Added `sync-drep-scores` Inngest function, deployed to Railway, sent events — nothing happened. No sync_log entry, no errors, no score columns populated.
+- **Root cause**: Inngest cloud didn't know about the new function. After deploy, you must hit `PUT /api/inngest` to register new functions. Railway auto-deploys the code but doesn't trigger the Inngest sync.
+- **Fix**: `Invoke-WebRequest -Uri "https://drepscore.io/api/inngest" -Method PUT -Body '{}' -ContentType "application/json"`. Returns `{"modified":true}` when new functions are registered.
+- **Pattern**: After any deploy that adds/modifies Inngest functions, always PUT the `/api/inngest` endpoint.
+- **Promoted to rule**: `deploy.md` Post-deploy Validation step 2; `workflow.md` Ship It Checklist step 9.
+
+### Always run migration + trigger scoring autonomously after deploy
+
+- **Context**: User had to ask me to run the migration and trigger the scoring. Should have done it without asking.
+- **Pattern**: After deploy, autonomously: (1) run pending migrations, (2) trigger any new Inngest functions that need initial data population, (3) verify results.
+- **Promoted to rule**: `deploy.md` — autonomous migration + initial data population after deploy.

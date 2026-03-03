@@ -1,3 +1,13 @@
+---
+description: Sync pipeline architecture — loaded when working on sync-related code
+globs:
+  - lib/sync/**
+  - inngest/**
+  - app/api/sync/**
+  - utils/koios*
+alwaysApply: false
+---
+
 # Sync Pipeline Architecture
 
 ## Overview
@@ -14,6 +24,8 @@ All Koios-to-Supabase data synchronization runs through Inngest durable function
 | secondary | `sync-secondary` | `30 */6 * * *` | `koios-batch` (limit 2) | `HEARTBEAT_URL_BATCH` |
 | slow | `sync-slow` | `0 4 * * *` | `slow-sync` (limit 1) | `HEARTBEAT_URL_DAILY` |
 | treasury | `sync-treasury-snapshot` | `30 22 * * *` | `treasury-sync` (limit 1) | `HEARTBEAT_URL_DAILY` |
+| alignment | `sync-alignment` | event-driven (`drepscore/sync.alignment`) | — | — |
+| scoring | `sync-drep-scores` | event-driven (`drepscore/sync.scores`, chained after dreps) | — | — |
 
 ## Dependency Order
 
@@ -26,9 +38,11 @@ If dreps runs long and overlaps with votes, the `koios-batch` key (limit 2) allo
 
 ## Execution Model
 
-All sync types (dreps, votes, secondary, slow) export an `execute*Sync()` function from their route file (e.g. `executeDrepsSync` from `app/api/sync/dreps/route.ts`). Inngest functions import and call these directly inside `step.run()` — no HTTP round-trip. This makes syncs durable: if Railway restarts mid-sync, Inngest retries the step.
+Core sync types (dreps, votes, secondary, slow) export an `execute*Sync()` function from `lib/sync/<name>.ts`. Inngest functions import and call these directly inside `step.run()` — no HTTP round-trip. This makes syncs durable: if Railway restarts mid-sync, Inngest retries the step.
 
-The HTTP routes remain as manual trigger endpoints (authenticated via `CRON_SECRET`). Each sync function also listens for an Inngest event (`drepscore/sync.<type>`) in addition to its cron trigger.
+Event-driven syncs (alignment, scoring) run entirely inside their Inngest function — they don't have HTTP routes or `execute*Sync()` wrappers. They are triggered by Inngest events chained from upstream syncs (e.g., `sync-dreps` emits `drepscore/sync.scores` on completion).
+
+The HTTP routes remain as manual trigger endpoints (authenticated via `CRON_SECRET`). Each cron-based sync function also listens for an Inngest event (`drepscore/sync.<type>`) in addition to its cron trigger.
 
 ## Self-Healing
 
