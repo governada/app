@@ -15,18 +15,17 @@ import { calculateParticipationRate, applyRationaleCurve } from '@/utils/scoring
 import { getProposalPriority } from '@/utils/proposalPriority';
 import { captureServerEvent } from '@/lib/posthog-server';
 import { getTreasuryBalance } from '@/lib/treasury';
-import { logger } from '@/lib/logger';
+import { withRouteHandler, type RouteContext } from '@/lib/api/withRouteHandler';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest) {
+export const GET = withRouteHandler(async (request: NextRequest, context: RouteContext) => {
   const drepId = request.nextUrl.searchParams.get('drepId');
   if (!drepId) {
     return NextResponse.json({ error: 'Missing drepId' }, { status: 400 });
   }
 
-  try {
-    const [drep, pendingProposals, totalProposalCount] = await Promise.all([
+  const [drep, pendingProposals, totalProposalCount] = await Promise.all([
       getDRepById(drepId),
       getOpenProposalsForDRep(drepId),
       getActualProposalCount(),
@@ -134,22 +133,18 @@ export async function GET(request: NextRequest) {
       drepId,
     );
 
-    return NextResponse.json({
-      pendingProposals: enriched,
-      pendingCount: enriched.length,
-      votedThisEpoch: votedThisEpochCount,
-      currentEpoch,
-      scoreImpact: {
-        currentScore: drep.drepScore,
-        simulatedScore: Math.min(100, drep.drepScore + scoreImpact),
-        potentialGain: Math.max(0, scoreImpact),
-        perProposalGain: perProposalImpact,
-      },
-      criticalCount,
-      urgentCount,
-    });
-  } catch (error) {
-    logger.error('Error', { context: 'inbox-api', error: error });
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
-  }
-}
+  return NextResponse.json({
+    pendingProposals: enriched,
+    pendingCount: enriched.length,
+    votedThisEpoch: votedThisEpochCount,
+    currentEpoch,
+    scoreImpact: {
+      currentScore: drep.drepScore,
+      simulatedScore: Math.min(100, drep.drepScore + scoreImpact),
+      potentialGain: Math.max(0, scoreImpact),
+      perProposalGain: perProposalImpact,
+    },
+    criticalCount,
+    urgentCount,
+  });
+});

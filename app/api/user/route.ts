@@ -1,24 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateSessionToken } from '@/lib/supabaseAuth';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { SupabaseUser, SupabaseUserUpdate } from '@/types/supabase';
 import { logger } from '@/lib/logger';
+import { withRouteHandler, type RouteContext } from '@/lib/api/withRouteHandler';
 
-async function authenticateRequest(request: NextRequest): Promise<string | null> {
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) return null;
-
-  const token = authHeader.slice(7);
-  const session = await validateSessionToken(token);
-  return session?.walletAddress ?? null;
-}
-
-export async function GET(request: NextRequest) {
-  const walletAddress = await authenticateRequest(request);
-  if (!walletAddress) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+export const GET = withRouteHandler(async (request: NextRequest, { wallet }: RouteContext) => {
+  const walletAddress = wallet!;
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from('users')
@@ -41,14 +28,10 @@ export async function GET(request: NextRequest) {
     ...data,
     previousVisitAt,
   } as SupabaseUser & { previousVisitAt: string | null });
-}
+}, { auth: 'required' });
 
-export async function PATCH(request: NextRequest) {
-  const walletAddress = await authenticateRequest(request);
-  if (!walletAddress) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+export const PATCH = withRouteHandler(async (request: NextRequest, { wallet }: RouteContext) => {
+  const walletAddress = wallet!;
   const updates: SupabaseUserUpdate = await request.json();
 
   const allowedFields: (keyof SupabaseUserUpdate)[] = [
@@ -81,4 +64,4 @@ export async function PATCH(request: NextRequest) {
   }
 
   return NextResponse.json(data as SupabaseUser);
-}
+}, { auth: 'required' });

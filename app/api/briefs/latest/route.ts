@@ -5,22 +5,12 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { getLatestBrief } from '@/lib/governanceBrief';
 import { captureServerEvent } from '@/lib/posthog-server';
-import { validateSessionToken } from '@/lib/supabaseAuth';
+import { withRouteHandler, type RouteContext } from '@/lib/api/withRouteHandler';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const session = await validateSessionToken(authHeader.slice(7));
-  if (!session?.walletAddress) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const brief = await getLatestBrief(session.walletAddress);
+export const GET = withRouteHandler(async (request: NextRequest, { wallet }: RouteContext) => {
+  const brief = await getLatestBrief(wallet!);
 
   if (!brief) {
     return NextResponse.json({ brief: null, message: 'No briefs yet' });
@@ -32,8 +22,8 @@ export async function GET(request: NextRequest) {
       brief_id: brief.id,
       source: 'api',
     },
-    session.walletAddress,
+    wallet!,
   );
 
   return NextResponse.json({ brief });
-}
+}, { auth: 'required' });

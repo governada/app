@@ -3,6 +3,8 @@ import { getSupabaseAdmin } from '@/lib/supabase';
 import { validateSessionToken } from '@/lib/supabaseAuth';
 import { captureServerEvent } from '@/lib/posthog-server';
 import { logger } from '@/lib/logger';
+import { withRouteHandler, type RouteContext } from '@/lib/api/withRouteHandler';
+import { QuestionSchema } from '@/lib/api/schemas/governance';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,66 +56,53 @@ export async function GET(request: NextRequest) {
   });
 }
 
-export async function POST(request: NextRequest) {
-  try {
-    const { sessionToken, drepId, questionText } = await request.json();
+export const POST = withRouteHandler(async (request: NextRequest, { requestId }: RouteContext) => {
+  const body = await request.json();
+  const { sessionToken, drepId, questionText } = QuestionSchema.parse(body);
 
-    if (!sessionToken || !drepId || !questionText) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
-    }
-
-    if (questionText.length > 500) {
-      return NextResponse.json({ error: 'Question too long (max 500 chars)' }, { status: 400 });
-    }
-
-    const parsed = await validateSessionToken(sessionToken);
-    if (!parsed) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const wallet = parsed.walletAddress;
-    const supabase = getSupabaseAdmin();
-
-    // Rate limit: 3 questions per day per wallet per DRep
-    const dayAgo = new Date(Date.now() - 86400000).toISOString();
-    const { count } = await supabase
-      .from('drep_questions')
-      .select('id', { count: 'exact', head: true })
-      .eq('asker_wallet', wallet)
-      .eq('drep_id', drepId)
-      .gte('created_at', dayAgo);
-
-    if ((count ?? 0) >= 3) {
-      return NextResponse.json(
-        { error: 'Rate limit: max 3 questions per day per DRep' },
-        { status: 429 },
-      );
-    }
-
-    const { data, error } = await supabase
-      .from('drep_questions')
-      .insert({
-        drep_id: drepId,
-        asker_wallet: wallet,
-        question_text: questionText.trim(),
-      })
-      .select()
-      .single();
-
-    if (error) {
-      logger.error('Q&A insert error', { context: 'governance/questions', error: error?.message });
-      return NextResponse.json({ error: 'Failed to submit question' }, { status: 500 });
-    }
-
-    captureServerEvent('question_submitted', {
-      drep_id: drepId,
-      question_id: data.id,
-      wallet,
-    });
-
-    return NextResponse.json(data, { status: 201 });
-  } catch (error) {
-    logger.error('Q&A POST error', { context: 'governance/questions', error: error });
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+  const parsed = await validateSessionToken(sessionToken);
+  if (!parsed) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-}
+
+  const wallet = parsed.walletAddress;
+  const supabase = getSupabaseAdmin();
+
+  const dayAgo = new Date(Date.now() - 86400000).toISOString();
+  const { count } = await supabase
+    .from('drep_questions')
+    .select('id', { count: 'exact', head: true })
+    .eq('asker_wallet', wallet)
+    .eq('drep_id', drepId)
+    .gte('created_at', dayAgo);
+
+  if ((count ?? 0) >= 3) {
+    return NextResponse.json(
+      { error: 'Rate limit: max 3 questions per day per DRep' },
+      { status: 429 },
+    );
+  }
+
+  const { data, error } = await supabase
+    .from('drep_questions')
+    .insert({
+      drep_id: drepId,
+      asker_wallet: wallet,
+      question_text: questionText.trim(),
+    })
+    .select()
+    .single();
+
+  if (error) {
+    logger.error('Q&A insert error', { context: 'governance/questions', error: error?.message });
+    return NextResponse.json({ error: 'Failed to submit question' }, { status: 500 });
+  }
+
+  captureServerEvent('question_submitted', {
+    drep_id: drepId,
+    question_id: data.id,
+    wallet,
+  });
+
+  return NextResponse.json(data, { status: 201 });
+}, { auth: 'none' });

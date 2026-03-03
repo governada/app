@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase';
 import { captureServerEvent } from '@/lib/posthog-server';
+import { withRouteHandler } from '@/lib/api/withRouteHandler';
 
 export const dynamic = 'force-dynamic';
 
@@ -124,7 +125,7 @@ function similarityToScore(sim: number): number {
   return Math.max(0, Math.min(100, Math.round(sim * 100)));
 }
 
-export async function POST(request: NextRequest) {
+export const POST = withRouteHandler(async (request: NextRequest) => {
   let body: { treasury?: string; protocol?: string; transparency?: string };
   try {
     body = await request.json();
@@ -237,4 +238,4 @@ export async function POST(request: NextRequest) {
       voteCount: r.voteCount,
     })),
   });
-}
+}, { rateLimit: { max: 10, window: 60 } });

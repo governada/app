@@ -3,6 +3,8 @@ import { getSupabaseAdmin } from '@/lib/supabase';
 import { validateSessionToken } from '@/lib/supabaseAuth';
 import { captureServerEvent } from '@/lib/posthog-server';
 import { logger } from '@/lib/logger';
+import { withRouteHandler, type RouteContext } from '@/lib/api/withRouteHandler';
+import { DrepClaimSchema } from '@/lib/api/schemas/drep';
 
 /**
  * GET: Check if a DRep is claimed by any user.
@@ -36,37 +38,27 @@ export async function GET(request: NextRequest) {
 /**
  * POST: Auto-claim a DRep profile when an authenticated wallet matches the DRep ID.
  */
-export async function POST(request: NextRequest) {
-  try {
-    const { sessionToken, drepId } = await request.json();
+export const POST = withRouteHandler(async (request: NextRequest, { requestId }: RouteContext) => {
+  const { sessionToken, drepId } = DrepClaimSchema.parse(await request.json());
 
-    if (!sessionToken || !drepId) {
-      return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
-    }
-
-    const parsed = await validateSessionToken(sessionToken);
-    if (!parsed) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const walletAddress = parsed.walletAddress;
-    const supabase = getSupabaseAdmin();
-
-    // Idempotent upsert: set claimed_drep_id for this wallet
-    const { error } = await supabase
-      .from('users')
-      .update({ claimed_drep_id: drepId })
-      .eq('wallet_address', walletAddress);
-
-    if (error) {
-      logger.error('Error', { context: 'drepclaim', error: error?.message });
-      return NextResponse.json({ error: 'Failed to claim' }, { status: 500 });
-    }
-
-    captureServerEvent('drep_claimed', { drep_id: drepId }, walletAddress);
-    return NextResponse.json({ claimed: true, drepId });
-  } catch (err) {
-    logger.error('Error', { context: 'drepclaim', error: err });
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+  const parsed = await validateSessionToken(sessionToken);
+  if (!parsed) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-}
+
+  const walletAddress = parsed.walletAddress;
+  const supabase = getSupabaseAdmin();
+
+  const { error } = await supabase
+    .from('users')
+    .update({ claimed_drep_id: drepId })
+    .eq('wallet_address', walletAddress);
+
+  if (error) {
+    logger.error('Error', { context: 'drepclaim', error: error?.message });
+    return NextResponse.json({ error: 'Failed to claim' }, { status: 500 });
+  }
+
+  captureServerEvent('drep_claimed', { drep_id: drepId }, walletAddress);
+  return NextResponse.json({ claimed: true, drepId });
+}, { auth: 'none', rateLimit: { max: 5, window: 60 } });

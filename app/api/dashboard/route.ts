@@ -15,18 +15,17 @@ import {
   getDRepPercentile,
 } from '@/lib/data';
 import { getProposalDisplayTitle } from '@/utils/display';
-import { logger } from '@/lib/logger';
+import { withRouteHandler, type RouteContext } from '@/lib/api/withRouteHandler';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest) {
+export const GET = withRouteHandler(async (request: NextRequest, context: RouteContext) => {
   const drepId = request.nextUrl.searchParams.get('drepId');
   if (!drepId) {
     return NextResponse.json({ error: 'Missing drepId' }, { status: 400 });
   }
 
-  try {
-    const cachedDRep = await getDRepById(drepId);
+  const cachedDRep = await getDRepById(drepId);
     if (!cachedDRep) {
       return NextResponse.json({ error: 'DRep not found' }, { status: 404 });
     }
@@ -87,41 +86,37 @@ export async function GET(request: NextRequest) {
 
     const brokenLinks = linkChecks.filter((c: any) => c.status === 'broken').map((c: any) => c.uri);
 
-    return NextResponse.json({
-      drep: {
-        drepId: cachedDRep.drepId,
-        drepHash: cachedDRep.drepHash,
-        handle: cachedDRep.handle,
-        name: cachedDRep.name,
-        ticker: cachedDRep.ticker,
-        description: cachedDRep.description,
-        votingPower: cachedDRep.votingPower,
-        votingPowerLovelace: cachedDRep.votingPowerLovelace,
-        delegatorCount: cachedDRep.delegatorCount,
-        sizeTier: cachedDRep.sizeTier,
-        drepScore: cachedDRep.drepScore,
-        isActive: cachedDRep.isActive,
-        participationRate: cachedDRep.participationRate,
-        rationaleRate: cachedDRep.rationaleRate,
-        effectiveParticipation: cachedDRep.effectiveParticipation,
-        deliberationModifier: cachedDRep.deliberationModifier,
-        reliabilityScore: cachedDRep.reliabilityScore,
-        reliabilityStreak: cachedDRep.reliabilityStreak,
-        reliabilityRecency: cachedDRep.reliabilityRecency,
-        reliabilityLongestGap: cachedDRep.reliabilityLongestGap,
-        reliabilityTenure: cachedDRep.reliabilityTenure,
-        profileCompleteness: cachedDRep.profileCompleteness,
-        anchorUrl: cachedDRep.anchorUrl,
-        metadata: cachedDRep.metadata,
-        votes,
-        brokenLinks,
-        updatedAt: cachedDRep.updatedAt,
-      },
-      scoreHistory,
-      percentile,
-    });
-  } catch (error) {
-    logger.error('Error', { context: 'mydrep-api', error: error });
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
-  }
-}
+  return NextResponse.json({
+    drep: {
+      drepId: cachedDRep.drepId,
+      drepHash: cachedDRep.drepHash,
+      handle: cachedDRep.handle,
+      name: cachedDRep.name,
+      ticker: cachedDRep.ticker,
+      description: cachedDRep.description,
+      votingPower: cachedDRep.votingPower,
+      votingPowerLovelace: cachedDRep.votingPowerLovelace,
+      delegatorCount: cachedDRep.delegatorCount,
+      sizeTier: cachedDRep.sizeTier,
+      drepScore: cachedDRep.drepScore,
+      isActive: cachedDRep.isActive,
+      participationRate: cachedDRep.participationRate,
+      rationaleRate: cachedDRep.rationaleRate,
+      effectiveParticipation: cachedDRep.effectiveParticipation,
+      deliberationModifier: cachedDRep.deliberationModifier,
+      reliabilityScore: cachedDRep.reliabilityScore,
+      reliabilityStreak: cachedDRep.reliabilityStreak,
+      reliabilityRecency: cachedDRep.reliabilityRecency,
+      reliabilityLongestGap: cachedDRep.reliabilityLongestGap,
+      reliabilityTenure: cachedDRep.reliabilityTenure,
+      profileCompleteness: cachedDRep.profileCompleteness,
+      anchorUrl: cachedDRep.anchorUrl,
+      metadata: cachedDRep.metadata,
+      votes,
+      brokenLinks,
+      updatedAt: cachedDRep.updatedAt,
+    },
+    scoreHistory,
+    percentile,
+  });
+});

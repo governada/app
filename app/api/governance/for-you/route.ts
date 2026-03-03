@@ -1,10 +1,9 @@
 import { NextResponse, NextRequest } from 'next/server';
-import { validateSessionToken } from '@/lib/supabaseAuth';
 import { createClient } from '@/lib/supabase';
 import { cosineSimilarity } from '@/lib/representationMatch';
 import type { AlignmentDimension, AlignmentScores } from '@/lib/drepIdentity';
 import { captureServerEvent } from '@/lib/posthog-server';
-import { logger } from '@/lib/logger';
+import { withRouteHandler, type RouteContext } from '@/lib/api/withRouteHandler';
 
 export const dynamic = 'force-dynamic';
 
@@ -104,22 +103,9 @@ function topAligningDimension(
   return best ? { dim: best, strength: bestStrength } : null;
 }
 
-export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const token = authHeader.slice(7);
-  const session = await validateSessionToken(token);
-  if (!session?.walletAddress) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+export const GET = withRouteHandler(async (request: NextRequest, { wallet }: RouteContext) => {
   const supabase = createClient();
-  const walletAddress = session.walletAddress;
-
-  try {
+  const walletAddress = wallet!;
     const [profileResult, pollResult] = await Promise.all([
       supabase
         .from('user_governance_profiles')
@@ -278,12 +264,8 @@ export async function GET(request: NextRequest) {
       walletAddress,
     );
 
-    return NextResponse.json({
-      recommendations,
-      profileSource,
-    });
-  } catch (error) {
-    logger.error('Error', { context: 'for-you-api', error: error });
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
-  }
-}
+  return NextResponse.json({
+    recommendations,
+    profileSource,
+  });
+}, { auth: 'required' });

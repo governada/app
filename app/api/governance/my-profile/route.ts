@@ -5,31 +5,19 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { validateSessionToken } from '@/lib/supabaseAuth';
 import { createClient } from '@/lib/supabase';
 import { updateUserProfile } from '@/lib/matching/userProfile';
+import { withRouteHandler, type RouteContext } from '@/lib/api/withRouteHandler';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const token = authHeader.slice(7);
-  const session = await validateSessionToken(token);
-  if (!session?.walletAddress) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+export const GET = withRouteHandler(async (request: NextRequest, { wallet }: RouteContext) => {
   const supabase = createClient();
 
-  // Try to load existing profile
   const { data: existing } = await supabase
     .from('user_governance_profiles')
     .select('alignment_scores, personality_label, votes_used, confidence, updated_at')
-    .eq('wallet_address', session.walletAddress)
+    .eq('wallet_address', wallet!)
     .single();
 
   if (existing) {
@@ -42,8 +30,7 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  // No profile yet — compute and store
-  const profile = await updateUserProfile(session.walletAddress);
+  const profile = await updateUserProfile(wallet!);
   if (!profile) {
     return NextResponse.json({
       alignmentScores: null,
@@ -61,4 +48,4 @@ export async function GET(request: NextRequest) {
     confidence: profile.confidence,
     updatedAt: new Date().toISOString(),
   });
-}
+}, { auth: 'required' });

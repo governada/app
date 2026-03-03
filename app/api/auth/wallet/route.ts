@@ -5,25 +5,21 @@ import { getSupabaseAdmin } from '@/lib/supabase';
 import { verifyNonce } from '@/lib/nonce';
 import { captureServerEvent } from '@/lib/posthog-server';
 import { logger } from '@/lib/logger';
+import { ZodError } from 'zod';
+import { WalletAuthSchema } from '@/lib/api/schemas/auth';
 
 export const runtime = 'nodejs';
 
-interface AuthRequest {
-  address: string;
-  nonce: string;
-  nonceSignature: string;
-  signature: string;
-  key: string;
-}
-
 export async function POST(request: NextRequest) {
   try {
-    const body: AuthRequest = await request.json();
-    const { address, nonce, nonceSignature, signature, key } = body;
-
-    if (!address || !nonce || !nonceSignature || !signature || !key) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    let body;
+    try {
+      body = WalletAuthSchema.parse(await request.json());
+    } catch (e) {
+      if (e instanceof ZodError) return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      throw e;
     }
+    const { address, nonce, nonceSignature, signature, key } = body;
 
     const nonceValid = await verifyNonce(nonce, nonceSignature);
     if (!nonceValid) {

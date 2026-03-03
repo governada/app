@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { captureServerEvent } from '@/lib/posthog-server';
+import { withRouteHandler } from '@/lib/api/withRouteHandler';
 
 const KOIOS_BASE_URL = process.env.NEXT_PUBLIC_KOIOS_BASE_URL || 'https://api.koios.rest/api/v1';
 const KOIOS_API_KEY = process.env.KOIOS_API_KEY;
 
-export async function POST(request: NextRequest) {
+export const POST = withRouteHandler(async (request: NextRequest) => {
+  const { stakeAddress } = await request.json();
+
+  if (!stakeAddress || typeof stakeAddress !== 'string') {
+    return NextResponse.json({ error: 'stakeAddress required' }, { status: 400 });
+  }
+
   try {
-    const { stakeAddress } = await request.json();
-
-    if (!stakeAddress || typeof stakeAddress !== 'string') {
-      return NextResponse.json({ error: 'stakeAddress required' }, { status: 400 });
-    }
-
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
       ...(KOIOS_API_KEY && { Authorization: `Bearer ${KOIOS_API_KEY}` }),
@@ -42,4 +43,4 @@ export async function POST(request: NextRequest) {
   } catch {
     return NextResponse.json({ drepId: null });
   }
-}
+});

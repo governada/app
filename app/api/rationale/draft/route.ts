@@ -8,61 +8,58 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDRepById } from '@/lib/data';
 import { captureServerEvent } from '@/lib/posthog-server';
 import { logger } from '@/lib/logger';
+import { withRouteHandler, type RouteContext } from '@/lib/api/withRouteHandler';
+import { RationaleDraftSchema } from '@/lib/api/schemas/governance';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
 
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { drepId, proposalTitle, proposalAbstract, proposalType, aiSummary } = body;
+export const POST = withRouteHandler(async (request: NextRequest, { requestId }: RouteContext) => {
+  const { drepId, proposalTitle, proposalAbstract, proposalType, aiSummary } =
+    RationaleDraftSchema.parse(await request.json());
 
-    if (!drepId || !proposalTitle) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
-    }
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    return NextResponse.json({ error: 'AI features not configured' }, { status: 503 });
+  }
 
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: 'AI features not configured' }, { status: 503 });
-    }
+  const drep = await getDRepById(drepId);
+  if (!drep) {
+    return NextResponse.json({ error: 'DRep not found' }, { status: 404 });
+  }
 
-    const drep = await getDRepById(drepId);
-    if (!drep) {
-      return NextResponse.json({ error: 'DRep not found' }, { status: 404 });
-    }
+  const metadata = drep.metadata || {};
+  const objectives = (metadata.objectives as string) || '';
+  const motivations = (metadata.motivations as string) || '';
+  const qualifications = (metadata.qualifications as string) || '';
 
-    const metadata = drep.metadata || {};
-    const objectives = (metadata.objectives as string) || '';
-    const motivations = (metadata.motivations as string) || '';
-    const qualifications = (metadata.qualifications as string) || '';
+  const drepContext = [
+    objectives && `Objectives: ${objectives}`,
+    motivations && `Motivations: ${motivations}`,
+    qualifications && `Qualifications: ${qualifications}`,
+  ]
+    .filter(Boolean)
+    .join('\n');
 
-    const drepContext = [
-      objectives && `Objectives: ${objectives}`,
-      motivations && `Motivations: ${motivations}`,
-      qualifications && `Qualifications: ${qualifications}`,
-    ]
-      .filter(Boolean)
-      .join('\n');
+  const proposalContext = [
+    `Title: ${proposalTitle}`,
+    proposalType && `Type: ${proposalType}`,
+    proposalAbstract && `Abstract: ${proposalAbstract}`,
+    aiSummary && `Summary: ${aiSummary}`,
+  ]
+    .filter(Boolean)
+    .join('\n');
 
-    const proposalContext = [
-      `Title: ${proposalTitle}`,
-      proposalType && `Type: ${proposalType}`,
-      proposalAbstract && `Abstract: ${proposalAbstract}`,
-      aiSummary && `Summary: ${aiSummary}`,
-    ]
-      .filter(Boolean)
-      .join('\n');
+  const { default: Anthropic } = await import('@anthropic-ai/sdk');
+  const anthropic = new Anthropic({ apiKey });
 
-    const { default: Anthropic } = await import('@anthropic-ai/sdk');
-    const anthropic = new Anthropic({ apiKey });
-
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1024,
-      messages: [
-        {
-          role: 'user',
-          content: `You are helping a Cardano DRep (Delegated Representative) write a CIP-100 compatible voting rationale for a governance proposal.
+  const message = await anthropic.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 1024,
+    messages: [
+      {
+        role: 'user',
+        content: `You are helping a Cardano DRep (Delegated Representative) write a CIP-100 compatible voting rationale for a governance proposal.
 
 PROPOSAL:
 ${proposalContext}
@@ -77,17 +74,13 @@ Write a professional, structured voting rationale draft. The DRep will review an
 Keep it concise (under 300 words), factual, and neutral in tone. Do not make assumptions about the DRep's vote choice. Reference the DRep's stated objectives where relevant to help them frame their position.
 
 Output only the rationale text, no preamble.`,
-        },
-      ],
-    });
+      },
+    ],
+  });
 
-    const draft = message.content[0].type === 'text' ? message.content[0].text : '';
+  const draft = message.content[0].type === 'text' ? message.content[0].text : '';
 
-    captureServerEvent('rationale_ai_drafted', { drep_id: drepId }, drepId);
+  captureServerEvent('rationale_ai_drafted', { drep_id: drepId }, drepId);
 
-    return NextResponse.json({ draft });
-  } catch (error) {
-    logger.error('Error', { context: 'rationale-draft-api', error: error });
-    return NextResponse.json({ error: 'Failed to generate draft' }, { status: 500 });
-  }
-}
+  return NextResponse.json({ draft });
+}, { auth: 'none', rateLimit: { max: 10, window: 60 } });

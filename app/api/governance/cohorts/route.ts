@@ -1,17 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateSessionToken } from '@/lib/supabaseAuth';
 import { getSupabaseAdmin } from '@/lib/supabase';
-import { logger } from '@/lib/logger';
+import { withRouteHandler, type RouteContext } from '@/lib/api/withRouteHandler';
 
 export const dynamic = 'force-dynamic';
-
-async function authenticateRequest(request: NextRequest): Promise<string | null> {
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) return null;
-  const token = authHeader.slice(7);
-  const session = await validateSessionToken(token);
-  return session?.walletAddress ?? null;
-}
 
 interface CohortResult {
   userCohort: string;
@@ -45,15 +36,9 @@ function classifyVoter(treasuryYes: number, treasuryNo: number): string {
   return 'Balanced Voter';
 }
 
-export async function GET(request: NextRequest) {
-  const walletAddress = await authenticateRequest(request);
-  if (!walletAddress) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+export const GET = withRouteHandler(async (request: NextRequest, { wallet }: RouteContext) => {
+  const walletAddress = wallet!;
   const supabase = getSupabaseAdmin();
-
-  try {
     const { count: totalVoters } = await supabase
       .from('poll_responses')
       .select('wallet_address', { count: 'exact', head: true })
@@ -133,9 +118,5 @@ export async function GET(request: NextRequest) {
       },
     };
 
-    return NextResponse.json({ cohort: result });
-  } catch (error) {
-    logger.error('Error', { context: 'cohorts-api', error: error });
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
-  }
-}
+  return NextResponse.json({ cohort: result });
+}, { auth: 'required' });
