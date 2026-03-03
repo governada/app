@@ -55,7 +55,50 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json({ status: worstLevel, syncs });
+    // Snapshot health section
+    let snapshotHealth: Record<string, unknown> | null = null;
+    try {
+      const { data: statsRow } = await supabase
+        .from('governance_stats')
+        .select('current_epoch')
+        .eq('id', 1)
+        .single();
+      const epoch = statsRow?.current_epoch ?? 0;
+
+      if (epoch > 0) {
+        const snapshotTables = [
+          { name: 'treasury_health_snapshots', col: 'epoch' },
+          { name: 'inter_body_alignment_snapshots', col: 'epoch' },
+          { name: 'governance_participation_snapshots', col: 'epoch' },
+        ];
+
+        const snapshotChecks = await Promise.all(
+          snapshotTables.map(async ({ name, col }) => {
+            const { data: latest } = await supabase
+              .from(name)
+              .select(col)
+              .order(col, { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            const latestEpoch = latest ? (latest as unknown as Record<string, number>)[col] ?? null : null;
+            const gap = latestEpoch != null ? epoch - latestEpoch : null;
+            return {
+              table: name,
+              latest_epoch: latestEpoch,
+              expected_epoch: epoch,
+              gap,
+              level: gap === null ? 'unknown' : gap <= 1 ? 'healthy' : gap <= 3 ? 'degraded' : 'critical',
+            };
+          }),
+        );
+
+        snapshotHealth = { epoch, checks: snapshotChecks };
+      }
+    } catch {
+      // snapshot health is best-effort
+    }
+
+    return NextResponse.json({ status: worstLevel, syncs, snapshots: snapshotHealth });
   } catch (err) {
     return NextResponse.json(
       { status: 'error', message: err instanceof Error ? err.message : 'Unknown error' },

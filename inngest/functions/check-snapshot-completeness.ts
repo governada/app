@@ -116,6 +116,78 @@ export const checkSnapshotCompleteness = inngest.createFunction(
         detail: treasuryRow ? `epoch ${epoch} present` : `epoch ${epoch} MISSING`,
       });
 
+      // 7. Treasury health snapshot for current epoch
+      const { data: healthRow } = await supabase
+        .from('treasury_health_snapshots')
+        .select('epoch')
+        .eq('epoch', epoch)
+        .maybeSingle();
+      results.push({
+        name: 'treasury_health_snapshots',
+        passed: !!healthRow,
+        detail: healthRow ? `epoch ${epoch} present` : `epoch ${epoch} MISSING`,
+      });
+
+      // 8. Inter-body alignment snapshots for current epoch
+      const { count: alignSnapCount } = await supabase
+        .from('inter_body_alignment_snapshots')
+        .select('proposal_tx_hash', { count: 'exact', head: true })
+        .eq('epoch', epoch);
+      const { count: alignCacheCount } = await supabase
+        .from('inter_body_alignment')
+        .select('proposal_tx_hash', { count: 'exact', head: true });
+      const alignSnapCoverage = (alignCacheCount ?? 0) > 0
+        ? ((alignSnapCount ?? 0) / (alignCacheCount ?? 1)) * 100
+        : (alignSnapCount ?? 0) > 0 ? 100 : 0;
+      results.push({
+        name: 'inter_body_alignment_snapshots',
+        passed: alignSnapCoverage >= 80 || (alignCacheCount ?? 0) === 0,
+        detail: `${alignSnapCount ?? 0}/${alignCacheCount ?? 0} proposals (${alignSnapCoverage.toFixed(1)}%)`,
+      });
+
+      // 9. Proposal vote snapshots for current epoch
+      const { count: voteSnapCount } = await supabase
+        .from('proposal_vote_snapshots')
+        .select('proposal_tx_hash', { count: 'exact', head: true })
+        .eq('epoch', epoch);
+      const { data: openProposalCount } = await supabase
+        .from('proposals')
+        .select('tx_hash', { count: 'exact', head: true })
+        .is('ratified_epoch', null)
+        .is('enacted_epoch', null)
+        .is('dropped_epoch', null)
+        .is('expired_epoch', null);
+      const openCount = (openProposalCount as unknown as number) ?? 0;
+      results.push({
+        name: 'proposal_vote_snapshots',
+        passed: (voteSnapCount ?? 0) > 0 || openCount === 0,
+        detail: `${voteSnapCount ?? 0} proposals snapshotted for epoch ${epoch}`,
+      });
+
+      // 10. Delegation snapshots for current epoch
+      const { count: delegSnapCount } = await supabase
+        .from('delegation_snapshots')
+        .select('drep_id', { count: 'exact', head: true })
+        .eq('epoch', epoch);
+      const delegCoverage = expectedDreps > 0 ? ((delegSnapCount ?? 0) / expectedDreps) * 100 : 0;
+      results.push({
+        name: 'delegation_snapshots',
+        passed: delegCoverage >= 80,
+        detail: `${delegSnapCount ?? 0}/${expectedDreps} DReps (${delegCoverage.toFixed(1)}%)`,
+      });
+
+      // 11. Governance participation snapshots for current epoch
+      const { data: partRow } = await supabase
+        .from('governance_participation_snapshots')
+        .select('epoch')
+        .eq('epoch', epoch)
+        .maybeSingle();
+      results.push({
+        name: 'governance_participation_snapshots',
+        passed: !!partRow,
+        detail: partRow ? `epoch ${epoch} present` : `epoch ${epoch} MISSING`,
+      });
+
       return results;
     });
 

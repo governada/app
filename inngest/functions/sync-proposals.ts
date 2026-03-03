@@ -236,6 +236,71 @@ export const syncProposals = inngest.createFunction(
       });
     }
 
+    // Step 3b: Snapshot vote tallies for open proposals (historical accumulation curve)
+    let voteSnapshotCount = 0;
+    if (step1.openProposals.length > 0) {
+      voteSnapshotCount = await step.run('snapshot-vote-tallies', async () => {
+        try {
+          const supabase = getSupabaseAdmin();
+          const { data: statsRow } = await supabase
+            .from('governance_stats')
+            .select('current_epoch')
+            .eq('id', 1)
+            .single();
+          const epoch = statsRow?.current_epoch ?? 0;
+          if (epoch === 0) return 0;
+
+          const { data: summaries } = await supabase
+            .from('proposal_voting_summary')
+            .select('*')
+            .in(
+              'proposal_tx_hash',
+              step1.openProposals.map((p) => p.txHash),
+            );
+
+          if (!summaries?.length) return 0;
+
+          let inserted = 0;
+          for (const s of summaries) {
+            const { data: existing } = await supabase
+              .from('proposal_vote_snapshots')
+              .select('epoch')
+              .eq('epoch', epoch)
+              .eq('proposal_tx_hash', s.proposal_tx_hash)
+              .eq('proposal_index', s.proposal_index)
+              .maybeSingle();
+            if (existing) continue;
+
+            const { error } = await supabase.from('proposal_vote_snapshots').insert({
+              epoch,
+              proposal_tx_hash: s.proposal_tx_hash,
+              proposal_index: s.proposal_index,
+              drep_yes_count: s.drep_yes_votes_cast ?? 0,
+              drep_no_count: s.drep_no_votes_cast ?? 0,
+              drep_abstain_count: s.drep_abstain_votes_cast ?? 0,
+              drep_yes_power: s.drep_yes_vote_power ?? 0,
+              drep_no_power: s.drep_no_vote_power ?? 0,
+              spo_yes_count: s.pool_yes_votes_cast ?? 0,
+              spo_no_count: s.pool_no_votes_cast ?? 0,
+              spo_abstain_count: s.pool_abstain_votes_cast ?? 0,
+              cc_yes_count: s.committee_yes_votes_cast ?? 0,
+              cc_no_count: s.committee_no_votes_cast ?? 0,
+              cc_abstain_count: s.committee_abstain_votes_cast ?? 0,
+            });
+            if (!error) inserted++;
+          }
+
+          if (inserted > 0) {
+            console.log(`[proposals] Vote snapshots: ${inserted} proposals for epoch ${epoch}`);
+          }
+          return inserted;
+        } catch (err) {
+          console.warn('[proposals] Vote snapshot failed (non-fatal):', errMsg(err));
+          return 0;
+        }
+      });
+    }
+
     // Step 4: Broadcast critical proposal notifications via unified engine
     const pushSent = await step.run('broadcast-critical-proposals', async () => {
       try {
@@ -291,6 +356,7 @@ export const syncProposals = inngest.createFunction(
         proposals_synced: step1.proposalCount,
         votes_synced: step2.voteCount,
         summaries_refreshed: summaryCount,
+        vote_snapshots: voteSnapshotCount,
         push_sent: pushSent,
       };
 

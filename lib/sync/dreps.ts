@@ -229,6 +229,44 @@ export async function executeDrepsSync(): Promise<Record<string, unknown>> {
         console.log(`[dreps] Alignment scores: ${r.success} computed`);
       })(),
 
+      // Step 5b: Delegation snapshots
+      (async () => {
+        try {
+          const { data: statsRow } = await supabase
+            .from('governance_stats')
+            .select('current_epoch')
+            .eq('id', 1)
+            .single();
+          const epoch = statsRow?.current_epoch ?? 0;
+          if (epoch === 0) return;
+
+          const snapshots = allDReps.map((drep) => ({
+            epoch,
+            drep_id: drep.drepId,
+            delegator_count: existingDelegatorCounts.get(drep.drepId) ?? 0,
+            total_power_lovelace: BigInt(drep.votingPowerLovelace || '0').toString(),
+            snapshot_at: new Date().toISOString(),
+          }));
+
+          let inserted = 0;
+          for (let i = 0; i < snapshots.length; i += 100) {
+            const batch = snapshots.slice(i, i + 100);
+            const { error } = await supabase
+              .from('delegation_snapshots')
+              .upsert(batch as unknown as Record<string, unknown>[], {
+                onConflict: 'epoch,drep_id',
+                ignoreDuplicates: true,
+              });
+            if (!error) inserted += batch.length;
+          }
+          if (inserted > 0) {
+            console.log(`[dreps] Delegation snapshots: ${inserted} for epoch ${epoch}`);
+          }
+        } catch (err) {
+          console.warn('[dreps] Delegation snapshot failed (non-fatal):', errMsg(err));
+        }
+      })(),
+
       // Step 6: Score history snapshot
       (async () => {
         const today = new Date().toISOString().split('T')[0];

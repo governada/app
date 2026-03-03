@@ -202,8 +202,9 @@ export async function classifyProposalsAI(
     newClassifications.push(classification);
   }
 
-  // Persist new classifications
+  // Persist new classifications (archive to classification_history first)
   if (newClassifications.length > 0) {
+    const now = new Date().toISOString();
     const rows = newClassifications.map((c) => ({
       proposal_tx_hash: c.proposalTxHash,
       proposal_index: c.proposalIndex,
@@ -214,8 +215,25 @@ export async function classifyProposalsAI(
       dim_innovation: c.dimInnovation,
       dim_transparency: c.dimTransparency,
       ai_summary: c.aiSummary,
-      classified_at: new Date().toISOString(),
+      classified_at: now,
     }));
+
+    const historyRows = rows.map((r) => ({
+      proposal_tx_hash: r.proposal_tx_hash,
+      proposal_index: r.proposal_index,
+      classified_at: now,
+      dim_treasury_conservative: r.dim_treasury_conservative,
+      dim_treasury_growth: r.dim_treasury_growth,
+      dim_decentralization: r.dim_decentralization,
+      dim_security: r.dim_security,
+      dim_innovation: r.dim_innovation,
+      dim_transparency: r.dim_transparency,
+      classifier_version: r.ai_summary?.startsWith('Rule-based') ? 'rule-v1' : 'ai-v1',
+    }));
+    const { error: historyErr } = await supabase.from('classification_history').insert(historyRows);
+    if (historyErr) {
+      console.warn('[alignment] classification_history insert failed (non-fatal):', historyErr.message);
+    }
 
     await supabase
       .from('proposal_classifications')
