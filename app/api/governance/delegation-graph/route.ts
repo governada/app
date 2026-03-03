@@ -89,9 +89,8 @@ export async function GET() {
 
     const drepIds = [...new Set(snapshots.map((s) => s.drep_id))];
     const BATCH = 50;
-    const dreps: NonNullable<
-      Awaited<ReturnType<typeof supabase.from<'dreps'>>>['data']
-    > = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const dreps: any[] = [];
     let drepsError: unknown = null;
     for (let i = 0; i < drepIds.length; i += BATCH) {
       const batch = drepIds.slice(i, i + BATCH);
