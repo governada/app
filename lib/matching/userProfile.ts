@@ -93,7 +93,18 @@ export async function updateUserProfile(walletAddress: string): Promise<UserGove
   const personalityLabel = getPersonalityLabel(alignmentScores);
   const confidence = calculateMatchConfidence(pollVotes.length) / 100;
 
-  // Upsert to DB
+  // Archive to profile history before overwriting
+  await supabase.from('user_governance_profile_history').insert({
+    wallet_address: walletAddress,
+    pca_coordinates: pcaCoordinates,
+    alignment_scores: alignmentScores,
+    personality_label: personalityLabel,
+    votes_used: pollVotes.length,
+    confidence,
+  }).then(undefined, () => {
+    // Non-fatal: history table may not exist yet or insert may fail
+  });
+
   await supabase.from('user_governance_profiles').upsert(
     {
       wallet_address: walletAddress,

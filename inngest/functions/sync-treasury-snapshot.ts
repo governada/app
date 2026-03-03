@@ -6,6 +6,7 @@
 import { inngest } from '@/lib/inngest';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { fetchTreasuryBalance } from '@/utils/koios';
+import { calculateTreasuryHealthScore } from '@/lib/treasury';
 import { SyncLogger, emitPostHog, errMsg, pingHeartbeat } from '@/lib/sync-utils';
 
 export const syncTreasurySnapshot = inngest.createFunction(
@@ -86,18 +87,84 @@ export const syncTreasurySnapshot = inngest.createFunction(
         if (error) throw new Error(`Treasury snapshot upsert failed: ${error.message}`);
       });
 
+      const healthResult = await step.run('snapshot-treasury-health', async () => {
+        try {
+          const sb = getSupabaseAdmin();
+          const { data: existing } = await sb
+            .from('treasury_health_snapshots')
+            .select('epoch')
+            .eq('epoch', snapshot.epoch)
+            .maybeSingle();
+          if (existing) return { skipped: true, epoch: snapshot.epoch };
+
+          const health = await calculateTreasuryHealthScore();
+          if (!health) return { skipped: true, reason: 'insufficient data' };
+
+          const pendingSb = getSupabaseAdmin();
+          const { data: pendingData } = await pendingSb
+            .from('proposals')
+            .select('withdrawal_amount')
+            .eq('proposal_type', 'TreasuryWithdrawals')
+            .is('ratified_epoch', null)
+            .is('enacted_epoch', null)
+            .is('expired_epoch', null)
+            .is('dropped_epoch', null);
+
+          const pendingCount = pendingData?.length ?? 0;
+          const pendingTotalAda = (pendingData || []).reduce(
+            (sum, p) => sum + (p.withdrawal_amount || 0), 0,
+          );
+
+          const { error } = await sb.from('treasury_health_snapshots').insert({
+            epoch: snapshot.epoch,
+            health_score: health.score,
+            balance_trend: health.components.balanceTrend,
+            withdrawal_velocity: health.components.withdrawalVelocity,
+            income_stability: health.components.incomeStability,
+            pending_load: health.components.pendingLoad,
+            runway_adequacy: health.components.runwayAdequacy,
+            runway_months: health.runwayMonths,
+            burn_rate_per_epoch: health.burnRatePerEpoch,
+            pending_count: pendingCount,
+            pending_total_ada: pendingTotalAda,
+          });
+
+          if (error) throw new Error(error.message);
+
+          await sb.from('snapshot_completeness_log').upsert(
+            {
+              snapshot_type: 'treasury_health',
+              epoch_no: snapshot.epoch,
+              snapshot_date: new Date().toISOString().slice(0, 10),
+              record_count: 1,
+              expected_count: 1,
+              coverage_pct: 100,
+              metadata: { health_score: health.score },
+            },
+            { onConflict: 'snapshot_type,epoch_no,snapshot_date' },
+          );
+
+          console.log(`[treasury] Health snapshot: score=${health.score} runway=${health.runwayMonths}mo epoch=${snapshot.epoch}`);
+          return { inserted: true, epoch: snapshot.epoch, healthScore: health.score };
+        } catch (err) {
+          console.error('[treasury] Health snapshot failed:', errMsg(err));
+          return { error: errMsg(err) };
+        }
+      });
+
       await logger.finalize(true, null, {
         epoch: snapshot.epoch,
         balance_lovelace: snapshot.balanceLovelace,
         withdrawals_lovelace: withdrawals,
         reserves_income_lovelace: reservesIncome,
+        health_snapshot: healthResult,
       });
       await emitPostHog(true, 'treasury', logger.elapsed, { epoch: snapshot.epoch });
       await pingHeartbeat('HEARTBEAT_URL_DAILY');
 
       await step.run('heartbeat-daily', () => pingHeartbeat('HEARTBEAT_URL_DAILY'));
 
-      return { epoch: snapshot.epoch, balance: snapshot.balanceLovelace };
+      return { epoch: snapshot.epoch, balance: snapshot.balanceLovelace, health: healthResult };
     } catch (e) {
       errorMessage = errMsg(e);
       await logger.finalize(false, errorMessage, { epoch: snapshotEpoch });

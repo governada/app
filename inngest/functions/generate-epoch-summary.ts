@@ -6,6 +6,7 @@
 import { inngest } from '@/lib/inngest';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { blockTimeToEpoch } from '@/lib/koios';
+import { errMsg } from '@/lib/sync-utils';
 
 const USER_BATCH = 50;
 
@@ -360,8 +361,78 @@ export const generateEpochSummary = inngest.createFunction(
       return { success: true, epoch, narrative };
     });
 
+    // Step 6: Governance participation snapshot (system-wide metrics for this epoch)
+    const participationSnapshot = await step.run('snapshot-governance-participation', async () => {
+      try {
+        const supabase = getSupabaseAdmin();
+
+        const { data: existing } = await supabase
+          .from('governance_participation_snapshots')
+          .select('epoch')
+          .eq('epoch', epoch)
+          .maybeSingle();
+        if (existing) return { skipped: true };
+
+        const [votersResult, totalDrepsResult, totalPowerResult, rationaleResult] = await Promise.all([
+          supabase.from('drep_votes').select('drep_id').eq('epoch_no', epoch),
+          supabase.from('dreps').select('drep_id', { count: 'exact', head: true }).eq('registered', true),
+          supabase.from('dreps').select('info').eq('registered', true),
+          supabase.from('drep_votes')
+            .select('vote_tx_hash', { count: 'exact', head: true })
+            .eq('epoch_no', epoch)
+            .not('meta_url', 'is', null),
+        ]);
+
+        const uniqueVoters = new Set((votersResult.data || []).map((v) => v.drep_id));
+        const activeDreps = uniqueVoters.size;
+        const totalDreps = totalDrepsResult.count || 1;
+        const participationRate = Math.round((activeDreps / totalDreps) * 10000) / 100;
+
+        const totalVotes = votersResult.data?.length ?? 0;
+        const rationaleCount = rationaleResult.count ?? 0;
+        const rationaleRate = totalVotes > 0
+          ? Math.round((rationaleCount / totalVotes) * 10000) / 100
+          : 0;
+
+        const totalPower = (totalPowerResult.data || []).reduce((sum, row) => {
+          const info = row.info as Record<string, unknown>;
+          return sum + BigInt(info?.votingPowerLovelace as string || '0');
+        }, BigInt(0));
+
+        const { error } = await supabase.from('governance_participation_snapshots').insert({
+          epoch,
+          active_drep_count: activeDreps,
+          total_drep_count: totalDreps,
+          participation_rate: participationRate,
+          rationale_rate: rationaleRate,
+          total_voting_power_lovelace: totalPower.toString(),
+        });
+
+        if (error) throw new Error(error.message);
+
+        await supabase.from('snapshot_completeness_log').upsert(
+          {
+            snapshot_type: 'governance_participation',
+            epoch_no: epoch,
+            snapshot_date: new Date().toISOString().slice(0, 10),
+            record_count: 1,
+            expected_count: 1,
+            coverage_pct: 100,
+            metadata: { participation_rate: participationRate },
+          },
+          { onConflict: 'snapshot_type,epoch_no,snapshot_date' },
+        );
+
+        console.log(`[epoch-summary] Participation snapshot: ${activeDreps}/${totalDreps} (${participationRate}%) epoch ${epoch}`);
+        return { inserted: true, activeDreps, totalDreps, participationRate };
+      } catch (err) {
+        console.error('[epoch-summary] Participation snapshot failed:', errMsg(err));
+        return { error: errMsg(err) };
+      }
+    });
+
     console.log(`[epoch-summary] Epoch ${epoch} summary generated for ${usersProcessed} users`);
-    return { epoch, usersProcessed, ...proposalStats, recap: recapResult, enrichment: enrichResult };
+    return { epoch, usersProcessed, ...proposalStats, recap: recapResult, enrichment: enrichResult, participation: participationSnapshot };
   },
 );
 

@@ -19,7 +19,8 @@ export type SyncType =
   | 'cc_votes'
   | 'alignment_cache'
   | 'similarity_cache'
-  | 'epoch_recaps';
+  | 'epoch_recaps'
+  | 'snapshot_backfill';
 
 const BATCH_SIZE = 100;
 const UPSERT_RETRY_DELAY_MS = 2_000;
