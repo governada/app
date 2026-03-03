@@ -50,7 +50,6 @@ async function probeRedis(): Promise<DepResult> {
   const start = Date.now();
   try {
     const redis = getRedis();
-    if (!redis) return { status: 'unavailable', latencyMs: Date.now() - start };
     await redis.ping();
     return { status: 'healthy', latencyMs: Date.now() - start };
   } catch {
@@ -69,7 +68,7 @@ export const GET = withRouteHandler(
     const allHealthy =
       supabase.status === 'healthy' &&
       koios.status === 'healthy' &&
-      (redis.status === 'healthy' || redis.status === 'unavailable');
+      redis.status === 'healthy';
 
     return NextResponse.json({
       status: allHealthy ? 'healthy' : 'degraded',

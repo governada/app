@@ -16,6 +16,7 @@ vi.mock('@meshsdk/core', () => ({
 
 vi.mock('@/lib/supabaseAuth', () => ({
   createSessionToken: vi.fn().mockResolvedValue('session.jwt.token'),
+  SESSION_MAX_AGE_SECONDS: 7 * 24 * 60 * 60,
 }));
 
 vi.mock('@/lib/supabase', () => ({

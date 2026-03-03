@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllFlags, setFeatureFlag, invalidateFlagCache } from '@/lib/featureFlags';
 import { requireAuth } from '@/lib/supabaseAuth';
+import { logAdminAction } from '@/lib/adminAudit';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,6 +67,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     invalidateFlagCache();
+    logAdminAction(auth.wallet, 'toggle_feature_flag', key, { enabled });
 
     return NextResponse.json({ key, enabled });
   } catch {

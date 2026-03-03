@@ -51,22 +51,19 @@ async function checkLimit(
   identifier: string,
   config: RateLimitConfig,
 ): Promise<{ allowed: boolean; remaining: number }> {
-  // Try Upstash first
   try {
     const { getRedis } = await import('@/lib/redis');
     const redis = getRedis();
-    if (redis) {
-      const { Ratelimit } = await import('@upstash/ratelimit');
-      const limiter = new Ratelimit({
-        redis,
-        limiter: Ratelimit.slidingWindow(config.max, `${config.window} s`),
-        prefix: 'rl:route',
-      });
-      const result = await limiter.limit(identifier);
-      return { allowed: result.success, remaining: result.remaining };
-    }
+    const { Ratelimit } = await import('@upstash/ratelimit');
+    const limiter = new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(config.max, `${config.window} s`),
+      prefix: 'rl:route',
+    });
+    const result = await limiter.limit(identifier);
+    return { allowed: result.success, remaining: result.remaining };
   } catch {
-    // Fall through to in-memory
+    // Fall through to in-memory if Redis has a runtime error
   }
 
   const now = Date.now();

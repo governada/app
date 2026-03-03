@@ -7,12 +7,12 @@ const requiredEnv = z.object({
   SUPABASE_SECRET_KEY: z.string().min(1),
   SESSION_SECRET: z.string().min(32),
   CRON_SECRET: z.string().min(1),
+  UPSTASH_REDIS_REST_URL: z.string().url(),
+  UPSTASH_REDIS_REST_TOKEN: z.string().min(1),
 });
 
 const optionalEnv = z.object({
   NEXT_PUBLIC_SITE_URL: z.string().url().optional(),
-  UPSTASH_REDIS_REST_URL: z.string().url().optional(),
-  UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
   ANTHROPIC_API_KEY: z.string().min(1).optional(),
   RESEND_API_KEY: z.string().min(1).optional(),
   TELEGRAM_BOT_TOKEN: z.string().min(1).optional(),

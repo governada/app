@@ -22,6 +22,7 @@ import { syncDrepScores } from '@/inngest/functions/sync-drep-scores';
 import { syncSpoAndCcVotes } from '@/inngest/functions/sync-spo-cc-votes';
 import { syncSpoScores } from '@/inngest/functions/sync-spo-scores';
 import { checkSnapshotCompleteness } from '@/inngest/functions/check-snapshot-completeness';
+import { cleanupRevokedSessions } from '@/inngest/functions/cleanup-revoked-sessions';
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
@@ -48,5 +49,6 @@ export const { GET, POST, PUT } = serve({
     syncSpoAndCcVotes,
     syncSpoScores,
     checkSnapshotCompleteness,
+    cleanupRevokedSessions,
   ],
 });
