@@ -10,6 +10,7 @@ import { blake2bHex } from 'blakejs';
 import { fetchDRepVotingPowerHistory, fetchDRepInfo } from '@/utils/koios';
 import { getProposalPriority } from '@/utils/proposalPriority';
 import { broadcastDiscord, broadcastEvent } from '@/lib/notifications';
+import { precomputeSimilarityCache } from '@/lib/proposalSimilarity';
 
 const RATIONALE_FETCH_TIMEOUT_MS = 5000;
 const RATIONALE_MAX_CONTENT_SIZE = 50_000;
@@ -597,6 +598,7 @@ export async function executeSlowSync(): Promise<Record<string, unknown>> {
     rationaleHashResult,
     drepHashResult,
     pushResult,
+    similarityResult,
   ] = await Promise.allSettled([
     runRationalePipeline(supabase),
     runAiSummaries(supabase),
@@ -605,6 +607,7 @@ export async function executeSlowSync(): Promise<Record<string, unknown>> {
     runRationaleHashVerification(supabase),
     runDRepMetadataHashVerification(supabase),
     runCriticalProposalNotifications(supabase),
+    precomputeSimilarityCache(),
   ]);
 
   const settled = {
@@ -615,6 +618,7 @@ export async function executeSlowSync(): Promise<Record<string, unknown>> {
     rationaleHash: rationaleHashResult.status === 'fulfilled' ? rationaleHashResult.value : null,
     drepHash: drepHashResult.status === 'fulfilled' ? drepHashResult.value : null,
     push: pushResult.status === 'fulfilled' ? pushResult.value : null,
+    similarity: similarityResult.status === 'fulfilled' ? similarityResult.value : null,
   };
 
   const allResults = [
@@ -625,6 +629,7 @@ export async function executeSlowSync(): Promise<Record<string, unknown>> {
     rationaleHashResult,
     drepHashResult,
     pushResult,
+    similarityResult,
   ];
   const labels = [
     'Rationales',
@@ -634,6 +639,7 @@ export async function executeSlowSync(): Promise<Record<string, unknown>> {
     'Rationale hash',
     'DRep hash',
     'Push',
+    'Similarity cache',
   ];
 
   for (let i = 0; i < allResults.length; i++) {
@@ -658,6 +664,7 @@ export async function executeSlowSync(): Promise<Record<string, unknown>> {
     drep_hash_verified: settled.drepHash?.verified ?? 0,
     drep_hash_failed: settled.drepHash?.failed ?? 0,
     push_sent: settled.push?.sent ?? 0,
+    similarity_cached: settled.similarity ?? 0,
     duration_ms: logger.elapsed,
   };
 

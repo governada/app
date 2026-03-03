@@ -28,6 +28,7 @@ interface ProposalDrawerProps {
     proposalType: string;
     withdrawalAmount: number | null;
     treasuryTier: string | null;
+    treasuryPctOfBalance?: number | null;
     priority: 'critical' | 'important' | 'standard';
     epochsRemaining: number | null;
     proposedEpoch: number | null;
@@ -154,18 +155,36 @@ export function ProposalDrawer({ open, onOpenChange, proposal, drepId }: Proposa
             </Section>
           )}
 
-          {/* Treasury Amount */}
+          {/* Treasury Amount with % framing */}
           {proposal.withdrawalAmount != null && (
-            <div className="flex items-center justify-between text-xs border rounded-lg px-3 py-2">
-              <span className="text-muted-foreground">Treasury Amount</span>
-              <span className="font-semibold">
-                {proposal.withdrawalAmount.toLocaleString()} ADA
-                {proposal.treasuryTier && (
-                  <span className="text-muted-foreground font-normal ml-1">
-                    ({proposal.treasuryTier})
+            <div className="border rounded-lg px-3 py-2 space-y-1">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Treasury Amount</span>
+                <span className="font-semibold">
+                  {proposal.withdrawalAmount.toLocaleString()} ADA
+                  {proposal.treasuryTier && (
+                    <span className="text-muted-foreground font-normal ml-1">
+                      ({proposal.treasuryTier})
+                    </span>
+                  )}
+                </span>
+              </div>
+              {proposal.treasuryPctOfBalance != null && proposal.treasuryPctOfBalance > 0 && (
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">% of Treasury</span>
+                  <span
+                    className={`font-semibold ${
+                      proposal.treasuryPctOfBalance > 5
+                        ? 'text-red-600 dark:text-red-400'
+                        : proposal.treasuryPctOfBalance > 1
+                          ? 'text-amber-600 dark:text-amber-400'
+                          : 'text-muted-foreground'
+                    }`}
+                  >
+                    {proposal.treasuryPctOfBalance.toFixed(2)}%
                   </span>
-                )}
-              </span>
+                </div>
+              )}
             </div>
           )}
 

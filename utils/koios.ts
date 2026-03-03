@@ -12,6 +12,9 @@ import {
   DRepVotesResponse,
   ProposalListResponse,
   ProposalVotingSummaryData,
+  SPOVote,
+  CCVote,
+  KoiosAccountInfo,
 } from '@/types/koios';
 
 const KOIOS_BASE_URL = process.env.NEXT_PUBLIC_KOIOS_BASE_URL || 'https://api.koios.rest/api/v1';
@@ -918,4 +921,151 @@ export async function resolveADAHandles(
   }
 
   return handleMap;
+}
+
+// ---------------------------------------------------------------------------
+// SPO + CC Vote Bulk Fetch
+// ---------------------------------------------------------------------------
+
+/**
+ * Bulk fetch all SPO votes from Koios /vote_list with voter_role=eq.SPO.
+ * Returns votes keyed by pool_id.
+ */
+export async function fetchAllSPOVotesBulk(): Promise<SPOVote[]> {
+  const allVotes: SPOVote[] = [];
+  let offset = 0;
+  let page = 0;
+
+  while (true) {
+    const url = `/vote_list?voter_role=eq.SPO&limit=${VOTE_LIST_PAGE_SIZE}&offset=${offset}`;
+    const data = await koiosFetch<
+      Array<{
+        vote_tx_hash: string;
+        voter_id: string;
+        proposal_tx_hash: string;
+        proposal_index: number;
+        epoch_no: number;
+        block_time: number;
+        vote: 'Yes' | 'No' | 'Abstain';
+      }>
+    >(url, { cache: 'no-store' });
+
+    const pageData = data || [];
+    page++;
+
+    for (const row of pageData) {
+      allVotes.push({
+        pool_id: row.voter_id,
+        proposal_tx_hash: row.proposal_tx_hash,
+        proposal_index: row.proposal_index,
+        vote: row.vote,
+        block_time: row.block_time,
+        tx_hash: row.vote_tx_hash,
+        epoch: row.epoch_no,
+      });
+    }
+
+    console.log(
+      `[Koios] SPO vote_list page ${page}: ${pageData.length} votes (total: ${allVotes.length})`,
+    );
+
+    if (pageData.length < VOTE_LIST_PAGE_SIZE) break;
+    offset += VOTE_LIST_PAGE_SIZE;
+  }
+
+  return allVotes;
+}
+
+/**
+ * Bulk fetch all Constitutional Committee votes from Koios /vote_list with voter_role=eq.CC.
+ * Returns votes keyed by cc_hot_id.
+ */
+export async function fetchAllCCVotesBulk(): Promise<CCVote[]> {
+  const allVotes: CCVote[] = [];
+  let offset = 0;
+  let page = 0;
+
+  while (true) {
+    const url = `/vote_list?voter_role=eq.CC&limit=${VOTE_LIST_PAGE_SIZE}&offset=${offset}`;
+    const data = await koiosFetch<
+      Array<{
+        vote_tx_hash: string;
+        voter_id: string;
+        proposal_tx_hash: string;
+        proposal_index: number;
+        epoch_no: number;
+        block_time: number;
+        vote: 'Yes' | 'No' | 'Abstain';
+      }>
+    >(url, { cache: 'no-store' });
+
+    const pageData = data || [];
+    page++;
+
+    for (const row of pageData) {
+      allVotes.push({
+        cc_hot_id: row.voter_id,
+        proposal_tx_hash: row.proposal_tx_hash,
+        proposal_index: row.proposal_index,
+        vote: row.vote,
+        block_time: row.block_time,
+        tx_hash: row.vote_tx_hash,
+        epoch: row.epoch_no,
+      });
+    }
+
+    console.log(
+      `[Koios] CC vote_list page ${page}: ${pageData.length} votes (total: ${allVotes.length})`,
+    );
+
+    if (pageData.length < VOTE_LIST_PAGE_SIZE) break;
+    offset += VOTE_LIST_PAGE_SIZE;
+  }
+
+  return allVotes;
+}
+
+// ---------------------------------------------------------------------------
+// Extended Account Info
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetch full account info for a stake address, including balance, rewards, and delegation.
+ * Extends the existing fetchDelegatedDRep pattern with more fields.
+ */
+export async function fetchAccountInfo(stakeAddress: string): Promise<KoiosAccountInfo | null> {
+  try {
+    const url = `${KOIOS_BASE_URL}/account_info`;
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...(KOIOS_API_KEY && { Authorization: `Bearer ${KOIOS_API_KEY}` }),
+    };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ _stake_addresses: [stakeAddress] }),
+      cache: 'no-store',
+      signal: AbortSignal.timeout(KOIOS_REQUEST_TIMEOUT_MS),
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    const account = Array.isArray(data) ? data[0] : null;
+    if (!account) return null;
+
+    return {
+      stake_address: account.stake_address || stakeAddress,
+      status: account.status || 'unknown',
+      delegated_pool: account.delegated_pool || null,
+      total_balance: account.total_balance || '0',
+      utxo: account.utxo || '0',
+      rewards_available: account.rewards_available || '0',
+      vote_delegation: account.vote_delegation || account.delegated_drep || null,
+    };
+  } catch (err) {
+    console.error('[Koios] Error fetching account info:', err);
+    return null;
+  }
 }

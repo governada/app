@@ -255,6 +255,54 @@ export function VoteDetailSheet({
             </div>
           )}
 
+          {/* Inter-Body Alignment (SPO/CC vote breakdown) */}
+          {vote.interBodyAlignment && vote.interBodyAlignment.bodiesVoting >= 2 && (
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                Tri-Body Alignment
+              </p>
+              <div className="bg-muted/20 rounded-lg p-3 border border-border/20 space-y-2">
+                {vote.interBodyAlignment.drep.total > 0 && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">DReps</span>
+                    <span>
+                      <span className="text-green-600">{Math.round(vote.interBodyAlignment.drep.yesPct)}% Yes</span>
+                      {' · '}
+                      <span className="text-red-500">{Math.round(vote.interBodyAlignment.drep.noPct)}% No</span>
+                      <span className="text-muted-foreground ml-1">({vote.interBodyAlignment.drep.total} votes)</span>
+                    </span>
+                  </div>
+                )}
+                {vote.interBodyAlignment.spo.total > 0 && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">SPOs</span>
+                    <span>
+                      <span className="text-green-600">{Math.round(vote.interBodyAlignment.spo.yesPct)}% Yes</span>
+                      {' · '}
+                      <span className="text-red-500">{Math.round(vote.interBodyAlignment.spo.noPct)}% No</span>
+                      <span className="text-muted-foreground ml-1">({vote.interBodyAlignment.spo.total} votes)</span>
+                    </span>
+                  </div>
+                )}
+                {vote.interBodyAlignment.cc.total > 0 && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Committee</span>
+                    <span>
+                      <span className="text-green-600">{Math.round(vote.interBodyAlignment.cc.yesPct)}% Yes</span>
+                      {' · '}
+                      <span className="text-red-500">{Math.round(vote.interBodyAlignment.cc.noPct)}% No</span>
+                      <span className="text-muted-foreground ml-1">({vote.interBodyAlignment.cc.total} votes)</span>
+                    </span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between text-xs pt-1 border-t border-border/20">
+                  <span className="text-muted-foreground">Alignment Score</span>
+                  <span className="font-semibold">{vote.interBodyAlignment.alignmentScore}%</span>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Metadata Footer */}
           <div className="border-t pt-4 space-y-2">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">

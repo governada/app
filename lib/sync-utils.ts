@@ -11,7 +11,12 @@ export type SyncType =
   | 'treasury'
   | 'scoring'
   | 'integrity_check'
-  | 'api_health_check';
+  | 'api_health_check'
+  | 'spo_votes'
+  | 'cc_votes'
+  | 'alignment_cache'
+  | 'similarity_cache'
+  | 'epoch_recaps';
 
 const BATCH_SIZE = 100;
 const UPSERT_RETRY_DELAY_MS = 2_000;

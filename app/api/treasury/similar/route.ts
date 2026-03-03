@@ -1,19 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { findSimilarProposals } from '@/lib/treasury';
+import { getFeatureFlag } from '@/lib/featureFlags';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const title = searchParams.get('title') || '';
-    const amount = parseFloat(searchParams.get('amount') || '0');
-    const tier = searchParams.get('tier') || null;
-    const excludeTx = searchParams.get('exclude') || undefined;
+    const enabled = await getFeatureFlag('treasury_intelligence', true);
+    if (!enabled) {
+      return NextResponse.json({ error: 'Feature not available' }, { status: 404 });
+    }
 
-    const similar = await findSimilarProposals(title, amount, tier, excludeTx);
+    const title = request.nextUrl.searchParams.get('title');
+    const amount = request.nextUrl.searchParams.get('amount');
+    const tier = request.nextUrl.searchParams.get('tier');
+    const exclude = request.nextUrl.searchParams.get('exclude');
 
-    return NextResponse.json({ similar });
+    if (!title || !amount) {
+      return NextResponse.json(
+        { error: 'title and amount parameters required' },
+        { status: 400 },
+      );
+    }
+
+    const similar = await findSimilarProposals(
+      title,
+      parseFloat(amount),
+      tier || null,
+      exclude || undefined,
+    );
+
+    return NextResponse.json(similar, {
+      headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
+    });
   } catch (error) {
     console.error('[treasury/similar] Error:', error);
     return NextResponse.json({ error: 'Failed to find similar proposals' }, { status: 500 });
