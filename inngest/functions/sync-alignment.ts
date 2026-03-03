@@ -1,12 +1,15 @@
 /**
  * Dedicated alignment sync function — runs after sync-dreps completes.
  *
- * Split into multiple Inngest steps to avoid step-level timeouts:
- *   0. init-sync-log — memoized SyncLogger entry (prevents ghost rows)
- *   1. classify-proposals — AI classification (cached, writes to DB)
- *   2. score-rationales — AI rationale scoring (cached, writes to DB)
- *   3. compute-and-persist — dimension scores, normalization, PCA, snapshots
- *   4. finalize-sync-log — update sync_log with result
+ * Split into granular Inngest steps to stay under Cloudflare's 100s timeout:
+ *   0. init-sync-log
+ *   1. classify-proposals — AI classification (cached)
+ *   2. score-rationales — AI rationale scoring (cached)
+ *   3. compute-scores — dimension scores, normalization (CPU-bound)
+ *   4. persist-scores — batch upsert drep alignment scores
+ *   5. compute-pca — PCA compute and persist
+ *   6. persist-snapshots — alignment_snapshots + completeness log
+ *   7. finalize-sync-log
  */
 
 import { inngest } from '@/lib/inngest';
@@ -28,10 +31,6 @@ import { validateDimensionIndependence } from '@/lib/alignment/validate';
 import { batchUpsert, errMsg, emitPostHog, capMsg } from '@/lib/sync-utils';
 import type { ProposalInfo } from '@/types/koios';
 
-/**
- * Map a DB proposals row to the ProposalInfo shape the alignment pipeline expects.
- * The DB uses different column names than the Koios API response.
- */
 function mapDBProposal(row: Record<string, unknown>): ProposalInfo {
   const withdrawalAmount = row.withdrawal_amount as string | null;
   return {
@@ -62,17 +61,31 @@ function mapDBProposal(row: Record<string, unknown>): ProposalInfo {
 const DB_PROPOSAL_COLUMNS =
   'tx_hash, proposal_index, proposal_id, proposal_type, meta_json, withdrawal_amount, param_changes, proposed_epoch, ratified_epoch, enacted_epoch, dropped_epoch, expired_epoch, expiration_epoch, block_time';
 
+interface SerializedScoreRow {
+  drepId: string;
+  treasuryConservative: number;
+  treasuryGrowth: number;
+  decentralization: number;
+  security: number;
+  innovation: number;
+  transparency: number;
+  pTreasuryConservative: number;
+  pTreasuryGrowth: number;
+  pDecentralization: number;
+  pSecurity: number;
+  pInnovation: number;
+  pTransparency: number;
+}
+
 export const syncAlignment = inngest.createFunction(
   {
     id: 'sync-alignment',
     retries: 2,
     concurrency: { limit: 1, scope: 'env', key: '"alignment-compute"' },
-    onFailure: async ({ error, event }) => {
+    onFailure: async ({ error }) => {
       const sb = getSupabaseAdmin();
       const msg = errMsg(error);
       console.error('[alignment] Function failed permanently:', msg);
-
-      // Clean up any unfinalised sync_log entries for alignment
       await sb
         .from('sync_log')
         .update({
@@ -88,7 +101,7 @@ export const syncAlignment = inngest.createFunction(
   async ({ step }) => {
     const startTime = Date.now();
 
-    // Step 0: Memoized sync_log entry (runs once, prevents ghost rows on replay)
+    // Step 0
     const logId = await step.run('init-sync-log', async () => {
       const sb = getSupabaseAdmin();
       const { data } = await sb
@@ -103,15 +116,11 @@ export const syncAlignment = inngest.createFunction(
       return data?.id ?? null;
     });
 
-    // Step 1: AI-classify proposals (slow — isolated to avoid timeout)
+    // Step 1: classify proposals (AI, cached)
     const classifyResult = await step.run('classify-proposals', async () => {
       const sb = getSupabaseAdmin();
       const { data: dbRows } = await sb.from('proposals').select(DB_PROPOSAL_COLUMNS);
-
-      if (!dbRows?.length) {
-        return { classified: 0, skipped: true };
-      }
-
+      if (!dbRows?.length) return { classified: 0, skipped: true };
       const proposals = dbRows.map(mapDBProposal);
       const classifications = await classifyProposalsAI(proposals);
       return { classified: classifications.length, skipped: false };
@@ -135,7 +144,7 @@ export const syncAlignment = inngest.createFunction(
       return { success: true, skipped: true };
     }
 
-    // Step 2: Score unscored rationales via AI (slow — isolated)
+    // Step 2: score rationales (AI, cached)
     const rationaleResult = await step.run('score-rationales', async () => {
       const sb = getSupabaseAdmin();
       const { data: voteRows } = await sb
@@ -143,284 +152,335 @@ export const syncAlignment = inngest.createFunction(
         .select('drep_id, proposal_tx_hash, proposal_index, meta_url, rationale_quality')
         .not('meta_url', 'is', null)
         .is('rationale_quality', null);
-
       if (!voteRows?.length) return { scored: 0 };
-
       const forScoring = voteRows.map((v: any) => ({
         drepId: v.drep_id,
         proposalTxHash: v.proposal_tx_hash,
         proposalIndex: v.proposal_index,
         rationaleText: v.meta_url,
       }));
-
       const scores = await scoreRationalesBatch(forScoring);
       return { scored: scores.size };
     });
 
-    // Step 3: Compute dimensions, normalize, PCA, persist (CPU-bound, no AI calls)
-    const computeResult = await step.run('compute-and-persist', async () => {
+    // Step 3: compute dimension scores + normalize (CPU-bound, no DB writes)
+    const computeResult = await step.run('compute-scores', async () => {
       const sb = getSupabaseAdmin();
-      const phaseTiming: Record<string, number> = {};
+      const s1 = Date.now();
 
-      try {
-        const s1 = Date.now();
-        const [{ data: dbRows }, { data: drepRows }, { data: voteRows }, { data: classRows }] =
-          await Promise.all([
-            sb.from('proposals').select(DB_PROPOSAL_COLUMNS),
-            sb
-              .from('dreps')
-              .select('id, info, score, participation_rate, rationale_rate, size_tier'),
-            sb
-              .from('drep_votes')
-              .select(
-                'drep_id, proposal_tx_hash, proposal_index, vote, block_time, meta_url, rationale_quality',
-              ),
-            sb.from('proposal_classifications').select('*'),
-          ]);
+      const [{ data: dbRows }, { data: drepRows }, { data: voteRows }, { data: classRows }] =
+        await Promise.all([
+          sb.from('proposals').select(DB_PROPOSAL_COLUMNS),
+          sb.from('dreps').select('id, info, score, participation_rate, rationale_rate, size_tier'),
+          sb
+            .from('drep_votes')
+            .select(
+              'drep_id, proposal_tx_hash, proposal_index, vote, block_time, meta_url, rationale_quality',
+            ),
+          sb.from('proposal_classifications').select('*'),
+        ]);
 
-        if (!dbRows?.length || !drepRows?.length || !voteRows?.length) {
-          return { success: true, skipped: true, reason: 'insufficient data' };
-        }
-
-        const proposals = dbRows.map(mapDBProposal);
-        phaseTiming.load_ms = Date.now() - s1;
-
-        // Build classification map from DB
-        const classMap = new Map<string, ProposalClassification>();
-        for (const c of (classRows || []) as any[]) {
-          classMap.set(`${c.proposal_tx_hash}-${c.proposal_index}`, {
-            proposalTxHash: c.proposal_tx_hash,
-            proposalIndex: c.proposal_index,
-            dimTreasuryConservative: c.dim_treasury_conservative,
-            dimTreasuryGrowth: c.dim_treasury_growth,
-            dimDecentralization: c.dim_decentralization,
-            dimSecurity: c.dim_security,
-            dimInnovation: c.dim_innovation,
-            dimTransparency: c.dim_transparency,
-            aiSummary: c.ai_summary ?? null,
-          });
-        }
-
-        const proposalTypeMap = new Map<string, string>();
-        const proposalAmountMap = new Map<string, number | null>();
-        for (const p of proposals) {
-          const key = `${p.proposal_tx_hash}-${p.proposal_index}`;
-          proposalTypeMap.set(key, p.proposal_type);
-          const amount =
-            p.withdrawal?.reduce((sum, w) => {
-              try {
-                return sum + Number(BigInt(w.amount || '0') / BigInt(1_000_000));
-              } catch {
-                return sum;
-              }
-            }, 0) ?? null;
-          proposalAmountMap.set(key, amount);
-        }
-
-        const votesByDrep = new Map<string, typeof voteRows>();
-        for (const v of voteRows as any[]) {
-          if (!votesByDrep.has(v.drep_id)) votesByDrep.set(v.drep_id, []);
-          votesByDrep.get(v.drep_id)!.push(v);
-        }
-
-        // Compute dimension scores
-        const s2 = Date.now();
-        const rawScores: RawScoreRow[] = [];
-
-        for (const row of drepRows as any[]) {
-          const votes = votesByDrep.get(row.id) || [];
-
-          const dimensionInputs: DimensionInput[] = votes.map((v: any) => {
-            const key = `${v.proposal_tx_hash}-${v.proposal_index}`;
-            return {
-              vote: v.vote as 'Yes' | 'No' | 'Abstain',
-              blockTime: v.block_time,
-              hasRationale: !!v.meta_url,
-              rationaleQuality: v.rationale_quality ?? null,
-              proposalType: proposalTypeMap.get(key) || 'InfoAction',
-              withdrawalAmountAda: proposalAmountMap.get(key) ?? null,
-              classification: classMap.get(key) || null,
-            };
-          });
-
-          const drepContext: DRepContext = {
-            sizeTier: row.size_tier || 'Medium',
-            participationRate: row.participation_rate || 0,
-            rationaleRate: row.rationale_rate || 0,
-            totalVotes: votes.length,
-          };
-
-          rawScores.push({
-            drepId: row.id,
-            ...computeDimensionScores(dimensionInputs, drepContext),
-          });
-        }
-        phaseTiming.dimensions_ms = Date.now() - s2;
-
-        // Percentile normalize
-        const s3 = Date.now();
-        const normalized = normalizeToPercentiles(rawScores);
-        phaseTiming.normalize_ms = Date.now() - s3;
-
-        const validation = validateDimensionIndependence(normalized);
-
-        // PCA
-        const s4 = Date.now();
-        const voteMatrixInputs: VoteMatrixInput[] = (voteRows as any[]).map((v) => ({
-          drepId: v.drep_id,
-          proposalTxHash: v.proposal_tx_hash,
-          proposalIndex: v.proposal_index,
-          vote: v.vote,
-          blockTime: v.block_time,
-        }));
-
-        const proposalMeta = proposals.map((p) => ({
-          txHash: p.proposal_tx_hash,
-          index: p.proposal_index,
-          type: p.proposal_type,
-          withdrawalAmountAda:
-            p.withdrawal?.reduce((sum, w) => {
-              try {
-                return sum + Number(BigInt(w.amount || '0') / BigInt(1_000_000));
-              } catch {
-                return sum;
-              }
-            }, 0) ?? null,
-        }));
-
-        const classifications = Array.from(classMap.values());
-        const voteMatrix = buildVoteMatrix(voteMatrixInputs, proposalMeta, classifications);
-        let pcaResult = null;
-
-        if (voteMatrix.matrix.length >= 3 && voteMatrix.matrix[0]?.length >= 3) {
-          pcaResult = computePCA(
-            voteMatrix.matrix,
-            voteMatrix.drepIds,
-            voteMatrix.proposalIds,
-            classifications,
-          );
-
-          if (pcaResult) {
-            await storePCAResults(
-              pcaResult,
-              voteMatrix.proposalIds,
-              voteMatrix.drepIds.length,
-              voteMatrix.proposalIds.length,
-            );
-          }
-        }
-        phaseTiming.pca_ms = Date.now() - s4;
-
-        // Persist scores
-        const s5 = Date.now();
-        const drepUpdates = normalized.map((row) => ({
-          id: row.drepId,
-          alignment_treasury_conservative: row.percentile.treasuryConservative,
-          alignment_treasury_growth: row.percentile.treasuryGrowth,
-          alignment_decentralization: row.percentile.decentralization,
-          alignment_security: row.percentile.security,
-          alignment_innovation: row.percentile.innovation,
-          alignment_transparency: row.percentile.transparency,
-          alignment_treasury_conservative_raw: row.treasuryConservative,
-          alignment_treasury_growth_raw: row.treasuryGrowth,
-          alignment_decentralization_raw: row.decentralization,
-          alignment_security_raw: row.security,
-          alignment_innovation_raw: row.innovation,
-          alignment_transparency_raw: row.transparency,
-        }));
-
-        await batchUpsert(
-          sb,
-          'dreps',
-          drepUpdates as unknown as Record<string, unknown>[],
-          'id',
-          'Alignment scores',
-        );
-
-        // Snapshot for temporal trajectories
-        const { data: tipData } = await sb
-          .from('proposals')
-          .select('proposed_epoch')
-          .order('proposed_epoch', { ascending: false })
-          .limit(1);
-
-        const currentEpoch = (tipData as any)?.[0]?.proposed_epoch || 0;
-
-        if (currentEpoch > 0) {
-          const snapshots = normalized.map((row) => ({
-            drep_id: row.drepId,
-            epoch: currentEpoch,
-            alignment_treasury_conservative: row.percentile.treasuryConservative,
-            alignment_treasury_growth: row.percentile.treasuryGrowth,
-            alignment_decentralization: row.percentile.decentralization,
-            alignment_security: row.percentile.security,
-            alignment_innovation: row.percentile.innovation,
-            alignment_transparency: row.percentile.transparency,
-            pca_coordinates: pcaResult?.coordinates.get(row.drepId) || null,
-            snapshot_at: new Date().toISOString(),
-          }));
-
-          await batchUpsert(
-            sb,
-            'alignment_snapshots',
-            snapshots as unknown as Record<string, unknown>[],
-            'drep_id,epoch',
-            'Alignment snapshots',
-          );
-
-          const activeDreps = drepRows?.length ?? 0;
-          const snapshotted = snapshots.length;
-          const coveragePct =
-            activeDreps > 0 ? Math.round((snapshotted / activeDreps) * 10000) / 100 : 100;
-          await sb.from('snapshot_completeness_log').upsert(
-            {
-              snapshot_type: 'alignment',
-              epoch_no: currentEpoch,
-              snapshot_date: new Date().toISOString().slice(0, 10),
-              record_count: snapshotted,
-              expected_count: activeDreps,
-              coverage_pct: coveragePct,
-            },
-            { onConflict: 'snapshot_type,epoch_no,snapshot_date' },
-          );
-        }
-
-        phaseTiming.persist_ms = Date.now() - s5;
-
+      if (!dbRows?.length || !drepRows?.length || !voteRows?.length) {
         return {
-          success: true,
-          drepsScored: normalized.length,
-          proposalsClassified: classMap.size,
-          pcaComponents: pcaResult?.explainedVariance.length ?? 0,
-          pcaVarianceExplained: pcaResult
-            ? `${(pcaResult.totalExplainedVariance * 100).toFixed(1)}%`
-            : 'N/A',
-          dimensionsIndependent: validation.allIndependent,
-          flaggedPairs: validation.flaggedPairs.length,
-          epoch: currentEpoch,
-          phaseTiming,
+          skipped: true,
+          reason: 'insufficient data',
+          scores: [] as SerializedScoreRow[],
+          classificationsCount: 0,
+          dimensionsIndependent: true,
+          flaggedPairs: 0,
+          timing: { loadMs: 0, dimMs: 0, normMs: 0 },
         };
-      } catch (err) {
-        const msg = errMsg(err);
-        const phase = phaseTiming.persist_ms !== undefined
-          ? 'after-persist'
-          : phaseTiming.pca_ms !== undefined
-            ? 'snapshot-persist'
-            : phaseTiming.normalize_ms !== undefined
-              ? 'pca-compute'
-              : phaseTiming.dimensions_ms !== undefined
-                ? 'normalize'
-                : phaseTiming.load_ms !== undefined
-                  ? 'dimensions'
-                  : 'data-load';
-        console.error(`[alignment] compute-and-persist error in phase=${phase}:`, msg);
-        throw new Error(`[phase=${phase}] ${msg}`);
       }
+
+      const proposals = dbRows.map(mapDBProposal);
+      const loadMs = Date.now() - s1;
+
+      const classMap = new Map<string, ProposalClassification>();
+      for (const c of (classRows || []) as any[]) {
+        classMap.set(`${c.proposal_tx_hash}-${c.proposal_index}`, {
+          proposalTxHash: c.proposal_tx_hash,
+          proposalIndex: c.proposal_index,
+          dimTreasuryConservative: c.dim_treasury_conservative,
+          dimTreasuryGrowth: c.dim_treasury_growth,
+          dimDecentralization: c.dim_decentralization,
+          dimSecurity: c.dim_security,
+          dimInnovation: c.dim_innovation,
+          dimTransparency: c.dim_transparency,
+          aiSummary: c.ai_summary ?? null,
+        });
+      }
+
+      const proposalTypeMap = new Map<string, string>();
+      const proposalAmountMap = new Map<string, number | null>();
+      for (const p of proposals) {
+        const key = `${p.proposal_tx_hash}-${p.proposal_index}`;
+        proposalTypeMap.set(key, p.proposal_type);
+        const amount =
+          p.withdrawal?.reduce((sum, w) => {
+            try {
+              return sum + Number(BigInt(w.amount || '0') / BigInt(1_000_000));
+            } catch {
+              return sum;
+            }
+          }, 0) ?? null;
+        proposalAmountMap.set(key, amount);
+      }
+
+      const votesByDrep = new Map<string, typeof voteRows>();
+      for (const v of voteRows as any[]) {
+        if (!votesByDrep.has(v.drep_id)) votesByDrep.set(v.drep_id, []);
+        votesByDrep.get(v.drep_id)!.push(v);
+      }
+
+      const s2 = Date.now();
+      const rawScores: RawScoreRow[] = [];
+      for (const row of drepRows as any[]) {
+        const votes = votesByDrep.get(row.id) || [];
+        const dimensionInputs: DimensionInput[] = votes.map((v: any) => {
+          const key = `${v.proposal_tx_hash}-${v.proposal_index}`;
+          return {
+            vote: v.vote as 'Yes' | 'No' | 'Abstain',
+            blockTime: v.block_time,
+            hasRationale: !!v.meta_url,
+            rationaleQuality: v.rationale_quality ?? null,
+            proposalType: proposalTypeMap.get(key) || 'InfoAction',
+            withdrawalAmountAda: proposalAmountMap.get(key) ?? null,
+            classification: classMap.get(key) || null,
+          };
+        });
+        const drepContext: DRepContext = {
+          sizeTier: row.size_tier || 'Medium',
+          participationRate: row.participation_rate || 0,
+          rationaleRate: row.rationale_rate || 0,
+          totalVotes: votes.length,
+        };
+        rawScores.push({
+          drepId: row.id,
+          ...computeDimensionScores(dimensionInputs, drepContext),
+        });
+      }
+      const dimMs = Date.now() - s2;
+
+      const s3 = Date.now();
+      const normalized = normalizeToPercentiles(rawScores);
+      const normMs = Date.now() - s3;
+      const validation = validateDimensionIndependence(normalized);
+
+      // Serialize for passing between steps (no Maps)
+      const scores: SerializedScoreRow[] = normalized.map((row) => ({
+        drepId: row.drepId,
+        treasuryConservative: row.treasuryConservative,
+        treasuryGrowth: row.treasuryGrowth,
+        decentralization: row.decentralization,
+        security: row.security,
+        innovation: row.innovation,
+        transparency: row.transparency,
+        pTreasuryConservative: row.percentile.treasuryConservative,
+        pTreasuryGrowth: row.percentile.treasuryGrowth,
+        pDecentralization: row.percentile.decentralization,
+        pSecurity: row.percentile.security,
+        pInnovation: row.percentile.innovation,
+        pTransparency: row.percentile.transparency,
+      }));
+
+      return {
+        skipped: false,
+        reason: null as string | null,
+        scores,
+        classificationsCount: classMap.size,
+        dimensionsIndependent: validation.allIndependent,
+        flaggedPairs: validation.flaggedPairs.length,
+        timing: { loadMs, dimMs, normMs },
+      };
     });
 
-    // Step 4: Finalize sync_log (memoized step ensures it only runs once)
-    const skipped = 'skipped' in computeResult && computeResult.skipped;
-    const success = computeResult.success && !skipped;
+    if (computeResult.skipped) {
+      await step.run('finalize-insufficient', async () => {
+        if (!logId) return;
+        const sb = getSupabaseAdmin();
+        await sb
+          .from('sync_log')
+          .update({
+            finished_at: new Date().toISOString(),
+            duration_ms: Date.now() - startTime,
+            success: true,
+            error_message: capMsg('skipped: ' + (computeResult.reason || 'unknown')),
+            metrics: { skipped: true, reason: computeResult.reason },
+          })
+          .eq('id', logId);
+      });
+      return { success: true, skipped: true };
+    }
+
+    // Step 4: persist drep alignment scores (DB-heavy)
+    await step.run('persist-scores', async () => {
+      const sb = getSupabaseAdmin();
+      const drepUpdates = computeResult.scores.map((row) => ({
+        id: row.drepId,
+        alignment_treasury_conservative: row.pTreasuryConservative,
+        alignment_treasury_growth: row.pTreasuryGrowth,
+        alignment_decentralization: row.pDecentralization,
+        alignment_security: row.pSecurity,
+        alignment_innovation: row.pInnovation,
+        alignment_transparency: row.pTransparency,
+        alignment_treasury_conservative_raw: row.treasuryConservative,
+        alignment_treasury_growth_raw: row.treasuryGrowth,
+        alignment_decentralization_raw: row.decentralization,
+        alignment_security_raw: row.security,
+        alignment_innovation_raw: row.innovation,
+        alignment_transparency_raw: row.transparency,
+      }));
+      await batchUpsert(
+        sb,
+        'dreps',
+        drepUpdates as unknown as Record<string, unknown>[],
+        'id',
+        'Alignment scores',
+      );
+      return { persisted: drepUpdates.length };
+    });
+
+    // Step 5: PCA compute + persist (CPU + DB)
+    const pcaResult = await step.run('compute-pca', async () => {
+      const sb = getSupabaseAdmin();
+      const [{ data: dbRows }, { data: voteRows }, { data: classRows }] = await Promise.all([
+        sb.from('proposals').select(DB_PROPOSAL_COLUMNS),
+        sb.from('drep_votes').select('drep_id, proposal_tx_hash, proposal_index, vote, block_time'),
+        sb.from('proposal_classifications').select('*'),
+      ]);
+
+      if (!dbRows?.length || !voteRows?.length) return { pcaComponents: 0, variance: 'N/A' };
+
+      const proposals = dbRows.map(mapDBProposal);
+      const classMap = new Map<string, ProposalClassification>();
+      for (const c of (classRows || []) as any[]) {
+        classMap.set(`${c.proposal_tx_hash}-${c.proposal_index}`, {
+          proposalTxHash: c.proposal_tx_hash,
+          proposalIndex: c.proposal_index,
+          dimTreasuryConservative: c.dim_treasury_conservative,
+          dimTreasuryGrowth: c.dim_treasury_growth,
+          dimDecentralization: c.dim_decentralization,
+          dimSecurity: c.dim_security,
+          dimInnovation: c.dim_innovation,
+          dimTransparency: c.dim_transparency,
+          aiSummary: c.ai_summary ?? null,
+        });
+      }
+
+      const voteMatrixInputs: VoteMatrixInput[] = (voteRows as any[]).map((v) => ({
+        drepId: v.drep_id,
+        proposalTxHash: v.proposal_tx_hash,
+        proposalIndex: v.proposal_index,
+        vote: v.vote,
+        blockTime: v.block_time,
+      }));
+
+      const proposalMeta = proposals.map((p) => ({
+        txHash: p.proposal_tx_hash,
+        index: p.proposal_index,
+        type: p.proposal_type,
+        withdrawalAmountAda:
+          p.withdrawal?.reduce((sum, w) => {
+            try {
+              return sum + Number(BigInt(w.amount || '0') / BigInt(1_000_000));
+            } catch {
+              return sum;
+            }
+          }, 0) ?? null,
+      }));
+
+      const classifications = Array.from(classMap.values());
+      const voteMatrix = buildVoteMatrix(voteMatrixInputs, proposalMeta, classifications);
+
+      if (voteMatrix.matrix.length < 3 || (voteMatrix.matrix[0]?.length ?? 0) < 3) {
+        return { pcaComponents: 0, variance: 'N/A' };
+      }
+
+      const pca = computePCA(
+        voteMatrix.matrix,
+        voteMatrix.drepIds,
+        voteMatrix.proposalIds,
+        classifications,
+      );
+
+      if (pca) {
+        await storePCAResults(
+          pca,
+          voteMatrix.proposalIds,
+          voteMatrix.drepIds.length,
+          voteMatrix.proposalIds.length,
+        );
+      }
+
+      return {
+        pcaComponents: pca?.explainedVariance.length ?? 0,
+        variance: pca ? `${(pca.totalExplainedVariance * 100).toFixed(1)}%` : 'N/A',
+      };
+    });
+
+    // Step 6: persist alignment snapshots (DB-heavy)
+    const snapshotResult = await step.run('persist-snapshots', async () => {
+      const sb = getSupabaseAdmin();
+
+      const { data: tipData } = await sb
+        .from('proposals')
+        .select('proposed_epoch')
+        .order('proposed_epoch', { ascending: false })
+        .limit(1);
+      const currentEpoch = (tipData as any)?.[0]?.proposed_epoch || 0;
+      if (currentEpoch === 0) return { epoch: 0, snapshots: 0 };
+
+      const snapshots = computeResult.scores.map((row) => ({
+        drep_id: row.drepId,
+        epoch: currentEpoch,
+        alignment_treasury_conservative: row.pTreasuryConservative,
+        alignment_treasury_growth: row.pTreasuryGrowth,
+        alignment_decentralization: row.pDecentralization,
+        alignment_security: row.pSecurity,
+        alignment_innovation: row.pInnovation,
+        alignment_transparency: row.pTransparency,
+        pca_coordinates: null,
+        snapshot_at: new Date().toISOString(),
+      }));
+
+      await batchUpsert(
+        sb,
+        'alignment_snapshots',
+        snapshots as unknown as Record<string, unknown>[],
+        'drep_id,epoch',
+        'Alignment snapshots',
+      );
+
+      const activeDreps = computeResult.scores.length;
+      const coveragePct =
+        activeDreps > 0 ? Math.round((snapshots.length / activeDreps) * 10000) / 100 : 100;
+      await sb.from('snapshot_completeness_log').upsert(
+        {
+          snapshot_type: 'alignment',
+          epoch_no: currentEpoch,
+          snapshot_date: new Date().toISOString().slice(0, 10),
+          record_count: snapshots.length,
+          expected_count: activeDreps,
+          coverage_pct: coveragePct,
+        },
+        { onConflict: 'snapshot_type,epoch_no,snapshot_date' },
+      );
+
+      return { epoch: currentEpoch, snapshots: snapshots.length };
+    });
+
+    // Step 7: finalize sync_log
+    const finalResult = {
+      success: true,
+      drepsScored: computeResult.scores.length,
+      proposalsClassified: computeResult.classificationsCount,
+      pcaComponents: pcaResult.pcaComponents,
+      pcaVarianceExplained: pcaResult.variance,
+      dimensionsIndependent: computeResult.dimensionsIndependent,
+      flaggedPairs: computeResult.flaggedPairs,
+      epoch: snapshotResult.epoch,
+      timing: computeResult.timing,
+    };
 
     await step.run('finalize-sync-log', async () => {
       if (!logId) return;
@@ -430,14 +490,9 @@ export const syncAlignment = inngest.createFunction(
         .update({
           finished_at: new Date().toISOString(),
           duration_ms: Date.now() - startTime,
-          success,
-          error_message: skipped
-            ? capMsg(
-                'skipped: ' + (('reason' in computeResult && computeResult.reason) || 'unknown'),
-              )
-            : null,
+          success: true,
           metrics: {
-            ...computeResult,
+            ...finalResult,
             rationalesScored: rationaleResult.scored,
             proposalsClassified: classifyResult.classified,
           },
@@ -445,8 +500,8 @@ export const syncAlignment = inngest.createFunction(
         .eq('id', logId);
     });
 
-    await emitPostHog(success, 'alignment', Date.now() - startTime, computeResult);
-    console.log('[alignment] Sync complete:', JSON.stringify(computeResult, null, 2));
-    return computeResult;
+    await emitPostHog(true, 'alignment', Date.now() - startTime, finalResult);
+    console.log('[alignment] Sync complete:', JSON.stringify(finalResult, null, 2));
+    return finalResult;
   },
 );
