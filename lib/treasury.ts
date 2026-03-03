@@ -135,7 +135,7 @@ export interface TreasuryHealthScore {
 
 export async function calculateTreasuryHealthScore(): Promise<TreasuryHealthScore | null> {
   const snapshots = await getTreasuryTrend(30);
-  if (snapshots.length < 5) return null;
+  if (snapshots.length < 1) return null;
 
   const current = snapshots[snapshots.length - 1];
   const burnRate = calculateBurnRate(snapshots, 10);
@@ -143,6 +143,7 @@ export async function calculateTreasuryHealthScore(): Promise<TreasuryHealthScor
 
   // 1. Balance trend (0-100): is the treasury growing or shrinking?
   const balanceTrend = (() => {
+    if (snapshots.length < 2) return 50;
     const first = snapshots[0].balanceAda;
     const last = current.balanceAda;
     const pctChange = ((last - first) / first) * 100;
@@ -151,6 +152,7 @@ export async function calculateTreasuryHealthScore(): Promise<TreasuryHealthScor
 
   // 2. Withdrawal velocity (0-100): is spending accelerating?
   const withdrawalVelocity = (() => {
+    if (snapshots.length < 4) return 75;
     const halfIdx = Math.floor(snapshots.length / 2);
     const firstHalf = snapshots.slice(0, halfIdx);
     const secondHalf = snapshots.slice(halfIdx);

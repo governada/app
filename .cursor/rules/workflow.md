@@ -45,6 +45,7 @@ When a `.cursor/plans/*.plan.md` drove the work, audit before PR. See global wor
 **Process**: Spawn a readonly `generalPurpose` subagent with the plan file + `git diff main...HEAD`. It reports each plan item as Done / Adapted / Gap. Fix all Gaps, then include the audit summary in the PR body under `## Plan Audit`.
 
 **DRepScore-specific checks** the auditor must also verify:
+
 - PostHog events for every new user interaction (per `analytics.mdc`)
 - Supabase RLS policies if new tables/columns were added
 - Score/tier display consistency with `scoring-system.md`
