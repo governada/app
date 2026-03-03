@@ -15,7 +15,7 @@ DRepScore is an educational tool that helps casual Cardano ADA holders discover 
 
 ## Tech Stack
 
-- **Framework**: Next.js 15 (App Router, TypeScript strict mode)
+- **Framework**: Next.js 16.1.6 (App Router, TypeScript strict mode)
 - **UI Components**: shadcn/ui + Radix UI + Tailwind CSS
 - **Charts**: Recharts
 - **Wallet Integration**: MeshJS
@@ -166,6 +166,19 @@ The free tier works without an API key, but registering for a key provides highe
 - [ ] Enhanced value alignment algorithms based on proposal content analysis
 - [ ] User accounts to track delegation history
 - [ ] Email notifications for DRep activity
+
+## Security
+
+DRepScore implements multiple layers of security hardening:
+
+- **Content Security Policy (CSP)**: Report-only CSP header blocks XSS vectors. Covers script-src, connect-src, frame-ancestors, and object-src restrictions.
+- **Strict-Transport-Security (HSTS)**: Enforces HTTPS with 2-year max-age, includeSubDomains, and preload.
+- **Row Level Security (RLS)**: All Supabase tables have RLS enabled with least-privilege policies. Write operations restricted to service_role; public access limited to SELECT.
+- **Session Management**: 7-day JWT sessions with revocation support (Redis + Supabase). Session refresh at 50% lifetime. Secure httpOnly cookies.
+- **Rate Limiting**: Upstash Redis sliding window rate limiting on all API endpoints. Fails closed if Redis is unreachable.
+- **Admin Audit Logging**: All admin actions (feature flag toggles, etc.) are logged with wallet address, action, and payload.
+
+To report a security vulnerability, please email security@drepscore.io.
 
 ## Contributing
 

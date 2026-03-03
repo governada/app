@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkSignature, DataSignature } from '@meshsdk/core';
-import { createSessionToken } from '@/lib/supabaseAuth';
+import { createSessionToken, SESSION_MAX_AGE_SECONDS } from '@/lib/supabaseAuth';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { verifyNonce } from '@/lib/nonce';
 import { captureServerEvent } from '@/lib/posthog-server';
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 30 * 24 * 60 * 60, // 30 days
+      maxAge: SESSION_MAX_AGE_SECONDS,
     });
 
     captureServerEvent('wallet_authenticated_server', { wallet_address: address }, address);

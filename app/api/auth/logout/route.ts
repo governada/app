@@ -1,7 +1,16 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { withRouteHandler } from '@/lib/api/withRouteHandler';
+import { validateSessionToken, revokeSession } from '@/lib/supabaseAuth';
 
-export const POST = withRouteHandler(async () => {
+export const POST = withRouteHandler(async (request: NextRequest) => {
+  const cookie = request.cookies.get('drepscore_session');
+  if (cookie?.value) {
+    const session = await validateSessionToken(cookie.value);
+    if (session?.jti) {
+      await revokeSession(session.jti, session.walletAddress);
+    }
+  }
+
   const response = NextResponse.json({ ok: true });
 
   response.cookies.set('drepscore_session', '', {

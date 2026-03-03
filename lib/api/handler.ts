@@ -112,6 +112,10 @@ export function withApiHandler(handler: ApiHandler, options: HandlerOptions = {}
         response.headers.set(k, v);
       }
 
+      if (request.method === 'GET' && response.status >= 200 && response.status < 300) {
+        response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+      }
+
       return response;
     } catch (err) {
       const responseMs = Date.now() - startMs;

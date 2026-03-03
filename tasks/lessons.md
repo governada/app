@@ -2,8 +2,6 @@
 
 Patterns, mistakes, and architectural decisions captured during development. Reviewed at session start. Patterns appearing 2+ times get promoted to cursor rules.
 
-> **Platform migration (2026-03-02):** Hosting moved from Vercel to Railway (Docker). Background jobs moved from Vercel Cron to Inngest Cloud. Historical lessons below reference Vercel where that was the platform at the time; actionable guidance has been updated to reference Railway/Inngest.
-
 ---
 
 ## Architecture
@@ -52,13 +50,13 @@ Patterns, mistakes, and architectural decisions captured during development. Rev
 
 ### 2026-02-25: Proactively scan for tooling and capability improvements
 
-**Pattern**: Didn't recommend Cloud Agents, Supabase MCP, or Vercel MCP until the user initiated a retrospective. These tools were available and would have saved time.
+**Pattern**: Didn't recommend Cloud Agents or Supabase MCP until the user initiated a retrospective. These tools were available and would have saved time.
 **Takeaway**: Periodically (during planning or at milestones) ask: "Are there new tools, MCPs, or platform features that would improve our workflow?" Don't wait for the user to discover them.
 **Promoted to rule**: Yes — `workflow.md` updated with proactive advocacy protocol.
 
 ### 2026-02-25: Always build-check before pushing
 
-**Pattern**: Pushed code changes twice without running `next build` locally. Both times hit type errors that only surfaced in Vercel's build (missing variable alias, implicit `any` from closure capture). Required two fix commits and two failed deploys.
+**Pattern**: Pushed code changes twice without running `next build` locally. Both times hit type errors that only surfaced in the deploy build (missing variable alias, implicit `any` from closure capture). Required two fix commits and two failed deploys.
 **Takeaway**: Run `npx next build --webpack` before every `git push`. Also monitor deployment status after pushing — environment-specific failures (env vars, edge runtime) can't be caught locally.
 **Promoted to rule**: Yes — `workflow.md` updated with Deployment Protocol (pre-push build check + post-push monitoring).
 
@@ -90,13 +88,13 @@ Patterns, mistakes, and architectural decisions captured during development. Rev
 
 ### 2026-02-26: Cron secrets must never live in committed files
 
-**Pattern**: `vercel.json` had `CRON_SECRET` hardcoded in cron path URLs and committed to git. Vercel automatically sends `Authorization: Bearer <CRON_SECRET>` header on cron invocations — no need to put the secret in the URL.
+**Pattern**: Cron secret was hardcoded in path URLs and committed to git.
 **Takeaway**: Validate cron auth via `request.headers.get('authorization')`, not query parameters. Rotate any secret that has ever been committed to git history.
 
 ### 2026-02-26: Separate Supabase projects per environment from the start
 
 **Pattern**: Single Supabase project used for all environments. Preview deployments hit production data. Any mistake on a feature branch could corrupt production.
-**Takeaway**: Create a staging Supabase project (free tier) on day one. Configure Vercel Preview env vars to point to staging. Production data should only be touched by the `main` branch.
+**Takeaway**: Create a staging Supabase project (free tier) on day one. Configure preview/staging env vars to point to staging. Production data should only be touched by the `main` branch.
 
 ## Delegation / Wallet Integration
 
@@ -127,26 +125,26 @@ Patterns, mistakes, and architectural decisions captured during development. Rev
 
 ### 2026-02-26: Standalone directories with their own deps break Next.js builds
 
-**Pattern**: The `analytics/` Observable Framework directory imports `postgres` (not in the main `package.json`). Next.js TypeScript checking picks up `**/*.ts` including `analytics/src/data/*.ts`, causing a build failure on Vercel.
+**Pattern**: The `analytics/` Observable Framework directory imports `postgres` (not in the main `package.json`). Next.js TypeScript checking picks up `**/*.ts` including `analytics/src/data/*.ts`, causing a build failure.
 **Takeaway**: Any standalone sub-project with its own dependency tree must be excluded in `tsconfig.json`. Added `"analytics"` to `exclude` array. Always verify `npx next build --webpack` before pushing.
 
 ### 2026-02-26: CLI tools are essential for autonomous deployment monitoring
 
-**Pattern**: Browser-based dashboards require auth the agent can't provide. On Vercel, `npx vercel inspect <url> --logs` gave build output. On Railway, use `railway logs` or the Railway dashboard API.
+**Pattern**: Browser-based dashboards require auth the agent can't provide.
 **Takeaway**: Always pull deployment logs to diagnose failed deploys. Don't guess — check Railway logs or Inngest dashboard.
 
 ### 2026-02-26: NEVER overwrite .cursor/mcp.json — it contains secrets and cached auth
 
-**Pattern**: Agent recreated `.cursor/mcp.json` from git history, which wiped the working config containing the Supabase access token and the `mcp-remote`-based Vercel setup. This forced a full re-auth cycle and hit the `cursor://` protocol handler issue again.
+**Pattern**: Agent recreated `.cursor/mcp.json` from git history, which wiped the working config containing the Supabase access token and cached OAuth state. This forced a full re-auth cycle and hit the `cursor://` protocol handler issue again.
 **Takeaway**: `.cursor/mcp.json` is gitignored for a reason — it holds secrets (Supabase access token) and locally-cached OAuth state. NEVER overwrite, recreate, or modify this file without explicit user approval. If MCP connectivity is lost, diagnose via Settings > MCP first, don't touch the file.
 
 ### 2026-02-26: Dual Cursor instances require mcp-remote for OAuth-based MCPs
 
-**Pattern**: User runs two Cursor instances simultaneously (work + personal/drepscore) with separate GitHub auth via a folder shortcut. The Windows `cursor://` protocol handler is registered to the work instance. Any MCP that uses Cursor's native OAuth flow (Vercel, Supabase remote) will redirect the callback to the wrong instance.
+**Pattern**: User runs two Cursor instances simultaneously (work + personal/drepscore) with separate GitHub auth via a folder shortcut. The Windows `cursor://` protocol handler is registered to the work instance. Any MCP that uses Cursor's native OAuth flow (e.g. Supabase remote) will redirect the callback to the wrong instance.
 **Takeaway**: For this workspace, all MCPs must use either:
 
 - **Local stdio + access token** (Supabase: `cmd /c npx @supabase/mcp-server-supabase` with `SUPABASE_ACCESS_TOKEN` env var)
-- **`mcp-remote` stdio proxy** (Vercel: `cmd /c npx mcp-remote https://mcp.vercel.com/...`) which runs its own localhost callback server, bypassing `cursor://` entirely.
+- **`mcp-remote` stdio proxy** (e.g. `cmd /c npx mcp-remote https://<service>.app/mcp`) which runs its own localhost callback server, bypassing `cursor://` entirely.
   Never use the `"url": "https://..."` remote MCP format in this workspace. It will always break.
 
 ---
@@ -197,7 +195,7 @@ Patterns, mistakes, and architectural decisions captured during development. Rev
 ### 2026-02-28: maxDuration 60s is too tight for Koios-dependent syncs
 
 **Pattern**: Proposals sync hit `FUNCTION_INVOCATION_TIMEOUT` at 60s. With 20s per-request Koios timeout + 3 retry attempts with exponential backoff, a single failing fetch can burn 63s+ before the function even gets to votes/summaries. Successful runs take ~88s.
-**Takeaway**: Set generous timeouts for all sync routes (Railway has no 300s cap like Vercel Pro, but keep per-request discipline). The external API latency is unpredictable — tight timeouts cause more failures than they prevent. Rely on per-request `AbortController` timeouts for individual call discipline.
+**Takeaway**: Set generous timeouts for all sync routes. The external API latency is unpredictable — tight timeouts cause more failures than they prevent. Rely on per-request `AbortController` timeouts for individual call discipline.
 
 ### 2026-02-28: Don't add per-entity API calls to already-heavy sync functions
 
@@ -206,18 +204,18 @@ Patterns, mistakes, and architectural decisions captured during development. Rev
 
 ### 2026-02-28: Untracked files break pre-push hooks via .next/types
 
-**Pattern**: Another agent's uncommitted `app/api/v1/` routes caused `next build` to generate `.next/types/app/api/v1/` with type errors. The pre-push hook (`next build`) failed even though committed code was clean. Vercel builds only committed files, so `--no-verify` was safe.
-**Takeaway**: When other agents leave untracked `app/` files, clean `.next/types/` before committing or use `--no-verify` when confident committed code is clean. The local build sees all workspace files; Vercel only sees git.
+**Pattern**: Another agent's uncommitted `app/api/v1/` routes caused `next build` to generate `.next/types/app/api/v1/` with type errors. The pre-push hook (`next build`) failed even though committed code was clean. CI/deploy builds only see committed files, so `--no-verify` was safe.
+**Takeaway**: When other agents leave untracked `app/` files, clean `.next/types/` before committing or use `--no-verify` when confident committed code is clean. The local build sees all workspace files; CI only sees git.
 
 ### 2026-02-28: Monitoring must match the actual cron architecture
 
 **Pattern**: Sync architecture was refactored from monolithic `fast`/`full` to dedicated routes (`proposals`, `dreps`, `votes`, `secondary`, `slow`). But `alertThresholds`, `syncRouteMap`, and `stalenessThresholds` in the alert cron still referenced `fast` and `full`. Old `sync_log` entries for these types kept `v_sync_health` view returning stale rows, triggering false alarms. Self-healing tried to re-trigger non-existent routes, failed with 401.
 **Takeaway**: When refactoring a system, update ALL consumers: monitoring, alerting, self-healing, and cleanup old data. Use a single `SYNC_CONFIG` source of truth and an `ACTIVE_SYNC_TYPES` set to filter `v_sync_health` results.
 
-### 2026-02-28: Self-healing must use production domain, not VERCEL_URL
+### 2026-02-28: Self-healing must use the canonical production domain
 
-**Pattern**: `VERCEL_URL` is a deployment-specific URL (e.g. `drepscore-app-abc123.vercel.app`), not the production domain. Using it for self-healing triggers means the request goes to a random deployment, not the current production build. Auth may also fail if `CRON_SECRET` validation differs between deployments.
-**Takeaway**: Prefer `NEXT_PUBLIC_SITE_URL` (the canonical production domain) for self-healing triggers. Fall back to `VERCEL_URL` only as a last resort.
+**Pattern**: Deployment-specific URLs are not the production domain. Using them for self-healing triggers means the request goes to a random deployment, not the current production build.
+**Takeaway**: Always use `NEXT_PUBLIC_SITE_URL` (the canonical production domain) for self-healing triggers.
 
 ### 2026-02-28: Inngest durable steps — data serialization boundary
 
@@ -390,14 +388,14 @@ Server-side API routes also need `captureServerEvent` for success + error tracki
 
 **Issue**: Session 15 implementation completed but the Ship It checklist stalled at `git commit` due to PowerShell heredoc syntax (bash `<<'EOF'` doesn't exist in PowerShell). The session ended without commit, push, PR, merge, or deploy confirmation — despite all code being ready and staged.
 **Root causes**: (1) Used bash heredoc syntax for commit message in PowerShell. (2) Session ended after the error without retrying with the correct pattern. (3) `gh auth status` wasn't checked — active account was `tim-dd` (no collaborator perms) instead of `drepscore`.
-**Fix**: Updated workflow.md Ship It Checklist: added Step 0 (verify `gh auth` account), added Step 7 (poll CI checks before merge), updated Step 9 (Vercel deploy confirmation replaces stale Railway reference). Commit messages must use `.git/COMMIT_MSG` file pattern.
+**Fix**: Updated workflow.md Ship It Checklist: added Step 0 (verify `gh auth` account), added Step 7 (poll CI checks before merge), updated Step 9 (Railway deploy confirmation). Commit messages must use `.git/COMMIT_MSG` file pattern.
 **Takeaway**: The Ship It checklist is non-negotiable. If any step fails, fix the failure and continue — never report "code complete" while steps remain. Verify `gh auth` account before any GitHub CLI operations.
 
-### 2026-03-02: Deployment target is Railway, not Vercel — update stale rules
+### 2026-03-02: Platform references must stay current across all rule files
 
-**Promoted to rule**: Yes — `workflow.md` Ship It step 9 updated from Vercel to Railway.
-**Issue**: After merging PR #32, attempted to confirm deploy via Vercel-specific commands. The platform migrated to Railway (Docker) + Inngest Cloud earlier, and lessons.md had a migration note, but workflow.md step 9 still referenced Vercel. The stale rule caused incorrect post-merge behavior and wasted time on a non-existent deploy target.
-**Takeaway**: When a platform migration happens, update ALL rule files that reference the old platform — not just add a migration note to lessons.md. Railway deploys automatically on merge to main via GitHub integration; no manual verification commands needed beyond confirming CI passes on main.
+**Promoted to rule**: Yes — `workflow.md` Ship It step 9 updated.
+**Issue**: After a platform migration, stale references in workflow.md caused incorrect post-merge behavior and wasted time on a non-existent deploy target.
+**Takeaway**: When a platform migration happens, update ALL rule files that reference the old platform. Railway deploys automatically on merge to main via GitHub integration; no manual verification commands needed beyond confirming CI passes on main.
 
 ### 2026-03-02: "Hotfix" is a trigger word — deploy autonomously
 
@@ -518,7 +516,7 @@ Server-side API routes also need `captureServerEvent` for success + error tracki
 ### 2026-03-02: Critical rules need a separate, short file
 
 **Promoted to rule**: Yes — created `.cursor/rules/critical.md` with `alwaysApply: true`.
-**Issue**: `workflow.md` is 230+ lines. Agents reliably miss the most important rules (commit to main, ship after execution, PowerShell syntax, Vercel references) because they're buried in a wall of guidelines. The rules that have been violated 3+ times are not visually differentiated from nice-to-haves.
+**Issue**: `workflow.md` is 230+ lines. Agents reliably miss the most important rules (commit to main, ship after execution, PowerShell syntax) because they're buried in a wall of guidelines. The rules that have been violated 3+ times are not visually differentiated from nice-to-haves.
 **Fix**: Created `critical.md` with 12 non-negotiable rules — every one has been violated at least once. Added a callout at the top of `workflow.md` pointing to it.
 **Takeaway**: Rule files over ~50 lines lose enforcement power. Critical rules need to be short, numbered, and in their own `alwaysApply` file. Keep `critical.md` under 15 items or it becomes another wall.
 
@@ -552,6 +550,24 @@ Server-side API routes also need `captureServerEvent` for success + error tracki
 **Issue**: `CompareButton.tsx` had `useFeatureFlag()` followed by an early return before `useState`/`useEffect`/`useCallback` calls, violating React's rules of hooks. `ScrollStoryReveal.tsx` had `useTransform` calls inside ternary conditionals.
 **Fix**: CompareButton — moved early return after all hooks. ScrollStoryReveal — always call `useTransform` with no-op values when variant doesn't use that transform axis.
 **Takeaway**: When adding feature flag gates to existing client components, always place the `useFeatureFlag()` call alongside other hooks and move any early-return guard AFTER all hook calls. Never put hooks inside conditionals or ternaries.
+
+### 2026-03-03: RLS policies — always use `(select auth.role())` not `auth.role()`
+
+**Issue**: 10 RLS policies used `auth.role()` or `current_setting('role')` without wrapping in `(select ...)`, causing re-evaluation per row. Supabase performance advisor flagged all of them.
+**Fix**: Recreated all policies with `(select auth.role())` pattern.
+**Takeaway**: Every RLS policy that calls `auth.*()` or `current_setting()` must wrap the call in `(select ...)` to ensure it's evaluated once as an initplan, not per row.
+
+### 2026-03-03: `FOR ALL` RLS policies overlap with `FOR SELECT` policies
+
+**Issue**: Policies like `*_service_write FOR ALL USING (auth.role()='service_role')` also grant SELECT, overlapping with `*_public_read FOR SELECT USING (true)`. Supabase flagged "multiple permissive policies" for every affected table.
+**Fix**: Split `FOR ALL` into separate `FOR INSERT`, `FOR UPDATE`, `FOR DELETE` policies.
+**Takeaway**: Never use `FOR ALL` when the table also has a separate SELECT policy. Always create per-operation policies.
+
+### 2026-03-03: Redis must be required in production, not optional
+
+**Issue**: `getRedis()` returned `null` when env vars were missing. Rate limiting fell back to Supabase writes — a DDoS amplification vector.
+**Fix**: Made `getRedis()` throw if env vars are missing. Made Redis env vars required in `lib/env.ts`. Rate limiter now fails closed on Redis errors.
+**Takeaway**: Infrastructure dependencies that protect against abuse (rate limiting, session revocation) must fail closed, never silently degrade to a weaker path.
 
 _Last updated: 2026-03-03_
 _Review this file at the start of every session._

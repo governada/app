@@ -1,12 +1,17 @@
 import * as jose from 'jose';
 import { NextRequest, NextResponse } from 'next/server';
+import { getRedis } from '@/lib/redis';
+import { getSupabaseAdmin } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
 
 const SESSION_KEY = 'drepscore_session';
-const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+export const SESSION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
 
 export interface SessionPayload {
   walletAddress: string;
   expiresAt: number;
+  jti?: string;
 }
 
 export interface SessionToken {
@@ -21,18 +26,59 @@ function getSecretKey(): Uint8Array {
 }
 
 export async function createSessionToken(walletAddress: string): Promise<string> {
+  const jti = crypto.randomUUID();
   const payload: SessionPayload = {
     walletAddress,
     expiresAt: Date.now() + SESSION_DURATION_MS,
+    jti,
   };
 
   const jwt = await new jose.SignJWT(payload as unknown as jose.JWTPayload)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
+    .setJti(jti)
     .setExpirationTime(Math.floor(payload.expiresAt / 1000))
     .sign(getSecretKey());
 
   return jwt;
+}
+
+async function isSessionRevoked(jti: string): Promise<boolean> {
+  try {
+    const redis = getRedis();
+    const revoked = await redis.get<string>(`revoked:${jti}`);
+    if (revoked) return true;
+  } catch {
+    // Redis failed — fall through to DB check
+  }
+
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data } = await supabase
+      .from('revoked_sessions')
+      .select('jti')
+      .eq('jti', jti)
+      .maybeSingle();
+    return !!data;
+  } catch {
+    return false;
+  }
+}
+
+export async function revokeSession(jti: string, walletAddress: string): Promise<void> {
+  try {
+    const redis = getRedis();
+    await redis.set(`revoked:${jti}`, '1', { ex: SESSION_MAX_AGE_SECONDS + 86400 });
+  } catch {
+    logger.warn('Failed to set revocation in Redis', { context: 'session-revoke', jti });
+  }
+
+  try {
+    const supabase = getSupabaseAdmin();
+    await supabase.from('revoked_sessions').upsert({ jti, wallet_address: walletAddress });
+  } catch {
+    logger.warn('Failed to insert revocation in Supabase', { context: 'session-revoke', jti });
+  }
 }
 
 export async function validateSessionToken(token: string): Promise<SessionPayload | null> {
@@ -42,12 +88,45 @@ export async function validateSessionToken(token: string): Promise<SessionPayloa
     const sessionPayload: SessionPayload = {
       walletAddress: payload.walletAddress as string,
       expiresAt: (payload.expiresAt as number) || (payload.exp as number) * 1000,
+      jti: (payload.jti as string) || undefined,
     };
 
     if (!sessionPayload.walletAddress) return null;
     if (sessionPayload.expiresAt < Date.now()) return null;
 
+    if (sessionPayload.jti) {
+      const revoked = await isSessionRevoked(sessionPayload.jti);
+      if (revoked) return null;
+    }
+
     return sessionPayload;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Issue a fresh token if the current one is past 50% of its lifetime.
+ * Returns null if no refresh is needed or the token is invalid.
+ */
+export async function refreshSession(token: string): Promise<string | null> {
+  try {
+    const { payload } = await jose.jwtVerify(token, getSecretKey());
+    const iat = (payload.iat as number) * 1000;
+    const exp = (payload.expiresAt as number) || (payload.exp as number) * 1000;
+    const halfLife = iat + (exp - iat) / 2;
+
+    if (Date.now() < halfLife) return null;
+
+    const oldJti = payload.jti as string | undefined;
+    const wallet = payload.walletAddress as string;
+    const newToken = await createSessionToken(wallet);
+
+    if (oldJti) {
+      await revokeSession(oldJti, wallet);
+    }
+
+    return newToken;
   } catch {
     return null;
   }
