@@ -3,6 +3,7 @@ import { validateSessionToken } from '@/lib/supabaseAuth';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { blockTimeToEpoch } from '@/lib/koios';
 import { updateUserProfile } from '@/lib/matching/userProfile';
+import { captureServerEvent } from '@/lib/posthog-server';
 
 const VALID_VOTES = ['yes', 'no', 'abstain'] as const;
 type Vote = (typeof VALID_VOTES)[number];
@@ -200,6 +201,12 @@ export async function POST(request: NextRequest) {
     .eq('proposal_index', proposalIndex);
 
   const community = aggregateCounts(allVotes || []);
+
+  captureServerEvent(
+    'poll_vote_submitted',
+    { proposal_tx_hash: proposalTxHash, proposal_index: proposalIndex, vote },
+    walletAddress,
+  );
 
   return NextResponse.json({
     community,

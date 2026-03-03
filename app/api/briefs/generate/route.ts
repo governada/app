@@ -13,6 +13,7 @@ import {
 import { notifyUser } from '@/lib/notifications';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { validateSessionToken } from '@/lib/supabaseAuth';
+import { captureServerEvent } from '@/lib/posthog-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -73,6 +74,12 @@ export async function POST(request: NextRequest) {
         ctaUrl: brief.ctaUrl,
       },
     });
+
+    captureServerEvent(
+      'brief_generation_requested',
+      { wallet_address: wallet, brief_type: isDRep ? 'drep' : 'holder' },
+      wallet,
+    );
 
     return NextResponse.json({ ok: true, brief });
   } catch (err) {

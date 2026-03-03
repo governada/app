@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getDRepById } from '@/lib/data';
+import { captureServerEvent } from '@/lib/posthog-server';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -80,6 +81,8 @@ Output only the rationale text, no preamble.`,
     });
 
     const draft = message.content[0].type === 'text' ? message.content[0].text : '';
+
+    captureServerEvent('rationale_ai_drafted', { drep_id: drepId }, drepId);
 
     return NextResponse.json({ draft });
   } catch (error) {

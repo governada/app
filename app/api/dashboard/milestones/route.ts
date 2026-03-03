@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MILESTONES, getAchievedMilestones, checkAndAwardMilestones } from '@/lib/milestones';
+import { captureServerEvent } from '@/lib/posthog-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,6 +35,13 @@ export async function POST(request: NextRequest) {
     if (!drepId) return NextResponse.json({ error: 'Missing drepId' }, { status: 400 });
 
     const newMilestones = await checkAndAwardMilestones(drepId);
+
+    captureServerEvent(
+      'milestone_updated',
+      { drep_id: drepId, new_milestones: newMilestones.length },
+      drepId,
+    );
+
     return NextResponse.json({ newMilestones });
   } catch (err) {
     console.error('[Milestones POST] Error:', err);

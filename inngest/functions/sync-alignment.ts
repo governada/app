@@ -94,9 +94,11 @@ export const syncAlignment = inngest.createFunction(
         ] = await Promise.all([
           sb.from('proposals').select('*'),
           sb.from('dreps').select('id, info, score, participation_rate, rationale_rate, size_tier'),
-          sb.from('drep_votes').select(
-            'drep_id, proposal_tx_hash, proposal_index, vote, block_time, meta_url, rationale_text, rationale_quality',
-          ),
+          sb
+            .from('drep_votes')
+            .select(
+              'drep_id, proposal_tx_hash, proposal_index, vote, block_time, meta_url, rationale_text, rationale_quality',
+            ),
           sb.from('proposal_classifications').select('*'),
         ]);
 
@@ -119,7 +121,7 @@ export const syncAlignment = inngest.createFunction(
             dimSecurity: c.dim_security,
             dimInnovation: c.dim_innovation,
             dimTransparency: c.dim_transparency,
-            reasoning: c.reasoning,
+            aiSummary: c.reasoning ?? null,
           });
         }
 
@@ -323,10 +325,13 @@ export const syncAlignment = inngest.createFunction(
       }
     });
 
-    const success = computeResult.success && !computeResult.skipped;
+    const skipped = 'skipped' in computeResult && computeResult.skipped;
+    const success = computeResult.success && !skipped;
     await logger.finalize(
       success,
-      computeResult.skipped ? 'skipped: ' + (computeResult.reason || 'unknown') : null,
+      skipped
+        ? 'skipped: ' + (('reason' in computeResult && computeResult.reason) || 'unknown')
+        : null,
       {
         ...computeResult,
         rationalesScored: rationaleResult.scored,
