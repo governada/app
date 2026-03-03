@@ -135,9 +135,7 @@ function SpoDashboardInner() {
 
     (async () => {
       try {
-        const res = await fetch(
-          `/api/dashboard/spo?poolId=${encodeURIComponent(activePoolId)}`,
-        );
+        const res = await fetch(`/api/dashboard/spo?poolId=${encodeURIComponent(activePoolId)}`);
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
           throw new Error(body.error || `Failed (${res.status})`);
@@ -563,7 +561,9 @@ function VotingRecordTab({ votes }: { votes: SpoVote[] }) {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <span className={`inline-flex items-center gap-1 text-xs font-medium ${voteColor}`}>
+                        <span
+                          className={`inline-flex items-center gap-1 text-xs font-medium ${voteColor}`}
+                        >
                           <VoteIcon className="h-3.5 w-3.5" />
                           {v.vote}
                         </span>
@@ -601,9 +601,10 @@ function ReputationTab({ data }: { data: SpoDashboardData }) {
     return [...map.entries()].sort((a, b) => b[0] - a[0]);
   }, [data.votes]);
 
-  const mostActiveEpoch = epochActivity.length > 0
-    ? epochActivity.reduce((best, cur) => (cur[1] > best[1] ? cur : best))
-    : null;
+  const mostActiveEpoch =
+    epochActivity.length > 0
+      ? epochActivity.reduce((best, cur) => (cur[1] > best[1] ? cur : best))
+      : null;
 
   const consecutiveEpochs = useMemo(() => {
     if (epochActivity.length === 0) return 0;
@@ -617,15 +618,10 @@ function ReputationTab({ data }: { data: SpoDashboardData }) {
     return streak;
   }, [data.votes, epochActivity.length]);
 
-  const yesRate = data.votes.length > 0
-    ? Math.round((data.yesCount / data.votes.length) * 100)
-    : 0;
-  const noRate = data.votes.length > 0
-    ? Math.round((data.noCount / data.votes.length) * 100)
-    : 0;
-  const abstainRate = data.votes.length > 0
-    ? Math.round((data.abstainCount / data.votes.length) * 100)
-    : 0;
+  const yesRate = data.votes.length > 0 ? Math.round((data.yesCount / data.votes.length) * 100) : 0;
+  const noRate = data.votes.length > 0 ? Math.round((data.noCount / data.votes.length) * 100) : 0;
+  const abstainRate =
+    data.votes.length > 0 ? Math.round((data.abstainCount / data.votes.length) * 100) : 0;
 
   return (
     <div className="space-y-6">
@@ -663,7 +659,12 @@ function ReputationTab({ data }: { data: SpoDashboardData }) {
           <div className="space-y-3">
             <VoteBar label="Yes" count={data.yesCount} pct={yesRate} color="bg-green-500" />
             <VoteBar label="No" count={data.noCount} pct={noRate} color="bg-red-500" />
-            <VoteBar label="Abstain" count={data.abstainCount} pct={abstainRate} color="bg-gray-400 dark:bg-gray-600" />
+            <VoteBar
+              label="Abstain"
+              count={data.abstainCount}
+              pct={abstainRate}
+              color="bg-gray-400 dark:bg-gray-600"
+            />
           </div>
         </CardContent>
       </Card>
@@ -678,10 +679,7 @@ function ReputationTab({ data }: { data: SpoDashboardData }) {
           <CardContent>
             <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 gap-2">
               {epochActivity.slice(0, 14).map(([epoch, count]) => (
-                <div
-                  key={epoch}
-                  className="text-center rounded-md border p-2"
-                >
+                <div key={epoch} className="text-center rounded-md border p-2">
                   <p className="text-xs text-muted-foreground">E{epoch}</p>
                   <p className="text-sm font-bold tabular-nums">{count}</p>
                 </div>
@@ -708,7 +706,9 @@ function ProfileTab({ poolId }: { poolId: string }) {
         </CardHeader>
         <CardContent className="space-y-3">
           <div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Pool ID</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">
+              Pool ID
+            </p>
             <p className="font-mono text-xs break-all">{poolId}</p>
           </div>
           <div className="pt-3 border-t">
@@ -755,9 +755,7 @@ function StatCard({
           <span className="text-[10px] text-muted-foreground uppercase tracking-wide">{label}</span>
         </div>
         <p className="text-lg font-bold tabular-nums">{value}</p>
-        {sublabel && (
-          <p className="text-[10px] text-muted-foreground">{sublabel}</p>
-        )}
+        {sublabel && <p className="text-[10px] text-muted-foreground">{sublabel}</p>}
       </CardContent>
     </Card>
   );

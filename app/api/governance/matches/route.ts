@@ -106,9 +106,7 @@ export async function GET(request: NextRequest) {
           matchMethod = 'pca';
           const similarities = coordRows.map((row) => ({
             drepId: row.drep_id as string,
-            similarity: Math.round(
-              cosineSimilarity(userCoords, row.coordinates as number[]) * 100,
-            ),
+            similarity: Math.round(cosineSimilarity(userCoords, row.coordinates as number[]) * 100),
           }));
           similarities.sort((a, b) => b.similarity - a.similarity);
 

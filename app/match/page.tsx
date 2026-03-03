@@ -19,9 +19,7 @@ export default function MatchPage() {
       <PageViewTracker event="quick_match_page_viewed" />
 
       <div className="text-center mb-10">
-        <h1 className="text-3xl font-bold tracking-tight">
-          Find Your DRep in 30 Seconds
-        </h1>
+        <h1 className="text-3xl font-bold tracking-tight">Find Your DRep in 30 Seconds</h1>
         <p className="text-muted-foreground mt-2">
           3 questions about your governance values. No wallet needed.
         </p>

@@ -18,10 +18,7 @@ function CommitteeSkeleton() {
   return (
     <div className="space-y-2">
       {Array.from({ length: 5 }).map((_, i) => (
-        <div
-          key={i}
-          className="flex items-center justify-between rounded-lg border p-4"
-        >
+        <div key={i} className="flex items-center justify-between rounded-lg border p-4">
           <Skeleton className="h-4 w-32" />
           <div className="flex gap-2">
             <Skeleton className="h-5 w-16" />
@@ -73,9 +70,7 @@ export function CommitteeDiscovery() {
               <Badge variant="outline" className="text-purple-500 border-purple-500/40">
                 {member.voteCount} votes
               </Badge>
-              <span className="text-xs text-muted-foreground">
-                {member.approvalRate}% approval
-              </span>
+              <span className="text-xs text-muted-foreground">{member.approvalRate}% approval</span>
             </div>
           </div>
         </Link>

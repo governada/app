@@ -25,9 +25,7 @@ export async function GET(request: NextRequest) {
         .select('pool_id, proposal_tx_hash, proposal_index, vote, block_time, epoch')
         .eq('pool_id', poolId)
         .order('block_time', { ascending: false }),
-      supabase
-        .from('proposals')
-        .select('tx_hash', { count: 'exact', head: true }),
+      supabase.from('proposals').select('tx_hash', { count: 'exact', head: true }),
     ]);
 
     const votes = votesResult.data ?? [];
@@ -89,9 +87,7 @@ export async function GET(request: NextRequest) {
       {
         poolId,
         voteCount: votes.length,
-        participationRate: totalProposals
-          ? Math.round((votes.length / totalProposals) * 100)
-          : 0,
+        participationRate: totalProposals ? Math.round((votes.length / totalProposals) * 100) : 0,
         pendingCount: pendingProposals.length,
       },
       poolId,
@@ -101,9 +97,7 @@ export async function GET(request: NextRequest) {
       poolId,
       votes: enrichedVotes,
       totalProposals,
-      participationRate: totalProposals
-        ? Math.round((votes.length / totalProposals) * 100)
-        : 0,
+      participationRate: totalProposals ? Math.round((votes.length / totalProposals) * 100) : 0,
       yesCount,
       noCount,
       abstainCount,

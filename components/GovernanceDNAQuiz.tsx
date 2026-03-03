@@ -283,7 +283,10 @@ export function GovernanceDNAQuiz({ onQuizComplete }: GovernanceDNAQuizProps) {
           {proposal.dimensionTags && proposal.dimensionTags.length > 0 && (
             <div className="flex gap-1">
               {proposal.dimensionTags.map((tag) => (
-                <span key={tag} className="text-[10px] text-primary/70 bg-primary/5 px-1.5 py-0.5 rounded">
+                <span
+                  key={tag}
+                  className="text-[10px] text-primary/70 bg-primary/5 px-1.5 py-0.5 rounded"
+                >
                   {tag}
                 </span>
               ))}

@@ -10,7 +10,7 @@ import {
   type ProposalVotingSummary,
 } from './types';
 
-const CLOSE_MARGIN_THRESHOLD = 0.20;
+const CLOSE_MARGIN_THRESHOLD = 0.2;
 const CLOSE_MARGIN_MULTIPLIER = 1.5;
 
 /**
@@ -108,8 +108,7 @@ function computeTotalWeightedPool(
  * Lower margin = closer call = more important to participate.
  */
 function computeMargin(summary: ProposalVotingSummary): number {
-  const total =
-    summary.drepYesVotePower + summary.drepNoVotePower + summary.drepAbstainVotePower;
+  const total = summary.drepYesVotePower + summary.drepNoVotePower + summary.drepAbstainVotePower;
   if (total === 0) return 1; // no data, skip bonus
   return Math.abs(summary.drepYesVotePower - summary.drepNoVotePower) / total;
 }

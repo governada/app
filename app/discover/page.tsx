@@ -20,7 +20,8 @@ export default async function DiscoverPage() {
       <div className="space-y-2 mb-6">
         <h1 className="text-2xl font-bold tracking-tight">Discover Governance</h1>
         <p className="text-sm text-muted-foreground">
-          Explore DReps, stake pools, and Constitutional Committee members participating in Cardano governance.
+          Explore DReps, stake pools, and Constitutional Committee members participating in Cardano
+          governance.
         </p>
       </div>
       <PageViewTracker event="discover_page_viewed" />

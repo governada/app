@@ -84,7 +84,8 @@ async function backfillTreasuryHealth(fromEpoch: number, toEpoch: number) {
 
     const pendingCount = pendingData?.length ?? 0;
     const pendingTotalAda = (pendingData || []).reduce(
-      (sum, p) => sum + (p.withdrawal_amount || 0), 0,
+      (sum, p) => sum + (p.withdrawal_amount || 0),
+      0,
     );
 
     const { error } = await supabase.from('treasury_health_snapshots').insert({
@@ -133,7 +134,10 @@ async function backfillParticipation(fromEpoch: number, toEpoch: number) {
 
     const [votersResult, totalDrepsResult] = await Promise.all([
       supabase.from('drep_votes').select('drep_id').eq('epoch_no', epoch),
-      supabase.from('dreps').select('drep_id', { count: 'exact', head: true }).eq('registered', true),
+      supabase
+        .from('dreps')
+        .select('drep_id', { count: 'exact', head: true })
+        .eq('registered', true),
     ]);
 
     const uniqueVoters = new Set((votersResult.data || []).map((v) => v.drep_id));
@@ -157,7 +161,9 @@ async function backfillParticipation(fromEpoch: number, toEpoch: number) {
     if (error) {
       console.error(`  epoch ${epoch}: INSERT failed — ${error.message}`);
     } else {
-      console.log(`  epoch ${epoch}: inserted (${activeDreps}/${totalDreps} = ${participationRate}%)`);
+      console.log(
+        `  epoch ${epoch}: inserted (${activeDreps}/${totalDreps} = ${participationRate}%)`,
+      );
     }
   }
 
@@ -188,7 +194,9 @@ async function main() {
       await backfillParticipation(from, to);
       break;
     default:
-      console.log('Usage: npx tsx scripts/backfill-snapshots.ts <table> [--from epoch] [--to epoch]');
+      console.log(
+        'Usage: npx tsx scripts/backfill-snapshots.ts <table> [--from epoch] [--to epoch]',
+      );
       console.log('Tables: treasury_health, participation');
       process.exit(1);
   }

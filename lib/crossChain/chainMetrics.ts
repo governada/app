@@ -100,7 +100,8 @@ const cardanoMetrics: MetricExtractor = (b) => {
 };
 
 const ethereumMetrics: MetricExtractor = (b) => {
-  const orgs = raw<{ slug: string; name: string; delegates: number; proposals: number }[]>(b, 'orgs') ?? [];
+  const orgs =
+    raw<{ slug: string; name: string; delegates: number; proposals: number }[]>(b, 'orgs') ?? [];
   const totalTokenOwners = raw<number>(b, 'totalTokenOwners');
 
   return [
@@ -163,9 +164,10 @@ const polkadotMetrics: MetricExtractor = (b) => {
     {
       key: 'activeReferenda',
       label: 'Active Referenda',
-      value: b.participationRate != null && b.proposalCount != null
-        ? Math.round((b.participationRate / 100) * b.proposalCount)
-        : null,
+      value:
+        b.participationRate != null && b.proposalCount != null
+          ? Math.round((b.participationRate / 100) * b.proposalCount)
+          : null,
       context: 'Referenda currently open for voting',
       source: 'SubSquare',
     },

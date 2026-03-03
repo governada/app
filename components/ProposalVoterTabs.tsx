@@ -18,8 +18,7 @@ interface ProposalVoterTabsProps {
 }
 
 function VoteBadge({ vote }: { vote: string }) {
-  const variant =
-    vote === 'Yes' ? 'default' : vote === 'No' ? 'destructive' : 'secondary';
+  const variant = vote === 'Yes' ? 'default' : vote === 'No' ? 'destructive' : 'secondary';
   return <Badge variant={variant}>{vote}</Badge>;
 }
 
@@ -80,9 +79,13 @@ function SpoVotersList({ txHash, proposalIndex }: { txHash: string; proposalInde
       {spoVotes.length > 20 && (
         <Button variant="outline" onClick={() => setShowAll(!showAll)} className="w-full mt-2">
           {showAll ? (
-            <>Show less <ChevronUp className="h-4 w-4 ml-2" /></>
+            <>
+              Show less <ChevronUp className="h-4 w-4 ml-2" />
+            </>
           ) : (
-            <>Show all {spoVotes.length} SPO votes <ChevronDown className="h-4 w-4 ml-2" /></>
+            <>
+              Show all {spoVotes.length} SPO votes <ChevronDown className="h-4 w-4 ml-2" />
+            </>
           )}
         </Button>
       )}
@@ -170,9 +173,7 @@ export function ProposalVoterTabs({ votes, txHash, proposalIndex }: ProposalVote
           >
             <Icon className="h-3.5 w-3.5" />
             {label}
-            {count != null && (
-              <span className="text-xs opacity-70">({count})</span>
-            )}
+            {count != null && <span className="text-xs opacity-70">({count})</span>}
           </Button>
         ))}
       </div>

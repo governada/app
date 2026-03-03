@@ -39,7 +39,7 @@ const sections = [
     content: [
       'DRepScore rates every DRep across multiple dimensions: voting participation, rationale quality, community engagement, and governance consistency.',
       'Scores range from 0-100 and update after each governance epoch. Higher scores indicate DReps who consistently show up, explain their reasoning, and engage with the community.',
-      'We also compute alignment scores — how closely a DRep\'s voting pattern matches your governance preferences — to help you find your ideal representative.',
+      "We also compute alignment scores — how closely a DRep's voting pattern matches your governance preferences — to help you find your ideal representative.",
     ],
   },
   {
@@ -47,7 +47,7 @@ const sections = [
     steps: [
       'Connect your Cardano wallet (Eternl, Lace, Nami, Yoroi, etc.) to DRepScore.',
       'Browse DReps on the Discover page. Filter by score, alignment, or governance dimension.',
-      'Review a DRep\'s profile: their score breakdown, voting record, and rationales.',
+      "Review a DRep's profile: their score breakdown, voting record, and rationales.",
       'Click "Delegate" on your chosen DRep\'s profile and confirm the transaction in your wallet.',
       'Your voting power is now delegated! You can change your delegation at any time.',
     ],
@@ -65,7 +65,7 @@ const sections = [
       },
       {
         name: 'As an SPO',
-        desc: 'Vote on protocol-level proposals (hard forks, security parameters). Your vote carries the weight of your pool\'s pledge and stake.',
+        desc: "Vote on protocol-level proposals (hard forks, security parameters). Your vote carries the weight of your pool's pledge and stake.",
       },
       {
         name: 'As a CC Member',
@@ -83,7 +83,8 @@ export default function LearnPage() {
       <div className="space-y-2">
         <h1 className="text-2xl font-bold tracking-tight">Learn</h1>
         <p className="text-sm text-muted-foreground">
-          Everything you need to know about Cardano governance and how DRepScore helps you participate.
+          Everything you need to know about Cardano governance and how DRepScore helps you
+          participate.
         </p>
       </div>
 

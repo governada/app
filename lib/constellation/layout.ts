@@ -7,7 +7,12 @@
  * Arm pitch alternates ±15° so auto-rotation reveals real 3D depth.
  */
 
-import type { ConstellationNode3D, ConstellationEdge3D, LayoutResult, GovernanceNodeType } from './types';
+import type {
+  ConstellationNode3D,
+  ConstellationEdge3D,
+  LayoutResult,
+  GovernanceNodeType,
+} from './types';
 import type { AlignmentDimension } from '@/lib/drepIdentity';
 import { getDimensionOrder } from '@/lib/drepIdentity';
 
@@ -43,9 +48,9 @@ const SPO_SCALE_FACTOR = 0.6;
 const CC_SCALE_FACTOR = 0.8;
 
 export function computeLayout(inputs: LayoutInput[], nodeLimit: number): LayoutResult {
-  const drepInputs = inputs.filter(n => n.nodeType === 'drep');
-  const spoInputs = inputs.filter(n => n.nodeType === 'spo').slice(0, SPO_LIMIT);
-  const ccInputs = inputs.filter(n => n.nodeType === 'cc');
+  const drepInputs = inputs.filter((n) => n.nodeType === 'drep');
+  const spoInputs = inputs.filter((n) => n.nodeType === 'spo').slice(0, SPO_LIMIT);
+  const ccInputs = inputs.filter((n) => n.nodeType === 'cc');
 
   const sorted = [...drepInputs].sort((a, b) => b.power - a.power);
   const active = sorted.slice(0, nodeLimit);
@@ -99,9 +104,11 @@ export function computeLayout(inputs: LayoutInput[], nodeLimit: number): LayoutR
     const input = spoInputs[i];
     const hash = simpleHash(input.id);
     const spoAngle = (i / spoInputs.length) * Math.PI * 2;
-    const spoRadius = MAX_RADIUS * 1.3 + (hash % 100) / 100 * 2;
-    const z = (hash % 200 - 100) / 100 * 4;
-    const scale = (MIN_VISIBLE_SCALE + input.power * (MAX_VISIBLE_SCALE - MIN_VISIBLE_SCALE)) * SPO_SCALE_FACTOR;
+    const spoRadius = MAX_RADIUS * 1.3 + ((hash % 100) / 100) * 2;
+    const z = (((hash % 200) - 100) / 100) * 4;
+    const scale =
+      (MIN_VISIBLE_SCALE + input.power * (MAX_VISIBLE_SCALE - MIN_VISIBLE_SCALE)) *
+      SPO_SCALE_FACTOR;
     const node: ConstellationNode3D = {
       ...input,
       position: [Math.cos(spoAngle) * spoRadius, Math.sin(spoAngle) * spoRadius, z],

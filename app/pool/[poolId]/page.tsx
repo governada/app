@@ -32,7 +32,12 @@ export default async function PoolProfilePage({ params }: PageProps) {
 
   const safeVotes = votes ?? [];
 
-  let proposals: { tx_hash: string; proposal_index: number; title: string; proposal_type: string }[] = [];
+  let proposals: {
+    tx_hash: string;
+    proposal_index: number;
+    title: string;
+    proposal_type: string;
+  }[] = [];
   if (safeVotes.length > 0) {
     const txHashes = [...new Set(safeVotes.map((v) => v.proposal_tx_hash))];
     const { data } = await supabase
@@ -52,9 +57,7 @@ export default async function PoolProfilePage({ params }: PageProps) {
     .select('*', { count: 'exact', head: true });
 
   const participationRate =
-    totalProposals && totalProposals > 0
-      ? Math.round((totalVotes / totalProposals) * 100)
-      : 0;
+    totalProposals && totalProposals > 0 ? Math.round((totalVotes / totalProposals) * 100) : 0;
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">

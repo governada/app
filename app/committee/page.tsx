@@ -65,9 +65,7 @@ export default async function CommitteePage() {
     (c) => c === totalMembers && totalMembers > 0,
   ).length;
   const unanimousRate =
-    proposalVoteCounts.size > 0
-      ? Math.round((unanimousCount / proposalVoteCounts.size) * 100)
-      : 0;
+    proposalVoteCounts.size > 0 ? Math.round((unanimousCount / proposalVoteCounts.size) * 100) : 0;
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
@@ -76,7 +74,8 @@ export default async function CommitteePage() {
       <div className="space-y-2">
         <h1 className="text-2xl font-bold tracking-tight">Constitutional Committee</h1>
         <p className="text-sm text-muted-foreground">
-          The Constitutional Committee ensures governance proposals align with the Cardano Constitution.
+          The Constitutional Committee ensures governance proposals align with the Cardano
+          Constitution.
         </p>
       </div>
 

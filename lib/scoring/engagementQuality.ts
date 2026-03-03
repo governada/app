@@ -34,11 +34,7 @@ export function computeEngagementQuality(
 
     const provision = computeProvisionRate(votes, nowSeconds);
     const quality = computeRationaleQuality(votes, nowSeconds);
-    const deliberation = computeDeliberationSignal(
-      votes,
-      votingSummaries,
-      allProposalTypes,
-    );
+    const deliberation = computeDeliberationSignal(votes, votingSummaries, allProposalTypes);
 
     const raw =
       provision * LAYER_WEIGHTS.provision +
@@ -159,8 +155,7 @@ function computeDissentRate(
     if (!summary) continue;
 
     eligibleCount++;
-    const majority =
-      summary.drepYesVotePower >= summary.drepNoVotePower ? 'Yes' : 'No';
+    const majority = summary.drepYesVotePower >= summary.drepNoVotePower ? 'Yes' : 'No';
 
     if (v.vote !== majority) dissentCount++;
   }
@@ -177,8 +172,8 @@ function computeDissentRate(
 function scoreDissentCurve(rate: number): number {
   if (rate <= 0) return 25;
   if (rate < 0.15) return 25 + (rate / 0.15) * 75;
-  if (rate <= 0.40) return 100;
-  if (rate < 1.0) return Math.max(15, 100 - ((rate - 0.40) / 0.60) * 85);
+  if (rate <= 0.4) return 100;
+  if (rate < 1.0) return Math.max(15, 100 - ((rate - 0.4) / 0.6) * 85);
   return 15;
 }
 

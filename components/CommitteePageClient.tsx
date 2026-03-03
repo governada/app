@@ -48,10 +48,7 @@ function MemberRow({ member, votes }: { member: MemberAgg; votes: Vote[] }) {
 
   return (
     <Card>
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full text-left"
-      >
+      <button onClick={() => setExpanded(!expanded)} className="w-full text-left">
         <CardContent className="flex items-center justify-between py-4">
           <div className="flex items-center gap-3">
             {expanded ? (

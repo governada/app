@@ -97,7 +97,9 @@ export function PulseHub() {
       .catch(() => {
         fetch('/api/governance/health-index')
           .then((r) => (r.ok ? r.json() : null))
-          .then((d) => { if (d) setGhi(d); })
+          .then((d) => {
+            if (d) setGhi(d);
+          })
           .catch(() => {});
       })
       .finally(() => setHeroReady(true));
@@ -199,9 +201,7 @@ export function PulseHub() {
                 <span className="hidden sm:inline text-border">|</span>
               </>
             )}
-            {treasury && (
-              <span>{formatAda(treasury.balance)} ADA in treasury</span>
-            )}
+            {treasury && <span>{formatAda(treasury.balance)} ADA in treasury</span>}
           </div>
 
           <Link

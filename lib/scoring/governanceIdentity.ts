@@ -26,14 +26,10 @@ export function computeGovernanceIdentity(
 
   for (const [drepId, profile] of profiles) {
     const profileScore = computeProfileQuality(profile);
-    const communityScore = computeCommunityPresence(
-      profile.delegatorCount,
-      sortedCounts,
-    );
+    const communityScore = computeCommunityPresence(profile.delegatorCount, sortedCounts);
 
     const raw =
-      profileScore * SUB_WEIGHTS.profileQuality +
-      communityScore * SUB_WEIGHTS.communityPresence;
+      profileScore * SUB_WEIGHTS.profileQuality + communityScore * SUB_WEIGHTS.communityPresence;
 
     scores.set(drepId, clamp(Math.round(raw)));
   }
@@ -115,10 +111,7 @@ function computeProfileQuality(profile: DRepProfileData): number {
  * Delegator count percentile: where does this DRep rank by number of delegators?
  * Count-based (not ADA-based) to measure trust breadth.
  */
-function computeCommunityPresence(
-  delegatorCount: number,
-  sortedCounts: number[],
-): number {
+function computeCommunityPresence(delegatorCount: number, sortedCounts: number[]): number {
   if (sortedCounts.length === 0) return 0;
   if (sortedCounts.length === 1) return 50;
 

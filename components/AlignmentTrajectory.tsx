@@ -68,7 +68,10 @@ export function AlignmentTrajectory({ drepId }: AlignmentTrajectoryProps) {
     [snapshots, innerWidth],
   );
 
-  const yScale = useMemo(() => scaleLinear().domain([0, 100]).range([innerHeight, 0]), [innerHeight]);
+  const yScale = useMemo(
+    () => scaleLinear().domain([0, 100]).range([innerHeight, 0]),
+    [innerHeight],
+  );
 
   const linePaths = useMemo(() => {
     if (snapshots.length < 2) return [];

@@ -78,7 +78,13 @@ export async function GET() {
     const discriminationScore = 1 - Math.abs(yesPct - 0.5) * 2;
     if (discriminationScore < MIN_DISCRIMINATION) continue;
     const [txHash, indexStr] = key.split(':');
-    scored.push({ key, txHash, index: parseInt(indexStr, 10), score: discriminationScore, total: counts.total });
+    scored.push({
+      key,
+      txHash,
+      index: parseInt(indexStr, 10),
+      score: discriminationScore,
+      total: counts.total,
+    });
   }
 
   scored.sort((a, b) => b.score - a.score || b.total - a.total);
@@ -90,10 +96,14 @@ export async function GET() {
   const [proposalResult, classResult] = await Promise.all([
     supabase
       .from('proposals')
-      .select('tx_hash, proposal_index, proposal_type, title, abstract, withdrawal_amount, treasury_tier, ai_summary'),
+      .select(
+        'tx_hash, proposal_index, proposal_type, title, abstract, withdrawal_amount, treasury_tier, ai_summary',
+      ),
     supabase
       .from('proposal_classifications')
-      .select('proposal_tx_hash, proposal_index, dim_treasury_conservative, dim_treasury_growth, dim_decentralization, dim_security, dim_innovation, dim_transparency'),
+      .select(
+        'proposal_tx_hash, proposal_index, dim_treasury_conservative, dim_treasury_growth, dim_decentralization, dim_security, dim_innovation, dim_transparency',
+      ),
   ]);
 
   if (proposalResult.error) {
@@ -126,7 +136,9 @@ export async function GET() {
     ...s,
     discriminationScore: s.score,
     proposalType: proposalMap.get(s.key)?.proposal_type || 'Unknown',
-    dimScores: classMap.get(s.key) || Object.fromEntries(DIMENSION_KEYS.map((d) => [d, 0])) as Record<AlignmentDimension, number>,
+    dimScores:
+      classMap.get(s.key) ||
+      (Object.fromEntries(DIMENSION_KEYS.map((d) => [d, 0])) as Record<AlignmentDimension, number>),
   }));
 
   // Greedy diversified selection: guarantee type diversity
@@ -151,7 +163,10 @@ export async function GET() {
       treasuryTier: p?.treasury_tier || null,
       discriminationScore: Math.round(s.discriminationScore * 100),
       discriminationLabel: getDiscriminationLabel(s.discriminationScore),
-      stakesLabel: getStakesLabel(s.proposalType, p?.withdrawal_amount ? Number(p.withdrawal_amount) / 1_000_000 : null),
+      stakesLabel: getStakesLabel(
+        s.proposalType,
+        p?.withdrawal_amount ? Number(p.withdrawal_amount) / 1_000_000 : null,
+      ),
       dimensionTags: topDims,
     };
   });
@@ -228,10 +243,7 @@ function greedyDiverseSelect(
   return selected;
 }
 
-function applyDimensionCoverage(
-  selected: ScoredProposal[],
-  allCandidates: ScoredProposal[],
-): void {
+function applyDimensionCoverage(selected: ScoredProposal[], allCandidates: ScoredProposal[]): void {
   const selectedKeys = new Set(selected.map((s) => s.key));
 
   // Compute dimension coverage
@@ -280,8 +292,7 @@ function getTopDimensions(scores: Record<AlignmentDimension, number>, count: num
     transparency: 'Transparency',
   };
 
-  return DIMENSION_KEYS
-    .filter((d) => scores[d] > 0)
+  return DIMENSION_KEYS.filter((d) => scores[d] > 0)
     .sort((a, b) => scores[b] - scores[a])
     .slice(0, count)
     .map((d) => LABELS[d]);

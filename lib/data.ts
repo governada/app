@@ -541,12 +541,12 @@ export async function getAllProposalsWithVoteSummary(): Promise<ProposalWithVote
 
     // Fetch vote counts + voter DRep IDs grouped by proposal
     const [voteCountsResult, votingSummaryResult] = await Promise.all([
-      supabase
-        .from('drep_votes')
-        .select('proposal_tx_hash, proposal_index, vote, drep_id'),
+      supabase.from('drep_votes').select('proposal_tx_hash, proposal_index, vote, drep_id'),
       supabase
         .from('proposal_voting_summary')
-        .select('proposal_tx_hash, proposal_index, drep_yes_votes_cast, drep_no_votes_cast, drep_abstain_votes_cast, pool_yes_votes_cast, pool_no_votes_cast, pool_abstain_votes_cast, committee_yes_votes_cast, committee_no_votes_cast, committee_abstain_votes_cast'),
+        .select(
+          'proposal_tx_hash, proposal_index, drep_yes_votes_cast, drep_no_votes_cast, drep_abstain_votes_cast, pool_yes_votes_cast, pool_no_votes_cast, pool_abstain_votes_cast, committee_yes_votes_cast, committee_no_votes_cast, committee_abstain_votes_cast',
+        ),
     ]);
 
     const { data: voteCounts, error: vError } = voteCountsResult;
@@ -560,9 +560,21 @@ export async function getAllProposalsWithVoteSummary(): Promise<ProposalWithVote
       for (const s of votingSummaryResult.data) {
         const key = `${s.proposal_tx_hash}-${s.proposal_index}`;
         triBodyMap.set(key, {
-          drep: { yes: s.drep_yes_votes_cast || 0, no: s.drep_no_votes_cast || 0, abstain: s.drep_abstain_votes_cast || 0 },
-          spo: { yes: s.pool_yes_votes_cast || 0, no: s.pool_no_votes_cast || 0, abstain: s.pool_abstain_votes_cast || 0 },
-          cc: { yes: s.committee_yes_votes_cast || 0, no: s.committee_no_votes_cast || 0, abstain: s.committee_abstain_votes_cast || 0 },
+          drep: {
+            yes: s.drep_yes_votes_cast || 0,
+            no: s.drep_no_votes_cast || 0,
+            abstain: s.drep_abstain_votes_cast || 0,
+          },
+          spo: {
+            yes: s.pool_yes_votes_cast || 0,
+            no: s.pool_no_votes_cast || 0,
+            abstain: s.pool_abstain_votes_cast || 0,
+          },
+          cc: {
+            yes: s.committee_yes_votes_cast || 0,
+            no: s.committee_no_votes_cast || 0,
+            abstain: s.committee_abstain_votes_cast || 0,
+          },
         });
       }
     }
@@ -667,7 +679,9 @@ export async function getProposalByKey(
         .eq('proposal_index', proposalIndex),
       supabase
         .from('proposal_voting_summary')
-        .select('drep_yes_votes_cast, drep_no_votes_cast, drep_abstain_votes_cast, pool_yes_votes_cast, pool_no_votes_cast, pool_abstain_votes_cast, committee_yes_votes_cast, committee_no_votes_cast, committee_abstain_votes_cast')
+        .select(
+          'drep_yes_votes_cast, drep_no_votes_cast, drep_abstain_votes_cast, pool_yes_votes_cast, pool_no_votes_cast, pool_abstain_votes_cast, committee_yes_votes_cast, committee_no_votes_cast, committee_abstain_votes_cast',
+        )
         .eq('proposal_tx_hash', txHash)
         .eq('proposal_index', proposalIndex)
         .single(),
@@ -693,9 +707,21 @@ export async function getProposalByKey(
     const s = summaryResult.data;
     const triBody: TriBodyVotes | undefined = s
       ? {
-          drep: { yes: s.drep_yes_votes_cast || 0, no: s.drep_no_votes_cast || 0, abstain: s.drep_abstain_votes_cast || 0 },
-          spo: { yes: s.pool_yes_votes_cast || 0, no: s.pool_no_votes_cast || 0, abstain: s.pool_abstain_votes_cast || 0 },
-          cc: { yes: s.committee_yes_votes_cast || 0, no: s.committee_no_votes_cast || 0, abstain: s.committee_abstain_votes_cast || 0 },
+          drep: {
+            yes: s.drep_yes_votes_cast || 0,
+            no: s.drep_no_votes_cast || 0,
+            abstain: s.drep_abstain_votes_cast || 0,
+          },
+          spo: {
+            yes: s.pool_yes_votes_cast || 0,
+            no: s.pool_no_votes_cast || 0,
+            abstain: s.pool_abstain_votes_cast || 0,
+          },
+          cc: {
+            yes: s.committee_yes_votes_cast || 0,
+            no: s.committee_no_votes_cast || 0,
+            abstain: s.committee_abstain_votes_cast || 0,
+          },
         }
       : undefined;
 

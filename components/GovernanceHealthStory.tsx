@@ -46,7 +46,10 @@ function getHealthStatus(delegationHealth: DashboardData['delegationHealth']): H
   return 'green';
 }
 
-const HEALTH_CONFIG: Record<HealthStatus, { label: string; description: string; color: string; bg: string; ring: string }> = {
+const HEALTH_CONFIG: Record<
+  HealthStatus,
+  { label: string; description: string; color: string; bg: string; ring: string }
+> = {
   green: {
     label: 'Healthy',
     description: 'Your governance is in good shape',
@@ -159,10 +162,7 @@ export function GovernanceHealthStory({
       />
 
       {/* VP2 — Your Governance Story (below fold) */}
-      <GovernanceStorySection
-        data={data}
-        showCalendar={showCalendar}
-      />
+      <GovernanceStorySection data={data} showCalendar={showCalendar} />
     </div>
   );
 }
@@ -184,18 +184,16 @@ function HealthCheckSection({
       {/* Health status header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className={`w-12 h-12 rounded-full ${config.bg} ring-4 ${config.ring} flex items-center justify-center shrink-0`}>
+          <div
+            className={`w-12 h-12 rounded-full ${config.bg} ring-4 ${config.ring} flex items-center justify-center shrink-0`}
+          >
             {healthStatus === 'green' && <CheckCircle2 className="h-6 w-6 text-white" />}
             {healthStatus === 'yellow' && <AlertTriangle className="h-6 w-6 text-white" />}
             {healthStatus === 'red' && <XCircle className="h-6 w-6 text-white" />}
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">
-              My Governance
-            </h1>
-            <p className={`text-sm font-medium ${config.color}`}>
-              {config.description}
-            </p>
+            <h1 className="text-2xl font-bold tracking-tight">My Governance</h1>
+            <p className={`text-sm font-medium ${config.color}`}>{config.description}</p>
           </div>
         </div>
         {data.governanceLevel && (
@@ -211,10 +209,7 @@ function HealthCheckSection({
 
       {/* Cards grid: DRep + Pool */}
       <div className="grid gap-6 md:grid-cols-2">
-        <DelegationHealthCard
-          health={data.delegationHealth}
-          scoreDelta={data.repScoreDelta}
-        />
+        <DelegationHealthCard health={data.delegationHealth} scoreDelta={data.repScoreDelta} />
         <PoolGovernanceCard walletAddress={undefined} />
       </div>
 
@@ -231,10 +226,15 @@ function HealthCheckSection({
             <ul className="space-y-2">
               {actionItems.map((item, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm">
-                  <span className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${
-                    item.severity === 'high' ? 'bg-red-500' :
-                    item.severity === 'medium' ? 'bg-amber-500' : 'bg-blue-500'
-                  }`} />
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${
+                      item.severity === 'high'
+                        ? 'bg-red-500'
+                        : item.severity === 'medium'
+                          ? 'bg-amber-500'
+                          : 'bg-blue-500'
+                    }`}
+                  />
                   <span className="text-muted-foreground">
                     {item.text}
                     {item.href && (
@@ -269,7 +269,7 @@ function useActionItems(data: ExtendedDashboardData, healthStatus: HealthStatus)
 
     if (!data.delegationHealth) {
       items.push({
-        text: 'You haven\'t delegated to a DRep yet.',
+        text: "You haven't delegated to a DRep yet.",
         severity: 'high',
         href: '/discover',
         linkText: 'Find a DRep',
@@ -277,7 +277,7 @@ function useActionItems(data: ExtendedDashboardData, healthStatus: HealthStatus)
       return items;
     }
 
-    const unvotedOpen = data.activeProposals.filter(p => !p.userVote).length;
+    const unvotedOpen = data.activeProposals.filter((p) => !p.userVote).length;
     if (unvotedOpen > 0) {
       items.push({
         text: `${unvotedOpen} open proposal${unvotedOpen > 1 ? 's' : ''} need your vote.`,
@@ -295,7 +295,11 @@ function useActionItems(data: ExtendedDashboardData, healthStatus: HealthStatus)
       });
     }
 
-    if (data.representationScore.score !== null && data.representationScore.score < 50 && data.redelegationSuggestions.length > 0) {
+    if (
+      data.representationScore.score !== null &&
+      data.representationScore.score < 50 &&
+      data.redelegationSuggestions.length > 0
+    ) {
       items.push({
         text: `Your representation match is ${data.representationScore.score}%. Better matches found.`,
         severity: 'medium',
@@ -391,10 +395,7 @@ function DRepVotedFeed({
 }) {
   const [showAll, setShowAll] = useState(false);
 
-  const drepVotes = useMemo(
-    () => votes.filter(v => v.drepVote),
-    [votes],
-  );
+  const drepVotes = useMemo(() => votes.filter((v) => v.drepVote), [votes]);
 
   const visible = showAll ? drepVotes : drepVotes.slice(0, 6);
 
@@ -409,7 +410,8 @@ function DRepVotedFeed({
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            No DRep votes to display yet. Your DRep&apos;s votes will appear here as they participate.
+            No DRep votes to display yet. Your DRep&apos;s votes will appear here as they
+            participate.
           </p>
         </CardContent>
       </Card>
@@ -449,11 +451,13 @@ function DRepVotedFeed({
                 {v.proposalTitle || `${v.proposalTxHash.slice(0, 12)}…`}
               </span>
               {v.alignedWithDrep !== null && (
-                <span className={`text-[10px] ${
-                  v.alignedWithDrep
-                    ? 'text-green-600 dark:text-green-400'
-                    : 'text-amber-700 dark:text-amber-400'
-                }`}>
+                <span
+                  className={`text-[10px] ${
+                    v.alignedWithDrep
+                      ? 'text-green-600 dark:text-green-400'
+                      : 'text-amber-700 dark:text-amber-400'
+                  }`}
+                >
                   {v.alignedWithDrep ? 'Matches your values' : 'Diverges from your vote'}
                 </span>
               )}
@@ -470,9 +474,15 @@ function DRepVotedFeed({
                   }`}
                 >
                   {v.alignedWithDrep ? (
-                    <><CheckCircle2 className="h-2 w-2 mr-0.5" />Aligned</>
+                    <>
+                      <CheckCircle2 className="h-2 w-2 mr-0.5" />
+                      Aligned
+                    </>
                   ) : (
-                    <><XCircle className="h-2 w-2 mr-0.5" />Misaligned</>
+                    <>
+                      <XCircle className="h-2 w-2 mr-0.5" />
+                      Misaligned
+                    </>
                   )}
                 </Badge>
               )}

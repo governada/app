@@ -251,7 +251,8 @@ export function ConstellationHero({
           </h1>
 
           <p className="mt-4 text-sm sm:text-base md:text-lg text-white/60 text-center max-w-2xl animate-fade-in-up animation-delay-200 hero-text-shadow">
-            {stats.activeDReps.toLocaleString()} DReps. {stats.activeSpOs} Pools. {stats.ccMembers} Committee Members. {stats.totalAdaGoverned} ADA.
+            {stats.activeDReps.toLocaleString()} DReps. {stats.activeSpOs} Pools. {stats.ccMembers}{' '}
+            Committee Members. {stats.totalAdaGoverned} ADA.
           </p>
 
           {/* Live stats strip */}

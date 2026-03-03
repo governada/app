@@ -208,14 +208,8 @@ export async function computeAndCacheAlignment(): Promise<number> {
   const supabase = getSupabaseAdmin();
 
   const [spoProposals, ccProposals] = await Promise.all([
-    supabase
-      .from('spo_votes')
-      .select('proposal_tx_hash, proposal_index')
-      .limit(10000),
-    supabase
-      .from('cc_votes')
-      .select('proposal_tx_hash, proposal_index')
-      .limit(10000),
+    supabase.from('spo_votes').select('proposal_tx_hash, proposal_index').limit(10000),
+    supabase.from('cc_votes').select('proposal_tx_hash, proposal_index').limit(10000),
   ]);
 
   const proposalKeys = new Set<string>();

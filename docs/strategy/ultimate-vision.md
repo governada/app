@@ -19,15 +19,15 @@ The architectural insight that makes this possible: **every data point feeds eve
 
 DRepScore serves seven distinct personas. Each sees a product tailored to their needs, all powered by the same interconnected data engine.
 
-| Persona | What DRepScore Does For Them |
-|---------|------------------------------|
-| **ADA Holders (Delegators)** | Find a DRep aligned with their values in 60 seconds, track their delegation health, understand how their governance power is being used. The core free experience. |
-| **DReps** | Build a governance reputation through transparent scoring, attract delegators, manage their governance inbox, track competitive standing. Monetized via DRep Pro. |
-| **SPOs (Stake Pool Operators)** | Demonstrate governance participation to staking delegators, build an SPO governance score, differentiate their pool through active governance. Monetized via SPO Pro. ~3,000 registered SPOs. |
-| **Constitutional Committee Members** | Transparent voting record and alignment analysis across all three governance bodies. High-visibility accountability for a small, high-status group (~7-10 members). |
-| **Treasury Proposal Teams** | Showcase delivery track record, manage accountability polls, build proposer reputation for future funding requests. Monetized via Verified Project badges. |
-| **Governance Researchers / Analysts** | Academic-grade data exports, historical snapshots, EDI metrics, cross-chain comparison datasets. Citation-ready governance data. Monetized via Research API subscriptions. |
-| **Crypto Enthusiasts (Outside Cardano)** | See how sophisticated governance can be when done right. Cross-chain observatory, EDI comparison, and the sheer depth of the platform serve as a showcase for Cardano governance. |
+| Persona                                  | What DRepScore Does For Them                                                                                                                                                                  |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **ADA Holders (Delegators)**             | Find a DRep aligned with their values in 60 seconds, track their delegation health, understand how their governance power is being used. The core free experience.                            |
+| **DReps**                                | Build a governance reputation through transparent scoring, attract delegators, manage their governance inbox, track competitive standing. Monetized via DRep Pro.                             |
+| **SPOs (Stake Pool Operators)**          | Demonstrate governance participation to staking delegators, build an SPO governance score, differentiate their pool through active governance. Monetized via SPO Pro. ~3,000 registered SPOs. |
+| **Constitutional Committee Members**     | Transparent voting record and alignment analysis across all three governance bodies. High-visibility accountability for a small, high-status group (~7-10 members).                           |
+| **Treasury Proposal Teams**              | Showcase delivery track record, manage accountability polls, build proposer reputation for future funding requests. Monetized via Verified Project badges.                                    |
+| **Governance Researchers / Analysts**    | Academic-grade data exports, historical snapshots, EDI metrics, cross-chain comparison datasets. Citation-ready governance data. Monetized via Research API subscriptions.                    |
+| **Crypto Enthusiasts (Outside Cardano)** | See how sophisticated governance can be when done right. Cross-chain observatory, EDI comparison, and the sheer depth of the platform serve as a showcase for Cardano governance.             |
 
 ---
 
@@ -407,19 +407,19 @@ The SPO persona mirror. Depends on Step 0 (scoring infrastructure) and Step 2 (S
 
 ## Monetization Roadmap (Aligned to Build Sequence)
 
-| After Step | Revenue Stream | Target |
-|------------|---------------|--------|
-| 0-2.5 | **Free forever** -- build userbase across all personas, prove value, secure Catalyst grant | $0/mo + $30-75K grant |
-| 4 | **Wrapped virality** -- organic growth, ecosystem sponsor placements | $200-500/mo sponsors |
-| 5 | **DRep Pro** -- 50-100 paying DReps at $15-25/mo | $1,000-2,500/mo |
-| 5 | **SPO Pro** -- 50-100 paying SPOs at $15-25/mo | $1,000-2,500/mo |
-| 5 | **Verified Projects** -- treasury proposal teams at $10-25/project | $200-500/mo |
-| 6 | **Premium Delegator** -- power users tracking governance + staking governance | $750-2,000/mo |
-| 7 | **API/B2B** -- wallet integrations, exchanges, pool comparison tools | $1,500-4,000/mo |
-| 7 | **Research Subscriptions** -- academic institutions, professional analysts | $200-1,000/mo |
-| 8-9 | **Enterprise** -- institutional delegation advisory, custom reporting | $2,000-5,000/mo |
-| 10 | **Catalyst Score** -- separate product line with own funding | $2,000+/mo |
-| 11 | **Governance-as-a-Service** -- platform play | TBD |
+| After Step | Revenue Stream                                                                             | Target                |
+| ---------- | ------------------------------------------------------------------------------------------ | --------------------- |
+| 0-2.5      | **Free forever** -- build userbase across all personas, prove value, secure Catalyst grant | $0/mo + $30-75K grant |
+| 4          | **Wrapped virality** -- organic growth, ecosystem sponsor placements                       | $200-500/mo sponsors  |
+| 5          | **DRep Pro** -- 50-100 paying DReps at $15-25/mo                                           | $1,000-2,500/mo       |
+| 5          | **SPO Pro** -- 50-100 paying SPOs at $15-25/mo                                             | $1,000-2,500/mo       |
+| 5          | **Verified Projects** -- treasury proposal teams at $10-25/project                         | $200-500/mo           |
+| 6          | **Premium Delegator** -- power users tracking governance + staking governance              | $750-2,000/mo         |
+| 7          | **API/B2B** -- wallet integrations, exchanges, pool comparison tools                       | $1,500-4,000/mo       |
+| 7          | **Research Subscriptions** -- academic institutions, professional analysts                 | $200-1,000/mo         |
+| 8-9        | **Enterprise** -- institutional delegation advisory, custom reporting                      | $2,000-5,000/mo       |
+| 10         | **Catalyst Score** -- separate product line with own funding                               | $2,000+/mo            |
+| 11         | **Governance-as-a-Service** -- platform play                                               | TBD                   |
 
 **Cumulative target at full maturity: $12,000-25,000+/mo** -- enough to replace full-time income and build a small team.
 
@@ -431,7 +431,7 @@ The SPO persona mirror. Depends on Step 0 (scoring infrastructure) and Step 2 (S
 
 The wow score is not a number we assign -- it is an emergent property of how well these systems connect. Here is how each step contributes:
 
-**Scores that matter (not a vibe):** A DRep profile shows a score that reflects their actual governance behavior -- rationale quality assessed by AI, voting patterns weighted by importance, reliability measured by responsiveness, profile completeness scored by quality. The user trusts this score because it *means something specific and defensible*. (Step 0)
+**Scores that matter (not a vibe):** A DRep profile shows a score that reflects their actual governance behavior -- rationale quality assessed by AI, voting patterns weighted by importance, reliability measured by responsiveness, profile completeness scored by quality. The user trusts this score because it _means something specific and defensible_. (Step 0)
 
 **Matching that feels magic:** A user answers 3 questions about their governance values and sees a radar chart form in real-time, then 3 DReps appear with confidence scores and dimension-level explanations. They tap to delegate. 90 seconds, done. (Step 1)
 
@@ -455,22 +455,22 @@ The wow score is not a number we assign -- it is an emergent property of how wel
 
 This is the silent engine. Every day the product runs, the moat deepens.
 
-| Snapshot | Frequency | Created At | Compounds Into |
-|----------|-----------|------------|----------------|
-| `drep_score_snapshots` | Per score change | Step 0 | Score history, momentum, Wrapped, alerts |
-| `alignment_snapshots` | Daily per epoch | Step 0 | Temporal trajectories, shift detection, Wrapped |
-| `ghi_snapshots` | Daily | Step 0 | GHI trends, epoch recaps, State of Gov |
-| `edi_snapshots` | Daily | Step 0 | Decentralization dashboard, cross-chain comparison |
-| `treasury_snapshots` | Daily | Existing | Treasury health, runway, epoch recaps |
-| `pools` | Per sync | Step 2 | SPO profiles, SPO discovery, pool comparison |
-| `inter_body_alignment` | Per sync | Step 2 | Proposal pages, DRep/SPO profiles, governance dynamics |
-| `proposal_similarity_cache` | Per sync | Step 2 | Related proposals, trend detection |
-| `epoch_recaps` | Per epoch | Step 2 | Calendar, Wrapped, AI advisor |
-| `governance_events` | Per event | Existing | Footprint, timeline, Wrapped, notifications |
-| `spo_score_snapshots` | Per score change | Step 2.5 | SPO score history, momentum, SPO Wrapped, alerts |
-| `spo_alignment_snapshots` | Daily per epoch | Step 2.5 | SPO temporal trajectories, shift detection, SPO Wrapped |
-| `user_governance_profiles` | Per vote/quiz | Step 1 | Matching (DRep + SPO), AI advisor, Premium features |
-| `delegation_snapshots` | Per epoch | Step 8 | Network graph, migration analysis, influence |
+| Snapshot                    | Frequency        | Created At | Compounds Into                                          |
+| --------------------------- | ---------------- | ---------- | ------------------------------------------------------- |
+| `drep_score_snapshots`      | Per score change | Step 0     | Score history, momentum, Wrapped, alerts                |
+| `alignment_snapshots`       | Daily per epoch  | Step 0     | Temporal trajectories, shift detection, Wrapped         |
+| `ghi_snapshots`             | Daily            | Step 0     | GHI trends, epoch recaps, State of Gov                  |
+| `edi_snapshots`             | Daily            | Step 0     | Decentralization dashboard, cross-chain comparison      |
+| `treasury_snapshots`        | Daily            | Existing   | Treasury health, runway, epoch recaps                   |
+| `pools`                     | Per sync         | Step 2     | SPO profiles, SPO discovery, pool comparison            |
+| `inter_body_alignment`      | Per sync         | Step 2     | Proposal pages, DRep/SPO profiles, governance dynamics  |
+| `proposal_similarity_cache` | Per sync         | Step 2     | Related proposals, trend detection                      |
+| `epoch_recaps`              | Per epoch        | Step 2     | Calendar, Wrapped, AI advisor                           |
+| `governance_events`         | Per event        | Existing   | Footprint, timeline, Wrapped, notifications             |
+| `spo_score_snapshots`       | Per score change | Step 2.5   | SPO score history, momentum, SPO Wrapped, alerts        |
+| `spo_alignment_snapshots`   | Daily per epoch  | Step 2.5   | SPO temporal trajectories, shift detection, SPO Wrapped |
+| `user_governance_profiles`  | Per vote/quiz    | Step 1     | Matching (DRep + SPO), AI advisor, Premium features     |
+| `delegation_snapshots`      | Per epoch        | Step 8     | Network graph, migration analysis, influence            |
 
 **The compounding insight:** A DRep who has been scored for 50 epochs has a richer profile than one scored for 5. An SPO who has been governance-tracked since day one has a story no latecomer can match. A delegator with 20 quiz answers has a better match than one with 3. An epoch recap for epoch 550 (built on 50 prior recaps) tells a richer story than epoch 500. Time is our advantage. Every day a competitor does NOT collect this data is a day they can never get back.
 
@@ -478,21 +478,21 @@ This is the silent engine. Every day the product runs, the moat deepens.
 
 ## New Integration Opportunities (Beyond Koios)
 
-| Integration | What It Unlocks | When |
-|-------------|-----------------|------|
-| **Koios `/vote_list` SPO+CC** | Tri-body alignment, full governance picture | Step 2 |
-| **Koios `/pool_list`** | Full SPO registry, pool discovery | Step 2 |
-| **Koios `/pool_info`** | Pool metadata, pledge, margin, governance statements | Step 2 |
-| **Koios `/pool_metadata`** | Extended pool metadata, off-chain references | Step 2 |
-| **Koios `/pool_delegators`** | SPO delegator count, staking governance footprint | Step 2.5 |
-| **Koios `/pool_voting_power_history`** | SPO governance power over time | Step 2.5 |
-| **Koios `account_info` full** | ADA balance, rewards, wallet footprint | Step 2 |
-| **Tally API (enhanced)** | Ethereum delegate power for EDI comparison | Step 0 (Observatory) |
-| **SubSquare API (enhanced)** | Polkadot validator power for EDI comparison | Step 0 (Observatory) |
-| **CIP-100 metadata** | On-chain rationale retrieval, hash verification | Step 0 (DRep Score) |
-| **Catalyst/IdeaScale** | Funded project tracking, reviewer scoring | Step 10 |
-| **Midnight SDK** | ZK governance proofs, privacy features | Step 11 |
-| **Cardano DB Sync (optional)** | Deep historical chain data, delegation history | Step 8 |
+| Integration                            | What It Unlocks                                      | When                 |
+| -------------------------------------- | ---------------------------------------------------- | -------------------- |
+| **Koios `/vote_list` SPO+CC**          | Tri-body alignment, full governance picture          | Step 2               |
+| **Koios `/pool_list`**                 | Full SPO registry, pool discovery                    | Step 2               |
+| **Koios `/pool_info`**                 | Pool metadata, pledge, margin, governance statements | Step 2               |
+| **Koios `/pool_metadata`**             | Extended pool metadata, off-chain references         | Step 2               |
+| **Koios `/pool_delegators`**           | SPO delegator count, staking governance footprint    | Step 2.5             |
+| **Koios `/pool_voting_power_history`** | SPO governance power over time                       | Step 2.5             |
+| **Koios `account_info` full**          | ADA balance, rewards, wallet footprint               | Step 2               |
+| **Tally API (enhanced)**               | Ethereum delegate power for EDI comparison           | Step 0 (Observatory) |
+| **SubSquare API (enhanced)**           | Polkadot validator power for EDI comparison          | Step 0 (Observatory) |
+| **CIP-100 metadata**                   | On-chain rationale retrieval, hash verification      | Step 0 (DRep Score)  |
+| **Catalyst/IdeaScale**                 | Funded project tracking, reviewer scoring            | Step 10              |
+| **Midnight SDK**                       | ZK governance proofs, privacy features               | Step 11              |
+| **Cardano DB Sync (optional)**         | Deep historical chain data, delegation history       | Step 8               |
 
 ---
 

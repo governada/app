@@ -26,9 +26,7 @@ export default async function PulseHistoryPage() {
         </Link>
         <div className="rounded-lg border bg-card p-8 text-center">
           <h2 className="text-xl font-semibold mb-2">Coming soon</h2>
-          <p className="text-muted-foreground text-sm">
-            Epoch recaps are under development.
-          </p>
+          <p className="text-muted-foreground text-sm">Epoch recaps are under development.</p>
         </div>
       </div>
     );

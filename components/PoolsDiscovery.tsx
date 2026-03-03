@@ -35,9 +35,7 @@ function PoolsSkeleton() {
 function EmptyState() {
   return (
     <div className="text-center py-16 space-y-3">
-      <p className="text-muted-foreground text-sm">
-        No SPO governance votes recorded yet.
-      </p>
+      <p className="text-muted-foreground text-sm">No SPO governance votes recorded yet.</p>
       <p className="text-xs text-muted-foreground/70">
         Stake pool operators will appear here once they participate in on-chain governance.
       </p>
@@ -67,9 +65,7 @@ export function PoolsDiscovery() {
           <Card className="hover:border-cyan-500/40 transition-colors cursor-pointer">
             <CardContent className="pt-6 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="font-mono text-sm truncate">
-                  {pool.poolId.slice(0, 16)}…
-                </span>
+                <span className="font-mono text-sm truncate">{pool.poolId.slice(0, 16)}…</span>
                 <Badge variant="outline" className="text-cyan-500 border-cyan-500/40">
                   {pool.voteCount} votes
                 </Badge>

@@ -79,9 +79,7 @@ export async function findSimilarByClassification(
   const sourceVec = DIMENSIONS.map((d) => Number(sourceRow[d]) || 0);
   if (!isNonZeroVector(sourceVec)) return [];
 
-  const { data: allClassifications } = await supabase
-    .from('proposal_classifications')
-    .select('*');
+  const { data: allClassifications } = await supabase.from('proposal_classifications').select('*');
 
   if (!allClassifications) return [];
 
@@ -133,11 +131,11 @@ export async function findSimilarByClassification(
 export async function precomputeSimilarityCache(): Promise<number> {
   const supabase = getSupabaseAdmin();
 
-  const { data: rawClassifications } = await supabase
-    .from('proposal_classifications')
-    .select('*');
+  const { data: rawClassifications } = await supabase.from('proposal_classifications').select('*');
 
-  const allClassifications = (rawClassifications || []) as unknown as Array<Record<string, number | string>>;
+  const allClassifications = (rawClassifications || []) as unknown as Array<
+    Record<string, number | string>
+  >;
   if (allClassifications.length < 2) return 0;
 
   const vectors: ClassificationVector[] = allClassifications

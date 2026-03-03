@@ -3,7 +3,10 @@
  */
 
 export { computeEngagementQuality } from './engagementQuality';
-export { computeEffectiveParticipation, getExtendedImportanceWeight } from './effectiveParticipation';
+export {
+  computeEffectiveParticipation,
+  getExtendedImportanceWeight,
+} from './effectiveParticipation';
 export { computeReliability, type ReliabilityV3Result } from './reliability';
 export { computeGovernanceIdentity } from './governanceIdentity';
 export { computeDRepScores } from './drepScore';

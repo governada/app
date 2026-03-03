@@ -42,7 +42,12 @@ import { ActivityHeatmap } from '@/components/ActivityHeatmap';
 import { DRepTreasuryStance } from '@/components/DRepTreasuryStance';
 import { DRepProfileHero } from '@/components/DRepProfileHero';
 import { AlignmentTrajectory } from '@/components/AlignmentTrajectory';
-import { extractAlignments, getIdentityColor, getDominantDimension, getPersonalityLabel } from '@/lib/drepIdentity';
+import {
+  extractAlignments,
+  getIdentityColor,
+  getDominantDimension,
+  getPersonalityLabel,
+} from '@/lib/drepIdentity';
 import { getDRepTraitTags } from '@/lib/alignment';
 import { generateDRepNarrative } from '@/lib/narratives';
 import { NarrativeSummary } from '@/components/NarrativeSummary';
@@ -216,9 +221,7 @@ async function getDRepData(drepId: string) {
  * Compute how often this DRep's vote matched the SPO majority.
  * Uses the inter_body_alignment cache for proposals this DRep voted on.
  */
-async function getSpoAlignment(
-  votes: VoteRecord[],
-): Promise<number | null> {
+async function getSpoAlignment(votes: VoteRecord[]): Promise<number | null> {
   if (votes.length === 0) return null;
 
   try {
@@ -267,15 +270,7 @@ async function getSpoAlignment(
 }
 
 /* ─── Key Facts Strip ─── */
-function KeyFact({
-  label,
-  value,
-  subtext,
-}: {
-  label: string;
-  value: string;
-  subtext?: string;
-}) {
+function KeyFact({ label, value, subtext }: { label: string; value: string; subtext?: string }) {
   return (
     <div className="flex flex-col items-center text-center min-w-[80px]">
       <span className="text-xs text-muted-foreground">{label}</span>

@@ -136,9 +136,12 @@ export const checkSnapshotCompleteness = inngest.createFunction(
       const { count: alignCacheCount } = await supabase
         .from('inter_body_alignment')
         .select('proposal_tx_hash', { count: 'exact', head: true });
-      const alignSnapCoverage = (alignCacheCount ?? 0) > 0
-        ? ((alignSnapCount ?? 0) / (alignCacheCount ?? 1)) * 100
-        : (alignSnapCount ?? 0) > 0 ? 100 : 0;
+      const alignSnapCoverage =
+        (alignCacheCount ?? 0) > 0
+          ? ((alignSnapCount ?? 0) / (alignCacheCount ?? 1)) * 100
+          : (alignSnapCount ?? 0) > 0
+            ? 100
+            : 0;
       results.push({
         name: 'inter_body_alignment_snapshots',
         passed: alignSnapCoverage >= 80 || (alignCacheCount ?? 0) === 0,

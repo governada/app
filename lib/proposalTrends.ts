@@ -77,7 +77,9 @@ export async function detectProposalTrends(epochRange = 10): Promise<TrendAnalys
       filtered.map((p) => p.tx_hash),
     );
 
-  const classifications = (rawClassifications || []) as unknown as Array<Record<string, number | string>>;
+  const classifications = (rawClassifications || []) as unknown as Array<
+    Record<string, number | string>
+  >;
   if (classifications.length < 4) {
     return {
       trends: [],
@@ -128,7 +130,8 @@ export async function detectProposalTrends(epochRange = 10): Promise<TrendAnalys
 
     const label = DIMENSION_LABELS[dim] || dim;
     const pctChange = olderAvg > 0 ? Math.round((delta / olderAvg) * 100) : 0;
-    const dirWord = direction === 'up' ? 'increasing' : direction === 'down' ? 'decreasing' : 'stable';
+    const dirWord =
+      direction === 'up' ? 'increasing' : direction === 'down' ? 'decreasing' : 'stable';
 
     trends.push({
       dimension: dim,

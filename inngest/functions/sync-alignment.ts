@@ -263,7 +263,8 @@ export const syncAlignment = inngest.createFunction(
 
           const activeDreps = drepRows?.length ?? 0;
           const snapshotted = snapshots.length;
-          const coveragePct = activeDreps > 0 ? Math.round((snapshotted / activeDreps) * 10000) / 100 : 100;
+          const coveragePct =
+            activeDreps > 0 ? Math.round((snapshotted / activeDreps) * 10000) / 100 : 100;
           await supabase.from('snapshot_completeness_log').upsert(
             {
               snapshot_type: 'alignment',

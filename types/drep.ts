@@ -75,7 +75,14 @@ export interface VoteRecord {
   withdrawalAmount: number | null;
   relevantPrefs: string[];
   interBodyAlignment?: {
-    drep: { yes: number; no: number; abstain: number; total: number; yesPct: number; noPct: number };
+    drep: {
+      yes: number;
+      no: number;
+      abstain: number;
+      total: number;
+      yesPct: number;
+      noPct: number;
+    };
     spo: { yes: number; no: number; abstain: number; total: number; yesPct: number; noPct: number };
     cc: { yes: number; no: number; abstain: number; total: number; yesPct: number; noPct: number };
     bodiesVoting: number;

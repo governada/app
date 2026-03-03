@@ -504,7 +504,11 @@ export function ProposalsListClient({
                           className="text-[10px] gap-1 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 w-fit"
                         >
                           <Landmark className="h-2.5 w-2.5" />
-                          Requests {(p.withdrawalAmount / 1_000_000).toLocaleString(undefined, { maximumFractionDigits: 0 })} ADA
+                          Requests{' '}
+                          {(p.withdrawalAmount / 1_000_000).toLocaleString(undefined, {
+                            maximumFractionDigits: 0,
+                          })}{' '}
+                          ADA
                         </Badge>
                       )}
                     </div>

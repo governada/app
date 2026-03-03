@@ -17,10 +17,7 @@ export async function GET(request: NextRequest) {
     const exclude = request.nextUrl.searchParams.get('exclude');
 
     if (!title || !amount) {
-      return NextResponse.json(
-        { error: 'title and amount parameters required' },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: 'title and amount parameters required' }, { status: 400 });
     }
 
     const similar = await findSimilarProposals(

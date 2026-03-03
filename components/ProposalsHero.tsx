@@ -125,8 +125,7 @@ export function ProposalsHero({
 
       {crossBodyInsight && (
         <div className="mt-3 rounded-md bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-          <span className="font-medium text-foreground">Tri-body insight:</span>{' '}
-          {crossBodyInsight}
+          <span className="font-medium text-foreground">Tri-body insight:</span> {crossBodyInsight}
         </div>
       )}
     </motion.div>

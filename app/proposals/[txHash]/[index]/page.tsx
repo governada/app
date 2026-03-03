@@ -254,10 +254,7 @@ export default async function ProposalDetailPage({ params }: ProposalDetailPageP
       />
 
       {/* Voter Tabs: DReps | SPOs | CC */}
-      <FeatureGate
-        flag="tri_body_votes"
-        fallback={<ProposalVotersWithContext votes={votes} />}
-      >
+      <FeatureGate flag="tri_body_votes" fallback={<ProposalVotersWithContext votes={votes} />}>
         <ProposalVoterTabs votes={votes} txHash={txHash} proposalIndex={proposalIndex} />
       </FeatureGate>
 

@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { TreasuryDashboard } from '@/components/TreasuryDashboard';
 
-
 export const metadata: Metadata = {
   title: 'Treasury Intelligence — DRepScore',
   description:

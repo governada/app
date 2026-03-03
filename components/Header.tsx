@@ -42,7 +42,6 @@ import {
   Clock,
   Activity,
   Inbox,
-
   Search,
 } from 'lucide-react';
 import { MobileNav } from './MobileNav';

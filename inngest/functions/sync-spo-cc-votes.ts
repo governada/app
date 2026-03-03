@@ -115,9 +115,7 @@ export const syncSpoAndCcVotes = inngest.createFunction(
         const epoch = statsRow?.current_epoch ?? 0;
         if (epoch === 0) return { snapshotted: 0 };
 
-        const { data: cached } = await supabase
-          .from('inter_body_alignment')
-          .select('*');
+        const { data: cached } = await supabase.from('inter_body_alignment').select('*');
         if (!cached?.length) return { snapshotted: 0 };
 
         let inserted = 0;
@@ -132,12 +130,21 @@ export const syncSpoAndCcVotes = inngest.createFunction(
           if (existing) continue;
 
           const [drepCount, spoCount, ccCount] = await Promise.all([
-            supabase.from('drep_votes').select('vote_tx_hash', { count: 'exact', head: true })
-              .eq('proposal_tx_hash', row.proposal_tx_hash).eq('proposal_index', row.proposal_index),
-            supabase.from('spo_votes').select('pool_id', { count: 'exact', head: true })
-              .eq('proposal_tx_hash', row.proposal_tx_hash).eq('proposal_index', row.proposal_index),
-            supabase.from('cc_votes').select('cc_hot_id', { count: 'exact', head: true })
-              .eq('proposal_tx_hash', row.proposal_tx_hash).eq('proposal_index', row.proposal_index),
+            supabase
+              .from('drep_votes')
+              .select('vote_tx_hash', { count: 'exact', head: true })
+              .eq('proposal_tx_hash', row.proposal_tx_hash)
+              .eq('proposal_index', row.proposal_index),
+            supabase
+              .from('spo_votes')
+              .select('pool_id', { count: 'exact', head: true })
+              .eq('proposal_tx_hash', row.proposal_tx_hash)
+              .eq('proposal_index', row.proposal_index),
+            supabase
+              .from('cc_votes')
+              .select('cc_hot_id', { count: 'exact', head: true })
+              .eq('proposal_tx_hash', row.proposal_tx_hash)
+              .eq('proposal_index', row.proposal_index),
           ]);
 
           const { error } = await supabase.from('inter_body_alignment_snapshots').insert({
@@ -165,12 +172,15 @@ export const syncSpoAndCcVotes = inngest.createFunction(
             snapshot_date: new Date().toISOString().slice(0, 10),
             record_count: inserted,
             expected_count: cached.length,
-            coverage_pct: cached.length > 0 ? Math.round((inserted / cached.length) * 10000) / 100 : 100,
+            coverage_pct:
+              cached.length > 0 ? Math.round((inserted / cached.length) * 10000) / 100 : 100,
           },
           { onConflict: 'snapshot_type,epoch_no,snapshot_date' },
         );
 
-        console.log(`[sync-spo-cc-votes] Alignment snapshots: ${inserted}/${cached.length} for epoch ${epoch}`);
+        console.log(
+          `[sync-spo-cc-votes] Alignment snapshots: ${inserted}/${cached.length} for epoch ${epoch}`,
+        );
         return { snapshotted: inserted, epoch };
       } catch (err) {
         console.error('[sync-spo-cc-votes] Alignment snapshot failed:', errMsg(err));

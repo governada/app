@@ -134,7 +134,8 @@ export const syncGovernanceBenchmarks = inngest.createFunction(
         return generateText(prompt, {
           maxTokens: 200,
           temperature: 0.3,
-          system: 'You are a neutral, data-driven governance analyst. Output only the observation, no preamble.',
+          system:
+            'You are a neutral, data-driven governance analyst. Output only the observation, no preamble.',
         });
       });
 

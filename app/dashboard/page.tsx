@@ -503,9 +503,7 @@ function DashboardTabs({
       id: 'delegators',
       label: 'Delegators',
       icon: UserRound,
-      content: (
-        <DelegatorAnalytics drepId={drep.drepId} />
-      ),
+      content: <DelegatorAnalytics drepId={drep.drepId} />,
     },
     {
       id: 'profile',

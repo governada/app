@@ -12,8 +12,7 @@ const EPOCH_LENGTH_SECONDS = 432000;
 const SHELLEY_BASE_EPOCH = 209;
 
 function computeEpochProgress(now: number): number {
-  const secondsIntoEpoch =
-    (now - SHELLEY_GENESIS_TIMESTAMP) % EPOCH_LENGTH_SECONDS;
+  const secondsIntoEpoch = (now - SHELLEY_GENESIS_TIMESTAMP) % EPOCH_LENGTH_SECONDS;
   return secondsIntoEpoch / EPOCH_LENGTH_SECONDS;
 }
 
@@ -53,8 +52,10 @@ function generateCrossBodyInsight(
 
   if (agreed + diverged === 0) return null;
   const rate = Math.round((agreed / (agreed + diverged)) * 100);
-  if (rate >= 80) return `DReps and SPOs agree on ${rate}% of proposals — strong tri-body alignment this epoch.`;
-  if (rate >= 50) return `DReps and SPOs align on ${rate}% of proposals — moderate consensus across governance bodies.`;
+  if (rate >= 80)
+    return `DReps and SPOs agree on ${rate}% of proposals — strong tri-body alignment this epoch.`;
+  if (rate >= 50)
+    return `DReps and SPOs align on ${rate}% of proposals — moderate consensus across governance bodies.`;
   return `DReps and SPOs diverge on ${100 - rate}% of proposals — governance bodies are debating different priorities.`;
 }
 

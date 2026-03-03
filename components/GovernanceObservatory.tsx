@@ -164,12 +164,7 @@ export function GovernanceObservatory({
           {chains.map((chain) => {
             const row = benchmarks[chain];
             if (!row) return null;
-            return (
-              <CrossChainReportCard
-                key={chain}
-                benchmark={rowToBenchmark(chain, row)}
-              />
-            );
+            return <CrossChainReportCard key={chain} benchmark={rowToBenchmark(chain, row)} />;
           })}
         </motion.div>
 
@@ -184,9 +179,7 @@ export function GovernanceObservatory({
           >
             <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-amber-500/70" />
             <div className="min-w-0">
-              <p className="text-sm italic text-muted-foreground">
-                {aiInsight}
-              </p>
+              <p className="text-sm italic text-muted-foreground">{aiInsight}</p>
               <span className="mt-1 inline-block text-[10px] text-muted-foreground/40">
                 AI-generated observation
               </span>
@@ -199,8 +192,8 @@ export function GovernanceObservatory({
 
         {/* Methodology footer */}
         <p className="text-center text-[11px] leading-relaxed text-muted-foreground/50">
-          Each chain&apos;s metrics reflect its own governance model. Cross-chain scores are only shown
-          for mathematically comparable properties (power distribution). Data sources: Cardano
+          Each chain&apos;s metrics reflect its own governance model. Cross-chain scores are only
+          shown for mathematically comparable properties (power distribution). Data sources: Cardano
           (on-chain via Koios), Ethereum (Tally), Polkadot (SubSquare).
         </p>
       </CardContent>

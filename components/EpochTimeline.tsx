@@ -29,9 +29,7 @@ export function EpochTimeline({ initialRecaps }: { initialRecaps: EpochRecap[] }
     if (lastEpoch == null) return;
 
     try {
-      const res = await fetch(
-        `/api/governance/epoch-recap?before=${lastEpoch}&limit=${PAGE_SIZE}`,
-      );
+      const res = await fetch(`/api/governance/epoch-recap?before=${lastEpoch}&limit=${PAGE_SIZE}`);
       if (!res.ok) {
         setHasMore(false);
         return;
@@ -48,9 +46,7 @@ export function EpochTimeline({ initialRecaps }: { initialRecaps: EpochRecap[] }
 
   if (recaps.length === 0) {
     return (
-      <div className="text-center py-12 text-muted-foreground">
-        No epoch recaps available yet.
-      </div>
+      <div className="text-center py-12 text-muted-foreground">No epoch recaps available yet.</div>
     );
   }
 
@@ -93,9 +89,7 @@ export function EpochTimeline({ initialRecaps }: { initialRecaps: EpochRecap[] }
               </CardHeader>
               {recap.ai_narrative && (
                 <CardContent>
-                  <p className="text-sm text-muted-foreground line-clamp-4">
-                    {recap.ai_narrative}
-                  </p>
+                  <p className="text-sm text-muted-foreground line-clamp-4">{recap.ai_narrative}</p>
                 </CardContent>
               )}
             </Card>

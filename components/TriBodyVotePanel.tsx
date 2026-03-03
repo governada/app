@@ -147,24 +147,9 @@ export function TriBodyVotePanel({ triBody, txHash, proposalIndex }: TriBodyVote
         />
 
         <div className="grid grid-cols-3 gap-3">
-          <BodyColumn
-            label="DReps"
-            icon={Users}
-            color="text-primary"
-            votes={triBody.drep}
-          />
-          <BodyColumn
-            label="SPOs"
-            icon={Server}
-            color="text-cyan-500"
-            votes={triBody.spo}
-          />
-          <BodyColumn
-            label="CC"
-            icon={ShieldCheck}
-            color="text-amber-500"
-            votes={triBody.cc}
-          />
+          <BodyColumn label="DReps" icon={Users} color="text-primary" votes={triBody.drep} />
+          <BodyColumn label="SPOs" icon={Server} color="text-cyan-500" votes={triBody.spo} />
+          <BodyColumn label="CC" icon={ShieldCheck} color="text-amber-500" votes={triBody.cc} />
         </div>
 
         {alignmentCallout && (

@@ -80,14 +80,23 @@ export async function GET() {
               .order(col, { ascending: false })
               .limit(1)
               .maybeSingle();
-            const latestEpoch = latest ? (latest as unknown as Record<string, number>)[col] ?? null : null;
+            const latestEpoch = latest
+              ? ((latest as unknown as Record<string, number>)[col] ?? null)
+              : null;
             const gap = latestEpoch != null ? epoch - latestEpoch : null;
             return {
               table: name,
               latest_epoch: latestEpoch,
               expected_epoch: epoch,
               gap,
-              level: gap === null ? 'unknown' : gap <= 1 ? 'healthy' : gap <= 3 ? 'degraded' : 'critical',
+              level:
+                gap === null
+                  ? 'unknown'
+                  : gap <= 1
+                    ? 'healthy'
+                    : gap <= 3
+                      ? 'degraded'
+                      : 'critical',
             };
           }),
         );

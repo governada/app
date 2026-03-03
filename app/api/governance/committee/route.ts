@@ -7,9 +7,7 @@ export async function GET() {
   try {
     const supabase = createClient();
 
-    const { data: votes, error } = await supabase
-      .from('cc_votes')
-      .select('cc_hot_id, vote');
+    const { data: votes, error } = await supabase.from('cc_votes').select('cc_hot_id, vote');
 
     if (error) {
       console.error('[governance/committee] Supabase error:', error);
