@@ -182,6 +182,39 @@ export interface ClassifiedProposal {
   expirationEpoch: number | null;
 }
 
+// SPO Vote (from /vote_list?voter_role=eq.SPO)
+export interface SPOVote {
+  pool_id: string;
+  proposal_tx_hash: string;
+  proposal_index: number;
+  vote: 'Yes' | 'No' | 'Abstain';
+  block_time: number;
+  tx_hash: string;
+  epoch: number;
+}
+
+// Constitutional Committee Vote (from /vote_list?voter_role=eq.CC)
+export interface CCVote {
+  cc_hot_id: string;
+  proposal_tx_hash: string;
+  proposal_index: number;
+  vote: 'Yes' | 'No' | 'Abstain';
+  block_time: number;
+  tx_hash: string;
+  epoch: number;
+}
+
+// Koios account_info response fields we consume
+export interface KoiosAccountInfo {
+  stake_address: string;
+  status: string;
+  delegated_pool: string | null;
+  total_balance: string;
+  utxo: string;
+  rewards_available: string;
+  vote_delegation: string | null;
+}
+
 // Canonical voting summary from Koios /proposal_voting_summary
 export interface ProposalVotingSummaryData {
   proposal_type: string;

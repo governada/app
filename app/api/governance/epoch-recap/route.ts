@@ -1,0 +1,60 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase';
+import { blockTimeToEpoch } from '@/lib/koios';
+import { getFeatureFlag } from '@/lib/featureFlags';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET(request: NextRequest) {
+  try {
+    const enabled = await getFeatureFlag('epoch_recaps', false);
+    if (!enabled) {
+      return NextResponse.json({ error: 'Feature not available' }, { status: 404 });
+    }
+
+    const epochParam = request.nextUrl.searchParams.get('epoch');
+    const supabase = createClient();
+
+    if (epochParam) {
+      const epoch = parseInt(epochParam);
+      if (isNaN(epoch)) {
+        return NextResponse.json({ error: 'Invalid epoch parameter' }, { status: 400 });
+      }
+
+      const { data, error } = await supabase
+        .from('epoch_recaps')
+        .select('*')
+        .eq('epoch', epoch)
+        .single();
+
+      if (error || !data) {
+        return NextResponse.json({ error: 'Epoch recap not found' }, { status: 404 });
+      }
+
+      return NextResponse.json(data, {
+        headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600' },
+      });
+    }
+
+    // Return latest epoch recap
+    const currentEpoch = blockTimeToEpoch(Math.floor(Date.now() / 1000));
+    const { data, error } = await supabase
+      .from('epoch_recaps')
+      .select('*')
+      .lte('epoch', currentEpoch)
+      .order('epoch', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error || !data) {
+      return NextResponse.json({ error: 'No epoch recaps available' }, { status: 404 });
+    }
+
+    return NextResponse.json(data, {
+      headers: { 'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=600' },
+    });
+  } catch (error) {
+    console.error('[governance/epoch-recap] Error:', error);
+    return NextResponse.json({ error: 'Failed to fetch epoch recap' }, { status: 500 });
+  }
+}

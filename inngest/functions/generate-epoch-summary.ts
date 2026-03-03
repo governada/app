@@ -184,8 +184,184 @@ export const generateEpochSummary = inngest.createFunction(
       return processed;
     });
 
+    // Step 4: Enrich governance events (drep_vote + proposal_outcome events)
+    const enrichResult = await step.run('enrich-governance-events', async () => {
+      const supabase = getSupabaseAdmin();
+      let eventsWritten = 0;
+
+      // Write proposal_outcome events for proposals that concluded this epoch
+      const { data: concludedProposals } = await supabase
+        .from('proposals')
+        .select('tx_hash, proposal_index, title, ratified_epoch, enacted_epoch, expired_epoch, dropped_epoch')
+        .or(
+          `ratified_epoch.eq.${epoch},enacted_epoch.eq.${epoch},expired_epoch.eq.${epoch},dropped_epoch.eq.${epoch}`,
+        );
+
+      if (concludedProposals && concludedProposals.length > 0) {
+        // Find users who had their DRep vote on these proposals
+        const txHashes = concludedProposals.map((p) => p.tx_hash);
+        const { data: relevantVotes } = await supabase
+          .from('drep_votes')
+          .select('drep_id, proposal_tx_hash, proposal_index, vote')
+          .in('proposal_tx_hash', txHashes);
+
+        if (relevantVotes && relevantVotes.length > 0) {
+          // Find delegators for each DRep that voted
+          const drepIds = [...new Set(relevantVotes.map((v) => v.drep_id))];
+          const { data: delegators } = await supabase
+            .from('users')
+            .select('wallet_address, delegation_history')
+            .limit(500);
+
+          const walletToDrep = new Map<string, string>();
+          for (const u of delegators || []) {
+            const drepId = extractDrepId(u.delegation_history);
+            if (drepId && drepIds.includes(drepId)) {
+              walletToDrep.set(u.wallet_address, drepId);
+            }
+          }
+
+          const outcomeEvents = [];
+          for (const [wallet, drepId] of walletToDrep) {
+            for (const p of concludedProposals) {
+              const vote = relevantVotes.find(
+                (v) => v.drep_id === drepId && v.proposal_tx_hash === p.tx_hash,
+              );
+              if (!vote) continue;
+
+              const outcome = p.enacted_epoch === epoch
+                ? 'enacted'
+                : p.ratified_epoch === epoch
+                  ? 'ratified'
+                  : p.expired_epoch === epoch
+                    ? 'expired'
+                    : 'dropped';
+
+              outcomeEvents.push({
+                id: crypto.randomUUID(),
+                wallet_address: wallet,
+                event_type: 'proposal_outcome',
+                event_data: {
+                  proposal_tx_hash: p.tx_hash,
+                  proposal_index: p.proposal_index,
+                  title: p.title,
+                  outcome,
+                  drep_vote: vote.vote,
+                },
+                related_drep_id: drepId,
+                epoch,
+                created_at: new Date().toISOString(),
+              });
+            }
+          }
+
+          if (outcomeEvents.length > 0) {
+            const { error } = await supabase
+              .from('governance_events')
+              .insert(outcomeEvents.slice(0, 500));
+            if (!error) eventsWritten += Math.min(outcomeEvents.length, 500);
+          }
+        }
+      }
+
+      return { eventsWritten };
+    });
+
+    // Step 5: Generate epoch recap with stats
+    const recapResult = await step.run('generate-epoch-recap', async () => {
+      const supabase = getSupabaseAdmin();
+
+      const [ratifiedResult, expiredResult, droppedResult, submittedResult] = await Promise.all([
+        supabase
+          .from('proposals')
+          .select('tx_hash', { count: 'exact', head: true })
+          .eq('ratified_epoch', epoch),
+        supabase
+          .from('proposals')
+          .select('tx_hash', { count: 'exact', head: true })
+          .eq('expired_epoch', epoch),
+        supabase
+          .from('proposals')
+          .select('tx_hash', { count: 'exact', head: true })
+          .eq('dropped_epoch', epoch),
+        supabase
+          .from('proposals')
+          .select('tx_hash', { count: 'exact', head: true })
+          .eq('proposed_epoch', epoch),
+      ]);
+
+      const ratified = ratifiedResult.count || 0;
+      const expired = expiredResult.count || 0;
+      const dropped = droppedResult.count || 0;
+      const submitted = submittedResult.count || 0;
+
+      // DRep participation: count DReps who voted this epoch vs total active
+      const [votersResult, totalDrepsResult] = await Promise.all([
+        supabase
+          .from('drep_votes')
+          .select('drep_id')
+          .eq('epoch_no', epoch),
+        supabase
+          .from('dreps')
+          .select('drep_id', { count: 'exact', head: true })
+          .eq('registered', true),
+      ]);
+
+      const uniqueVoters = new Set((votersResult.data || []).map((v) => v.drep_id)).size;
+      const totalDreps = totalDrepsResult.count || 1;
+      const participationPct = Math.round((uniqueVoters / totalDreps) * 100 * 10) / 10;
+
+      // Treasury withdrawn this epoch
+      const { data: treasuryData } = await supabase
+        .from('proposals')
+        .select('withdrawal_amount')
+        .eq('proposal_type', 'TreasuryWithdrawals')
+        .eq('enacted_epoch', epoch);
+
+      const treasuryWithdrawn = (treasuryData || []).reduce(
+        (sum, p) => sum + (p.withdrawal_amount || 0),
+        0,
+      );
+
+      const narrative = [
+        `Epoch ${epoch}:`,
+        submitted > 0 ? `${submitted} proposals submitted` : null,
+        ratified > 0 ? `${ratified} ratified` : null,
+        expired > 0 ? `${expired} expired` : null,
+        dropped > 0 ? `${dropped} dropped` : null,
+        `${participationPct}% DRep participation`,
+        treasuryWithdrawn > 0
+          ? `${Math.round(treasuryWithdrawn / 1_000_000)}M ADA withdrawn from treasury`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(', ');
+
+      const { error: upsertErr } = await supabase.from('epoch_recaps').upsert(
+        {
+          epoch,
+          proposals_submitted: submitted,
+          proposals_ratified: ratified,
+          proposals_expired: expired,
+          proposals_dropped: dropped,
+          drep_participation_pct: participationPct,
+          treasury_withdrawn_ada: Math.round(treasuryWithdrawn),
+          ai_narrative: narrative,
+          computed_at: new Date().toISOString(),
+        },
+        { onConflict: 'epoch' },
+      );
+
+      if (upsertErr) {
+        console.error('[epoch-summary] Epoch recap upsert error:', upsertErr.message);
+        return { success: false, error: upsertErr.message };
+      }
+
+      return { success: true, epoch, narrative };
+    });
+
     console.log(`[epoch-summary] Epoch ${epoch} summary generated for ${usersProcessed} users`);
-    return { epoch, usersProcessed, ...proposalStats };
+    return { epoch, usersProcessed, ...proposalStats, recap: recapResult, enrichment: enrichResult };
   },
 );
 

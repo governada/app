@@ -19,6 +19,7 @@ import { generateGovernanceBrief } from '@/inngest/functions/generate-governance
 import { generateStateOfGovernance } from '@/inngest/functions/generate-state-of-governance';
 import { syncAlignment } from '@/inngest/functions/sync-alignment';
 import { syncDrepScores } from '@/inngest/functions/sync-drep-scores';
+import { syncSpoAndCcVotes } from '@/inngest/functions/sync-spo-cc-votes';
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
@@ -42,5 +43,6 @@ export const { GET, POST, PUT } = serve({
     generateStateOfGovernance,
     syncAlignment,
     syncDrepScores,
+    syncSpoAndCcVotes,
   ],
 });
