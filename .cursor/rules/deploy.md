@@ -22,10 +22,13 @@ If lint/type-check errors are in YOUR changes, fix them. If they're pre-existing
 
 ## Supabase Migrations (if needed)
 
+**Always use the Supabase MCP — never the CLI.** The MCP authenticates through Cursor's integration and requires no local tokens. `npx supabase db push` requires `SUPABASE_ACCESS_TOKEN` which is not configured locally.
+
 1. Check for pending migration files in `supabase/migrations/`
-2. Apply via Supabase MCP `apply_migration`
-3. Verify with `execute_sql` — confirm the schema change took effect
-4. Only proceed after migration is confirmed
+2. Read the SQL file content
+3. Apply via Supabase MCP `apply_migration` with `name` (snake_case) and `query` (the full SQL)
+4. Verify with MCP `execute_sql` — confirm tables/columns exist (e.g., `SELECT table_name FROM information_schema.tables WHERE table_name = '...'`)
+5. Only proceed after migration is confirmed
 
 ### Migration Naming Convention
 
