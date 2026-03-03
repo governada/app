@@ -16,7 +16,9 @@ export function ConfidenceBar({ votesUsed, targetVotes = 15, className }: Confid
     <div className={cn('space-y-1.5', className)}>
       <div className="flex items-center justify-between text-xs">
         <span className="text-muted-foreground">Match confidence</span>
-        <span className={cn('font-medium tabular-nums', isLow ? 'text-amber-500' : 'text-green-500')}>
+        <span
+          className={cn('font-medium tabular-nums', isLow ? 'text-amber-500' : 'text-green-500')}
+        >
           {votesUsed}/{targetVotes} votes — {pct}%
         </span>
       </div>

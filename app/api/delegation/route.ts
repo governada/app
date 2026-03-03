@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { captureServerEvent } from '@/lib/posthog-server';
 
 const KOIOS_BASE_URL = process.env.NEXT_PUBLIC_KOIOS_BASE_URL || 'https://api.koios.rest/api/v1';
 const KOIOS_API_KEY = process.env.KOIOS_API_KEY;
@@ -30,6 +31,12 @@ export async function POST(request: NextRequest) {
     const data = await res.json();
     const account = Array.isArray(data) ? data[0] : null;
     const drepId = account?.vote_delegation || account?.delegated_drep || null;
+
+    captureServerEvent(
+      'delegation_updated',
+      { wallet_address: stakeAddress, drep_id: drepId },
+      stakeAddress,
+    );
 
     return NextResponse.json({ drepId });
   } catch {

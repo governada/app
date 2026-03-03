@@ -30,7 +30,9 @@ export interface UserGovernanceProfile {
   confidence: number;
 }
 
-export async function updateUserProfile(walletAddress: string): Promise<UserGovernanceProfile | null> {
+export async function updateUserProfile(
+  walletAddress: string,
+): Promise<UserGovernanceProfile | null> {
   const supabase = getSupabaseAdmin();
 
   const { data: pollVotes } = await supabase
@@ -94,16 +96,19 @@ export async function updateUserProfile(walletAddress: string): Promise<UserGove
   const confidence = calculateMatchConfidence(pollVotes.length) / 100;
 
   // Archive to profile history before overwriting
-  await supabase.from('user_governance_profile_history').insert({
-    wallet_address: walletAddress,
-    pca_coordinates: pcaCoordinates,
-    alignment_scores: alignmentScores,
-    personality_label: personalityLabel,
-    votes_used: pollVotes.length,
-    confidence,
-  }).then(undefined, () => {
-    // Non-fatal: history table may not exist yet or insert may fail
-  });
+  await supabase
+    .from('user_governance_profile_history')
+    .insert({
+      wallet_address: walletAddress,
+      pca_coordinates: pcaCoordinates,
+      alignment_scores: alignmentScores,
+      personality_label: personalityLabel,
+      votes_used: pollVotes.length,
+      confidence,
+    })
+    .then(undefined, () => {
+      // Non-fatal: history table may not exist yet or insert may fail
+    });
 
   await supabase.from('user_governance_profiles').upsert(
     {

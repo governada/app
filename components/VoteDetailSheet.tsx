@@ -266,10 +266,16 @@ export function VoteDetailSheet({
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">DReps</span>
                     <span>
-                      <span className="text-green-600">{Math.round(vote.interBodyAlignment.drep.yesPct)}% Yes</span>
+                      <span className="text-green-600">
+                        {Math.round(vote.interBodyAlignment.drep.yesPct)}% Yes
+                      </span>
                       {' · '}
-                      <span className="text-red-500">{Math.round(vote.interBodyAlignment.drep.noPct)}% No</span>
-                      <span className="text-muted-foreground ml-1">({vote.interBodyAlignment.drep.total} votes)</span>
+                      <span className="text-red-500">
+                        {Math.round(vote.interBodyAlignment.drep.noPct)}% No
+                      </span>
+                      <span className="text-muted-foreground ml-1">
+                        ({vote.interBodyAlignment.drep.total} votes)
+                      </span>
                     </span>
                   </div>
                 )}
@@ -277,10 +283,16 @@ export function VoteDetailSheet({
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">SPOs</span>
                     <span>
-                      <span className="text-green-600">{Math.round(vote.interBodyAlignment.spo.yesPct)}% Yes</span>
+                      <span className="text-green-600">
+                        {Math.round(vote.interBodyAlignment.spo.yesPct)}% Yes
+                      </span>
                       {' · '}
-                      <span className="text-red-500">{Math.round(vote.interBodyAlignment.spo.noPct)}% No</span>
-                      <span className="text-muted-foreground ml-1">({vote.interBodyAlignment.spo.total} votes)</span>
+                      <span className="text-red-500">
+                        {Math.round(vote.interBodyAlignment.spo.noPct)}% No
+                      </span>
+                      <span className="text-muted-foreground ml-1">
+                        ({vote.interBodyAlignment.spo.total} votes)
+                      </span>
                     </span>
                   </div>
                 )}
@@ -288,10 +300,16 @@ export function VoteDetailSheet({
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Committee</span>
                     <span>
-                      <span className="text-green-600">{Math.round(vote.interBodyAlignment.cc.yesPct)}% Yes</span>
+                      <span className="text-green-600">
+                        {Math.round(vote.interBodyAlignment.cc.yesPct)}% Yes
+                      </span>
                       {' · '}
-                      <span className="text-red-500">{Math.round(vote.interBodyAlignment.cc.noPct)}% No</span>
-                      <span className="text-muted-foreground ml-1">({vote.interBodyAlignment.cc.total} votes)</span>
+                      <span className="text-red-500">
+                        {Math.round(vote.interBodyAlignment.cc.noPct)}% No
+                      </span>
+                      <span className="text-muted-foreground ml-1">
+                        ({vote.interBodyAlignment.cc.total} votes)
+                      </span>
                     </span>
                   </div>
                 )}

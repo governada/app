@@ -59,7 +59,8 @@ export function GovernanceDNAReveal({ result, onRetake }: GovernanceDNARevealPro
     });
   }, [result]);
 
-  const hasAlignments = result.userAlignments && Object.values(result.userAlignments).some((v) => v !== null);
+  const hasAlignments =
+    result.userAlignments && Object.values(result.userAlignments).some((v) => v !== null);
 
   return (
     <div className="space-y-6">
@@ -78,11 +79,7 @@ export function GovernanceDNAReveal({ result, onRetake }: GovernanceDNARevealPro
               </div>
 
               <div className="flex flex-col sm:flex-row items-center gap-6">
-                <GovernanceRadar
-                  alignments={result.userAlignments}
-                  size="full"
-                  animate
-                />
+                <GovernanceRadar alignments={result.userAlignments} size="full" animate />
                 <div className="text-center sm:text-left space-y-2">
                   {result.personalityLabel && (
                     <Badge variant="outline" className="text-sm px-3 py-1">
@@ -90,7 +87,8 @@ export function GovernanceDNAReveal({ result, onRetake }: GovernanceDNARevealPro
                     </Badge>
                   )}
                   <p className="text-sm text-muted-foreground">
-                    Based on {result.votesCount} vote{result.votesCount !== 1 ? 's' : ''} on real governance proposals
+                    Based on {result.votesCount} vote{result.votesCount !== 1 ? 's' : ''} on real
+                    governance proposals
                   </p>
                   {result.matchMethod === 'pca' && (
                     <p className="text-[10px] text-muted-foreground/60">
@@ -143,8 +141,8 @@ export function GovernanceDNAReveal({ result, onRetake }: GovernanceDNARevealPro
           <Card>
             <CardContent className="p-4">
               <p className="text-sm text-muted-foreground">
-                Not enough overlapping votes to calculate matches yet.
-                Vote on more proposals to improve accuracy.
+                Not enough overlapping votes to calculate matches yet. Vote on more proposals to
+                improve accuracy.
               </p>
             </CardContent>
           </Card>
@@ -156,7 +154,9 @@ export function GovernanceDNAReveal({ result, onRetake }: GovernanceDNARevealPro
             <CardContent className="p-4">
               <p className="text-sm">
                 <span className="text-muted-foreground">vs your current DRep: </span>
-                <span className={`font-semibold ${getMatchColor(result.currentDRepMatch.matchScore)}`}>
+                <span
+                  className={`font-semibold ${getMatchColor(result.currentDRepMatch.matchScore)}`}
+                >
                   {result.currentDRepMatch.matchScore}% match
                 </span>
                 <span className="text-xs text-muted-foreground ml-1">
@@ -181,8 +181,8 @@ export function GovernanceDNAReveal({ result, onRetake }: GovernanceDNARevealPro
             <ConfidenceBar votesUsed={result.votesCount} />
 
             <p className="text-xs text-muted-foreground">
-              Vote on more proposals to sharpen your results.
-              Each vote improves your governance profile and match accuracy.
+              Vote on more proposals to sharpen your results. Each vote improves your governance
+              profile and match accuracy.
             </p>
 
             <div className="flex flex-wrap gap-2">

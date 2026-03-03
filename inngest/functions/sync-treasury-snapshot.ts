@@ -112,7 +112,8 @@ export const syncTreasurySnapshot = inngest.createFunction(
 
           const pendingCount = pendingData?.length ?? 0;
           const pendingTotalAda = (pendingData || []).reduce(
-            (sum, p) => sum + (p.withdrawal_amount || 0), 0,
+            (sum, p) => sum + (p.withdrawal_amount || 0),
+            0,
           );
 
           const { error } = await sb.from('treasury_health_snapshots').insert({
@@ -144,7 +145,9 @@ export const syncTreasurySnapshot = inngest.createFunction(
             { onConflict: 'snapshot_type,epoch_no,snapshot_date' },
           );
 
-          console.log(`[treasury] Health snapshot: score=${health.score} runway=${health.runwayMonths}mo epoch=${snapshot.epoch}`);
+          console.log(
+            `[treasury] Health snapshot: score=${health.score} runway=${health.runwayMonths}mo epoch=${snapshot.epoch}`,
+          );
           return { inserted: true, epoch: snapshot.epoch, healthScore: health.score };
         } catch (err) {
           console.error('[treasury] Health snapshot failed:', errMsg(err));

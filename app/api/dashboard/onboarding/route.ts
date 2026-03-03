@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { parseSessionToken, isSessionExpired } from '@/lib/supabaseAuth';
+import { captureServerEvent } from '@/lib/posthog-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,6 +43,12 @@ export async function POST(request: NextRequest) {
       .from('users')
       .update({ onboarding_checklist: checklist })
       .eq('wallet_address', parsed.walletAddress);
+
+    captureServerEvent(
+      'onboarding_step_completed',
+      { item, completed: checklist[item], wallet_address: parsed.walletAddress },
+      parsed.walletAddress,
+    );
 
     return NextResponse.json({ checklist });
   } catch (err) {

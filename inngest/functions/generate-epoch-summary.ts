@@ -193,7 +193,9 @@ export const generateEpochSummary = inngest.createFunction(
       // Write proposal_outcome events for proposals that concluded this epoch
       const { data: concludedProposals } = await supabase
         .from('proposals')
-        .select('tx_hash, proposal_index, title, ratified_epoch, enacted_epoch, expired_epoch, dropped_epoch')
+        .select(
+          'tx_hash, proposal_index, title, ratified_epoch, enacted_epoch, expired_epoch, dropped_epoch',
+        )
         .or(
           `ratified_epoch.eq.${epoch},enacted_epoch.eq.${epoch},expired_epoch.eq.${epoch},dropped_epoch.eq.${epoch}`,
         );
@@ -230,13 +232,14 @@ export const generateEpochSummary = inngest.createFunction(
               );
               if (!vote) continue;
 
-              const outcome = p.enacted_epoch === epoch
-                ? 'enacted'
-                : p.ratified_epoch === epoch
-                  ? 'ratified'
-                  : p.expired_epoch === epoch
-                    ? 'expired'
-                    : 'dropped';
+              const outcome =
+                p.enacted_epoch === epoch
+                  ? 'enacted'
+                  : p.ratified_epoch === epoch
+                    ? 'ratified'
+                    : p.expired_epoch === epoch
+                      ? 'expired'
+                      : 'dropped';
 
               outcomeEvents.push({
                 id: crypto.randomUUID(),
@@ -298,10 +301,7 @@ export const generateEpochSummary = inngest.createFunction(
 
       // DRep participation: count DReps who voted this epoch vs total active
       const [votersResult, totalDrepsResult] = await Promise.all([
-        supabase
-          .from('drep_votes')
-          .select('drep_id')
-          .eq('epoch_no', epoch),
+        supabase.from('drep_votes').select('drep_id').eq('epoch_no', epoch),
         supabase
           .from('dreps')
           .select('drep_id', { count: 'exact', head: true })
@@ -373,15 +373,20 @@ export const generateEpochSummary = inngest.createFunction(
           .maybeSingle();
         if (existing) return { skipped: true };
 
-        const [votersResult, totalDrepsResult, totalPowerResult, rationaleResult] = await Promise.all([
-          supabase.from('drep_votes').select('drep_id').eq('epoch_no', epoch),
-          supabase.from('dreps').select('drep_id', { count: 'exact', head: true }).eq('registered', true),
-          supabase.from('dreps').select('info').eq('registered', true),
-          supabase.from('drep_votes')
-            .select('vote_tx_hash', { count: 'exact', head: true })
-            .eq('epoch_no', epoch)
-            .not('meta_url', 'is', null),
-        ]);
+        const [votersResult, totalDrepsResult, totalPowerResult, rationaleResult] =
+          await Promise.all([
+            supabase.from('drep_votes').select('drep_id').eq('epoch_no', epoch),
+            supabase
+              .from('dreps')
+              .select('drep_id', { count: 'exact', head: true })
+              .eq('registered', true),
+            supabase.from('dreps').select('info').eq('registered', true),
+            supabase
+              .from('drep_votes')
+              .select('vote_tx_hash', { count: 'exact', head: true })
+              .eq('epoch_no', epoch)
+              .not('meta_url', 'is', null),
+          ]);
 
         const uniqueVoters = new Set((votersResult.data || []).map((v) => v.drep_id));
         const activeDreps = uniqueVoters.size;
@@ -390,13 +395,12 @@ export const generateEpochSummary = inngest.createFunction(
 
         const totalVotes = votersResult.data?.length ?? 0;
         const rationaleCount = rationaleResult.count ?? 0;
-        const rationaleRate = totalVotes > 0
-          ? Math.round((rationaleCount / totalVotes) * 10000) / 100
-          : 0;
+        const rationaleRate =
+          totalVotes > 0 ? Math.round((rationaleCount / totalVotes) * 10000) / 100 : 0;
 
         const totalPower = (totalPowerResult.data || []).reduce((sum, row) => {
           const info = row.info as Record<string, unknown>;
-          return sum + BigInt(info?.votingPowerLovelace as string || '0');
+          return sum + BigInt((info?.votingPowerLovelace as string) || '0');
         }, BigInt(0));
 
         const { error } = await supabase.from('governance_participation_snapshots').insert({
@@ -423,7 +427,9 @@ export const generateEpochSummary = inngest.createFunction(
           { onConflict: 'snapshot_type,epoch_no,snapshot_date' },
         );
 
-        console.log(`[epoch-summary] Participation snapshot: ${activeDreps}/${totalDreps} (${participationRate}%) epoch ${epoch}`);
+        console.log(
+          `[epoch-summary] Participation snapshot: ${activeDreps}/${totalDreps} (${participationRate}%) epoch ${epoch}`,
+        );
         return { inserted: true, activeDreps, totalDreps, participationRate };
       } catch (err) {
         console.error('[epoch-summary] Participation snapshot failed:', errMsg(err));
@@ -432,7 +438,14 @@ export const generateEpochSummary = inngest.createFunction(
     });
 
     console.log(`[epoch-summary] Epoch ${epoch} summary generated for ${usersProcessed} users`);
-    return { epoch, usersProcessed, ...proposalStats, recap: recapResult, enrichment: enrichResult, participation: participationSnapshot };
+    return {
+      epoch,
+      usersProcessed,
+      ...proposalStats,
+      recap: recapResult,
+      enrichment: enrichResult,
+      participation: participationSnapshot,
+    };
   },
 );
 

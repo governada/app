@@ -131,11 +131,28 @@ export const syncGovernanceBenchmarks = inngest.createFunction(
 
         const prompt = `You are a neutral governance analyst. Given these metrics from blockchain governance systems, write ONE concise, factual observation (1-2 sentences) that highlights an interesting pattern or difference. Do not judge which is better. Do not favor any chain. Focus on what the data shows.\n\nMetrics:\n${metricsContext}`;
 
-        return generateText(prompt, {
-          maxTokens: 200,
-          temperature: 0.3,
-          system: 'You are a neutral, data-driven governance analyst. Output only the observation, no preamble.',
-        });
+        try {
+          return await generateText(prompt, {
+            maxTokens: 200,
+            temperature: 0.3,
+            system:
+              'You are a neutral, data-driven governance analyst. Output only the observation, no preamble.',
+          });
+        } catch (err) {
+          console.warn('[sync-benchmarks] AI insight failed, retrying once...', err);
+          await new Promise((r) => setTimeout(r, 3000));
+          try {
+            return await generateText(prompt, {
+              maxTokens: 200,
+              temperature: 0.3,
+              system:
+                'You are a neutral, data-driven governance analyst. Output only the observation, no preamble.',
+            });
+          } catch (retryErr) {
+            console.error('[sync-benchmarks] AI insight failed after retry:', retryErr);
+            return null;
+          }
+        }
       });
 
       if (aiInsight) {

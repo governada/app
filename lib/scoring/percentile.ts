@@ -15,9 +15,7 @@ export function percentileNormalize(rawScores: Map<string, number>): Map<string,
   if (n === 0) return new Map();
   if (n === 1) return new Map([[entries[0][0], 50]]);
 
-  const sorted = entries
-    .map(([id, value]) => ({ id, value }))
-    .sort((a, b) => a.value - b.value);
+  const sorted = entries.map(([id, value]) => ({ id, value })).sort((a, b) => a.value - b.value);
 
   const percentiles = new Map<string, number>();
   let i = 0;

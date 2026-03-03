@@ -78,9 +78,7 @@ export function computeDRepScores(
  * Returns points-per-day trend. Positive = improving, negative = declining.
  * Requires at least 2 data points within the last 14 days.
  */
-function computeMomentum(
-  history: { date: string; score: number }[],
-): number | null {
+function computeMomentum(history: { date: string; score: number }[]): number | null {
   if (history.length < 2) return null;
 
   // Use last 14 days of history

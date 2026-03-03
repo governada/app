@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { parseSessionToken, isSessionExpired } from '@/lib/supabaseAuth';
+import { captureServerEvent } from '@/lib/posthog-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,6 +54,8 @@ export async function POST(
       console.error('[Philosophy POST] Error:', error);
       return NextResponse.json({ error: 'Failed to save' }, { status: 500 });
     }
+
+    captureServerEvent('philosophy_updated', { drep_id: drepId }, drepId);
 
     return NextResponse.json(data);
   } catch (err) {

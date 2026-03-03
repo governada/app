@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { getFeatureFlag } from '@/lib/featureFlags';
 import { generateText } from '@/lib/ai';
+import { captureServerEvent } from '@/lib/posthog-server';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -96,6 +97,8 @@ Keep it under 250 words total. Be factual and balanced. Do not take a position. 
       .update({ meta_json: { ...metaJson, ai_explanation: explanation } })
       .eq('tx_hash', txHash)
       .eq('proposal_index', index);
+
+    captureServerEvent('proposal_explained', { tx_hash: txHash, proposal_index: index });
 
     return NextResponse.json({ explanation, cached: false });
   } catch (error) {

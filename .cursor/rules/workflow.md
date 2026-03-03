@@ -36,6 +36,21 @@ alwaysApply: true
 - **No orphaned components**: Every component created must be imported and rendered in the same commit
 - **Deprecation audit**: When removing a system, search for all consumers of its data and state — not just imports
 
+## Pre-PR Plan Audit
+
+When a `.cursor/plans/*.plan.md` drove the work, audit before PR. See global workflow rule for full protocol.
+
+**Trigger**: 2+ phases OR 5+ files changed. Otherwise skip.
+
+**Process**: Spawn a readonly `generalPurpose` subagent with the plan file + `git diff main...HEAD`. It reports each plan item as Done / Adapted / Gap. Fix all Gaps, then include the audit summary in the PR body under `## Plan Audit`.
+
+**DRepScore-specific checks** the auditor must also verify:
+
+- PostHog events for every new user interaction (per `analytics.mdc`)
+- Supabase RLS policies if new tables/columns were added
+- Score/tier display consistency with `scoring-system.md`
+- No orphaned components or unused imports
+
 ## Continuous Learning
 
 - **On correction**: Immediately append to `tasks/lessons.md` (date, pattern, context, takeaway)
@@ -48,12 +63,12 @@ When the user says "hotfix": deploy autonomously end-to-end. Create todos for AL
 
 ## Shell Compatibility (PowerShell — mandatory)
 
-| Task | Correct | Wrong |
-|------|---------|-------|
-| Chain commands | `cmd1 ; cmd2` | `cmd1 && cmd2` |
-| Multi-line commit | Write to `COMMIT_MSG.txt`, `git commit -F COMMIT_MSG.txt`, then `Remove-Item COMMIT_MSG.txt` | Heredocs, `.git/COMMIT_MSG` |
-| Multi-line PR body | Write to `PR_BODY.md`, `--body-file PR_BODY.md`, then `Remove-Item PR_BODY.md` | Inline `--body`, `.git/PR_BODY.md` |
-| Search/Read files | Grep/Read tools | `grep`/`cat`/`head`/`tail` |
+| Task               | Correct                                                                                      | Wrong                              |
+| ------------------ | -------------------------------------------------------------------------------------------- | ---------------------------------- |
+| Chain commands     | `cmd1 ; cmd2`                                                                                | `cmd1 && cmd2`                     |
+| Multi-line commit  | Write to `COMMIT_MSG.txt`, `git commit -F COMMIT_MSG.txt`, then `Remove-Item COMMIT_MSG.txt` | Heredocs, `.git/COMMIT_MSG`        |
+| Multi-line PR body | Write to `PR_BODY.md`, `--body-file PR_BODY.md`, then `Remove-Item PR_BODY.md`               | Inline `--body`, `.git/PR_BODY.md` |
+| Search/Read files  | Grep/Read tools                                                                              | `grep`/`cat`/`head`/`tail`         |
 
 ## Anti-Patterns
 

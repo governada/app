@@ -9,12 +9,7 @@ import {
   GOVERNANCE_MODELS,
   type ChainMetric,
 } from '@/lib/crossChain/chainMetrics';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface CrossChainReportCardProps {
   benchmark: ChainBenchmark;
@@ -26,9 +21,7 @@ export function CrossChainReportCard({ benchmark, className = '' }: CrossChainRe
   const model = GOVERNANCE_MODELS[benchmark.chain];
   const metrics = getChainMetrics(benchmark);
 
-  const freshness = benchmark.fetchedAt
-    ? formatFreshness(benchmark.fetchedAt)
-    : null;
+  const freshness = benchmark.fetchedAt ? formatFreshness(benchmark.fetchedAt) : null;
 
   return (
     <motion.div
@@ -84,13 +77,7 @@ export function CrossChainReportCard({ benchmark, className = '' }: CrossChainRe
   );
 }
 
-function MetricCell({
-  metric,
-  chainColor,
-}: {
-  metric: ChainMetric;
-  chainColor: string;
-}) {
+function MetricCell({ metric, chainColor }: { metric: ChainMetric; chainColor: string }) {
   return (
     <div className="min-w-0">
       <div className="flex items-center gap-1">
@@ -106,10 +93,7 @@ function MetricCell({
           </Tooltip>
         </TooltipProvider>
       </div>
-      <div
-        className="text-sm font-semibold tabular-nums"
-        style={{ color: chainColor }}
-      >
+      <div className="text-sm font-semibold tabular-nums" style={{ color: chainColor }}>
         {formatMetricValue(metric.value)}
       </div>
     </div>

@@ -7,11 +7,11 @@
 import type { VoteData } from './types';
 
 const WEIGHTS = {
-  streak: 0.30,
+  streak: 0.3,
   recency: 0.25,
-  gap: 0.20,
+  gap: 0.2,
   responsiveness: 0.15,
-  tenure: 0.10,
+  tenure: 0.1,
 };
 
 export interface ReliabilityV3Result {
@@ -86,8 +86,7 @@ function computeSingleDRepReliability(
   if (votedEpochs.size === 0) return zero;
 
   const hasProposalData = proposalEpochs.size > 0;
-  const epochHadProposals = (e: number) =>
-    !hasProposalData || (proposalEpochs.get(e) ?? 0) > 0;
+  const epochHadProposals = (e: number) => !hasProposalData || (proposalEpochs.get(e) ?? 0) > 0;
 
   const lastVotedEpoch = Math.max(...votedEpochs);
 

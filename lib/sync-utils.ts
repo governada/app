@@ -20,7 +20,9 @@ export type SyncType =
   | 'alignment_cache'
   | 'similarity_cache'
   | 'epoch_recaps'
-  | 'snapshot_backfill';
+  | 'snapshot_backfill'
+  | 'spo_scores'
+  | 'governance_epoch_stats';
 
 const BATCH_SIZE = 100;
 const UPSERT_RETRY_DELAY_MS = 2_000;

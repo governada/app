@@ -88,7 +88,8 @@ export async function buildGovernanceFootprint(
   const delegationAgeDays =
     delegationHistory.length > 0
       ? Math.floor(
-          (Date.now() - new Date(delegationHistory[delegationHistory.length - 1].timestamp).getTime()) /
+          (Date.now() -
+            new Date(delegationHistory[delegationHistory.length - 1].timestamp).getTime()) /
             (1000 * 60 * 60 * 24),
         )
       : null;
@@ -134,7 +135,8 @@ export async function buildGovernanceFootprint(
     epochsActive > 0 ? Math.round((polls.length / Math.max(epochsActive, 1)) * 100) : null;
 
   const proposalsInfluenced = events.filter(
-    (e) => e.event_type === 'epoch_summary' && (e.event_data as Record<string, unknown>)?.drepVoteCount,
+    (e) =>
+      e.event_type === 'epoch_summary' && (e.event_data as Record<string, unknown>)?.drepVoteCount,
   ).length;
 
   const participationTier = computeParticipationTier(polls.length, epochsActive);

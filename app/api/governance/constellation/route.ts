@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase';
 import { blockTimeToEpoch } from '@/lib/koios';
 import { getProposalPriority } from '@/utils/proposalPriority';
+import type { AlignmentDimension } from '@/lib/drepIdentity';
 import { extractAlignments, alignmentsToArray, getDominantDimension } from '@/lib/drepIdentity';
 import type { ConstellationApiData } from '@/lib/constellation/types';
 
@@ -12,42 +13,53 @@ export async function GET() {
     const supabase = createClient();
     const oneWeekAgo = Math.floor(Date.now() / 1000) - 604800;
 
-    const [drepsResult, votesResult, rationalesResult, proposalsResult, pulseResult] =
-      await Promise.all([
-        supabase
-          .from('dreps')
-          .select(
-            'id, score, info, size_tier, alignment_treasury_conservative, alignment_treasury_growth, alignment_decentralization, alignment_security, alignment_innovation, alignment_transparency',
-          )
-          .eq('info->>isActive', 'true'),
+    const [
+      drepsResult,
+      votesResult,
+      rationalesResult,
+      proposalsResult,
+      pulseResult,
+      spoVotesResult,
+      ccVotesResult,
+    ] = await Promise.all([
+      supabase
+        .from('dreps')
+        .select(
+          'id, score, info, size_tier, alignment_treasury_conservative, alignment_treasury_growth, alignment_decentralization, alignment_security, alignment_innovation, alignment_transparency',
+        )
+        .eq('info->>isActive', 'true'),
 
-        supabase
-          .from('drep_votes')
-          .select('drep_id, vote, block_time, proposal_tx_hash')
-          .gt('block_time', oneWeekAgo)
-          .order('block_time', { ascending: false })
-          .limit(50),
+      supabase
+        .from('drep_votes')
+        .select('drep_id, vote, block_time, proposal_tx_hash')
+        .gt('block_time', oneWeekAgo)
+        .order('block_time', { ascending: false })
+        .limit(50),
 
-        supabase
-          .from('vote_rationales')
-          .select('drep_id, fetched_at')
-          .not('rationale_text', 'is', null)
-          .order('fetched_at', { ascending: false })
-          .limit(20),
+      supabase
+        .from('vote_rationales')
+        .select('drep_id, fetched_at')
+        .not('rationale_text', 'is', null)
+        .order('fetched_at', { ascending: false })
+        .limit(20),
 
-        supabase
-          .from('proposals')
-          .select(
-            'tx_hash, proposal_index, title, proposal_type, created_at, ratified_epoch, enacted_epoch, dropped_epoch, expired_epoch',
-          )
-          .order('created_at', { ascending: false })
-          .limit(20),
+      supabase
+        .from('proposals')
+        .select(
+          'tx_hash, proposal_index, title, proposal_type, created_at, ratified_epoch, enacted_epoch, dropped_epoch, expired_epoch',
+        )
+        .order('created_at', { ascending: false })
+        .limit(20),
 
-        supabase
-          .from('dreps')
-          .select('score, info', { count: 'exact', head: false })
-          .eq('info->>isActive', 'true'),
-      ]);
+      supabase
+        .from('dreps')
+        .select('score, info', { count: 'exact', head: false })
+        .eq('info->>isActive', 'true'),
+
+      supabase.from('spo_votes').select('pool_id').limit(1000),
+
+      supabase.from('cc_votes').select('cc_hot_id').limit(100),
+    ]);
 
     const dreps = drepsResult.data || [];
     const votes = votesResult.data || [];
@@ -78,7 +90,7 @@ export async function GET() {
       1,
     );
 
-    const nodes: ConstellationApiData['nodes'] = dreps.map((d: any) => {
+    const drepNodes: ConstellationApiData['nodes'] = dreps.map((d: any) => {
       const raw = parseInt(d.info?.votingPowerLovelace || '0', 10) || 0;
       const alignments = extractAlignments(d);
       const arr = alignmentsToArray(alignments);
@@ -89,8 +101,36 @@ export async function GET() {
         score: d.score || 0,
         dominant: getDominantDimension(alignments),
         alignments: arr,
+        nodeType: 'drep' as const,
       };
     });
+
+    const spoPoolIds = [
+      ...new Set((spoVotesResult.data || []).map((v: any) => v.pool_id as string)),
+    ];
+    const ccIds = [...new Set((ccVotesResult.data || []).map((v: any) => v.cc_hot_id as string))];
+
+    const spoNodes: ConstellationApiData['nodes'] = spoPoolIds.map((poolId) => ({
+      id: poolId.slice(0, 16),
+      name: null,
+      power: 0.3,
+      score: 50,
+      dominant: 'transparency' as AlignmentDimension,
+      alignments: [50, 50, 50, 50, 50, 50],
+      nodeType: 'spo' as const,
+    }));
+
+    const ccNodes: ConstellationApiData['nodes'] = ccIds.map((ccId) => ({
+      id: ccId.slice(0, 16),
+      name: null,
+      power: 0.8,
+      score: 75,
+      dominant: 'transparency' as AlignmentDimension,
+      alignments: [50, 50, 50, 50, 50, 50],
+      nodeType: 'cc' as const,
+    }));
+
+    const nodes: ConstellationApiData['nodes'] = [...drepNodes, ...spoNodes, ...ccNodes];
 
     // Build recent events
     const drepsMap = new Map(dreps.map((d: any) => [d.id, d]));
@@ -137,6 +177,8 @@ export async function GET() {
         activeProposals: openProposals.length,
         votesThisWeek: votes.length,
         activeDReps: dreps.length,
+        activeSpOs: spoPoolIds.length,
+        ccMembers: ccIds.length,
       },
     };
 

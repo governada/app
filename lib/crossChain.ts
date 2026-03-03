@@ -33,6 +33,31 @@ export const CHAIN_IDENTITIES: Record<Chain, ChainIdentity> = {
 };
 
 // ---------------------------------------------------------------------------
+// Retry helper — exponential backoff for transient failures
+// ---------------------------------------------------------------------------
+
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  retries = 3,
+  initialDelay = 2000,
+): Promise<T | null> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (attempt === retries) {
+        console.error('[crossChain] All retries exhausted:', err);
+        return null;
+      }
+      const delay = initialDelay * 2 ** attempt;
+      console.warn(`[crossChain] Attempt ${attempt + 1} failed, retrying in ${delay}ms...`);
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // Tally adapter (Ethereum)
 // ---------------------------------------------------------------------------
 
@@ -108,7 +133,9 @@ async function tallyFetch(query: string, variables?: Record<string, unknown>): P
     });
 
     if (!res.ok) {
-      console.error(`[crossChain] Tally API error: ${res.status} ${res.statusText}`);
+      const msg = `Tally API error: ${res.status} ${res.statusText}`;
+      if (res.status >= 500 || res.status === 429) throw new Error(msg);
+      console.error(`[crossChain] ${msg}`);
       return null;
     }
 
@@ -119,16 +146,13 @@ async function tallyFetch(query: string, variables?: Record<string, unknown>): P
     }
 
     return json.data;
-  } catch (err) {
-    console.error('[crossChain] Tally fetch failed:', err);
-    return null;
   } finally {
     clearTimeout(timeout);
   }
 }
 
 export async function fetchEthereumBenchmark(): Promise<ChainBenchmark | null> {
-  const orgsData = (await tallyFetch(TALLY_ORGS_QUERY)) as {
+  const orgsData = (await withRetry(() => tallyFetch(TALLY_ORGS_QUERY))) as {
     organizations?: { nodes: TallyOrgNode[] };
   } | null;
   if (!orgsData?.organizations?.nodes?.length) return null;
@@ -144,7 +168,9 @@ export async function fetchEthereumBenchmark(): Promise<ChainBenchmark | null> {
   let proposalThroughput: number | null = null;
 
   if (topSlug) {
-    const proposalsData = (await tallyFetch(TALLY_ORG_PROPOSALS_QUERY, { slug: topSlug })) as {
+    const proposalsData = (await withRetry(() =>
+      tallyFetch(TALLY_ORG_PROPOSALS_QUERY, { slug: topSlug }),
+    )) as {
       proposals?: { nodes: { status: string; voteStats: { votersCount: number }[] }[] };
     } | null;
 
@@ -206,14 +232,13 @@ async function subsquareFetch(path: string): Promise<unknown> {
     });
 
     if (!res.ok) {
-      console.error(`[crossChain] SubSquare API error: ${res.status} ${res.statusText}`);
+      const msg = `SubSquare API error: ${res.status} ${res.statusText}`;
+      if (res.status >= 500 || res.status === 429) throw new Error(msg);
+      console.error(`[crossChain] ${msg}`);
       return null;
     }
 
     return await res.json();
-  } catch (err) {
-    console.error('[crossChain] SubSquare fetch failed:', err);
-    return null;
   } finally {
     clearTimeout(timeout);
   }
@@ -221,8 +246,8 @@ async function subsquareFetch(path: string): Promise<unknown> {
 
 export async function fetchPolkadotBenchmark(): Promise<ChainBenchmark | null> {
   const [summaryData, referendaData] = await Promise.all([
-    subsquareFetch('/summary'),
-    subsquareFetch('/gov2/referendums?page=1&page_size=20'),
+    withRetry(() => subsquareFetch('/summary')),
+    withRetry(() => subsquareFetch('/gov2/referendums?page=1&page_size=20')),
   ]);
 
   const summary = summaryData as {
@@ -332,4 +357,3 @@ function getISOWeek(date: Date): number {
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
   return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
 }
-

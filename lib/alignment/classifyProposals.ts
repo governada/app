@@ -232,7 +232,10 @@ export async function classifyProposalsAI(
     }));
     const { error: historyErr } = await supabase.from('classification_history').insert(historyRows);
     if (historyErr) {
-      console.warn('[alignment] classification_history insert failed (non-fatal):', historyErr.message);
+      console.warn(
+        '[alignment] classification_history insert failed (non-fatal):',
+        historyErr.message,
+      );
     }
 
     await supabase

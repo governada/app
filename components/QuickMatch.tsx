@@ -229,8 +229,7 @@ export function QuickMatch() {
                   onClick={() => handleAnswer(question.id, opt.value)}
                   className={cn(
                     'w-full text-left p-4 rounded-lg border transition-all hover:border-primary/50 hover:bg-primary/5',
-                    answers[question.id] === opt.value &&
-                      'border-primary bg-primary/10',
+                    answers[question.id] === opt.value && 'border-primary bg-primary/10',
                   )}
                 >
                   <p className="font-medium text-sm">{opt.label}</p>
@@ -269,9 +268,7 @@ function QuickMatchResults({ result }: { result: QuickMatchResult }) {
           >
             {result.personalityLabel}
           </Badge>
-          <p className="text-sm text-muted-foreground mt-2">
-            Your governance values profile
-          </p>
+          <p className="text-sm text-muted-foreground mt-2">Your governance values profile</p>
         </div>
       </motion.div>
 
@@ -331,8 +328,8 @@ function QuickMatchResults({ result }: { result: QuickMatchResult }) {
           <Sparkles className="h-6 w-6 text-primary mx-auto" />
           <h4 className="font-semibold">Want better accuracy?</h4>
           <p className="text-sm text-muted-foreground">
-            These matches are based on your values. The DNA Quiz votes on real proposals
-            for higher accuracy.
+            These matches are based on your values. The DNA Quiz votes on real proposals for higher
+            accuracy.
           </p>
           <Link href="/discover">
             <Button className="gap-2">

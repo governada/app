@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { parseSessionToken, isSessionExpired } from '@/lib/supabaseAuth';
+import { captureServerEvent } from '@/lib/posthog-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -75,6 +76,8 @@ export async function POST(
       console.error('[Explanations POST] Error:', error);
       return NextResponse.json({ error: 'Failed to save explanation' }, { status: 500 });
     }
+
+    captureServerEvent('vote_explanation_created', { drep_id: drepId }, drepId);
 
     return NextResponse.json(data);
   } catch (err) {

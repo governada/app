@@ -8,7 +8,9 @@ alwaysApply: false
 
 ## What This Is
 
-Cardano governance tool for casual ADA holders to discover DReps aligned with their values via scorecards and easy delegation. Brand: `$drepscore`. Tone: neutral, educational.
+The governance intelligence layer for Cardano -- ingests every governance action on-chain, layers opinionated analysis, and delivers personalized, actionable insight to every ecosystem participant. Brand: `$drepscore`. Tone: neutral, educational.
+
+**Product vision and build sequence:** See `docs/strategy/ultimate-vision.md` for the definitive north star -- build order, monetization phases, data flywheel, and how every system connects.
 
 ## Tech Stack
 
@@ -55,27 +57,27 @@ Next.js App (server components + API routes + client components)
 
 ## Key Files
 
-| Purpose                              | File(s)                                                                                                                 |
-| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| Base URL for server-side fetches     | `lib/constants.ts` (`BASE_URL`)                                                                                         |
-| Supabase reads (primary data source) | `lib/data.ts`                                                                                                           |
-| Koios API helpers (used by sync)     | `utils/koios.ts`                                                                                                        |
-| Scoring V3 (pillar computation)      | `lib/scoring/` (engagementQuality, effectiveParticipation, reliability, governanceIdentity, drepScore, percentile, types) |
-| Scoring & enrichment (legacy helpers)| `lib/koios.ts`, `utils/scoring.ts`                                                                                      |
-| Supabase client                      | `lib/supabase.ts`                                                                                                       |
-| **Sync logic (durable, callable)**   | `lib/sync/dreps.ts`, `lib/sync/votes.ts`, `lib/sync/secondary.ts`, `lib/sync/slow.ts`                                   |
-| Sync HTTP routes (thin wrappers)     | `app/api/sync/dreps/`, `app/api/sync/votes/`, `app/api/sync/proposals/`, `app/api/sync/secondary/`, `app/api/sync/slow/`, `app/api/sync/treasury/` |
-| Proposals sync (inline in Inngest)   | `inngest/functions/sync-proposals.ts`                                                                                   |
-| DRep types                           | `types/drep.ts`, `types/koios.ts`                                                                                       |
-| Alignment scoring (PCA)              | `lib/alignment/` (pca, voteMatrix, classifyProposals, normalize, dimensions, rationaleQuality, validate), `lib/alignment.ts` |
-| Matching engine (quiz + confidence)  | `lib/matching/confidence.ts`, `lib/matching/dimensionAgreement.ts`, `lib/matching/userProfile.ts`, `lib/representationMatch.ts` |
-| GHI v2 (6 components + EDI)          | `lib/ghi/` (index, components, ediMetrics, calibration, types), `lib/ghi.ts` (re-export shim)                           |
-| Decentralization dashboard           | `app/decentralization/`, `app/api/governance/decentralization/route.ts`                                                 |
-| Admin integrity                      | `app/api/admin/integrity/route.ts`, `app/admin/integrity/page.tsx`                                                      |
-| Feature flags                        | `lib/featureFlags.ts`, `components/FeatureGate.tsx`, `app/api/admin/feature-flags/route.ts`, `app/admin/flags/page.tsx` |
-| Cross-chain governance               | `lib/crossChain.ts`, `inngest/functions/sync-governance-benchmarks.ts`                                                  |
-| Developer platform                   | `app/developers/page.tsx`, `components/DeveloperPage.tsx`, `components/ApiExplorer.tsx`                                 |
-| Embeddable widgets                   | `app/embed/layout.tsx`, `public/embed.js`, `components/Embed*.tsx`                                                      |
+| Purpose                               | File(s)                                                                                                                                            |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Base URL for server-side fetches      | `lib/constants.ts` (`BASE_URL`)                                                                                                                    |
+| Supabase reads (primary data source)  | `lib/data.ts`                                                                                                                                      |
+| Koios API helpers (used by sync)      | `utils/koios.ts`                                                                                                                                   |
+| Scoring V3 (pillar computation)       | `lib/scoring/` (engagementQuality, effectiveParticipation, reliability, governanceIdentity, drepScore, percentile, types)                          |
+| Scoring & enrichment (legacy helpers) | `lib/koios.ts`, `utils/scoring.ts`                                                                                                                 |
+| Supabase client                       | `lib/supabase.ts`                                                                                                                                  |
+| **Sync logic (durable, callable)**    | `lib/sync/dreps.ts`, `lib/sync/votes.ts`, `lib/sync/secondary.ts`, `lib/sync/slow.ts`                                                              |
+| Sync HTTP routes (thin wrappers)      | `app/api/sync/dreps/`, `app/api/sync/votes/`, `app/api/sync/proposals/`, `app/api/sync/secondary/`, `app/api/sync/slow/`, `app/api/sync/treasury/` |
+| Proposals sync (inline in Inngest)    | `inngest/functions/sync-proposals.ts`                                                                                                              |
+| DRep types                            | `types/drep.ts`, `types/koios.ts`                                                                                                                  |
+| Alignment scoring (PCA)               | `lib/alignment/` (pca, voteMatrix, classifyProposals, normalize, dimensions, rationaleQuality, validate), `lib/alignment.ts`                       |
+| Matching engine (quiz + confidence)   | `lib/matching/confidence.ts`, `lib/matching/dimensionAgreement.ts`, `lib/matching/userProfile.ts`, `lib/representationMatch.ts`                    |
+| GHI v2 (6 components + EDI)           | `lib/ghi/` (index, components, ediMetrics, calibration, types), `lib/ghi.ts` (re-export shim)                                                      |
+| Decentralization dashboard            | `app/decentralization/`, `app/api/governance/decentralization/route.ts`                                                                            |
+| Admin integrity                       | `app/api/admin/integrity/route.ts`, `app/admin/integrity/page.tsx`                                                                                 |
+| Feature flags                         | `lib/featureFlags.ts`, `components/FeatureGate.tsx`, `app/api/admin/feature-flags/route.ts`, `app/admin/flags/page.tsx`                            |
+| Cross-chain governance                | `lib/crossChain.ts`, `inngest/functions/sync-governance-benchmarks.ts`                                                                             |
+| Developer platform                    | `app/developers/page.tsx`, `components/DeveloperPage.tsx`, `components/ApiExplorer.tsx`                                                            |
+| Embeddable widgets                    | `app/embed/layout.tsx`, `public/embed.js`, `components/Embed*.tsx`                                                                                 |
 
 ## Feature Flags
 

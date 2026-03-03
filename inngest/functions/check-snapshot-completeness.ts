@@ -6,6 +6,7 @@
  */
 
 import { inngest } from '@/lib/inngest';
+import { captureServerEvent } from '@/lib/posthog-server';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { alertDiscord, emitPostHog, type SyncType } from '@/lib/sync-utils';
 
@@ -136,9 +137,12 @@ export const checkSnapshotCompleteness = inngest.createFunction(
       const { count: alignCacheCount } = await supabase
         .from('inter_body_alignment')
         .select('proposal_tx_hash', { count: 'exact', head: true });
-      const alignSnapCoverage = (alignCacheCount ?? 0) > 0
-        ? ((alignSnapCount ?? 0) / (alignCacheCount ?? 1)) * 100
-        : (alignSnapCount ?? 0) > 0 ? 100 : 0;
+      const alignSnapCoverage =
+        (alignCacheCount ?? 0) > 0
+          ? ((alignSnapCount ?? 0) / (alignCacheCount ?? 1)) * 100
+          : (alignSnapCount ?? 0) > 0
+            ? 100
+            : 0;
       results.push({
         name: 'inter_body_alignment_snapshots',
         passed: alignSnapCoverage >= 80 || (alignCacheCount ?? 0) === 0,
@@ -188,6 +192,34 @@ export const checkSnapshotCompleteness = inngest.createFunction(
         detail: partRow ? `epoch ${epoch} present` : `epoch ${epoch} MISSING`,
       });
 
+      // 12. Proposal classifications — not epoch-scoped; verify coverage vs active proposals
+      const { count: activeProposalCount } = await supabase
+        .from('proposals')
+        .select('tx_hash', { count: 'exact', head: true });
+      const { count: classifiedCount } = await supabase
+        .from('proposal_classifications')
+        .select('proposal_tx_hash', { count: 'exact', head: true });
+      const classifiedTotal = classifiedCount ?? 0;
+      const activeTotal = activeProposalCount ?? 0;
+      const classifyCoverage = activeTotal > 0 ? (classifiedTotal / activeTotal) * 100 : 0;
+      results.push({
+        name: 'proposal_classifications',
+        passed: classifyCoverage >= 50 || activeTotal === 0,
+        detail: `${classifiedTotal}/${activeTotal} proposals classified (${classifyCoverage.toFixed(1)}%)`,
+      });
+
+      // 13. Epoch recaps for current epoch
+      const { data: recapRow } = await supabase
+        .from('epoch_recaps')
+        .select('epoch')
+        .eq('epoch', epoch)
+        .maybeSingle();
+      results.push({
+        name: 'epoch_recaps',
+        passed: !!recapRow,
+        detail: recapRow ? `epoch ${epoch} present` : `epoch ${epoch} MISSING`,
+      });
+
       return results;
     });
 
@@ -201,6 +233,13 @@ export const checkSnapshotCompleteness = inngest.createFunction(
           'Snapshot Completeness Failed',
           `${failures.length} of ${checks.length} checks failed:\n${failureList}`,
         );
+
+        for (const f of failures) {
+          captureServerEvent('snapshot_missing', {
+            table: f.name,
+            detail: f.detail,
+          });
+        }
 
         await emitPostHog(false, 'scoring' as SyncType, 0, {
           event_override: 'snapshot_completeness_failed',

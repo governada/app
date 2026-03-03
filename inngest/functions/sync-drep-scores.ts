@@ -315,7 +315,8 @@ export const syncDrepScores = inngest.createFunction(
         // Log snapshot completeness
         const activeDreps = drepRows?.filter((d: any) => d.info?.isActive !== false).length ?? 0;
         const scored = finalScores.size;
-        const coveragePct = activeDreps > 0 ? Math.round((scored / activeDreps) * 10000) / 100 : 100;
+        const coveragePct =
+          activeDreps > 0 ? Math.round((scored / activeDreps) * 10000) / 100 : 100;
         await supabase.from('snapshot_completeness_log').upsert(
           {
             snapshot_type: 'scores',
@@ -324,7 +325,11 @@ export const syncDrepScores = inngest.createFunction(
             record_count: scored,
             expected_count: activeDreps,
             coverage_pct: coveragePct,
-            metadata: { composite_avg: Math.round([...finalScores.values()].reduce((a, s) => a + s.composite, 0) / scored) },
+            metadata: {
+              composite_avg: Math.round(
+                [...finalScores.values()].reduce((a, s) => a + s.composite, 0) / scored,
+              ),
+            },
           },
           { onConflict: 'snapshot_type,epoch_no,snapshot_date' },
         );

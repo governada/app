@@ -105,17 +105,11 @@ export function EmbedCrossChain({ theme }: EmbedCrossChainProps) {
               </div>
               <div className="min-w-0 flex-1">
                 <span className="text-sm font-medium">{identity.name}</span>
-                <div
-                  className="text-[10px]"
-                  style={{ color: isDark ? '#6b7280' : '#9ca3af' }}
-                >
+                <div className="text-[10px]" style={{ color: isDark ? '#6b7280' : '#9ca3af' }}>
                   {TAGLINES[chain]}
                 </div>
               </div>
-              <span
-                className="text-sm font-bold tabular-nums"
-                style={{ color: identity.color }}
-              >
+              <span className="text-sm font-bold tabular-nums" style={{ color: identity.color }}>
                 {headline(chain, b)}
               </span>
             </div>
