@@ -1,9 +1,40 @@
 import { ImageResponse } from 'next/og';
 import { createClient } from '@/lib/supabase';
-import { getGradeColor, CHAIN_IDENTITIES, type Chain } from '@/lib/crossChain';
+import { CHAIN_IDENTITIES, type Chain } from '@/lib/crossChain';
 import { getFeatureFlag } from '@/lib/featureFlags';
 
 export const dynamic = 'force-dynamic';
+
+interface BenchmarkRow {
+  chain: string;
+  delegate_count: number | null;
+  proposal_count: number | null;
+  participation_rate: number | null;
+  ai_insight: string | null;
+}
+
+function headlineFor(chain: Chain, row: BenchmarkRow): string {
+  switch (chain) {
+    case 'cardano':
+      return row.delegate_count != null ? `${fmt(row.delegate_count)} DReps` : 'No data';
+    case 'ethereum':
+      return row.delegate_count != null ? `${fmt(row.delegate_count)} delegates` : 'No data';
+    case 'polkadot':
+      return row.proposal_count != null ? `${fmt(row.proposal_count)} referenda` : 'No data';
+  }
+}
+
+function fmt(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return n.toLocaleString();
+}
+
+const TAGLINES: Record<Chain, string> = {
+  cardano: 'DRep-based delegation',
+  ethereum: 'DAO token voting',
+  polkadot: 'Conviction voting',
+};
 
 export async function GET() {
   try {
@@ -16,25 +47,21 @@ export async function GET() {
 
     const { data: rows } = await supabase
       .from('governance_benchmarks')
-      .select('chain, governance_score, grade, participation_rate, delegate_count')
+      .select('chain, delegate_count, proposal_count, participation_rate, ai_insight')
       .order('fetched_at', { ascending: false })
       .limit(3);
 
     const chains: Chain[] = ['cardano', 'ethereum', 'polkadot'];
-    const byChain: Record<
-      string,
-      { score: number; grade: string; participation: number | null; delegates: number | null }
-    > = {};
+    const byChain: Record<string, BenchmarkRow> = {};
+    let insight: string | null = null;
 
     for (const chain of chains) {
       const row = (rows ?? []).find((r: { chain: string }) => r.chain === chain);
       if (row) {
-        byChain[chain] = {
-          score: row.governance_score ?? 0,
-          grade: row.grade ?? '—',
-          participation: row.participation_rate,
-          delegates: row.delegate_count,
-        };
+        byChain[chain] = row as BenchmarkRow;
+        if (!insight && (row as BenchmarkRow).ai_insight) {
+          insight = (row as BenchmarkRow).ai_insight;
+        }
       }
     }
 
@@ -52,29 +79,26 @@ export async function GET() {
           padding: '60px',
         }}
       >
-        {/* Title */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: '12px',
-            marginBottom: '16px',
+            marginBottom: '12px',
           }}
         >
           <span style={{ fontSize: '32px', fontWeight: 800, color: '#fff' }}>
-            Governance Health Across Chains
+            Governance Observatory
           </span>
         </div>
         <span style={{ fontSize: '16px', color: '#9ca3af', marginBottom: '40px' }}>
-          How do major blockchain governance systems compare?
+          Each chain&apos;s governance in its own terms
         </span>
 
-        {/* Cards */}
         <div style={{ display: 'flex', gap: '32px' }}>
           {chains.map((chain) => {
             const d = byChain[chain];
             const identity = CHAIN_IDENTITIES[chain];
-            const gradeColor = d ? getGradeColor(d.grade) : '#6b7280';
 
             return (
               <div
@@ -95,17 +119,22 @@ export async function GET() {
                 >
                   {identity.name}
                 </span>
+                <span style={{ fontSize: '13px', color: '#6b7280', marginBottom: '16px' }}>
+                  {TAGLINES[chain]}
+                </span>
                 <span
-                  style={{ fontSize: '72px', fontWeight: 900, color: gradeColor, lineHeight: 1 }}
+                  style={{
+                    fontSize: '36px',
+                    fontWeight: 900,
+                    color: identity.color,
+                    lineHeight: 1,
+                  }}
                 >
-                  {d?.grade ?? '—'}
+                  {d ? headlineFor(chain, d) : '—'}
                 </span>
-                <span style={{ fontSize: '18px', color: '#9ca3af', marginTop: '8px' }}>
-                  {d ? `${d.score}/100` : 'No data'}
-                </span>
-                {d?.participation != null && (
-                  <span style={{ fontSize: '14px', color: '#6b7280', marginTop: '4px' }}>
-                    {d.participation}% participation
+                {d?.participation_rate != null && (
+                  <span style={{ fontSize: '14px', color: '#9ca3af', marginTop: '8px' }}>
+                    {d.participation_rate}% participation
                   </span>
                 )}
               </div>
@@ -113,8 +142,24 @@ export async function GET() {
           })}
         </div>
 
-        {/* Branding */}
-        <span style={{ fontSize: '14px', color: '#4b5563', marginTop: '32px' }}>
+        {insight && (
+          <div
+            style={{
+              display: 'flex',
+              maxWidth: '900px',
+              marginTop: '28px',
+              padding: '12px 20px',
+              borderRadius: '8px',
+              backgroundColor: '#ffffff08',
+            }}
+          >
+            <span style={{ fontSize: '13px', color: '#9ca3af', fontStyle: 'italic' }}>
+              {insight}
+            </span>
+          </div>
+        )}
+
+        <span style={{ fontSize: '14px', color: '#4b5563', marginTop: '24px' }}>
           drepscore.io — Governance Intelligence for Crypto
         </span>
       </div>,

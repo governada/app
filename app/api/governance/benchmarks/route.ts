@@ -14,6 +14,8 @@ interface BenchmarkRow {
   avg_rationale_rate: number | null;
   governance_score: number | null;
   grade: string | null;
+  raw_data: Record<string, unknown> | null;
+  ai_insight: string | null;
   fetched_at: string;
 }
 
@@ -21,7 +23,7 @@ export async function GET() {
   try {
     const enabled = await getFeatureFlag('cross_chain_observatory');
     if (!enabled) {
-      return NextResponse.json({ latest: {}, history: [], disabled: true }, { status: 200 });
+      return NextResponse.json({ benchmarks: {}, history: [], disabled: true }, { status: 200 });
     }
 
     const supabase = createClient();
@@ -29,7 +31,7 @@ export async function GET() {
     const { data: latest, error: latestErr } = await supabase
       .from('governance_benchmarks')
       .select(
-        'chain, period_label, participation_rate, delegate_count, proposal_count, proposal_throughput, avg_rationale_rate, governance_score, grade, fetched_at',
+        'chain, period_label, participation_rate, delegate_count, proposal_count, proposal_throughput, avg_rationale_rate, governance_score, grade, raw_data, ai_insight, fetched_at',
       )
       .order('fetched_at', { ascending: false })
       .limit(3);
@@ -45,46 +47,12 @@ export async function GET() {
       latestByChain[chain] = (latest as BenchmarkRow[])?.find((r) => r.chain === chain) ?? null;
     }
 
-    const { data: history, error: historyErr } = await supabase
-      .from('governance_benchmarks')
-      .select('chain, period_label, governance_score, grade, fetched_at')
-      .order('fetched_at', { ascending: true })
-      .limit(60);
-
-    if (historyErr) {
-      console.error('[benchmarks] History fetch error:', historyErr.message);
-    }
-
-    const historyByChain: Record<
-      string,
-      { periodLabel: string; score: number | null; grade: string | null }[]
-    > = {
-      cardano: [],
-      ethereum: [],
-      polkadot: [],
-    };
-
-    if (history) {
-      for (const row of history as {
-        chain: string;
-        period_label: string;
-        governance_score: number | null;
-        grade: string | null;
-      }[]) {
-        if (historyByChain[row.chain]) {
-          historyByChain[row.chain].push({
-            periodLabel: row.period_label,
-            score: row.governance_score,
-            grade: row.grade,
-          });
-        }
-      }
-    }
+    const aiInsight = (latest as BenchmarkRow[])?.find((r) => r.ai_insight)?.ai_insight ?? null;
 
     return NextResponse.json(
       {
         benchmarks: latestByChain,
-        history: historyByChain,
+        aiInsight,
         updatedAt: latest?.[0]?.fetched_at ?? null,
       },
       {
