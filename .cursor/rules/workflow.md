@@ -36,6 +36,26 @@ alwaysApply: true
 - **No orphaned components**: Every component created must be imported and rendered in the same commit
 - **Deprecation audit**: When removing a system, search for all consumers of its data and state — not just imports
 
+## Post-Build: Ship It (MANDATORY — every feature, every time)
+
+> A build is NOT complete until production is running the new code. This applies to ALL features, not just hotfixes. See `critical.md #2`. Corrected 5 times.
+
+After code compiles clean and all local checks pass, execute this IMMEDIATELY without asking:
+
+1. `git add` relevant files → `git commit -F COMMIT_MSG.txt` → `Remove-Item COMMIT_MSG.txt`
+2. `git push -u origin HEAD`
+3. `gh pr create --title "..." --body-file PR_BODY.md` → `Remove-Item PR_BODY.md`
+4. `gh pr checks <N> --watch` — fix failures if yours, verify pre-existing if not
+5. `gh pr merge <N> --squash --delete-branch`
+6. Apply pending migrations via Supabase MCP `apply_migration`
+7. Monitor Railway deployment: poll `gh api .../deployments/.../statuses` until `state: success`
+8. PUT `/api/inngest` if Inngest functions were added/modified
+9. Hit new/changed endpoints on `drepscore.io` to verify
+10. `git checkout main; git pull`
+11. Update `tasks/lessons.md` if corrections occurred
+
+**Never** say "build complete — PR next" or "ready for review." Just ship it.
+
 ## Pre-PR Plan Audit
 
 When a `.cursor/plans/*.plan.md` drove the work, audit before PR. See global workflow rule for full protocol.

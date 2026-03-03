@@ -19,7 +19,7 @@ These override all other guidance when in conflict.
    6. PUT `/api/inngest` if Inngest functions were added/modified
    7. Hit new/changed endpoints on `drepscore.io` to verify 200 responses
    8. Clean up worktree
-      Never say "PR created — merge when ready." Never present a deployment checklist. Just do it. Corrected 3 times.
+      Never say "PR created — merge when ready." Never say "build complete — PR when ready." Never present a deployment checklist. Just do it. Corrected 5 times. See `workflow.md` "Post-Build: Ship It" for the full sequence.
 
 3. **Railway, not Vercel.** Never reference `VERCEL_*` env vars, `vercel.json`, or `@vercel/*` packages. Use `BASE_URL` from `lib/constants.ts` for server-side URLs.
 

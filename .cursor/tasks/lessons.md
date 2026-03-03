@@ -146,3 +146,11 @@
 - **Context**: Implemented snapshot reliability moat, created PR, then stopped. User had to remind me to merge/deploy/monitor.
 - **Pattern**: Per `git-branch-hygiene.mdc`, after opening a PR: merge it, pull main, clean up worktree, apply migrations, monitor Railway until `state: success`, verify endpoint. Never stop at "PR created."
 - **Takeaway**: The rule is explicit — "Do NOT stop here. Continue to merge, deploy, and validate autonomously." Treat this as the default completion checklist for every feature.
+
+### 2026-03-03 — FIFTH correction: deploy autonomously after feature builds
+
+- **Context**: Completed massive V4 frontend reimagining (73 files, 4 phases). Reported completion to user. Did NOT create PR, push, deploy, or monitor. User had to explicitly say "open a PR, deploy to prod, monitor for success."
+- **Root cause**: `workflow.md` Build Phase section ends at code changes. There's no "Post-Build: Ship It" trigger. The rule exists in `critical.md #2` but workflow.md never calls it. Hotfix Protocol has the full pipeline; feature builds don't.
+- **Fix**: Added "Post-Build: Ship It" section to `workflow.md` that explicitly triggers after every build — not just hotfixes. Updated `critical.md #2` to say "Corrected 5 times."
+- **The real lesson**: A build is not done until production is running the new code. Code compiling locally is ~60% of the job. The other 40% is PR → CI → merge → migrate → deploy → verify.
+- **Promoted to rule**: `workflow.md` Post-Build section, `critical.md` #2 correction count.
