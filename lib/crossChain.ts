@@ -1,8 +1,8 @@
 /**
  * Cross-Chain Governance Intelligence
  *
- * Adapters for Tally (Ethereum) and SubSquare (Polkadot) APIs,
- * plus score/grade computation for cross-chain governance benchmarking.
+ * Adapters for Tally (Ethereum) and SubSquare (Polkadot) APIs
+ * that fetch chain-native metrics for the Governance Observatory.
  */
 
 export type Chain = 'cardano' | 'ethereum' | 'polkadot';
@@ -15,8 +15,6 @@ export interface ChainBenchmark {
   proposalCount: number | null;
   proposalThroughput: number | null;
   avgRationaleRate: number | null;
-  governanceScore: number | null;
-  grade: string | null;
   rawData: Record<string, unknown>;
   fetchedAt: string;
 }
@@ -33,52 +31,6 @@ export const CHAIN_IDENTITIES: Record<Chain, ChainIdentity> = {
   ethereum: { chain: 'ethereum', name: 'Ethereum', color: '#a855f7', logo: '/chains/ethereum.svg' },
   polkadot: { chain: 'polkadot', name: 'Polkadot', color: '#ec4899', logo: '/chains/polkadot.svg' },
 };
-
-// ---------------------------------------------------------------------------
-// Grade computation
-// ---------------------------------------------------------------------------
-
-const GRADE_THRESHOLDS = [
-  { min: 93, grade: 'A+' },
-  { min: 85, grade: 'A' },
-  { min: 80, grade: 'A-' },
-  { min: 77, grade: 'B+' },
-  { min: 73, grade: 'B' },
-  { min: 70, grade: 'B-' },
-  { min: 67, grade: 'C+' },
-  { min: 63, grade: 'C' },
-  { min: 60, grade: 'C-' },
-  { min: 57, grade: 'D+' },
-  { min: 53, grade: 'D' },
-  { min: 50, grade: 'D-' },
-  { min: 0, grade: 'F' },
-] as const;
-
-export function computeGrade(score: number): string {
-  for (const t of GRADE_THRESHOLDS) {
-    if (score >= t.min) return t.grade;
-  }
-  return 'F';
-}
-
-export function computeGovernanceScore(metrics: {
-  participationRate: number | null;
-  delegateCount: number | null;
-  proposalThroughput: number | null;
-  rationaleRate: number | null;
-}): number {
-  const participation = metrics.participationRate ?? 0;
-  const throughput = metrics.proposalThroughput ?? 0;
-
-  const delegateScore = Math.min(100, ((metrics.delegateCount ?? 0) / 500) * 100);
-
-  const rationaleScore = metrics.rationaleRate ?? 0;
-
-  const score =
-    participation * 0.35 + throughput * 0.25 + delegateScore * 0.2 + rationaleScore * 0.2;
-
-  return Math.min(100, Math.max(0, Math.round(score)));
-}
 
 // ---------------------------------------------------------------------------
 // Tally adapter (Ethereum)
@@ -175,10 +127,7 @@ async function tallyFetch(query: string, variables?: Record<string, unknown>): P
   }
 }
 
-export async function fetchEthereumBenchmark(): Promise<Omit<
-  ChainBenchmark,
-  'grade' | 'governanceScore'
-> | null> {
+export async function fetchEthereumBenchmark(): Promise<ChainBenchmark | null> {
   const orgsData = (await tallyFetch(TALLY_ORGS_QUERY)) as {
     organizations?: { nodes: TallyOrgNode[] };
   } | null;
@@ -270,10 +219,7 @@ async function subsquareFetch(path: string): Promise<unknown> {
   }
 }
 
-export async function fetchPolkadotBenchmark(): Promise<Omit<
-  ChainBenchmark,
-  'grade' | 'governanceScore'
-> | null> {
+export async function fetchPolkadotBenchmark(): Promise<ChainBenchmark | null> {
   const [summaryData, referendaData] = await Promise.all([
     subsquareFetch('/summary'),
     subsquareFetch('/gov2/referendums?page=1&page_size=20'),
@@ -307,7 +253,7 @@ export async function fetchPolkadotBenchmark(): Promise<Omit<
 
     participationRate =
       activeReferenda > 0
-        ? Math.min(100, Math.round((activeReferenda / Math.max(totalReferenda, 1)) * 100 * 5))
+        ? Math.min(100, Math.round((activeReferenda / Math.max(totalReferenda, 1)) * 100))
         : null;
   }
 
@@ -331,10 +277,7 @@ export async function fetchPolkadotBenchmark(): Promise<Omit<
 // Cardano adapter (reads from existing GHI)
 // ---------------------------------------------------------------------------
 
-export async function fetchCardanoBenchmark(): Promise<Omit<
-  ChainBenchmark,
-  'grade' | 'governanceScore'
-> | null> {
+export async function fetchCardanoBenchmark(): Promise<ChainBenchmark | null> {
   const { computeGHI } = await import('./ghi');
   const { createClient } = await import('./supabase');
 
@@ -390,10 +333,3 @@ function getISOWeek(date: Date): number {
   return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
 }
 
-export function getGradeColor(grade: string): string {
-  if (grade.startsWith('A')) return '#10b981';
-  if (grade.startsWith('B')) return '#06b6d4';
-  if (grade.startsWith('C')) return '#f59e0b';
-  if (grade.startsWith('D')) return '#f97316';
-  return '#ef4444';
-}

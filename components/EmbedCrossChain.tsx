@@ -1,16 +1,40 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CHAIN_IDENTITIES, getGradeColor, type Chain } from '@/lib/crossChain';
+import { CHAIN_IDENTITIES, type Chain } from '@/lib/crossChain';
 
 interface EmbedCrossChainProps {
   theme: 'dark' | 'light';
 }
 
 interface BenchmarkData {
-  governance_score: number | null;
-  grade: string | null;
+  delegate_count: number | null;
+  proposal_count: number | null;
   participation_rate: number | null;
+}
+
+const TAGLINES: Record<Chain, string> = {
+  cardano: 'DRep delegation',
+  ethereum: 'DAO token voting',
+  polkadot: 'Conviction voting',
+};
+
+function headline(chain: Chain, b: BenchmarkData | null): string {
+  if (!b) return '—';
+  switch (chain) {
+    case 'cardano':
+      return b.delegate_count != null ? `${fmt(b.delegate_count)} DReps` : '—';
+    case 'ethereum':
+      return b.delegate_count != null ? `${fmt(b.delegate_count)} delegates` : '—';
+    case 'polkadot':
+      return b.proposal_count != null ? `${fmt(b.proposal_count)} referenda` : '—';
+  }
+}
+
+function fmt(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return n.toLocaleString();
 }
 
 export function EmbedCrossChain({ theme }: EmbedCrossChainProps) {
@@ -46,7 +70,7 @@ export function EmbedCrossChain({ theme }: EmbedCrossChainProps) {
 
   return (
     <div
-      className="p-4 rounded-xl"
+      className="rounded-xl p-4"
       style={{
         backgroundColor: isDark ? '#0a0b14' : '#fff',
         color: isDark ? '#fff' : '#0a0b14',
@@ -56,18 +80,16 @@ export function EmbedCrossChain({ theme }: EmbedCrossChainProps) {
       }}
     >
       <div
-        className="text-[10px] font-semibold uppercase tracking-wider mb-3"
+        className="mb-3 text-[10px] font-semibold uppercase tracking-wider"
         style={{ color: isDark ? '#6b7280' : '#9ca3af' }}
       >
-        Governance Across Chains
+        Governance Observatory
       </div>
 
       <div className="space-y-2">
         {chains.map((chain) => {
-          const b = benchmarks[chain];
+          const b = benchmarks[chain] as BenchmarkData | null;
           const identity = CHAIN_IDENTITIES[chain];
-          const grade = b?.grade ?? '—';
-          const gradeColor = b?.grade ? getGradeColor(b.grade) : '#6b7280';
 
           return (
             <div
@@ -81,22 +103,27 @@ export function EmbedCrossChain({ theme }: EmbedCrossChainProps) {
               >
                 {identity.name[0]}
               </div>
-              <span className="flex-1 text-sm font-medium">{identity.name}</span>
-              <span className="text-xl font-black" style={{ color: gradeColor }}>
-                {grade}
-              </span>
+              <div className="min-w-0 flex-1">
+                <span className="text-sm font-medium">{identity.name}</span>
+                <div
+                  className="text-[10px]"
+                  style={{ color: isDark ? '#6b7280' : '#9ca3af' }}
+                >
+                  {TAGLINES[chain]}
+                </div>
+              </div>
               <span
-                className="text-xs tabular-nums"
-                style={{ color: isDark ? '#6b7280' : '#9ca3af' }}
+                className="text-sm font-bold tabular-nums"
+                style={{ color: identity.color }}
               >
-                {b?.governance_score ?? '—'}/100
+                {headline(chain, b)}
               </span>
             </div>
           );
         })}
       </div>
 
-      <div className="mt-3 flex justify-between items-center">
+      <div className="mt-3 flex items-center justify-between">
         <a
           href="https://drepscore.io/pulse"
           target="_blank"
@@ -104,7 +131,7 @@ export function EmbedCrossChain({ theme }: EmbedCrossChainProps) {
           className="text-[10px] font-medium hover:underline"
           style={{ color: '#06b6d4' }}
         >
-          View full comparison →
+          View full Observatory →
         </a>
         <span className="text-[9px]" style={{ color: isDark ? '#374151' : '#d1d5db' }}>
           drepscore.io

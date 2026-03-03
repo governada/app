@@ -9,12 +9,11 @@
 import { inngest } from '@/lib/inngest';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { getFeatureFlag } from '@/lib/featureFlags';
+import { generateText } from '@/lib/ai';
 import {
   fetchEthereumBenchmark,
   fetchPolkadotBenchmark,
   fetchCardanoBenchmark,
-  computeGovernanceScore,
-  computeGrade,
   type ChainBenchmark,
 } from '@/lib/crossChain';
 
@@ -49,30 +48,9 @@ export const syncGovernanceBenchmarks = inngest.createFunction(
       const supabase = getSupabaseAdmin();
       const stored: string[] = [];
 
-      const benchmarks = [cardano, ethereum, polkadot].filter(Boolean) as Omit<
-        ChainBenchmark,
-        'grade' | 'governanceScore'
-      >[];
+      const benchmarks = [cardano, ethereum, polkadot].filter(Boolean) as ChainBenchmark[];
 
       for (const b of benchmarks) {
-        const governanceScore =
-          b.chain === 'cardano'
-            ? ((b.rawData as { ghiScore?: number })?.ghiScore ??
-              computeGovernanceScore({
-                participationRate: b.participationRate,
-                delegateCount: b.delegateCount,
-                proposalThroughput: b.proposalThroughput,
-                rationaleRate: b.avgRationaleRate,
-              }))
-            : computeGovernanceScore({
-                participationRate: b.participationRate,
-                delegateCount: b.delegateCount,
-                proposalThroughput: b.proposalThroughput,
-                rationaleRate: b.avgRationaleRate,
-              });
-
-        const grade = computeGrade(governanceScore);
-
         const { error } = await supabase.from('governance_benchmarks').upsert(
           {
             chain: b.chain,
@@ -82,8 +60,8 @@ export const syncGovernanceBenchmarks = inngest.createFunction(
             proposal_count: b.proposalCount,
             proposal_throughput: b.proposalThroughput,
             avg_rationale_rate: b.avgRationaleRate,
-            governance_score: governanceScore,
-            grade,
+            governance_score: null,
+            grade: null,
             raw_data: b.rawData,
             fetched_at: b.fetchedAt,
           },
@@ -93,7 +71,7 @@ export const syncGovernanceBenchmarks = inngest.createFunction(
         if (error) {
           console.error(`[sync-benchmarks] Failed to store ${b.chain}:`, error.message);
         } else {
-          stored.push(`${b.chain}: ${governanceScore} (${grade})`);
+          stored.push(b.chain);
         }
       }
 
@@ -104,6 +82,54 @@ export const syncGovernanceBenchmarks = inngest.createFunction(
       `[sync-benchmarks] Stored ${results.stored.length}/${results.total} benchmarks:`,
       results.stored,
     );
-    return results;
+
+    const aiInsightEnabled = await step.run('check-ai-insight-flag', async () => {
+      return getFeatureFlag('cross_chain_ai_insight');
+    });
+
+    let aiInsight: string | null = null;
+
+    if (aiInsightEnabled) {
+      aiInsight = await step.run('generate-ai-insight', async () => {
+        const benchmarks = [cardano, ethereum, polkadot].filter(Boolean) as ChainBenchmark[];
+        if (benchmarks.length < 2) return null;
+
+        const metricsContext = benchmarks
+          .map((b) => {
+            const parts = [`${b.chain}:`];
+            if (b.delegateCount != null) parts.push(`${b.delegateCount} delegates/DReps`);
+            if (b.participationRate != null) parts.push(`${b.participationRate}% participation`);
+            if (b.proposalCount != null) parts.push(`${b.proposalCount} proposals`);
+            if (b.proposalThroughput != null) parts.push(`${b.proposalThroughput}% throughput`);
+            if (b.avgRationaleRate != null) parts.push(`${b.avgRationaleRate}% rationale rate`);
+            return parts.join(' ');
+          })
+          .join('\n');
+
+        const prompt = `You are a neutral governance analyst. Given these metrics from blockchain governance systems, write ONE concise, factual observation (1-2 sentences) that highlights an interesting pattern or difference. Do not judge which is better. Do not favor any chain. Focus on what the data shows.\n\nMetrics:\n${metricsContext}`;
+
+        return generateText(prompt, {
+          maxTokens: 200,
+          temperature: 0.3,
+          system: 'You are a neutral, data-driven governance analyst. Output only the observation, no preamble.',
+        });
+      });
+
+      if (aiInsight) {
+        await step.run('store-ai-insight', async () => {
+          const supabase = getSupabaseAdmin();
+          const benchmarks = [cardano, ethereum, polkadot].filter(Boolean) as ChainBenchmark[];
+          for (const b of benchmarks) {
+            await supabase
+              .from('governance_benchmarks')
+              .update({ ai_insight: aiInsight })
+              .eq('chain', b.chain)
+              .eq('period_label', b.periodLabel);
+          }
+        });
+      }
+    }
+
+    return { ...results, aiInsight };
   },
 );
