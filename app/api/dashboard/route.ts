@@ -26,65 +26,65 @@ export const GET = withRouteHandler(async (request: NextRequest, context: RouteC
   }
 
   const cachedDRep = await getDRepById(drepId);
-    if (!cachedDRep) {
-      return NextResponse.json({ error: 'DRep not found' }, { status: 404 });
-    }
+  if (!cachedDRep) {
+    return NextResponse.json({ error: 'DRep not found' }, { status: 404 });
+  }
 
-    const [rawVotes, scoreHistory, linkChecks, percentile] = await Promise.all([
-      getVotesByDRepId(drepId),
-      getScoreHistory(drepId),
-      getSocialLinkChecks(drepId),
-      getDRepPercentile(cachedDRep.drepScore),
-    ]);
+  const [rawVotes, scoreHistory, linkChecks, percentile] = await Promise.all([
+    getVotesByDRepId(drepId),
+    getScoreHistory(drepId),
+    getSocialLinkChecks(drepId),
+    getDRepPercentile(cachedDRep.drepScore),
+  ]);
 
-    const proposalIds = rawVotes.map((v: any) => ({
-      txHash: v.proposal_tx_hash as string,
-      index: v.proposal_index as number,
-    }));
-    const seen = new Set<string>();
-    const uniqueProposalIds = proposalIds.filter((p: { txHash: string; index: number }) => {
-      const key = `${p.txHash}-${p.index}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
+  const proposalIds = rawVotes.map((v: any) => ({
+    txHash: v.proposal_tx_hash as string,
+    index: v.proposal_index as number,
+  }));
+  const seen = new Set<string>();
+  const uniqueProposalIds = proposalIds.filter((p: { txHash: string; index: number }) => {
+    const key = `${p.txHash}-${p.index}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 
-    const [cachedProposals, cachedRationales] = await Promise.all([
-      getProposalsByIds(uniqueProposalIds),
-      getRationalesByVoteTxHashes(rawVotes.map((v: any) => v.vote_tx_hash)),
-    ]);
+  const [cachedProposals, cachedRationales] = await Promise.all([
+    getProposalsByIds(uniqueProposalIds),
+    getRationalesByVoteTxHashes(rawVotes.map((v: any) => v.vote_tx_hash)),
+  ]);
 
-    const votes = rawVotes.map((vote: any, index: number) => {
-      const key = `${vote.proposal_tx_hash}-${vote.proposal_index}`;
-      const cachedProposal = cachedProposals.get(key);
-      const title = cachedProposal?.title || null;
-      const rationaleRecord = cachedRationales.get(vote.vote_tx_hash) ?? null;
-      const rationaleText = rationaleRecord?.rationaleText || null;
-      const rationaleAiSummary = rationaleRecord?.rationaleAiSummary || null;
+  const votes = rawVotes.map((vote: any, index: number) => {
+    const key = `${vote.proposal_tx_hash}-${vote.proposal_index}`;
+    const cachedProposal = cachedProposals.get(key);
+    const title = cachedProposal?.title || null;
+    const rationaleRecord = cachedRationales.get(vote.vote_tx_hash) ?? null;
+    const rationaleText = rationaleRecord?.rationaleText || null;
+    const rationaleAiSummary = rationaleRecord?.rationaleAiSummary || null;
 
-      return {
-        id: `${vote.vote_tx_hash}-${index}`,
-        proposalTxHash: vote.proposal_tx_hash,
-        proposalIndex: vote.proposal_index,
-        voteTxHash: vote.vote_tx_hash,
-        date: new Date(vote.block_time * 1000).toISOString(),
-        vote: vote.vote,
-        title: getProposalDisplayTitle(title, vote.proposal_tx_hash, vote.proposal_index),
-        abstract: cachedProposal?.abstract || null,
-        aiSummary: cachedProposal?.aiSummary ?? null,
-        hasRationale: vote.meta_url !== null || rationaleText !== null,
-        rationaleUrl: vote.meta_url,
-        rationaleText,
-        rationaleAiSummary,
-        voteType: 'Governance' as const,
-        proposalType: cachedProposal?.proposalType || null,
-        treasuryTier: cachedProposal?.treasuryTier || null,
-        withdrawalAmount: cachedProposal?.withdrawalAmount || null,
-        relevantPrefs: cachedProposal?.relevantPrefs || [],
-      };
-    });
+    return {
+      id: `${vote.vote_tx_hash}-${index}`,
+      proposalTxHash: vote.proposal_tx_hash,
+      proposalIndex: vote.proposal_index,
+      voteTxHash: vote.vote_tx_hash,
+      date: new Date(vote.block_time * 1000).toISOString(),
+      vote: vote.vote,
+      title: getProposalDisplayTitle(title, vote.proposal_tx_hash, vote.proposal_index),
+      abstract: cachedProposal?.abstract || null,
+      aiSummary: cachedProposal?.aiSummary ?? null,
+      hasRationale: vote.meta_url !== null || rationaleText !== null,
+      rationaleUrl: vote.meta_url,
+      rationaleText,
+      rationaleAiSummary,
+      voteType: 'Governance' as const,
+      proposalType: cachedProposal?.proposalType || null,
+      treasuryTier: cachedProposal?.treasuryTier || null,
+      withdrawalAmount: cachedProposal?.withdrawalAmount || null,
+      relevantPrefs: cachedProposal?.relevantPrefs || [],
+    };
+  });
 
-    const brokenLinks = linkChecks.filter((c: any) => c.status === 'broken').map((c: any) => c.uri);
+  const brokenLinks = linkChecks.filter((c: any) => c.status === 'broken').map((c: any) => c.uri);
 
   return NextResponse.json({
     drep: {

@@ -152,7 +152,10 @@ async function runRationalePipeline(supabase: SupabaseClient) {
 
   await supabase.from('vote_rationales').delete().is('rationale_text', null);
 
-  log.info('[SlowSync] Rationales processed', { fetched: successRows.length, cached: alreadyCached.size });
+  log.info('[SlowSync] Rationales processed', {
+    fetched: successRows.length,
+    cached: alreadyCached.size,
+  });
   return { fetched: successRows.length, cached: alreadyCached.size, inline: 0 };
 }
 
@@ -193,7 +196,11 @@ async function runAiSummaries(supabase: SupabaseClient) {
       const raw = msg.content[0]?.type === 'text' ? msg.content[0].text.trim() : null;
       const summary = raw ? truncateToWordBoundary(stripUrls(raw), 160) : null;
       if (summary) {
-        proposalUpdates.push({ tx_hash: row.tx_hash, proposal_index: row.proposal_index, ai_summary: summary });
+        proposalUpdates.push({
+          tx_hash: row.tx_hash,
+          proposal_index: row.proposal_index,
+          ai_summary: summary,
+        });
         proposalSummaries++;
       }
     } catch (e) {
@@ -201,7 +208,13 @@ async function runAiSummaries(supabase: SupabaseClient) {
     }
   }
   if (proposalUpdates.length > 0) {
-    await batchUpsert(supabase, 'proposals', proposalUpdates, 'tx_hash,proposal_index', 'AI proposal summary');
+    await batchUpsert(
+      supabase,
+      'proposals',
+      proposalUpdates,
+      'tx_hash,proposal_index',
+      'AI proposal summary',
+    );
   }
 
   const { data: unsumRationales } = await supabase
@@ -259,11 +272,20 @@ async function runAiSummaries(supabase: SupabaseClient) {
       }
     }
     if (rationaleUpdates.length > 0) {
-      await batchUpsert(supabase, 'vote_rationales', rationaleUpdates, 'vote_tx_hash', 'AI rationale summary');
+      await batchUpsert(
+        supabase,
+        'vote_rationales',
+        rationaleUpdates,
+        'vote_tx_hash',
+        'AI rationale summary',
+      );
     }
   }
 
-  log.info('[SlowSync] AI summaries', { proposals: proposalSummaries, rationales: rationaleSummaries });
+  log.info('[SlowSync] AI summaries', {
+    proposals: proposalSummaries,
+    rationales: rationaleSummaries,
+  });
   return { proposals: proposalSummaries, rationales: rationaleSummaries, skipped: false };
 }
 
@@ -343,7 +365,13 @@ async function runSocialLinkChecks(supabase: SupabaseClient) {
   }
 
   if (linkResults.length > 0) {
-    await batchUpsert(supabase, 'social_link_checks', linkResults, 'drep_id,uri', 'Social link check');
+    await batchUpsert(
+      supabase,
+      'social_link_checks',
+      linkResults,
+      'drep_id,uri',
+      'Social link check',
+    );
     log.info('[SlowSync] Social links checked', { count: linkResults.length });
   }
   return { checked: linkResults.length };
@@ -372,7 +400,10 @@ async function runVotePowerBackfill(supabase: SupabaseClient) {
     return { exact: 0, nearest: 0 };
   }
 
-  log.info('[SlowSync] Backfilling voting power', { uniqueDreps: uniqueIds.length, processing: 50 });
+  log.info('[SlowSync] Backfilling voting power', {
+    uniqueDreps: uniqueIds.length,
+    processing: 50,
+  });
   let exactCount = 0;
   let nearestCount = 0;
 
@@ -397,14 +428,19 @@ async function runVotePowerBackfill(supabase: SupabaseClient) {
         .from('drep_votes')
         .select('vote_tx_hash, epoch_no')
         .eq('drep_id', drepId)
-        .in('epoch_no', snapRows.map((s) => s.epoch_no))
+        .in(
+          'epoch_no',
+          snapRows.map((s) => s.epoch_no),
+        )
         .is('voting_power_lovelace', null);
 
-      const exactUpdates = (exactVotes || []).map((v: { vote_tx_hash: string; epoch_no: number }) => ({
-        vote_tx_hash: v.vote_tx_hash,
-        voting_power_lovelace: epochPowerMap.get(v.epoch_no)!,
-        power_source: 'exact',
-      }));
+      const exactUpdates = (exactVotes || []).map(
+        (v: { vote_tx_hash: string; epoch_no: number }) => ({
+          vote_tx_hash: v.vote_tx_hash,
+          voting_power_lovelace: epochPowerMap.get(v.epoch_no)!,
+          power_source: 'exact',
+        }),
+      );
       exactCount += exactUpdates.length;
       if (exactUpdates.length > 0) {
         await batchUpsert(supabase, 'drep_votes', exactUpdates, 'vote_tx_hash', 'Power exact');
@@ -417,22 +453,29 @@ async function runVotePowerBackfill(supabase: SupabaseClient) {
         .is('voting_power_lovelace', null)
         .not('epoch_no', 'is', null);
 
-      const nearestUpdates = (remaining || []).map((vote: { vote_tx_hash: string; epoch_no: number }) => {
-        const nearest = history.reduce((best, h) =>
-          Math.abs(h.epoch_no - vote.epoch_no) < Math.abs(best.epoch_no - vote.epoch_no) ? h : best,
-        );
-        return {
-          vote_tx_hash: vote.vote_tx_hash,
-          voting_power_lovelace: parseInt(nearest.amount, 10),
-          power_source: 'nearest',
-        };
-      });
+      const nearestUpdates = (remaining || []).map(
+        (vote: { vote_tx_hash: string; epoch_no: number }) => {
+          const nearest = history.reduce((best, h) =>
+            Math.abs(h.epoch_no - vote.epoch_no) < Math.abs(best.epoch_no - vote.epoch_no)
+              ? h
+              : best,
+          );
+          return {
+            vote_tx_hash: vote.vote_tx_hash,
+            voting_power_lovelace: parseInt(nearest.amount, 10),
+            power_source: 'nearest',
+          };
+        },
+      );
       nearestCount += nearestUpdates.length;
       if (nearestUpdates.length > 0) {
         await batchUpsert(supabase, 'drep_votes', nearestUpdates, 'vote_tx_hash', 'Power nearest');
       }
     } catch (err) {
-      log.warn('[SlowSync] Power backfill error', { drepId: drepId.slice(0, 20), error: errMsg(err) });
+      log.warn('[SlowSync] Power backfill error', {
+        drepId: drepId.slice(0, 20),
+        error: errMsg(err),
+      });
     }
   }
 
@@ -593,107 +636,104 @@ async function runCriticalProposalNotifications(supabase: SupabaseClient) {
  * Throws on fatal errors (Inngest retries); returns result on success/degraded.
  */
 export async function executeSlowSync(): Promise<Record<string, unknown>> {
-  return Sentry.startSpan(
-    { name: 'sync.slow', op: 'task' },
-    async () => {
-  const supabase = getSupabaseAdmin();
-  const syncLog = new SyncLogger(supabase, 'slow');
-  await syncLog.start();
+  return Sentry.startSpan({ name: 'sync.slow', op: 'task' }, async () => {
+    const supabase = getSupabaseAdmin();
+    const syncLog = new SyncLogger(supabase, 'slow');
+    await syncLog.start();
 
-  log.info('[SlowSync] Starting slow sync...');
-  const syncErrors: string[] = [];
+    log.info('[SlowSync] Starting slow sync...');
+    const syncErrors: string[] = [];
 
-  const [
-    rationaleResult,
-    aiResult,
-    socialResult,
-    powerResult,
-    rationaleHashResult,
-    drepHashResult,
-    pushResult,
-    similarityResult,
-  ] = await Promise.allSettled([
-    runRationalePipeline(supabase),
-    runAiSummaries(supabase),
-    runSocialLinkChecks(supabase),
-    runVotePowerBackfill(supabase),
-    runRationaleHashVerification(supabase),
-    runDRepMetadataHashVerification(supabase),
-    runCriticalProposalNotifications(supabase),
-    precomputeSimilarityCache(),
-  ]);
+    const [
+      rationaleResult,
+      aiResult,
+      socialResult,
+      powerResult,
+      rationaleHashResult,
+      drepHashResult,
+      pushResult,
+      similarityResult,
+    ] = await Promise.allSettled([
+      runRationalePipeline(supabase),
+      runAiSummaries(supabase),
+      runSocialLinkChecks(supabase),
+      runVotePowerBackfill(supabase),
+      runRationaleHashVerification(supabase),
+      runDRepMetadataHashVerification(supabase),
+      runCriticalProposalNotifications(supabase),
+      precomputeSimilarityCache(),
+    ]);
 
-  const settled = {
-    rationales: rationaleResult.status === 'fulfilled' ? rationaleResult.value : null,
-    ai: aiResult.status === 'fulfilled' ? aiResult.value : null,
-    social: socialResult.status === 'fulfilled' ? socialResult.value : null,
-    power: powerResult.status === 'fulfilled' ? powerResult.value : null,
-    rationaleHash: rationaleHashResult.status === 'fulfilled' ? rationaleHashResult.value : null,
-    drepHash: drepHashResult.status === 'fulfilled' ? drepHashResult.value : null,
-    push: pushResult.status === 'fulfilled' ? pushResult.value : null,
-    similarity: similarityResult.status === 'fulfilled' ? similarityResult.value : null,
-  };
+    const settled = {
+      rationales: rationaleResult.status === 'fulfilled' ? rationaleResult.value : null,
+      ai: aiResult.status === 'fulfilled' ? aiResult.value : null,
+      social: socialResult.status === 'fulfilled' ? socialResult.value : null,
+      power: powerResult.status === 'fulfilled' ? powerResult.value : null,
+      rationaleHash: rationaleHashResult.status === 'fulfilled' ? rationaleHashResult.value : null,
+      drepHash: drepHashResult.status === 'fulfilled' ? drepHashResult.value : null,
+      push: pushResult.status === 'fulfilled' ? pushResult.value : null,
+      similarity: similarityResult.status === 'fulfilled' ? similarityResult.value : null,
+    };
 
-  const allResults = [
-    rationaleResult,
-    aiResult,
-    socialResult,
-    powerResult,
-    rationaleHashResult,
-    drepHashResult,
-    pushResult,
-    similarityResult,
-  ];
-  const labels = [
-    'Rationales',
-    'AI summaries',
-    'Social links',
-    'Power backfill',
-    'Rationale hash',
-    'DRep hash',
-    'Push',
-    'Similarity cache',
-  ];
+    const allResults = [
+      rationaleResult,
+      aiResult,
+      socialResult,
+      powerResult,
+      rationaleHashResult,
+      drepHashResult,
+      pushResult,
+      similarityResult,
+    ];
+    const labels = [
+      'Rationales',
+      'AI summaries',
+      'Social links',
+      'Power backfill',
+      'Rationale hash',
+      'DRep hash',
+      'Push',
+      'Similarity cache',
+    ];
 
-  for (let i = 0; i < allResults.length; i++) {
-    if (allResults[i].status === 'rejected') {
-      const msg = errMsg((allResults[i] as PromiseRejectedResult).reason);
-      syncErrors.push(`${labels[i]}: ${msg}`);
-      log.error(`[SlowSync] ${labels[i]} failed`, { error: msg });
+    for (let i = 0; i < allResults.length; i++) {
+      if (allResults[i].status === 'rejected') {
+        const msg = errMsg((allResults[i] as PromiseRejectedResult).reason);
+        syncErrors.push(`${labels[i]}: ${msg}`);
+        log.error(`[SlowSync] ${labels[i]} failed`, { error: msg });
+      }
     }
-  }
 
-  const success = syncErrors.length === 0;
-  const metrics = {
-    rationales_fetched: settled.rationales?.fetched ?? 0,
-    rationales_cached: settled.rationales?.cached ?? 0,
-    ai_proposal_summaries: settled.ai?.proposals ?? 0,
-    ai_rationale_summaries: settled.ai?.rationales ?? 0,
-    social_links_checked: settled.social?.checked ?? 0,
-    power_exact: settled.power?.exact ?? 0,
-    power_nearest: settled.power?.nearest ?? 0,
-    rationale_hash_verified: settled.rationaleHash?.verified ?? 0,
-    rationale_hash_failed: settled.rationaleHash?.failed ?? 0,
-    drep_hash_verified: settled.drepHash?.verified ?? 0,
-    drep_hash_failed: settled.drepHash?.failed ?? 0,
-    push_sent: settled.push?.sent ?? 0,
-    similarity_cached: settled.similarity ?? 0,
-    duration_ms: syncLog.elapsed,
-  };
+    const success = syncErrors.length === 0;
+    const metrics = {
+      rationales_fetched: settled.rationales?.fetched ?? 0,
+      rationales_cached: settled.rationales?.cached ?? 0,
+      ai_proposal_summaries: settled.ai?.proposals ?? 0,
+      ai_rationale_summaries: settled.ai?.rationales ?? 0,
+      social_links_checked: settled.social?.checked ?? 0,
+      power_exact: settled.power?.exact ?? 0,
+      power_nearest: settled.power?.nearest ?? 0,
+      rationale_hash_verified: settled.rationaleHash?.verified ?? 0,
+      rationale_hash_failed: settled.rationaleHash?.failed ?? 0,
+      drep_hash_verified: settled.drepHash?.verified ?? 0,
+      drep_hash_failed: settled.drepHash?.failed ?? 0,
+      push_sent: settled.push?.sent ?? 0,
+      similarity_cached: settled.similarity ?? 0,
+      duration_ms: syncLog.elapsed,
+    };
 
-  const duration = (syncLog.elapsed / 1000).toFixed(1);
-  log.info('[SlowSync] Sync complete', { durationSeconds: duration, issues: syncErrors.length });
+    const duration = (syncLog.elapsed / 1000).toFixed(1);
+    log.info('[SlowSync] Sync complete', { durationSeconds: duration, issues: syncErrors.length });
 
-  await syncLog.finalize(success, syncErrors.length > 0 ? syncErrors.join('; ') : null, metrics);
-  await emitPostHog(success, 'slow', syncLog.elapsed, metrics);
+    await syncLog.finalize(success, syncErrors.length > 0 ? syncErrors.join('; ') : null, metrics);
+    await emitPostHog(success, 'slow', syncLog.elapsed, metrics);
 
-  return {
-    success,
-    metrics,
-    durationSeconds: duration,
-    errors: syncErrors.length > 0 ? syncErrors : undefined,
-    timestamp: new Date().toISOString(),
-  };
-    },
-  );
+    return {
+      success,
+      metrics,
+      durationSeconds: duration,
+      errors: syncErrors.length > 0 ? syncErrors : undefined,
+      timestamp: new Date().toISOString(),
+    };
+  });
 }

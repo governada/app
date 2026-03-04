@@ -5,17 +5,20 @@ import { withRouteHandler, type RouteContext } from '@/lib/api/withRouteHandler'
 
 export const dynamic = 'force-dynamic';
 
-export const GET = withRouteHandler(async (request: NextRequest, { wallet }: RouteContext) => {
-  const enabled = await getFeatureFlag('governance_footprint', false);
-  if (!enabled) {
-    return NextResponse.json({ error: 'Feature not available' }, { status: 404 });
-  }
+export const GET = withRouteHandler(
+  async (request: NextRequest, { wallet }: RouteContext) => {
+    const enabled = await getFeatureFlag('governance_footprint', false);
+    if (!enabled) {
+      return NextResponse.json({ error: 'Feature not available' }, { status: 404 });
+    }
 
-  const stakeAddress = request.nextUrl.searchParams.get('stakeAddress');
+    const stakeAddress = request.nextUrl.searchParams.get('stakeAddress');
 
-  const footprint = await buildGovernanceFootprint(wallet!, stakeAddress);
+    const footprint = await buildGovernanceFootprint(wallet!, stakeAddress);
 
-  return NextResponse.json(footprint, {
-    headers: { 'Cache-Control': 'private, s-maxage=300, stale-while-revalidate=600' },
-  });
-}, { auth: 'required' });
+    return NextResponse.json(footprint, {
+      headers: { 'Cache-Control': 'private, s-maxage=300, stale-while-revalidate=600' },
+    });
+  },
+  { auth: 'required' },
+);

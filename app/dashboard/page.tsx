@@ -28,7 +28,10 @@ import {
   Inbox,
   Server,
 } from 'lucide-react';
-const ScoreHistoryChart = dynamic(() => import('@/components/ScoreHistoryChart').then(m => m.ScoreHistoryChart), { ssr: false, loading: () => <div className="h-32 animate-pulse bg-muted rounded-lg" /> });
+const ScoreHistoryChart = dynamic(
+  () => import('@/components/ScoreHistoryChart').then((m) => m.ScoreHistoryChart),
+  { ssr: false, loading: () => <div className="h-32 animate-pulse bg-muted rounded-lg" /> },
+);
 import { DRepDashboard } from '@/components/DRepDashboard';
 import { GovernanceInboxWidget } from '@/components/GovernanceInboxWidget';
 import dynamic from 'next/dynamic';
@@ -38,7 +41,10 @@ import { OnboardingChecklist } from '@/components/OnboardingChecklist';
 import { RepresentationScorecard } from '@/components/RepresentationScorecard';
 import { ScoreSimulator } from '@/components/ScoreSimulator';
 import { ActivityHeatmap } from '@/components/ActivityHeatmap';
-const MilestoneBadges = dynamic(() => import('@/components/MilestoneBadges').then(m => m.MilestoneBadges), { ssr: false, loading: () => <div className="h-32 animate-pulse bg-muted rounded-lg" /> });
+const MilestoneBadges = dynamic(
+  () => import('@/components/MilestoneBadges').then((m) => m.MilestoneBadges),
+  { ssr: false, loading: () => <div className="h-32 animate-pulse bg-muted rounded-lg" /> },
+);
 import { GovernancePhilosophyEditor } from '@/components/GovernancePhilosophyEditor';
 import { BadgeEmbed } from '@/components/BadgeEmbed';
 import { WrappedShareCard } from '@/components/WrappedShareCard';

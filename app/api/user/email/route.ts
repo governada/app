@@ -13,24 +13,27 @@ import { getSupabaseAdmin } from '@/lib/supabase';
 import { withRouteHandler, type RouteContext } from '@/lib/api/withRouteHandler';
 import { EmailSchema } from '@/lib/api/schemas/user';
 
-export const POST = withRouteHandler(async (request: NextRequest, { requestId, wallet }: RouteContext) => {
-  const { email } = EmailSchema.parse(await request.json());
+export const POST = withRouteHandler(
+  async (request: NextRequest, { requestId, wallet }: RouteContext) => {
+    const { email } = EmailSchema.parse(await request.json());
 
-  const supabase = getSupabaseAdmin();
+    const supabase = getSupabaseAdmin();
 
-  await supabase
-    .from('users')
-    .update({ email, email_verified: false })
-    .eq('wallet_address', wallet);
+    await supabase
+      .from('users')
+      .update({ email, email_verified: false })
+      .eq('wallet_address', wallet);
 
-  const verifyUrl = generateVerificationUrl(wallet!, email);
-  const sent = await sendEmail(
-    email,
-    'Verify your email — DRepScore',
-    React.createElement(EmailVerificationEmail, { verifyUrl }),
-  );
+    const verifyUrl = generateVerificationUrl(wallet!, email);
+    const sent = await sendEmail(
+      email,
+      'Verify your email — DRepScore',
+      React.createElement(EmailVerificationEmail, { verifyUrl }),
+    );
 
-  captureServerEvent('email_subscribed', { digest_frequency: 'weekly' }, wallet!);
+    captureServerEvent('email_subscribed', { digest_frequency: 'weekly' }, wallet!);
 
-  return NextResponse.json({ ok: true, sent });
-}, { auth: 'required', rateLimit: { max: 5, window: 60 } });
+    return NextResponse.json({ ok: true, sent });
+  },
+  { auth: 'required', rateLimit: { max: 5, window: 60 } },
+);

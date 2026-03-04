@@ -33,12 +33,8 @@ export function validateEnv(): void {
   const required = requiredEnv.safeParse(process.env);
 
   if (!required.success) {
-    const missing = required.error.issues.map(
-      (i) => `  ${i.path.join('.')}: ${i.message}`,
-    );
-    throw new Error(
-      `Missing or invalid required environment variables:\n${missing.join('\n')}`,
-    );
+    const missing = required.error.issues.map((i) => `  ${i.path.join('.')}: ${i.message}`);
+    throw new Error(`Missing or invalid required environment variables:\n${missing.join('\n')}`);
   }
 
   const missing: string[] = [];

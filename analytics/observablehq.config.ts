@@ -1,7 +1,7 @@
 export default {
-  title: "DRepScore Analytics",
-  root: "src",
-  theme: ["dashboard", "near-midnight"],
+  title: 'DRepScore Analytics',
+  root: 'src',
+  theme: ['dashboard', 'near-midnight'],
   head: `<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <style>
 @font-face {
@@ -394,33 +394,31 @@ figure[class*="plot"] {
   pager: false,
   pages: [
     {
-      name: "Analytics",
+      name: 'Analytics',
       open: true,
       pages: [
-        { name: "Executive Overview", path: "/" },
-        { name: "DRep Performance", path: "/drep-performance" },
-        { name: "Governance Activity", path: "/governance" },
-        { name: "Voting Intelligence", path: "/voting" },
-        { name: "Score Trends", path: "/trends" },
-        { name: "DRep Engagement", path: "/engagement" },
-        { name: "Voting Power", path: "/voting-power" },
-        { name: "Rationale Quality", path: "/rationale-quality" },
+        { name: 'Executive Overview', path: '/' },
+        { name: 'DRep Performance', path: '/drep-performance' },
+        { name: 'Governance Activity', path: '/governance' },
+        { name: 'Voting Intelligence', path: '/voting' },
+        { name: 'Score Trends', path: '/trends' },
+        { name: 'DRep Engagement', path: '/engagement' },
+        { name: 'Voting Power', path: '/voting-power' },
+        { name: 'Rationale Quality', path: '/rationale-quality' },
       ],
     },
     {
-      name: "Growth",
+      name: 'Growth',
       open: false,
-      pages: [
-        { name: "User Growth & Engagement", path: "/growth" },
-      ],
+      pages: [{ name: 'User Growth & Engagement', path: '/growth' }],
     },
     {
-      name: "Operations",
+      name: 'Operations',
       open: false,
       pages: [
-        { name: "System Status", path: "/system-status" },
-        { name: "Data Quality", path: "/data-quality" },
-        { name: "API Analytics", path: "/api-analytics" },
+        { name: 'System Status', path: '/system-status' },
+        { name: 'Data Quality', path: '/data-quality' },
+        { name: 'API Analytics', path: '/api-analytics' },
       ],
     },
   ],

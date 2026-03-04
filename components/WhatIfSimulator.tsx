@@ -38,7 +38,7 @@ export function WhatIfSimulator({ currentDRepId: propCurrentDRepId }: WhatIfSimu
   const dreps = useMemo<DRepData[]>(() => {
     const raw = drepsData as any;
     if (!raw) return [];
-    const list = raw?.allDReps?.length ? raw.allDReps : (raw?.dreps || []);
+    const list = raw?.allDReps?.length ? raw.allDReps : raw?.dreps || [];
     return list.map((d: Record<string, unknown>) => ({
       drepId: d.drepId as string,
       name: (d.name as string) ?? null,

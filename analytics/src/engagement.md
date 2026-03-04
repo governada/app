@@ -1,25 +1,32 @@
 # DRep Engagement & Inbox
 
-*Governance inbox activity, DRep responsiveness, and notification delivery.*
+_Governance inbox activity, DRep responsiveness, and notification delivery._
 
 ```js
-const data = FileAttachment("data/inbox-metrics.json").json();
+const data = FileAttachment('data/inbox-metrics.json').json();
 ```
 
 ```js
 const { currentEpoch, totalActiveDreps, openProposals, drepActivity, notifications } = data;
 
-const criticalOpen = openProposals.filter(p =>
-  ["HardForkInitiation", "NoConfidence", "NewCommittee", "NewConstitutionalCommittee", "NewConstitution", "UpdateConstitution"].includes(p.proposal_type)
+const criticalOpen = openProposals.filter((p) =>
+  [
+    'HardForkInitiation',
+    'NoConfidence',
+    'NewCommittee',
+    'NewConstitutionalCommittee',
+    'NewConstitution',
+    'UpdateConstitution',
+  ].includes(p.proposal_type),
 );
-const urgentOpen = openProposals.filter(p => p.epochsRemaining != null && p.epochsRemaining <= 2);
-const drepsVotedThisEpoch = drepActivity.filter(d => d.votesThisEpoch > 0).length;
-const avgVotesThisEpoch = drepActivity.length > 0
-  ? (drepActivity.reduce((s, d) => s + d.votesThisEpoch, 0) / drepActivity.length).toFixed(1)
-  : "0";
-const epochResponseRate = totalActiveDreps > 0
-  ? Math.round((drepsVotedThisEpoch / totalActiveDreps) * 100)
-  : 0;
+const urgentOpen = openProposals.filter((p) => p.epochsRemaining != null && p.epochsRemaining <= 2);
+const drepsVotedThisEpoch = drepActivity.filter((d) => d.votesThisEpoch > 0).length;
+const avgVotesThisEpoch =
+  drepActivity.length > 0
+    ? (drepActivity.reduce((s, d) => s + d.votesThisEpoch, 0) / drepActivity.length).toFixed(1)
+    : '0';
+const epochResponseRate =
+  totalActiveDreps > 0 ? Math.round((drepsVotedThisEpoch / totalActiveDreps) * 100) : 0;
 ```
 
 <div class="kpi-row cols-5">
@@ -58,48 +65,64 @@ const epochResponseRate = totalActiveDreps > 0
 ## Open Proposals by Type
 
 ```js
-import * as Plot from "npm:@observablehq/plot";
+import * as Plot from 'npm:@observablehq/plot';
 
 const typeCounts = {};
 for (const p of openProposals) {
   typeCounts[p.proposal_type] = (typeCounts[p.proposal_type] || 0) + 1;
 }
-const typeData = Object.entries(typeCounts).map(([type, count]) => ({ type, count })).sort((a, b) => b.count - a.count);
+const typeData = Object.entries(typeCounts)
+  .map(([type, count]) => ({ type, count }))
+  .sort((a, b) => b.count - a.count);
 ```
 
 ```js
 Plot.plot({
   marginLeft: 160,
   height: Math.max(200, typeData.length * 40),
-  x: { label: "Count", grid: true },
+  x: { label: 'Count', grid: true },
   y: { label: null },
   marks: [
     Plot.barX(typeData, {
-      y: "type",
-      x: "count",
-      fill: d => ["HardForkInitiation", "NoConfidence", "NewCommittee", "NewConstitutionalCommittee", "NewConstitution", "UpdateConstitution"].includes(d.type)
-        ? "var(--accent-red)"
-        : d.type === "ParameterChange"
-        ? "var(--accent-amber)"
-        : "var(--accent)",
-      sort: { y: "-x" },
+      y: 'type',
+      x: 'count',
+      fill: (d) =>
+        [
+          'HardForkInitiation',
+          'NoConfidence',
+          'NewCommittee',
+          'NewConstitutionalCommittee',
+          'NewConstitution',
+          'UpdateConstitution',
+        ].includes(d.type)
+          ? 'var(--accent-red)'
+          : d.type === 'ParameterChange'
+            ? 'var(--accent-amber)'
+            : 'var(--accent)',
+      sort: { y: '-x' },
       tip: true,
     }),
     Plot.ruleX([0]),
   ],
-})
+});
 ```
 
 ## DRep Vote Coverage This Epoch
 
-*How many open proposals each active DRep has voted on this epoch.*
+_How many open proposals each active DRep has voted on this epoch._
 
 ```js
 const buckets = [
-  { label: "0 votes", count: drepActivity.filter(d => d.votesThisEpoch === 0).length },
-  { label: "1-2 votes", count: drepActivity.filter(d => d.votesThisEpoch >= 1 && d.votesThisEpoch <= 2).length },
-  { label: "3-5 votes", count: drepActivity.filter(d => d.votesThisEpoch >= 3 && d.votesThisEpoch <= 5).length },
-  { label: "6+ votes", count: drepActivity.filter(d => d.votesThisEpoch >= 6).length },
+  { label: '0 votes', count: drepActivity.filter((d) => d.votesThisEpoch === 0).length },
+  {
+    label: '1-2 votes',
+    count: drepActivity.filter((d) => d.votesThisEpoch >= 1 && d.votesThisEpoch <= 2).length,
+  },
+  {
+    label: '3-5 votes',
+    count: drepActivity.filter((d) => d.votesThisEpoch >= 3 && d.votesThisEpoch <= 5).length,
+  },
+  { label: '6+ votes', count: drepActivity.filter((d) => d.votesThisEpoch >= 6).length },
 ];
 ```
 
@@ -107,75 +130,87 @@ const buckets = [
 Plot.plot({
   marginLeft: 80,
   height: 200,
-  x: { label: "DReps", grid: true },
+  x: { label: 'DReps', grid: true },
   y: { label: null },
   marks: [
     Plot.barX(buckets, {
-      y: "label",
-      x: "count",
-      fill: d => d.label === "0 votes" ? "var(--accent-red)" : d.label === "1-2 votes" ? "var(--accent-amber)" : "var(--accent-green)",
+      y: 'label',
+      x: 'count',
+      fill: (d) =>
+        d.label === '0 votes'
+          ? 'var(--accent-red)'
+          : d.label === '1-2 votes'
+            ? 'var(--accent-amber)'
+            : 'var(--accent-green)',
       tip: true,
     }),
     Plot.ruleX([0]),
   ],
-})
+});
 ```
 
 ## Urgent Proposals (≤ 2 Epochs Remaining)
 
 ```js
-const urgentTable = urgentOpen.map(p => ({
-  Title: p.title || "(untitled)",
+const urgentTable = urgentOpen.map((p) => ({
+  Title: p.title || '(untitled)',
   Type: p.proposal_type,
-  "Epochs Left": p.epochsRemaining ?? "—",
-  "DRep Votes": p.total_drep_votes,
-  "Coverage %": totalActiveDreps > 0 ? Math.round((p.total_drep_votes / totalActiveDreps) * 100) + "%" : "—",
+  'Epochs Left': p.epochsRemaining ?? '—',
+  'DRep Votes': p.total_drep_votes,
+  'Coverage %':
+    totalActiveDreps > 0 ? Math.round((p.total_drep_votes / totalActiveDreps) * 100) + '%' : '—',
 }));
 ```
 
 ```js
 urgentTable.length > 0
-  ? Inputs.table(urgentTable, { sort: "Epochs Left" })
-  : html`<div class="empty-state"><strong>No urgent proposals</strong>All open proposals have 3+ epochs remaining.</div>`
+  ? Inputs.table(urgentTable, { sort: 'Epochs Left' })
+  : html`<div class="empty-state">
+      <strong>No urgent proposals</strong>All open proposals have 3+ epochs remaining.
+    </div>`;
 ```
 
 ## Top DReps by This-Epoch Activity
 
 ```js
 const topDreps = drepActivity
-  .filter(d => d.votesThisEpoch > 0)
+  .filter((d) => d.votesThisEpoch > 0)
   .slice(0, 20)
-  .map(d => ({
-    DRep: d.name || d.drepId.slice(0, 20) + "…",
+  .map((d) => ({
+    DRep: d.name || d.drepId.slice(0, 20) + '…',
     Score: d.score,
-    "Votes This Epoch": d.votesThisEpoch,
-    "Total Votes": d.totalVotes,
-    "Participation %": Math.round(d.participationRate) + "%",
+    'Votes This Epoch': d.votesThisEpoch,
+    'Total Votes': d.totalVotes,
+    'Participation %': Math.round(d.participationRate) + '%',
   }));
 ```
 
 ```js
 topDreps.length > 0
   ? Inputs.table(topDreps)
-  : html`<div class="empty-state"><strong>No votes yet</strong>No DReps have voted in epoch ${currentEpoch}.</div>`
+  : html`<div class="empty-state">
+      <strong>No votes yet</strong>No DReps have voted in epoch ${currentEpoch}.
+    </div>`;
 ```
 
 ## Notification Delivery (Last 7 Days)
 
 ```js
-const notifTable = notifications.map(n => ({
-  "Event Type": n.eventType,
+const notifTable = notifications.map((n) => ({
+  'Event Type': n.eventType,
   Channel: n.channel,
   Sent: n.count,
   Delivered: n.delivered,
-  "Delivery %": n.count > 0 ? Math.round((n.delivered / n.count) * 100) + "%" : "—",
+  'Delivery %': n.count > 0 ? Math.round((n.delivered / n.count) * 100) + '%' : '—',
 }));
 ```
 
 ```js
 notifTable.length > 0
-  ? Inputs.table(notifTable, { sort: "Sent", reverse: true })
-  : html`<div class="empty-state"><strong>No notifications sent</strong>No notification events in the last 7 days.</div>`
+  ? Inputs.table(notifTable, { sort: 'Sent', reverse: true })
+  : html`<div class="empty-state">
+      <strong>No notifications sent</strong>No notification events in the last 7 days.
+    </div>`;
 ```
 
 <div class="tip-box">
@@ -185,5 +220,9 @@ notifTable.length > 0
 ---
 
 ```js
-display(html`<span class="muted" style="font-size: 0.75rem">Epoch ${currentEpoch} · Dashboard built: ${new Date().toLocaleString()}</span>`);
+display(
+  html`<span class="muted" style="font-size: 0.75rem"
+    >Epoch ${currentEpoch} · Dashboard built: ${new Date().toLocaleString()}</span
+  >`,
+);
 ```

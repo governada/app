@@ -3,6 +3,7 @@ description: Non-negotiable rules. Every rule has been violated and caused real 
 globs: ['**/*']
 alwaysApply: true
 ---
+
 <!-- LINE BUDGET: 20 rules max. Every rule here has been violated at least once. -->
 
 # Critical Rules
@@ -22,7 +23,7 @@ These override all other guidance when in conflict.
    8. `npm run posthog:check <event>` if new analytics events were added
    9. Clean up worktree
       Never say "PR created — merge when ready." Never say "build complete — PR when ready." Never present a deployment checklist. Just do it. Corrected 5 times. See `workflow.md` "Post-Build: Ship It" for the full sequence.
-   **Structural enforcement**: Your first TodoWrite MUST include ship-it steps (commit → PR → CI → merge → deploy) before starting any implementation code.
+      **Structural enforcement**: Your first TodoWrite MUST include ship-it steps (commit → PR → CI → merge → deploy) before starting any implementation code.
 
 3. **Railway is the deploy target. [violated 1x, last: 2026-03-02]** Use `BASE_URL` from `lib/constants.ts` for server-side URLs. No other hosting platform is part of the stack.
 

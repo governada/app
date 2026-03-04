@@ -66,9 +66,7 @@ export const GET = withRouteHandler(
     ]);
 
     const allHealthy =
-      supabase.status === 'healthy' &&
-      koios.status === 'healthy' &&
-      redis.status === 'healthy';
+      supabase.status === 'healthy' && koios.status === 'healthy' && redis.status === 'healthy';
 
     return NextResponse.json({
       status: allHealthy ? 'healthy' : 'degraded',

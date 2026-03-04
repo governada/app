@@ -3,6 +3,7 @@ description: Inngest functions, sync architecture, and background job patterns
 globs: ['inngest/**', 'lib/sync/**', 'app/api/sync/**', 'app/api/inngest/**']
 alwaysApply: false
 ---
+
 <!-- LINE BUDGET: 100 lines -->
 
 # Background Jobs & Sync Architecture

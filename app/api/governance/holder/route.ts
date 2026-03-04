@@ -20,12 +20,13 @@ function normalizeVote(vote: string): string {
   return vote.charAt(0).toUpperCase() + vote.slice(1).toLowerCase();
 }
 
-export const GET = withRouteHandler(async (request: NextRequest, { wallet }: RouteContext) => {
-  const walletAddress = wallet!;
+export const GET = withRouteHandler(
+  async (request: NextRequest, { wallet }: RouteContext) => {
+    const walletAddress = wallet!;
 
-  const delegatedDrepId = request.nextUrl.searchParams.get('drepId');
-  const supabase = createClient();
-  const currentEpoch = blockTimeToEpoch(Math.floor(Date.now() / 1000));
+    const delegatedDrepId = request.nextUrl.searchParams.get('drepId');
+    const supabase = createClient();
+    const currentEpoch = blockTimeToEpoch(Math.floor(Date.now() / 1000));
     const admin = getSupabaseAdmin();
 
     // Parallel fetch: user's poll votes, DRep data, open proposals, DRep votes, user profile
@@ -248,22 +249,24 @@ export const GET = withRouteHandler(async (request: NextRequest, { wallet }: Rou
 
     const userProfile = userResult.data;
 
-  return NextResponse.json({
-    delegationHealth,
-    representationScore: {
-      score: repScore,
-      aligned: alignedCount,
-      misaligned: comparisons.length - alignedCount,
-      total: comparisons.length,
-      comparisons,
-    },
-    activeProposals,
-    pollHistory,
-    redelegationSuggestions,
-    currentEpoch,
-    repScoreDelta,
-    governanceLevel: userProfile?.governance_level ?? 'observer',
-    pollCount: userProfile?.poll_count ?? 0,
-    visitStreak: userProfile?.visit_streak ?? 0,
-  });
-}, { auth: 'required' });
+    return NextResponse.json({
+      delegationHealth,
+      representationScore: {
+        score: repScore,
+        aligned: alignedCount,
+        misaligned: comparisons.length - alignedCount,
+        total: comparisons.length,
+        comparisons,
+      },
+      activeProposals,
+      pollHistory,
+      redelegationSuggestions,
+      currentEpoch,
+      repScoreDelta,
+      governanceLevel: userProfile?.governance_level ?? 'observer',
+      pollCount: userProfile?.poll_count ?? 0,
+      visitStreak: userProfile?.visit_streak ?? 0,
+    });
+  },
+  { auth: 'required' },
+);

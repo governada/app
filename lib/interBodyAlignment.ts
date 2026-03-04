@@ -248,7 +248,10 @@ export async function computeAndCacheAlignment(): Promise<number> {
 
       if (!error) upserted++;
     } catch (err) {
-      logger.error('[interBodyAlignment] Error computing alignment', { proposalKey: key, error: err });
+      logger.error('[interBodyAlignment] Error computing alignment', {
+        proposalKey: key,
+        error: err,
+      });
     }
   }
 

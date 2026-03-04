@@ -22,9 +22,10 @@ function normalizeVote(vote: string): string {
   return vote.charAt(0).toUpperCase() + vote.slice(1).toLowerCase();
 }
 
-export const GET = withRouteHandler(async (request: NextRequest, { wallet }: RouteContext) => {
-  const excludeDrepId = request.nextUrl.searchParams.get('currentDrepId') || undefined;
-  const supabase = createClient();
+export const GET = withRouteHandler(
+  async (request: NextRequest, { wallet }: RouteContext) => {
+    const excludeDrepId = request.nextUrl.searchParams.get('currentDrepId') || undefined;
+    const supabase = createClient();
 
     const { data: pollVotes } = await supabase
       .from('poll_responses')
@@ -231,14 +232,16 @@ export const GET = withRouteHandler(async (request: NextRequest, { wallet }: Rou
       wallet!,
     );
 
-  return NextResponse.json({
-    matches,
-    currentDRepMatch,
-    overallConfidence,
-    matchMethod,
-    userAlignments,
-  });
-}, { auth: 'required' });
+    return NextResponse.json({
+      matches,
+      currentDRepMatch,
+      overallConfidence,
+      matchMethod,
+      userAlignments,
+    });
+  },
+  { auth: 'required' },
+);
 
 function rankByOverlap(overlapMap: Map<string, { agreed: number; total: number }>): string[] {
   return [...overlapMap.entries()]

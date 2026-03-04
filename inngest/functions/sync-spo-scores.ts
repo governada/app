@@ -85,7 +85,7 @@ export const syncSpoScores = inngest.createFunction(
 
       const currentEpoch =
         statsRow?.current_epoch ?? blockTimeToEpoch(Math.floor(Date.now() / 1000));
-        if (!voteRows?.length) {
+      if (!voteRows?.length) {
         await syncLog.finalize(true, null, { skipped: true });
         return { success: true, skipped: true };
       }

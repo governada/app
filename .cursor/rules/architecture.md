@@ -3,6 +3,7 @@ description: DRepScore architecture, data flow, scoring model, and key file map
 globs: ['lib/**', 'utils/**', 'app/api/**', 'components/**', 'app/**']
 alwaysApply: false
 ---
+
 <!-- LINE BUDGET: 120 lines. Inngest/sync details → architecture-jobs.md. DB tables → query via Supabase MCP. -->
 
 # DRepScore Architecture
@@ -122,7 +123,7 @@ Each pillar is computed as a raw score, then percentile-normalized across the fu
 
 ### Next.js 16 Route Export Rule
 
-Next.js 16 enforces strict validation of named exports from route files. **Only these exports are permitted in `app/**/route.ts` files:**
+Next.js 16 enforces strict validation of named exports from route files. **Only these exports are permitted in `app/**/route.ts` files:\*\*
 
 - HTTP method handlers: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, `OPTIONS`
 - Config fields: `dynamic`, `revalidate`, `fetchCache`, `runtime`, `preferredRegion`, `maxDuration`, `generateStaticParams`

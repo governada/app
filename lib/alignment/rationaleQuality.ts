@@ -128,7 +128,10 @@ export async function scoreRationalesBatch(
     }
   }
 
-  logger.info('[alignment] Scored rationales', { scored: unscored.length, totalCached: results.size });
+  logger.info('[alignment] Scored rationales', {
+    scored: unscored.length,
+    totalCached: results.size,
+  });
   return results;
 }
 

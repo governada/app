@@ -346,8 +346,13 @@ export const syncAlignment = inngest.createFunction(
             finished_at: new Date().toISOString(),
             duration_ms: Date.now() - startTime,
             success: true,
-            error_message: capMsg('skipped: ' + ('reason' in computeResult ? String(computeResult.reason) : 'unknown')),
-            metrics: { skipped: true, reason: 'reason' in computeResult ? String(computeResult.reason) : 'unknown' },
+            error_message: capMsg(
+              'skipped: ' + ('reason' in computeResult ? String(computeResult.reason) : 'unknown'),
+            ),
+            metrics: {
+              skipped: true,
+              reason: 'reason' in computeResult ? String(computeResult.reason) : 'unknown',
+            },
           })
           .eq('id', logId);
       });
@@ -473,7 +478,8 @@ export const syncAlignment = inngest.createFunction(
         .select('proposed_epoch')
         .order('proposed_epoch', { ascending: false })
         .limit(1);
-      const currentEpoch = (tipData as { proposed_epoch: number }[] | null)?.[0]?.proposed_epoch || 0;
+      const currentEpoch =
+        (tipData as { proposed_epoch: number }[] | null)?.[0]?.proposed_epoch || 0;
       if (currentEpoch === 0) return { epoch: 0, snapshots: 0 };
 
       const snapshots = computeResult.scores.map((row) => ({

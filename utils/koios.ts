@@ -98,7 +98,11 @@ async function koiosFetch<T>(
   try {
     const startTime = Date.now();
     const response = await Sentry.startSpan(
-      { name: `koios${endpoint}`, op: 'http.client', attributes: { 'http.method': options.method || 'GET' } },
+      {
+        name: `koios${endpoint}`,
+        op: 'http.client',
+        attributes: { 'http.method': options.method || 'GET' },
+      },
       async () => fetch(url, { ...options, headers, cache: 'no-store', signal: controller.signal }),
     );
     clearTimeout(timeoutId);

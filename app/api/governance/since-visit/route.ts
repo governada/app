@@ -5,26 +5,27 @@ import { withRouteHandler, type RouteContext } from '@/lib/api/withRouteHandler'
 
 export const dynamic = 'force-dynamic';
 
-export const GET = withRouteHandler(async (request: NextRequest, { wallet }: RouteContext) => {
-  const walletAddress = wallet!;
+export const GET = withRouteHandler(
+  async (request: NextRequest, { wallet }: RouteContext) => {
+    const walletAddress = wallet!;
 
-  const since = request.nextUrl.searchParams.get('since');
-  const drepId = request.nextUrl.searchParams.get('drepId');
+    const since = request.nextUrl.searchParams.get('since');
+    const drepId = request.nextUrl.searchParams.get('drepId');
 
-  if (!since) {
-    return NextResponse.json({ error: 'Missing since parameter' }, { status: 400 });
-  }
+    if (!since) {
+      return NextResponse.json({ error: 'Missing since parameter' }, { status: 400 });
+    }
 
-  const sinceDate = new Date(since);
-  if (isNaN(sinceDate.getTime())) {
-    return NextResponse.json({ error: 'Invalid since timestamp' }, { status: 400 });
-  }
+    const sinceDate = new Date(since);
+    if (isNaN(sinceDate.getTime())) {
+      return NextResponse.json({ error: 'Invalid since timestamp' }, { status: 400 });
+    }
 
-  const sinceBlockTime = Math.floor(sinceDate.getTime() / 1000);
-  const sinceEpoch = blockTimeToEpoch(sinceBlockTime);
-  const supabase = createClient();
+    const sinceBlockTime = Math.floor(sinceDate.getTime() / 1000);
+    const sinceEpoch = blockTimeToEpoch(sinceBlockTime);
+    const supabase = createClient();
 
-  const [openedResult, closedResult] = await Promise.all([
+    const [openedResult, closedResult] = await Promise.all([
       supabase
         .from('proposals')
         .select('tx_hash', { count: 'exact', head: true })
@@ -116,13 +117,15 @@ export const GET = withRouteHandler(async (request: NextRequest, { wallet }: Rou
       }
     }
 
-  return NextResponse.json({
-    proposalsOpened,
-    proposalsClosed,
-    drepVotesCast,
-    drepScoreChange,
-    delegatorChange,
-    proposalOutcomes,
-    drepActivity,
-  });
-}, { auth: 'required' });
+    return NextResponse.json({
+      proposalsOpened,
+      proposalsClosed,
+      drepVotesCast,
+      drepScoreChange,
+      delegatorChange,
+      proposalOutcomes,
+      drepActivity,
+    });
+  },
+  { auth: 'required' },
+);
