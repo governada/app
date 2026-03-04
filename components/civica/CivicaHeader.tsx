@@ -1,11 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { Home, Compass, Activity, Landmark, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useWallet } from '@/utils/wallet';
+import { useWallet } from '@/utils/wallet-context';
 import { useSegment, type UserSegment } from '@/components/providers/SegmentProvider';
 import { Button } from '@/components/ui/button';
 
@@ -32,6 +33,7 @@ export function CivicaHeader() {
   const pathname = usePathname();
   const { isAuthenticated, connected } = useWallet();
   const { segment } = useSegment();
+  const [walletModalOpen, setWalletModalOpen] = useState(false);
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/';
@@ -96,7 +98,14 @@ export function CivicaHeader() {
             </span>
           )}
 
-          {!connected && <WalletConnectModal />}
+          {!connected && (
+            <>
+              <Button variant="outline" size="sm" onClick={() => setWalletModalOpen(true)}>
+                Connect Wallet
+              </Button>
+              <WalletConnectModal open={walletModalOpen} onOpenChange={setWalletModalOpen} />
+            </>
+          )}
         </div>
       </div>
     </header>

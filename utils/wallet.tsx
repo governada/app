@@ -1,13 +1,6 @@
 'use client';
 
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
-  ReactNode,
-} from 'react';
+import React, { useState, useEffect, useCallback, ReactNode } from 'react';
 import { BrowserWallet, resolveRewardAddress } from '@meshsdk/core';
 import {
   getStoredSession,
@@ -18,6 +11,9 @@ import {
   isSessionExpired,
 } from '@/lib/supabaseAuth';
 import { deriveDRepIdFromStakeAddress, checkDRepExists } from '@/utils/drepId';
+import { WalletContext, type WalletError, type WalletErrorType } from '@/utils/wallet-context';
+export type { WalletContextType, WalletError, WalletErrorType } from '@/utils/wallet-context';
+export { useWallet } from '@/utils/wallet-context';
 
 interface CIP30Api {
   getUsedAddresses(): Promise<string[]>;
@@ -25,18 +21,6 @@ interface CIP30Api {
   signData(addr: string, payload: string): Promise<{ signature: string; key: string }>;
 }
 
-export type WalletErrorType =
-  | 'no_addresses'
-  | 'extension_error'
-  | 'user_rejected'
-  | 'network'
-  | 'unknown';
-
-export interface WalletError {
-  type: WalletErrorType;
-  message: string;
-  hint: string;
-}
 
 function extractErrorMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
@@ -135,29 +119,6 @@ function getCardanoApi(name: string): { enable(): Promise<CIP30Api> } | undefine
 
 const WALLET_NAME_KEY = 'drepscore_wallet_name';
 
-export interface WalletContextType {
-  wallet: BrowserWallet | null;
-  walletName: string | null;
-  connected: boolean;
-  connecting: boolean;
-  reconnecting: boolean;
-  address: string | null;
-  sessionAddress: string | null;
-  isAuthenticated: boolean;
-  delegatedDrepId: string | null;
-  ownDRepId: string | null;
-  error: WalletError | null;
-  availableWallets: string[];
-  connect: (walletName: string) => Promise<void>;
-  disconnect: () => void;
-  signMessage: (message: string) => Promise<{ signature: string; key: string } | null>;
-  authenticate: () => Promise<boolean>;
-  logout: () => void;
-  clearError: () => void;
-  refreshDelegation: () => void;
-}
-
-const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [wallet, setWallet] = useState<BrowserWallet | null>(null);
@@ -502,10 +463,3 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useWallet() {
-  const context = useContext(WalletContext);
-  if (context === undefined) {
-    throw new Error('useWallet must be used within a WalletProvider');
-  }
-  return context;
-}

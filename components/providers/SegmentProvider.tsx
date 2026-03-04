@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
-import { useWallet } from '@/utils/wallet';
+import { useWallet } from '@/utils/wallet-context';
 
 export type UserSegment = 'anonymous' | 'citizen' | 'spo' | 'drep';
 
