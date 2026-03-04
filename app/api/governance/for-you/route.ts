@@ -103,9 +103,10 @@ function topAligningDimension(
   return best ? { dim: best, strength: bestStrength } : null;
 }
 
-export const GET = withRouteHandler(async (request: NextRequest, { wallet }: RouteContext) => {
-  const supabase = createClient();
-  const walletAddress = wallet!;
+export const GET = withRouteHandler(
+  async (request: NextRequest, { wallet }: RouteContext) => {
+    const supabase = createClient();
+    const walletAddress = wallet!;
     const [profileResult, pollResult] = await Promise.all([
       supabase
         .from('user_governance_profiles')
@@ -264,8 +265,10 @@ export const GET = withRouteHandler(async (request: NextRequest, { wallet }: Rou
       walletAddress,
     );
 
-  return NextResponse.json({
-    recommendations,
-    profileSource,
-  });
-}, { auth: 'required' });
+    return NextResponse.json({
+      recommendations,
+      profileSource,
+    });
+  },
+  { auth: 'required' },
+);

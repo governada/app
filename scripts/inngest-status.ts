@@ -70,7 +70,9 @@ async function checkRegistration(): Promise<void> {
       console.log(`PUT ${SITE_URL}/api/inngest — ${res.status} ${text}`);
     }
   } catch (err) {
-    console.log(`PUT ${SITE_URL}/api/inngest — FAILED (${err instanceof Error ? err.message : err})`);
+    console.log(
+      `PUT ${SITE_URL}/api/inngest — FAILED (${err instanceof Error ? err.message : err})`,
+    );
   }
 
   console.log(`\nExpected functions (${EXPECTED_FUNCTIONS.length}):`);
@@ -79,7 +81,9 @@ async function checkRegistration(): Promise<void> {
   }
 }
 
-async function checkRecentRuns(eventId: string): Promise<{ status: string; function_id: string; ended_at: string | null }[]> {
+async function checkRecentRuns(
+  eventId: string,
+): Promise<{ status: string; function_id: string; ended_at: string | null }[]> {
   try {
     const res = await fetch(`${INNGEST_API}/events/${eventId}/runs`, { headers });
     if (!res.ok) return [];
@@ -117,7 +121,13 @@ async function checkSyncHealth(): Promise<void> {
       return;
     }
 
-    const rows: { sync_type: string; status: string; started_at: string; duration_ms: number | null; error: string | null }[] = await res.json();
+    const rows: {
+      sync_type: string;
+      status: string;
+      started_at: string;
+      duration_ms: number | null;
+      error: string | null;
+    }[] = await res.json();
 
     if (rows.length === 0) {
       console.log('No sync_log entries found.');
@@ -145,7 +155,9 @@ async function checkSyncHealth(): Promise<void> {
       const error = latest.error ? latest.error.substring(0, 60) : '-';
       const statusIcon = latest.status === 'success' ? 'OK' : 'FAIL';
 
-      console.log(`| ${syncType.padEnd(28)} | ${statusIcon.padEnd(11)} | ${ago.padEnd(8)} | ${duration.padEnd(8)} | ${error} |`);
+      console.log(
+        `| ${syncType.padEnd(28)} | ${statusIcon.padEnd(11)} | ${ago.padEnd(8)} | ${duration.padEnd(8)} | ${error} |`,
+      );
     }
 
     const failures = rows.filter((r) => r.status !== 'success');

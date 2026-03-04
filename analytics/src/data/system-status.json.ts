@@ -1,8 +1,8 @@
-import { resolve } from "node:path";
-import { existsSync } from "node:fs";
-import postgres from "postgres";
+import { resolve } from 'node:path';
+import { existsSync } from 'node:fs';
+import postgres from 'postgres';
 
-const envPath = resolve(process.cwd(), ".env");
+const envPath = resolve(process.cwd(), '.env');
 if (existsSync(envPath)) process.loadEnvFile(envPath);
 const sql = postgres(process.env.DATABASE_URL!);
 
@@ -59,11 +59,13 @@ const recentFailures = await sql`
 
 await sql.end();
 
-process.stdout.write(JSON.stringify({
-  buildTime: new Date().toISOString(),
-  sync: syncHealth,
-  api: apiHealth[0],
-  freshness: dataFreshness[0],
-  integrity: integrityLatest[0] ?? null,
-  recentFailures,
-}));
+process.stdout.write(
+  JSON.stringify({
+    buildTime: new Date().toISOString(),
+    sync: syncHealth,
+    api: apiHealth[0],
+    freshness: dataFreshness[0],
+    integrity: integrityLatest[0] ?? null,
+    recentFailures,
+  }),
+);

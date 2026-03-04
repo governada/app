@@ -1,9 +1,9 @@
 # User Growth & Engagement
 
 ```js
-const userActivity = FileAttachment("data/user-activity.json").json();
-const govEvents = FileAttachment("data/governance-events.json").json();
-const notifications = FileAttachment("data/notification-log.json").json();
+const userActivity = FileAttachment('data/user-activity.json').json();
+const govEvents = FileAttachment('data/governance-events.json').json();
+const notifications = FileAttachment('data/notification-log.json').json();
 ```
 
 ```js
@@ -11,16 +11,17 @@ const { users, dailySignups } = userActivity;
 const { pollActivity, watchlistActivity } = govEvents;
 
 const totalUsers = users.length;
-const claimedDReps = users.filter(u => u.has_claimed).length;
-const claimRate = totalUsers > 0 ? Math.round(claimedDReps / totalUsers * 100) : 0;
-const recentActive = users.filter(u => {
+const claimedDReps = users.filter((u) => u.has_claimed).length;
+const claimRate = totalUsers > 0 ? Math.round((claimedDReps / totalUsers) * 100) : 0;
+const recentActive = users.filter((u) => {
   if (!u.last_login) return false;
   return (Date.now() - new Date(u.last_login).getTime()) / 86400000 < 7;
 }).length;
 
 const totalNotifications = notifications.length;
-const readNotifications = notifications.filter(n => n.read).length;
-const readRate = totalNotifications > 0 ? Math.round(readNotifications / totalNotifications * 100) : 0;
+const readNotifications = notifications.filter((n) => n.read).length;
+const readRate =
+  totalNotifications > 0 ? Math.round((readNotifications / totalNotifications) * 100) : 0;
 ```
 
 <div class="kpi-row cols-4">
@@ -52,28 +53,34 @@ const readRate = totalNotifications > 0 ? Math.round(readNotifications / totalNo
 Plot.plot({
   height: 300,
   marginLeft: 50,
-  style: { fontSize: "12px" },
-  x: { type: "utc", label: "Date →" },
-  y: { label: "↑ Count", grid: true },
+  style: { fontSize: '12px' },
+  x: { type: 'utc', label: 'Date →' },
+  y: { label: '↑ Count', grid: true },
   marks: [
-    Plot.rectY(dailySignups, Plot.binX({ y: "sum" }, {
-      x: d => new Date(d.day),
-      y: "signups",
-      fill: "var(--accent)",
-      fillOpacity: 0.7,
-      interval: "day",
-      tip: true,
-    })),
+    Plot.rectY(
+      dailySignups,
+      Plot.binX(
+        { y: 'sum' },
+        {
+          x: (d) => new Date(d.day),
+          y: 'signups',
+          fill: 'var(--accent)',
+          fillOpacity: 0.7,
+          interval: 'day',
+          tip: true,
+        },
+      ),
+    ),
     Plot.line(dailySignups, {
-      x: d => new Date(d.day),
-      y: "claims",
-      stroke: "#10b981",
+      x: (d) => new Date(d.day),
+      y: 'claims',
+      stroke: '#10b981',
       strokeWidth: 2,
       tip: true,
     }),
     Plot.ruleY([0]),
-  ]
-})
+  ],
+});
 ```
 
 <div class="threshold-legend">
@@ -87,33 +94,33 @@ Plot.plot({
 Plot.plot({
   height: 300,
   marginLeft: 50,
-  style: { fontSize: "12px" },
-  x: { type: "utc", label: "Date →" },
-  y: { label: "↑ Votes", grid: true },
+  style: { fontSize: '12px' },
+  x: { type: 'utc', label: 'Date →' },
+  y: { label: '↑ Votes', grid: true },
   marks: [
     Plot.areaY(pollActivity, {
-      x: d => new Date(d.day),
-      y: "votes",
-      fill: "var(--accent-purple)",
+      x: (d) => new Date(d.day),
+      y: 'votes',
+      fill: 'var(--accent-purple)',
       fillOpacity: 0.3,
-      curve: "step",
+      curve: 'step',
     }),
     Plot.line(pollActivity, {
-      x: d => new Date(d.day),
-      y: "votes",
-      stroke: "var(--accent-purple)",
+      x: (d) => new Date(d.day),
+      y: 'votes',
+      stroke: 'var(--accent-purple)',
       strokeWidth: 2,
     }),
     Plot.line(pollActivity, {
-      x: d => new Date(d.day),
-      y: "unique_voters",
-      stroke: "#f59e0b",
+      x: (d) => new Date(d.day),
+      y: 'unique_voters',
+      stroke: '#f59e0b',
       strokeWidth: 1.5,
-      strokeDasharray: "4,2",
+      strokeDasharray: '4,2',
     }),
     Plot.ruleY([0]),
-  ]
-})
+  ],
+});
 ```
 
 <div class="threshold-legend">
@@ -124,7 +131,12 @@ Plot.plot({
 ## Notification Breakdown
 
 ```js
-const notifByType = d3.rollups(notifications, v => v.length, d => d.event_type)
+const notifByType = d3
+  .rollups(
+    notifications,
+    (v) => v.length,
+    (d) => d.event_type,
+  )
   .map(([type, count]) => ({ type, count }))
   .sort((a, b) => b.count - a.count);
 ```
@@ -133,19 +145,19 @@ const notifByType = d3.rollups(notifications, v => v.length, d => d.event_type)
 Plot.plot({
   height: 300,
   marginLeft: 140,
-  style: { fontSize: "12px" },
-  x: { label: "Count →", grid: true },
+  style: { fontSize: '12px' },
+  x: { label: 'Count →', grid: true },
   y: { label: null },
   marks: [
     Plot.barX(notifByType, {
-      y: "type",
-      x: "count",
-      fill: "var(--accent)",
+      y: 'type',
+      x: 'count',
+      fill: 'var(--accent)',
       fillOpacity: 0.8,
-      sort: { y: "-x" },
+      sort: { y: '-x' },
       tip: true,
     }),
     Plot.ruleX([0]),
-  ]
-})
+  ],
+});
 ```

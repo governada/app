@@ -206,7 +206,12 @@ export async function storePCAResults(
     await supabase.from('drep_pca_coordinates').upsert(chunk, { onConflict: 'drep_id,run_id' });
   }
 
-  logger.info('[PCA] Stored run', { runId: result.runId, numDreps, components: result.explainedVariance.length, varianceExplainedPct: parseFloat((result.totalExplainedVariance * 100).toFixed(1)) });
+  logger.info('[PCA] Stored run', {
+    runId: result.runId,
+    numDreps,
+    components: result.explainedVariance.length,
+    varianceExplainedPct: parseFloat((result.totalExplainedVariance * 100).toFixed(1)),
+  });
 }
 
 /**

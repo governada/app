@@ -125,7 +125,12 @@ export function GovernanceHealthStory({
   }
 
   if (isLoading) return <HealthCheckSkeleton />;
-  if (isError) return <p className="text-destructive text-center py-12">Could not load your governance dashboard.</p>;
+  if (isError)
+    return (
+      <p className="text-destructive text-center py-12">
+        Could not load your governance dashboard.
+      </p>
+    );
   if (!data) return null;
 
   const healthStatus = getHealthStatus(data.delegationHealth);

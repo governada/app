@@ -222,7 +222,13 @@ export class SyncLogger {
         const severity =
           totalDrops >= CONSECUTIVE_DROP_RUNS ? 'persistent degradation' : 'single-run drop';
 
-        logger.warn(`[${this.syncType}] Record count anomaly`, { severity, currentCount, prevCount, ratio: parseFloat(ratio.toFixed(2)), streak: totalDrops });
+        logger.warn(`[${this.syncType}] Record count anomaly`, {
+          severity,
+          currentCount,
+          prevCount,
+          ratio: parseFloat(ratio.toFixed(2)),
+          streak: totalDrops,
+        });
         await alertDiscord(
           `Record Count Anomaly — ${this.syncType}`,
           `Current: ${currentCount}, Previous: ${prevCount} (${Math.round(ratio * 100)}% of expected). ${severity} (streak: ${totalDrops}). Possible truncated API response.`,
@@ -243,7 +249,9 @@ export class SyncLogger {
 
   private async checkDurationAnomaly(durationMs: number) {
     if (durationMs > 600_000) {
-      logger.warn(`[${this.syncType}] Sync duration exceeded 10 min`, { durationSeconds: Math.round(durationMs / 1000) });
+      logger.warn(`[${this.syncType}] Sync duration exceeded 10 min`, {
+        durationSeconds: Math.round(durationMs / 1000),
+      });
       await emitPostHog(true, this.syncType, durationMs, {
         event_override: 'sync_duration_warning',
       });
@@ -339,10 +347,7 @@ export async function alertEmail(subject: string, body: string): Promise<void> {
  * Never throws — uses allSettled to ensure both channels are attempted.
  */
 export async function alertCritical(title: string, details: string): Promise<void> {
-  await Promise.allSettled([
-    alertDiscord(title, details),
-    alertEmail(title, details),
-  ]);
+  await Promise.allSettled([alertDiscord(title, details), alertEmail(title, details)]);
 }
 
 /**

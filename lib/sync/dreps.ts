@@ -89,7 +89,10 @@ export async function executeDrepsSync(): Promise<Record<string, unknown>> {
           });
         }
       }
-      log.info('[dreps] Proposals fetched and classified', { fetched: raw.length, classified: classifiedProposalsList.length });
+      log.info('[dreps] Proposals fetched and classified', {
+        fetched: raw.length,
+        classified: classifiedProposalsList.length,
+      });
     } catch (err) {
       syncErrors.push(`Proposals: ${errMsg(err)}`);
       log.warn('[dreps] Proposal fetch failed (non-fatal)', { error: errMsg(err) });
@@ -126,7 +129,10 @@ export async function executeDrepsSync(): Promise<Record<string, unknown>> {
         if (handle) (drep as unknown as Record<string, unknown>).handle = handle;
       }
       handlesResolved = handleMap.size;
-      log.info('[dreps] ADA Handles resolved', { resolved: handlesResolved, total: allDReps.length });
+      log.info('[dreps] ADA Handles resolved', {
+        resolved: handlesResolved,
+        total: allDReps.length,
+      });
     } catch (err) {
       syncErrors.push(`ADA Handles: ${errMsg(err)}`);
       log.warn('[dreps] ADA Handle resolution failed (non-fatal)', { error: errMsg(err) });
@@ -143,7 +149,9 @@ export async function executeDrepsSync(): Promise<Record<string, unknown>> {
         const count = (info?.delegatorCount as number) || 0;
         existingDelegatorCounts.set(row.id, count);
       }
-      log.info('[dreps] Preserved existing delegator counts', { count: existingDelegatorCounts.size });
+      log.info('[dreps] Preserved existing delegator counts', {
+        count: existingDelegatorCounts.size,
+      });
     } catch (err) {
       log.warn('[dreps] Could not read existing delegator counts', { error: errMsg(err) });
     }
@@ -312,7 +320,11 @@ export async function executeDrepsSync(): Promise<Record<string, unknown>> {
     }
 
     const duration = (syncLog.elapsed / 1000).toFixed(1);
-    log.info('[dreps] Sync complete', { durationSeconds: duration, synced: drepResult.success, issues: syncErrors.length });
+    log.info('[dreps] Sync complete', {
+      durationSeconds: duration,
+      synced: drepResult.success,
+      issues: syncErrors.length,
+    });
 
     const metrics = {
       dreps_synced: drepResult.success,

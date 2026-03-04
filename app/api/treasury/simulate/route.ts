@@ -66,9 +66,7 @@ export const GET = withRouteHandler(async (request, { requestId }) => {
       key: s.key,
       projectedMonths: s.projectedMonths,
       depletionEpoch: s.depletionEpoch,
-      balanceCurve: s.balanceCurve.filter(
-        (_, i) => i % 5 === 0 || i === s.balanceCurve.length - 1,
-      ),
+      balanceCurve: s.balanceCurve.filter((_, i) => i % 5 === 0 || i === s.balanceCurve.length - 1),
     })),
     counterfactual,
   });

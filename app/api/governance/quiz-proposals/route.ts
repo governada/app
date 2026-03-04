@@ -109,7 +109,10 @@ export const GET = withRouteHandler(async (_request, { requestId }) => {
   ]);
 
   if (proposalResult.error) {
-    logger.error('Failed to fetch proposals', { context: 'quiz-proposals', error: proposalResult.error.message });
+    logger.error('Failed to fetch proposals', {
+      context: 'quiz-proposals',
+      error: proposalResult.error.message,
+    });
     return NextResponse.json({ error: 'Failed to fetch proposals' }, { status: 500 });
   }
 

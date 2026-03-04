@@ -21,7 +21,10 @@ export const generateStateOfGovernance = inngest.createFunction(
       return generateAndStoreReport();
     });
 
-    logger.info('[StateOfGovernance] Report generated', { epoch: result.epoch, stored: result.stored });
+    logger.info('[StateOfGovernance] Report generated', {
+      epoch: result.epoch,
+      stored: result.stored,
+    });
     return result;
   },
 );

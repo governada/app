@@ -43,7 +43,7 @@ export function DRepVoteCallout({ txHash, proposalIndex }: DRepVoteCalloutProps)
       bg: 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800',
     },
   };
-  const config = vote ? voteConfigMap[vote as string] ?? null : null;
+  const config = vote ? (voteConfigMap[vote as string] ?? null) : null;
 
   if (config) {
     const Icon = config.icon;

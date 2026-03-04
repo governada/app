@@ -107,7 +107,9 @@ async function sendDiscordWebhook(
     });
     return res.ok;
   } catch (e) {
-    logger.error('[Notifications] Discord webhook failed', { error: e instanceof Error ? e.message : e });
+    logger.error('[Notifications] Discord webhook failed', {
+      error: e instanceof Error ? e.message : e,
+    });
     return false;
   }
 }
@@ -131,7 +133,9 @@ async function sendTelegramMessage(chatId: string, payload: NotificationPayload)
     });
     return res.ok;
   } catch (e) {
-    logger.error('[Notifications] Telegram send failed', { error: e instanceof Error ? e.message : e });
+    logger.error('[Notifications] Telegram send failed', {
+      error: e instanceof Error ? e.message : e,
+    });
     return false;
   }
 }

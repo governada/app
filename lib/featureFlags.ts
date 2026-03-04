@@ -42,7 +42,9 @@ async function loadFlags(): Promise<Map<string, boolean>> {
     const { data, error } = await supabase.from('feature_flags').select('key, enabled');
 
     if (error || !data) {
-      logger.warn('[featureFlags] Failed to load flags, using cache/defaults', { error: error?.message });
+      logger.warn('[featureFlags] Failed to load flags, using cache/defaults', {
+        error: error?.message,
+      });
       return flagCache;
     }
 

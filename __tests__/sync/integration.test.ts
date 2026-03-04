@@ -164,9 +164,7 @@ describe('Sync Pipeline: Schema Drift Detection', () => {
   });
 
   it('rejects vote with invalid vote enum value', () => {
-    expect(
-      KoiosVoteSchema.safeParse({ ...REALISTIC_VOTE, vote: 'Maybe' }).success,
-    ).toBe(false);
+    expect(KoiosVoteSchema.safeParse({ ...REALISTIC_VOTE, vote: 'Maybe' }).success).toBe(false);
   });
 
   it('rejects vote with missing proposal_tx_hash', () => {

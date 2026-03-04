@@ -234,7 +234,10 @@ export async function getAllDReps(): Promise<{
     const wellDocumentedDReps = allDReps.filter((d) => isWellDocumented(d));
 
     if (isDev) {
-      logger.info('[Data] Well documented filter', { wellDocumented: wellDocumentedDReps.length, total: allDReps.length });
+      logger.info('[Data] Well documented filter', {
+        wellDocumented: wellDocumentedDReps.length,
+        total: allDReps.length,
+      });
     }
 
     return {
@@ -244,7 +247,9 @@ export async function getAllDReps(): Promise<{
       totalAvailable: allDReps.length,
     };
   } catch (error: unknown) {
-    logger.error('[Data] Cache read failed, falling back to Koios', { error: error instanceof Error ? error.message : String(error) });
+    logger.error('[Data] Cache read failed, falling back to Koios', {
+      error: error instanceof Error ? error.message : String(error),
+    });
 
     // Fallback to direct Koios fetch
     if (isDev) {
@@ -527,7 +532,10 @@ export async function getDRepById(drepId: string): Promise<EnrichedDRep | null> 
 
     return transformSupabaseRowToDRep(row);
   } catch (error: unknown) {
-    logger.error('[Data] Cache read failed for DRep', { drepId, error: error instanceof Error ? error.message : String(error) });
+    logger.error('[Data] Cache read failed for DRep', {
+      drepId,
+      error: error instanceof Error ? error.message : String(error),
+    });
 
     return null;
   }

@@ -57,18 +57,21 @@ Do not skip this check. Abandoned in-progress tickets are a liability.
 ### When to Create Tickets
 
 **DO create a Linear ticket when:**
+
 - Work is identified but will NOT be executed in the current session (deferred work, future phases)
 - A bug or tech debt is discovered mid-work but is out of scope for the current task
 - A blocking dependency is identified that a future session needs to resolve
 - The plan includes human tasks (community, marketing, partnerships, submissions) — scaffold these immediately with due dates and relationships
 
 **DO NOT create a ticket when:**
+
 - You are about to immediately execute the work in this session
 - The task is a sub-step of something already tracked in Linear
 
 ### Starting Work: Branch-to-Ticket Link
 
 When beginning execution of a tracked task:
+
 1. Move the corresponding Linear ticket to **"In Progress"**
 2. Add the branch name to the ticket description: `Branch: feat/your-branch-name`
 3. If no ticket exists yet and work spans multiple sessions, create one now (before coding)
@@ -76,6 +79,7 @@ When beginning execution of a tracked task:
 ### Human Task Scaffolding
 
 When a plan includes non-code work (Catalyst proposals, community outreach, partnerships, marketing):
+
 - Create parent tickets for each milestone with due dates
 - Create child tickets for each discrete action, linked as sub-issues
 - Label them `human-task` and assign appropriate priority
@@ -98,19 +102,20 @@ After the Post-Build ship sequence completes, before ending the session:
 ### Push-Before-Pivot Rule
 
 Before switching to a new task or ending a session with incomplete work:
+
 1. `git push -u origin HEAD` — even for WIP branches
 2. Update the Linear ticket: move to Todo, add comment with last commit SHA and what remains
 3. Never leave uncommitted work without a ticket pointing at the branch
 
 ### Labels Convention
 
-| Label | Use |
-|---|---|
-| `agent-created` | Any ticket auto-created by a Cursor agent |
-| `human-task` | Work owned by the user, not an agent |
-| `tech-debt` | Discovered during execution, deferred |
-| `bug` | Defect found in production or during build |
-| `blocked` | Waiting on a prerequisite |
+| Label           | Use                                        |
+| --------------- | ------------------------------------------ |
+| `agent-created` | Any ticket auto-created by a Cursor agent  |
+| `human-task`    | Work owned by the user, not an agent       |
+| `tech-debt`     | Discovered during execution, deferred      |
+| `bug`           | Defect found in production or during build |
+| `blocked`       | Waiting on a prerequisite                  |
 
 ## Hotfix Protocol
 

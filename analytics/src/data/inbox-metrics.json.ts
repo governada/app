@@ -1,8 +1,8 @@
-import { resolve } from "node:path";
-import { existsSync } from "node:fs";
-import postgres from "postgres";
+import { resolve } from 'node:path';
+import { existsSync } from 'node:fs';
+import postgres from 'postgres';
 
-const envPath = resolve(process.cwd(), ".env");
+const envPath = resolve(process.cwd(), '.env');
 if (existsSync(envPath)) process.loadEnvFile(envPath);
 const sql = postgres(process.env.DATABASE_URL!);
 
@@ -61,26 +61,29 @@ const recentNotifications = await sql`
 
 await sql.end();
 
-process.stdout.write(JSON.stringify({
-  currentEpoch: epoch,
-  totalActiveDreps: Number(totalActiveDreps[0].count),
-  openProposals: openProposals.map(p => ({
-    ...p,
-    epochsRemaining: p.expiration_epoch != null ? Math.max(0, Number(p.expiration_epoch) - epoch) : null,
-    total_drep_votes: Number(p.total_drep_votes),
-  })),
-  drepActivity: votesThisEpoch.map(d => ({
-    drepId: d.drep_id,
-    name: d.name,
-    score: Number(d.score),
-    votesThisEpoch: Number(d.votes_this_epoch),
-    participationRate: Number(d.participation_rate),
-    totalVotes: Number(d.total_votes),
-  })),
-  notifications: recentNotifications.map(n => ({
-    eventType: n.event_type,
-    channel: n.channel,
-    count: Number(n.count),
-    delivered: Number(n.delivered),
-  })),
-}));
+process.stdout.write(
+  JSON.stringify({
+    currentEpoch: epoch,
+    totalActiveDreps: Number(totalActiveDreps[0].count),
+    openProposals: openProposals.map((p) => ({
+      ...p,
+      epochsRemaining:
+        p.expiration_epoch != null ? Math.max(0, Number(p.expiration_epoch) - epoch) : null,
+      total_drep_votes: Number(p.total_drep_votes),
+    })),
+    drepActivity: votesThisEpoch.map((d) => ({
+      drepId: d.drep_id,
+      name: d.name,
+      score: Number(d.score),
+      votesThisEpoch: Number(d.votes_this_epoch),
+      participationRate: Number(d.participation_rate),
+      totalVotes: Number(d.total_votes),
+    })),
+    notifications: recentNotifications.map((n) => ({
+      eventType: n.event_type,
+      channel: n.channel,
+      count: Number(n.count),
+      delivered: Number(n.delivered),
+    })),
+  }),
+);

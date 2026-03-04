@@ -35,7 +35,9 @@ export function GovernanceHealthIndex({
   className = '',
 }: GovernanceHealthIndexProps) {
   const { data: rawData, isLoading, isError } = useGovernanceHealthIndex(20);
-  const ghiResponse = rawData as { current: GHIData; history?: GHIHistoryPoint[]; trend?: GHITrend } | undefined;
+  const ghiResponse = rawData as
+    | { current: GHIData; history?: GHIHistoryPoint[]; trend?: GHITrend }
+    | undefined;
   const data = ghiResponse?.current ?? null;
   const history = ghiResponse?.history ?? [];
   const trend = ghiResponse?.trend ?? null;

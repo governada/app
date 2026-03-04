@@ -89,9 +89,7 @@ export const GET = withRouteHandler(async (request, { requestId }) => {
           ? 'No'
           : 'Abstain';
 
-    const majorityPct = Math.round(
-      (Math.max(counts.yes, counts.no, counts.abstain) / total) * 100,
-    );
+    const majorityPct = Math.round((Math.max(counts.yes, counts.no, counts.abstain) / total) * 100);
     const aligned = drepVote === majority;
 
     if (aligned) alignedCount++;
@@ -108,8 +106,7 @@ export const GET = withRouteHandler(async (request, { requestId }) => {
     });
   }
 
-  const alignmentPct =
-    totalCompared > 0 ? Math.round((alignedCount / totalCompared) * 100) : null;
+  const alignmentPct = totalCompared > 0 ? Math.round((alignedCount / totalCompared) * 100) : null;
 
   return NextResponse.json({
     alignment: alignmentPct,

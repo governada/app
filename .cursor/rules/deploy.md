@@ -49,7 +49,7 @@ Any `app/` file importing `@/lib/supabase` (directly or via `@/lib/data`) that i
   4. `npm run posthog:check <event>` — verify new instrumentation is firing (when deploying features with new events)
   5. Trigger new compute functions if they need initial data
   6. Hit new/changed endpoints on `drepscore.io` to verify 200 responses
-  Do not ask the user for permission on these steps
+     Do not ask the user for permission on these steps
 - **INNGEST_SERVE_HOST**: `https://drepscore.io`
 
 ## Key Env Vars (managed in Railway dashboard)

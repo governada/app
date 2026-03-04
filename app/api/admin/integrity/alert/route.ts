@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient, getSupabaseAdmin } from '@/lib/supabase';
 import { inngest } from '@/lib/inngest';
 import { logger } from '@/lib/logger';
+import { alertEmail } from '@/lib/sync-utils';
 import { withRouteHandler } from '@/lib/api/withRouteHandler';
 
 export const dynamic = 'force-dynamic';
@@ -259,7 +260,12 @@ export const GET = withRouteHandler(async (request) => {
 
   for (const { syncType, staleMins, config } of staleTypes) {
     try {
-      logger.info('Self-healing: triggering sync via Inngest', { context: 'alert-cron', syncType, staleMins, threshold: config.mins });
+      logger.info('Self-healing: triggering sync via Inngest', {
+        context: 'alert-cron',
+        syncType,
+        staleMins,
+        threshold: config.mins,
+      });
       await inngest.send({ name: config.event });
       recoveries.push(`${syncType}: triggered`);
       logger.info('Recovery: Inngest event sent', { context: 'alert-cron', syncType });
@@ -335,6 +341,16 @@ export const GET = withRouteHandler(async (request) => {
   }
 
   try {
+    if (criticals.length > 0) {
+      const emailBody = alerts
+        .map(
+          (a) =>
+            `[${a.level.toUpperCase()}] ${a.metric}\n${a.value}\nThreshold: ${a.threshold}\nAction: ${a.action}`,
+        )
+        .join('\n\n');
+      alertEmail(`Integrity Alert: ${criticals.length} critical`, emailBody).catch(() => {});
+    }
+
     const res = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

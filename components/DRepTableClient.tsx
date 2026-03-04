@@ -6,7 +6,10 @@ import dynamic from 'next/dynamic';
 import { DRepTable } from '@/components/DRepTable';
 import { DRepCardGrid } from '@/components/DRepCardGrid';
 import { DRepQuickView, type DRepMatchDetail } from '@/components/DRepQuickView';
-const SmartSearch = dynamic(() => import('@/components/SmartSearch').then(m => m.SmartSearch), { ssr: false, loading: () => <div className="h-32 animate-pulse bg-muted rounded-lg" /> });
+const SmartSearch = dynamic(() => import('@/components/SmartSearch').then((m) => m.SmartSearch), {
+  ssr: false,
+  loading: () => <div className="h-32 animate-pulse bg-muted rounded-lg" />,
+});
 import { FilterPanel } from '@/components/FilterPanel';
 import { EmptyState } from '@/components/EmptyState';
 import { ErrorBanner } from '@/components/ErrorBanner';

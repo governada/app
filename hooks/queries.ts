@@ -186,8 +186,7 @@ export function useDashboardUrgent(drepId: string | null | undefined) {
 export function useDashboardRepresentation(drepId: string | null | undefined) {
   return useQuery({
     queryKey: ['dashboard-representation', drepId],
-    queryFn: () =>
-      fetchJson(`/api/dashboard/representation?drepId=${encodeURIComponent(drepId!)}`),
+    queryFn: () => fetchJson(`/api/dashboard/representation?drepId=${encodeURIComponent(drepId!)}`),
     enabled: !!drepId,
   });
 }
@@ -279,9 +278,7 @@ export function useSpoVotes(txHash: string, index: number) {
   return useQuery({
     queryKey: ['spo-votes', txHash, index],
     queryFn: () =>
-      fetchJson(
-        `/api/governance/spo-votes?txHash=${encodeURIComponent(txHash)}&index=${index}`,
-      ),
+      fetchJson(`/api/governance/spo-votes?txHash=${encodeURIComponent(txHash)}&index=${index}`),
     enabled: !!txHash,
   });
 }
@@ -290,9 +287,7 @@ export function useCcVotes(txHash: string, index: number) {
   return useQuery({
     queryKey: ['cc-votes', txHash, index],
     queryFn: () =>
-      fetchJson(
-        `/api/governance/cc-votes?txHash=${encodeURIComponent(txHash)}&index=${index}`,
-      ),
+      fetchJson(`/api/governance/cc-votes?txHash=${encodeURIComponent(txHash)}&index=${index}`),
     enabled: !!txHash,
   });
 }

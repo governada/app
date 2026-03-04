@@ -30,10 +30,7 @@ export interface RouteContext {
   wallet?: string;
 }
 
-type HandlerFn = (
-  request: NextRequest,
-  context: RouteContext,
-) => Promise<NextResponse>;
+type HandlerFn = (request: NextRequest, context: RouteContext) => Promise<NextResponse>;
 
 function hashIp(ip: string): string {
   return createHash('sha256').update(ip).digest('hex').slice(0, 16);
@@ -145,10 +142,7 @@ export function withRouteHandler(handler: HandlerFn, options: RouteOptions = {})
           requestId,
           fields,
         });
-        return NextResponse.json(
-          { error: 'Validation failed', details: fields },
-          { status: 400 },
-        );
+        return NextResponse.json({ error: 'Validation failed', details: fields }, { status: 400 });
       }
 
       logger.error('Route error', {
@@ -159,10 +153,7 @@ export function withRouteHandler(handler: HandlerFn, options: RouteOptions = {})
         error: err,
       });
 
-      return NextResponse.json(
-        { error: 'Internal server error' },
-        { status: 500 },
-      );
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
   };
 }

@@ -9,21 +9,24 @@ import { withRouteHandler, type RouteContext } from '@/lib/api/withRouteHandler'
 
 export const dynamic = 'force-dynamic';
 
-export const GET = withRouteHandler(async (request: NextRequest, { wallet }: RouteContext) => {
-  const brief = await getLatestBrief(wallet!);
+export const GET = withRouteHandler(
+  async (request: NextRequest, { wallet }: RouteContext) => {
+    const brief = await getLatestBrief(wallet!);
 
-  if (!brief) {
-    return NextResponse.json({ brief: null, message: 'No briefs yet' });
-  }
+    if (!brief) {
+      return NextResponse.json({ brief: null, message: 'No briefs yet' });
+    }
 
-  captureServerEvent(
-    'governance_brief_opened',
-    {
-      brief_id: brief.id,
-      source: 'api',
-    },
-    wallet!,
-  );
+    captureServerEvent(
+      'governance_brief_opened',
+      {
+        brief_id: brief.id,
+        source: 'api',
+      },
+      wallet!,
+    );
 
-  return NextResponse.json({ brief });
-}, { auth: 'required' });
+    return NextResponse.json({ brief });
+  },
+  { auth: 'required' },
+);

@@ -38,27 +38,30 @@ export async function GET(request: NextRequest) {
 /**
  * POST: Auto-claim a DRep profile when an authenticated wallet matches the DRep ID.
  */
-export const POST = withRouteHandler(async (request: NextRequest, { requestId }: RouteContext) => {
-  const { sessionToken, drepId } = DrepClaimSchema.parse(await request.json());
+export const POST = withRouteHandler(
+  async (request: NextRequest, { requestId }: RouteContext) => {
+    const { sessionToken, drepId } = DrepClaimSchema.parse(await request.json());
 
-  const parsed = await validateSessionToken(sessionToken);
-  if (!parsed) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+    const parsed = await validateSessionToken(sessionToken);
+    if (!parsed) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-  const walletAddress = parsed.walletAddress;
-  const supabase = getSupabaseAdmin();
+    const walletAddress = parsed.walletAddress;
+    const supabase = getSupabaseAdmin();
 
-  const { error } = await supabase
-    .from('users')
-    .update({ claimed_drep_id: drepId })
-    .eq('wallet_address', walletAddress);
+    const { error } = await supabase
+      .from('users')
+      .update({ claimed_drep_id: drepId })
+      .eq('wallet_address', walletAddress);
 
-  if (error) {
-    logger.error('Error', { context: 'drepclaim', error: error?.message });
-    return NextResponse.json({ error: 'Failed to claim' }, { status: 500 });
-  }
+    if (error) {
+      logger.error('Error', { context: 'drepclaim', error: error?.message });
+      return NextResponse.json({ error: 'Failed to claim' }, { status: 500 });
+    }
 
-  captureServerEvent('drep_claimed', { drep_id: drepId }, walletAddress);
-  return NextResponse.json({ claimed: true, drepId });
-}, { auth: 'none', rateLimit: { max: 5, window: 60 } });
+    captureServerEvent('drep_claimed', { drep_id: drepId }, walletAddress);
+    return NextResponse.json({ claimed: true, drepId });
+  },
+  { auth: 'none', rateLimit: { max: 5, window: 60 } },
+);

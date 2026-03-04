@@ -226,7 +226,9 @@ export async function getEnrichedDReps(
 
   try {
     if (isDev) {
-      logger.info('[DRepScore] getEnrichedDReps - loading ALL DReps in batches', { wellDocumentedOnly });
+      logger.info('[DRepScore] getEnrichedDReps - loading ALL DReps in batches', {
+        wellDocumentedOnly,
+      });
     }
 
     const isHealthy = await checkKoiosHealth();
@@ -243,7 +245,11 @@ export async function getEnrichedDReps(
       getActualProposalCount(),
     ]);
     if (isDev) {
-      logger.info('[DRepScore] Epoch context', { currentEpoch, activeProposalEpochs: activeProposalEpochs.size, actualProposalCount });
+      logger.info('[DRepScore] Epoch context', {
+        currentEpoch,
+        activeProposalEpochs: activeProposalEpochs.size,
+        actualProposalCount,
+      });
     }
 
     let drepList: Awaited<ReturnType<typeof fetchAllDReps>>;
@@ -266,7 +272,10 @@ export async function getEnrichedDReps(
     const allDrepIds = registeredDReps.map((d) => d.drep_id);
 
     if (isDev) {
-      logger.info('[DRepScore] Loading all DReps in batches', { total: totalAvailable, batchSize: BATCH_SIZE });
+      logger.info('[DRepScore] Loading all DReps in batches', {
+        total: totalAvailable,
+        batchSize: BATCH_SIZE,
+      });
     }
 
     const allBaseDreps: DRep[] = [];
@@ -278,7 +287,11 @@ export async function getEnrichedDReps(
       const totalBatches = Math.ceil(allDrepIds.length / BATCH_SIZE);
 
       if (isDev) {
-        logger.info('[DRepScore] Fetching batch', { batch: batchNum, totalBatches, count: batchIds.length });
+        logger.info('[DRepScore] Fetching batch', {
+          batch: batchNum,
+          totalBatches,
+          count: batchIds.length,
+        });
       }
 
       const { info, metadata } = await fetchDRepsWithDetails(batchIds);
@@ -432,7 +445,10 @@ export async function getEnrichedDReps(
     const drepsToReturn = wellDocumentedOnly ? wellDocumentedDReps : sorted;
 
     if (isDev) {
-      logger.info('[DRepScore] Loaded DReps with scores', { total: sorted.length, wellDocumented: wellDocumentedDReps.length });
+      logger.info('[DRepScore] Loaded DReps with scores', {
+        total: sorted.length,
+        wellDocumented: wellDocumentedDReps.length,
+      });
     }
 
     return {

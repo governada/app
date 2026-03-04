@@ -39,10 +39,7 @@ export const CHAIN_IDENTITIES: Record<Chain, ChainIdentity> = {
  * Wrapper that maps shared withRetry (throws on exhaustion) to the
  * null-on-failure contract used by the cross-chain adapters.
  */
-async function withRetrySafe<T>(
-  fn: () => Promise<T>,
-  label: string,
-): Promise<T | null> {
+async function withRetrySafe<T>(fn: () => Promise<T>, label: string): Promise<T | null> {
   try {
     return await withRetry(fn, {
       maxRetries: 3,
@@ -132,7 +129,10 @@ async function tallyFetch(query: string, variables?: Record<string, unknown>): P
     if (!res.ok) {
       const msg = `Tally API error: ${res.status} ${res.statusText}`;
       if (res.status >= 500 || res.status === 429) throw new Error(msg);
-      logger.error('[crossChain] Tally API error', { status: res.status, statusText: res.statusText });
+      logger.error('[crossChain] Tally API error', {
+        status: res.status,
+        statusText: res.statusText,
+      });
       return null;
     }
 
@@ -149,7 +149,10 @@ async function tallyFetch(query: string, variables?: Record<string, unknown>): P
 }
 
 export async function fetchEthereumBenchmark(): Promise<ChainBenchmark | null> {
-  const orgsData = (await withRetrySafe(() => tallyFetch(TALLY_ORGS_QUERY), 'crossChain/tally/orgs')) as {
+  const orgsData = (await withRetrySafe(
+    () => tallyFetch(TALLY_ORGS_QUERY),
+    'crossChain/tally/orgs',
+  )) as {
     organizations?: { nodes: TallyOrgNode[] };
   } | null;
   if (!orgsData?.organizations?.nodes?.length) return null;
@@ -232,7 +235,10 @@ async function subsquareFetch(path: string): Promise<unknown> {
     if (!res.ok) {
       const msg = `SubSquare API error: ${res.status} ${res.statusText}`;
       if (res.status >= 500 || res.status === 429) throw new Error(msg);
-      logger.error('[crossChain] SubSquare API error', { status: res.status, statusText: res.statusText });
+      logger.error('[crossChain] SubSquare API error', {
+        status: res.status,
+        statusText: res.statusText,
+      });
       return null;
     }
 
@@ -245,7 +251,10 @@ async function subsquareFetch(path: string): Promise<unknown> {
 export async function fetchPolkadotBenchmark(): Promise<ChainBenchmark | null> {
   const [summaryData, referendaData] = await Promise.all([
     withRetrySafe(() => subsquareFetch('/summary'), 'crossChain/subsquare/summary'),
-    withRetrySafe(() => subsquareFetch('/gov2/referendums?page=1&page_size=20'), 'crossChain/subsquare/referenda'),
+    withRetrySafe(
+      () => subsquareFetch('/gov2/referendums?page=1&page_size=20'),
+      'crossChain/subsquare/referenda',
+    ),
   ]);
 
   const summary = summaryData as {

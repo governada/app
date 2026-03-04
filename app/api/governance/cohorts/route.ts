@@ -36,9 +36,10 @@ function classifyVoter(treasuryYes: number, treasuryNo: number): string {
   return 'Balanced Voter';
 }
 
-export const GET = withRouteHandler(async (request: NextRequest, { wallet }: RouteContext) => {
-  const walletAddress = wallet!;
-  const supabase = getSupabaseAdmin();
+export const GET = withRouteHandler(
+  async (request: NextRequest, { wallet }: RouteContext) => {
+    const walletAddress = wallet!;
+    const supabase = getSupabaseAdmin();
     const { count: totalVoters } = await supabase
       .from('poll_responses')
       .select('wallet_address', { count: 'exact', head: true })
@@ -118,5 +119,7 @@ export const GET = withRouteHandler(async (request: NextRequest, { wallet }: Rou
       },
     };
 
-  return NextResponse.json({ cohort: result });
-}, { auth: 'required' });
+    return NextResponse.json({ cohort: result });
+  },
+  { auth: 'required' },
+);

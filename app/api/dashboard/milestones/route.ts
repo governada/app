@@ -10,13 +10,13 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
   if (!drepId) return NextResponse.json({ error: 'Missing drepId' }, { status: 400 });
 
   const achieved = await getAchievedMilestones(drepId);
-    const achievedKeys = new Set(achieved.map((a) => a.milestoneKey));
+  const achievedKeys = new Set(achieved.map((a) => a.milestoneKey));
 
-    const milestones = MILESTONES.map((m) => ({
-      ...m,
-      achieved: achievedKeys.has(m.key),
-      achievedAt: achieved.find((a) => a.milestoneKey === m.key)?.achievedAt || null,
-    }));
+  const milestones = MILESTONES.map((m) => ({
+    ...m,
+    achieved: achievedKeys.has(m.key),
+    achievedAt: achieved.find((a) => a.milestoneKey === m.key)?.achievedAt || null,
+  }));
 
   return NextResponse.json({
     milestones,
@@ -31,11 +31,11 @@ export const POST = withRouteHandler(async (request: NextRequest) => {
 
   const newMilestones = await checkAndAwardMilestones(drepId);
 
-    captureServerEvent(
-      'milestone_updated',
-      { drep_id: drepId, new_milestones: newMilestones.length },
-      drepId,
-    );
+  captureServerEvent(
+    'milestone_updated',
+    { drep_id: drepId, new_milestones: newMilestones.length },
+    drepId,
+  );
 
   return NextResponse.json({ newMilestones });
 });

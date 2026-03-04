@@ -127,10 +127,10 @@ export const syncFreshnessGuard = inngest.createFunction(
             recentTriggerCount,
             max: SELF_HEAL_MAX_TRIGGERS,
           });
-        await alertCritical(
-          `Self-Heal Throttled: ${syncType}`,
-          `${recentTriggerCount} runs in last 2h but still stale (${staleMins}m). Possible persistent failure — needs manual investigation.`,
-        );
+          await alertCritical(
+            `Self-Heal Throttled: ${syncType}`,
+            `${recentTriggerCount} runs in last 2h but still stale (${staleMins}m). Possible persistent failure — needs manual investigation.`,
+          );
           return null;
         }
 

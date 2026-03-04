@@ -16,9 +16,10 @@ interface TimelineEvent {
   createdAt: string;
 }
 
-export const GET = withRouteHandler(async (request: NextRequest, { wallet }: RouteContext) => {
-  const walletAddress = wallet!;
-  const supabase = getSupabaseAdmin();
+export const GET = withRouteHandler(
+  async (request: NextRequest, { wallet }: RouteContext) => {
+    const walletAddress = wallet!;
+    const supabase = getSupabaseAdmin();
     const [eventsResult, pollResult] = await Promise.all([
       supabase
         .from('governance_events')
@@ -98,5 +99,7 @@ export const GET = withRouteHandler(async (request: NextRequest, { wallet }: Rou
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
 
-  return NextResponse.json({ events: allEvents.slice(0, 50) });
-}, { auth: 'required' });
+    return NextResponse.json({ events: allEvents.slice(0, 50) });
+  },
+  { auth: 'required' },
+);

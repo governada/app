@@ -111,7 +111,7 @@ function getEventConfig(event: TimelineEvent) {
 
 export function GovernanceTimeline() {
   const { data: rawData, isLoading, isError } = useGovernanceTimeline();
-  const events = ((rawData as { events?: TimelineEvent[] })?.events) ?? [];
+  const events = (rawData as { events?: TimelineEvent[] })?.events ?? [];
 
   const grouped = useMemo(() => {
     const map = new Map<number | 'unknown', TimelineEvent[]>();
@@ -129,7 +129,12 @@ export function GovernanceTimeline() {
   }, [events]);
 
   if (isLoading) return <TimelineSkeleton />;
-  if (isError) return <p className="text-destructive text-center py-8 text-sm">Could not load your governance timeline.</p>;
+  if (isError)
+    return (
+      <p className="text-destructive text-center py-8 text-sm">
+        Could not load your governance timeline.
+      </p>
+    );
 
   if (events.length === 0) {
     return (

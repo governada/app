@@ -81,9 +81,16 @@ export async function computeCitizenEngagement({
       .from('dreps')
       .select('info')
       .not('info->isActive', 'is', null);
-    const activeDreps = (dreps ?? []).filter((d) => (d.info as Record<string, unknown> | null)?.isActive);
+    const activeDreps = (dreps ?? []).filter(
+      (d) => (d.info as Record<string, unknown> | null)?.isActive,
+    );
     const totalDelegatedLovelace = activeDreps.reduce(
-      (sum, d) => sum + parseInt(String((d.info as Record<string, unknown> | null)?.votingPowerLovelace || '0'), 10),
+      (sum, d) =>
+        sum +
+        parseInt(
+          String((d.info as Record<string, unknown> | null)?.votingPowerLovelace || '0'),
+          10,
+        ),
       0,
     );
     const delegationRate = totalDelegatedLovelace / circulatingSupply;
@@ -339,9 +346,13 @@ export async function computePowerDistribution({
     .select('id, info')
     .not('info->isActive', 'is', null);
 
-  const activeDreps = (dreps ?? []).filter((d) => (d.info as Record<string, unknown> | null)?.isActive);
+  const activeDreps = (dreps ?? []).filter(
+    (d) => (d.info as Record<string, unknown> | null)?.isActive,
+  );
   const votingPowers = activeDreps
-    .map((d) => parseInt(String((d.info as Record<string, unknown> | null)?.votingPowerLovelace || '0'), 10))
+    .map((d) =>
+      parseInt(String((d.info as Record<string, unknown> | null)?.votingPowerLovelace || '0'), 10),
+    )
     .filter((v) => v > 0);
 
   const edi = computeEDI(votingPowers);
@@ -391,7 +402,11 @@ export async function computeSystemStability({
 
   let retentionScore = 70; // neutral-healthy default
   if (ghiSnaps?.length === 2) {
-    interface GHIComponentSnapshot { name: string; detail?: Record<string, number>; [key: string]: unknown; }
+    interface GHIComponentSnapshot {
+      name: string;
+      detail?: Record<string, number>;
+      [key: string]: unknown;
+    }
     const currentComps = ghiSnaps[0].components as GHIComponentSnapshot[];
     const prevComps = ghiSnaps[1].components as GHIComponentSnapshot[];
     const getCurrent = currentComps?.find((c) => c.name === 'DRep Participation');

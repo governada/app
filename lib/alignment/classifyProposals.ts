@@ -248,14 +248,19 @@ export async function classifyProposalsAI(
     }));
     const { error: historyErr } = await supabase.from('classification_history').insert(historyRows);
     if (historyErr) {
-      logger.warn('[alignment] classification_history insert failed (non-fatal)', { error: historyErr.message });
+      logger.warn('[alignment] classification_history insert failed (non-fatal)', {
+        error: historyErr.message,
+      });
     }
 
     await supabase
       .from('proposal_classifications')
       .upsert(rows, { onConflict: 'proposal_tx_hash,proposal_index' });
 
-    logger.info('[alignment] Classified new proposals', { total: newClassifications.length, viaAI: newClassifications.filter((c) => !c.aiSummary?.startsWith('Rule-based')).length });
+    logger.info('[alignment] Classified new proposals', {
+      total: newClassifications.length,
+      viaAI: newClassifications.filter((c) => !c.aiSummary?.startsWith('Rule-based')).length,
+    });
   }
 
   // Return all classifications

@@ -22,35 +22,38 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ checklist: data?.onboarding_checklist || {} });
 }
 
-export const POST = withRouteHandler(async (request: NextRequest, { requestId }: RouteContext) => {
-  const body = await request.json();
-  const { sessionToken, item, completed } = OnboardingSchema.parse(body);
+export const POST = withRouteHandler(
+  async (request: NextRequest, { requestId }: RouteContext) => {
+    const body = await request.json();
+    const { sessionToken, item, completed } = OnboardingSchema.parse(body);
 
-  const parsed = await validateSessionToken(sessionToken);
-  if (!parsed) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+    const parsed = await validateSessionToken(sessionToken);
+    if (!parsed) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-  const supabase = getSupabaseAdmin();
-  const { data: user } = await supabase
-    .from('users')
-    .select('onboarding_checklist')
-    .eq('wallet_address', parsed.walletAddress)
-    .single();
+    const supabase = getSupabaseAdmin();
+    const { data: user } = await supabase
+      .from('users')
+      .select('onboarding_checklist')
+      .eq('wallet_address', parsed.walletAddress)
+      .single();
 
-  const checklist = user?.onboarding_checklist || {};
-  checklist[item] = completed !== false;
+    const checklist = user?.onboarding_checklist || {};
+    checklist[item] = completed !== false;
 
-  await supabase
-    .from('users')
-    .update({ onboarding_checklist: checklist })
-    .eq('wallet_address', parsed.walletAddress);
+    await supabase
+      .from('users')
+      .update({ onboarding_checklist: checklist })
+      .eq('wallet_address', parsed.walletAddress);
 
-  captureServerEvent(
-    'onboarding_step_completed',
-    { item, completed: checklist[item], wallet_address: parsed.walletAddress },
-    parsed.walletAddress,
-  );
+    captureServerEvent(
+      'onboarding_step_completed',
+      { item, completed: checklist[item], wallet_address: parsed.walletAddress },
+      parsed.walletAddress,
+    );
 
-  return NextResponse.json({ checklist });
-}, { auth: 'none', rateLimit: { max: 20, window: 60 } });
+    return NextResponse.json({ checklist });
+  },
+  { auth: 'none', rateLimit: { max: 20, window: 60 } },
+);

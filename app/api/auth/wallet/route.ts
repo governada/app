@@ -16,7 +16,8 @@ export async function POST(request: NextRequest) {
     try {
       body = WalletAuthSchema.parse(await request.json());
     } catch (e) {
-      if (e instanceof ZodError) return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      if (e instanceof ZodError)
+        return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
       throw e;
     }
     const { address, nonce, nonceSignature, signature, key } = body;

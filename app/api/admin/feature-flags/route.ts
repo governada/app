@@ -28,12 +28,9 @@ export const GET = withRouteHandler(async (request) => {
   const auth = await requireAuth(request);
   const isAdmin = !(auth instanceof NextResponse) && isAdminWallet(auth.wallet);
 
-  return NextResponse.json(
-    isAdmin ? { flags, details: allFlags } : { flags },
-    {
-      headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' },
-    },
-  );
+  return NextResponse.json(isAdmin ? { flags, details: allFlags } : { flags }, {
+    headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' },
+  });
 });
 
 /**

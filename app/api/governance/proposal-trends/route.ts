@@ -7,6 +7,6 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 3600;
 
 export const GET = withRouteHandler(async (_request, { requestId }) => {
-    const trends = await detectProposalTrends();
-    return NextResponse.json(trends);
+  const trends = await detectProposalTrends();
+  return NextResponse.json(trends);
 });

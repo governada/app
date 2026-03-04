@@ -1,8 +1,8 @@
-import { resolve } from "node:path";
-import { existsSync } from "node:fs";
-import postgres from "postgres";
+import { resolve } from 'node:path';
+import { existsSync } from 'node:fs';
+import postgres from 'postgres';
 
-const envPath = resolve(process.cwd(), ".env");
+const envPath = resolve(process.cwd(), '.env');
 if (existsSync(envPath)) process.loadEnvFile(envPath);
 const sql = postgres(process.env.DATABASE_URL!);
 

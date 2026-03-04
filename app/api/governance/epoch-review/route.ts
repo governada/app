@@ -21,12 +21,13 @@ function deriveParticipationTier(pollCount: number, drepVotesCast: number): stri
   return 'passive';
 }
 
-export const GET = withRouteHandler(async (request: NextRequest, { wallet }: RouteContext) => {
-  const walletAddress = wallet!;
-  const supabase = createClient();
-  const currentEpoch = blockTimeToEpoch(Math.floor(Date.now() / 1000));
+export const GET = withRouteHandler(
+  async (request: NextRequest, { wallet }: RouteContext) => {
+    const walletAddress = wallet!;
+    const supabase = createClient();
+    const currentEpoch = blockTimeToEpoch(Math.floor(Date.now() / 1000));
 
-  const [
+    const [
       statsRow,
       userRow,
       proposalsCreatedResult,
@@ -121,18 +122,20 @@ export const GET = withRouteHandler(async (request: NextRequest, { wallet }: Rou
     );
     const participationTier = deriveParticipationTier(yourPollsTaken, drepVotesCast);
 
-  return NextResponse.json({
-    epoch,
-    stats: {
-      proposalsCreated,
-      drepVotesCast,
-      yourPollsTaken,
-      activeDReps,
-      yourDRepName,
-      yourDRepScore,
-      yourDRepScoreTrend,
-      governanceLevel,
-      participationTier,
-    },
-  });
-}, { auth: 'required' });
+    return NextResponse.json({
+      epoch,
+      stats: {
+        proposalsCreated,
+        drepVotesCast,
+        yourPollsTaken,
+        activeDReps,
+        yourDRepName,
+        yourDRepScore,
+        yourDRepScoreTrend,
+        governanceLevel,
+        participationTier,
+      },
+    });
+  },
+  { auth: 'required' },
+);

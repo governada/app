@@ -48,7 +48,9 @@ export function GovernanceObservatory({
   className = '',
 }: GovernanceObservatoryProps) {
   const { data: rawData, isLoading } = useGovernanceBenchmarks();
-  const benchmarks = (rawData as { benchmarks?: Record<string, BenchmarkRow | null>; aiInsight?: string | null })?.benchmarks ?? {};
+  const benchmarks =
+    (rawData as { benchmarks?: Record<string, BenchmarkRow | null>; aiInsight?: string | null })
+      ?.benchmarks ?? {};
   const aiInsight = (rawData as { aiInsight?: string | null })?.aiInsight ?? null;
 
   const chains: Chain[] = ['cardano', 'ethereum', 'polkadot'];

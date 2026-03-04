@@ -56,53 +56,56 @@ export async function GET(request: NextRequest) {
   });
 }
 
-export const POST = withRouteHandler(async (request: NextRequest, { requestId }: RouteContext) => {
-  const body = await request.json();
-  const { sessionToken, drepId, questionText } = QuestionSchema.parse(body);
+export const POST = withRouteHandler(
+  async (request: NextRequest, { requestId }: RouteContext) => {
+    const body = await request.json();
+    const { sessionToken, drepId, questionText } = QuestionSchema.parse(body);
 
-  const parsed = await validateSessionToken(sessionToken);
-  if (!parsed) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+    const parsed = await validateSessionToken(sessionToken);
+    if (!parsed) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-  const wallet = parsed.walletAddress;
-  const supabase = getSupabaseAdmin();
+    const wallet = parsed.walletAddress;
+    const supabase = getSupabaseAdmin();
 
-  const dayAgo = new Date(Date.now() - 86400000).toISOString();
-  const { count } = await supabase
-    .from('drep_questions')
-    .select('id', { count: 'exact', head: true })
-    .eq('asker_wallet', wallet)
-    .eq('drep_id', drepId)
-    .gte('created_at', dayAgo);
+    const dayAgo = new Date(Date.now() - 86400000).toISOString();
+    const { count } = await supabase
+      .from('drep_questions')
+      .select('id', { count: 'exact', head: true })
+      .eq('asker_wallet', wallet)
+      .eq('drep_id', drepId)
+      .gte('created_at', dayAgo);
 
-  if ((count ?? 0) >= 3) {
-    return NextResponse.json(
-      { error: 'Rate limit: max 3 questions per day per DRep' },
-      { status: 429 },
-    );
-  }
+    if ((count ?? 0) >= 3) {
+      return NextResponse.json(
+        { error: 'Rate limit: max 3 questions per day per DRep' },
+        { status: 429 },
+      );
+    }
 
-  const { data, error } = await supabase
-    .from('drep_questions')
-    .insert({
+    const { data, error } = await supabase
+      .from('drep_questions')
+      .insert({
+        drep_id: drepId,
+        asker_wallet: wallet,
+        question_text: questionText.trim(),
+      })
+      .select()
+      .single();
+
+    if (error) {
+      logger.error('Q&A insert error', { context: 'governance/questions', error: error?.message });
+      return NextResponse.json({ error: 'Failed to submit question' }, { status: 500 });
+    }
+
+    captureServerEvent('question_submitted', {
       drep_id: drepId,
-      asker_wallet: wallet,
-      question_text: questionText.trim(),
-    })
-    .select()
-    .single();
+      question_id: data.id,
+      wallet,
+    });
 
-  if (error) {
-    logger.error('Q&A insert error', { context: 'governance/questions', error: error?.message });
-    return NextResponse.json({ error: 'Failed to submit question' }, { status: 500 });
-  }
-
-  captureServerEvent('question_submitted', {
-    drep_id: drepId,
-    question_id: data.id,
-    wallet,
-  });
-
-  return NextResponse.json(data, { status: 201 });
-}, { auth: 'none' });
+    return NextResponse.json(data, { status: 201 });
+  },
+  { auth: 'none' },
+);
