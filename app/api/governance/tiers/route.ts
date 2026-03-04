@@ -15,10 +15,7 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
   const entityId = searchParams.get('id');
 
   if (!entityType || !entityId || !['drep', 'spo'].includes(entityType)) {
-    return NextResponse.json(
-      { error: 'Required: type=drep|spo, id=entityId' },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: 'Required: type=drep|spo, id=entityId' }, { status: 400 });
   }
 
   const supabase = createClient();

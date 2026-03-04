@@ -118,8 +118,7 @@ export function simulateScoreImpact(
       },
       {
         pillar: 'Effective Participation',
-        currentPct:
-          currentState.effectiveParticipationPct ?? currentState.participationPct,
+        currentPct: currentState.effectiveParticipationPct ?? currentState.participationPct,
         predictedPct: clamp(
           (currentState.effectiveParticipationPct ?? currentState.participationPct) +
             participationDelta,

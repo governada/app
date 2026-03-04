@@ -102,12 +102,12 @@ This proposal funds the **next phase** — transforming a robust governance inte
 
 ### Milestones (for 75K-150K ADA ask)
 
-| Milestone | Deliverable                                                                                | Verification                                                           | Timeline |
-| --------- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- | -------- |
-| M1        | Civica frontend launched with citizen-centric UX; score tiers live; SPO profiles at parity | Live platform demo, user metrics, DRep + SPO profiles live             | Month 3  |
-| M2        | Governance Wrapped shipped; notification system live; growth loops operational              | Wrapped demo, sharing metrics, return visit data                       | Month 5  |
-| M3        | DRep Pro + SPO Pro launched; API v2 with 1+ integration partner                            | Revenue metrics, API docs, integration demo                            | Month 7  |
-| Final     | Full project report; open-source scoring engine; sustainability plan                       | Report published, GitHub repo, revenue/sustainability metrics          | Month 8  |
+| Milestone | Deliverable                                                                                | Verification                                                  | Timeline |
+| --------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------- | -------- |
+| M1        | Civica frontend launched with citizen-centric UX; score tiers live; SPO profiles at parity | Live platform demo, user metrics, DRep + SPO profiles live    | Month 3  |
+| M2        | Governance Wrapped shipped; notification system live; growth loops operational             | Wrapped demo, sharing metrics, return visit data              | Month 5  |
+| M3        | DRep Pro + SPO Pro launched; API v2 with 1+ integration partner                            | Revenue metrics, API docs, integration demo                   | Month 7  |
+| Final     | Full project report; open-source scoring engine; sustainability plan                       | Report published, GitHub repo, revenue/sustainability metrics | Month 8  |
 
 ### Budget Breakdown (Estimated — Adjust Based on ADA Price)
 
@@ -121,16 +121,16 @@ This proposal funds the **next phase** — transforming a robust governance inte
 
 ### Impact & Success Metrics
 
-| Metric                              | Target by Final Milestone       |
-| ----------------------------------- | ------------------------------- |
-| Monthly Active Citizens             | 500+                            |
-| DReps with claimed profiles         | 50+                             |
-| SPOs with claimed profiles          | 50+                             |
-| API integration partners            | 2+                              |
-| Governance proposals analyzed       | 100% of on-chain proposals      |
-| DRep + SPO coverage                 | 100% scored                     |
-| Citizen satisfaction (survey)       | 80%+ positive                   |
-| Weekly return rate (authenticated)  | 40%+                            |
+| Metric                             | Target by Final Milestone  |
+| ---------------------------------- | -------------------------- |
+| Monthly Active Citizens            | 500+                       |
+| DReps with claimed profiles        | 50+                        |
+| SPOs with claimed profiles         | 50+                        |
+| API integration partners           | 2+                         |
+| Governance proposals analyzed      | 100% of on-chain proposals |
+| DRep + SPO coverage                | 100% scored                |
+| Citizen satisfaction (survey)      | 80%+ positive              |
+| Weekly return rate (authenticated) | 40%+                       |
 
 ### Team
 

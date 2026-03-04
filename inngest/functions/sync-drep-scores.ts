@@ -375,20 +375,11 @@ export const syncDrepScores = inngest.createFunction(
               }
             }
 
-            await supabase
-              .from('dreps')
-              .update({ current_tier: newTier })
-              .eq('id', drep.id);
+            await supabase.from('dreps').update({ current_tier: newTier }).eq('id', drep.id);
           }
 
           if (tierChangeInserts.length > 0) {
-            await batchUpsert(
-              supabase,
-              'tier_changes',
-              tierChangeInserts,
-              'id',
-              'tier_changes',
-            );
+            await batchUpsert(supabase, 'tier_changes', tierChangeInserts, 'id', 'tier_changes');
             tierChangesDetected = tierChangeInserts.length;
           }
 

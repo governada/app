@@ -325,7 +325,9 @@ export async function checkAndAwardMilestones(drepId: string): Promise<string[]>
   }
 
   // Voting streak milestones (consecutive epochs with votes)
-  const epochSet = new Set(votes.map((v: { epoch_no?: number | null }) => v.epoch_no).filter(Boolean));
+  const epochSet = new Set(
+    votes.map((v: { epoch_no?: number | null }) => v.epoch_no).filter(Boolean),
+  );
   const sortedEpochs = [...epochSet].sort((a, b) => (a as number) - (b as number));
   let maxVotingStreak = 0;
   let currentStreak = 1;

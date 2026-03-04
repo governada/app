@@ -79,14 +79,21 @@ function buildCompetitiveContent(data: Record<string, unknown>): { title: string
   };
 }
 
-const CONTENT_BUILDERS: Record<string, (data: Record<string, unknown>) => { title: string; body: string }> = {
+const CONTENT_BUILDERS: Record<
+  string,
+  (data: Record<string, unknown>) => { title: string; body: string }
+> = {
   'tier-change': buildTierChangeContent,
   'spo-tier-change': buildTierChangeContent,
   'alignment-drift': buildDriftContent,
   'competitive-movement': buildCompetitiveContent,
 };
 
-function resolveContent(payload: NotificationPayload): { title: string; body: string; url?: string } {
+function resolveContent(payload: NotificationPayload): {
+  title: string;
+  body: string;
+  url?: string;
+} {
   const builder = CONTENT_BUILDERS[payload.eventType];
   if (builder && payload.data) {
     const { title, body } = builder(payload.data);

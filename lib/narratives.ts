@@ -388,11 +388,17 @@ export function generateSpoNarrative(data: SpoNarrativeData): string | null {
 
 function tierDescriptor(tier: TierName): string {
   switch (tier) {
-    case 'Legendary': return 'Legendary';
-    case 'Diamond': return 'Diamond-tier';
-    case 'Gold': return 'Gold-tier';
-    case 'Silver': return 'Silver-tier';
-    case 'Bronze': return 'Bronze-tier';
-    default: return 'Emerging';
+    case 'Legendary':
+      return 'Legendary';
+    case 'Diamond':
+      return 'Diamond-tier';
+    case 'Gold':
+      return 'Gold-tier';
+    case 'Silver':
+      return 'Silver-tier';
+    case 'Bronze':
+      return 'Bronze-tier';
+    default:
+      return 'Emerging';
   }
 }

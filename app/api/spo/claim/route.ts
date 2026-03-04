@@ -22,10 +22,7 @@ interface ClaimBody {
 export const POST = withRouteHandler(async (request: NextRequest) => {
   const enabled = await getFeatureFlag('spo_claim_flow', false);
   if (!enabled) {
-    return NextResponse.json(
-      { error: 'SPO claim flow is not yet enabled' },
-      { status: 403 },
-    );
+    return NextResponse.json({ error: 'SPO claim flow is not yet enabled' }, { status: 403 });
   }
 
   const body = (await request.json()) as ClaimBody;
@@ -65,10 +62,7 @@ export const POST = withRouteHandler(async (request: NextRequest) => {
     });
 
     if (!res.ok) {
-      return NextResponse.json(
-        { error: 'Failed to verify pool ownership' },
-        { status: 502 },
-      );
+      return NextResponse.json({ error: 'Failed to verify pool ownership' }, { status: 502 });
     }
 
     const poolInfos = await res.json();
@@ -77,9 +71,7 @@ export const POST = withRouteHandler(async (request: NextRequest) => {
       return NextResponse.json({ error: 'Pool not found on-chain' }, { status: 404 });
     }
 
-    const isOwner = poolInfo.owners?.some(
-      (owner: string) => owner === stakeAddress,
-    );
+    const isOwner = poolInfo.owners?.some((owner: string) => owner === stakeAddress);
     const isRewardAddr = poolInfo.reward_addr === stakeAddress;
 
     if (!isOwner && !isRewardAddr) {
@@ -90,10 +82,7 @@ export const POST = withRouteHandler(async (request: NextRequest) => {
     }
   } catch (err) {
     logger.error('[spo/claim] Koios verification failed', { error: err });
-    return NextResponse.json(
-      { error: 'Pool ownership verification failed' },
-      { status: 502 },
-    );
+    return NextResponse.json({ error: 'Pool ownership verification failed' }, { status: 502 });
   }
 
   // Claim the pool
@@ -106,10 +95,7 @@ export const POST = withRouteHandler(async (request: NextRequest) => {
   if (governanceStatement) updateData.governance_statement = governanceStatement;
   if (socialLinks) updateData.social_links = socialLinks;
 
-  const { error } = await supabase
-    .from('pools')
-    .update(updateData)
-    .eq('pool_id', poolId);
+  const { error } = await supabase.from('pools').update(updateData).eq('pool_id', poolId);
 
   if (error) {
     logger.error('[spo/claim] Failed to update pool', { error });
@@ -120,6 +106,7 @@ export const POST = withRouteHandler(async (request: NextRequest) => {
     success: true,
     poolId,
     claimedAt: updateData.claimed_at,
-    message: 'Pool claimed successfully. Your governance identity score will update in the next scoring cycle.',
+    message:
+      'Pool claimed successfully. Your governance identity score will update in the next scoring cycle.',
   });
 });

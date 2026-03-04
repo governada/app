@@ -15,10 +15,7 @@ export const precomputeCitizenSummaries = inngest.createFunction(
     retries: 2,
     concurrency: { limit: 1, scope: 'env', key: '"citizen-summaries"' },
   },
-  [
-    { event: 'drepscore/sync.scores.complete' },
-    { cron: '30 4 * * *' },
-  ],
+  [{ event: 'drepscore/sync.scores.complete' }, { cron: '30 4 * * *' }],
   async ({ step }) => {
     const result = await step.run('compute-summaries', async () => {
       const supabase = getSupabaseAdmin();

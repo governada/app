@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withRouteHandler } from '@/lib/api/withRouteHandler';
 import { createClient } from '@/lib/supabase';
 import { computeTierProgress } from '@/lib/scoring/tiers';
-import { computeAlignmentDrift, type Alignment6D, ALIGNMENT_DIMENSIONS } from '@/lib/alignment/drift';
+import {
+  computeAlignmentDrift,
+  type Alignment6D,
+  ALIGNMENT_DIMENSIONS,
+} from '@/lib/alignment/drift';
 
 export const dynamic = 'force-dynamic';
 
@@ -110,9 +114,7 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
       totalVotes: voteCount ?? 0,
       rationalesProvided: rationaleCount ?? 0,
       rationaleRate:
-        voteCount && voteCount > 0
-          ? Math.round(((rationaleCount ?? 0) / voteCount) * 100)
-          : 0,
+        voteCount && voteCount > 0 ? Math.round(((rationaleCount ?? 0) / voteCount) * 100) : 0,
     },
     scoreHistory: history ?? [],
     alignmentMatch,

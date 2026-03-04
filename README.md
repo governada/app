@@ -65,20 +65,20 @@ All frontend reads go through Supabase via `lib/data.ts`. Direct Koios calls onl
 
 ## Key Directories
 
-| Directory | Purpose |
-| --- | --- |
-| `app/` | Next.js App Router pages and API routes |
-| `components/` | React components (223 files) |
-| `lib/` | Core logic — data access, scoring, alignment, GHI, matching, treasury |
-| `lib/scoring/` | V3 DRep scoring engine (4 pillars + percentile normalization) |
-| `lib/alignment/` | PCA alignment system (6 dimensions, AI classification) |
-| `lib/ghi/` | Governance Health Index (6 components + EDI) |
-| `lib/matching/` | Citizen-to-representative matching engine |
-| `lib/sync/` | Durable sync logic (called by Inngest functions) |
-| `inngest/` | Background function definitions |
-| `utils/` | Koios helpers, scoring utilities |
-| `types/` | TypeScript type definitions |
-| `docs/` | Strategy, ADRs, runbook, observability |
+| Directory        | Purpose                                                               |
+| ---------------- | --------------------------------------------------------------------- |
+| `app/`           | Next.js App Router pages and API routes                               |
+| `components/`    | React components (223 files)                                          |
+| `lib/`           | Core logic — data access, scoring, alignment, GHI, matching, treasury |
+| `lib/scoring/`   | V3 DRep scoring engine (4 pillars + percentile normalization)         |
+| `lib/alignment/` | PCA alignment system (6 dimensions, AI classification)                |
+| `lib/ghi/`       | Governance Health Index (6 components + EDI)                          |
+| `lib/matching/`  | Citizen-to-representative matching engine                             |
+| `lib/sync/`      | Durable sync logic (called by Inngest functions)                      |
+| `inngest/`       | Background function definitions                                       |
+| `utils/`         | Koios helpers, scoring utilities                                      |
+| `types/`         | TypeScript type definitions                                           |
+| `docs/`          | Strategy, ADRs, runbook, observability                                |
 
 ## Deployment
 

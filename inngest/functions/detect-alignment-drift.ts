@@ -7,7 +7,11 @@
 
 import { inngest } from '@/lib/inngest';
 import { getSupabaseAdmin } from '@/lib/supabase';
-import { computeAlignmentDrift, type Alignment6D, ALIGNMENT_DIMENSIONS } from '@/lib/alignment/drift';
+import {
+  computeAlignmentDrift,
+  type Alignment6D,
+  ALIGNMENT_DIMENSIONS,
+} from '@/lib/alignment/drift';
 import { getFeatureFlag } from '@/lib/featureFlags';
 import { logger } from '@/lib/logger';
 
@@ -31,10 +35,7 @@ export const detectAlignmentDrift = inngest.createFunction(
     retries: 2,
     concurrency: { limit: 1, scope: 'env', key: '"alignment-drift"' },
   },
-  [
-    { event: 'drepscore/sync.scores.complete' },
-    { event: 'drepscore/sync.alignment.complete' },
-  ],
+  [{ event: 'drepscore/sync.scores.complete' }, { event: 'drepscore/sync.alignment.complete' }],
   async ({ step }) => {
     const enabled = await step.run('check-flag', async () => {
       return getFeatureFlag('alignment_drift', false);
@@ -69,7 +70,9 @@ export const detectAlignmentDrift = inngest.createFunction(
         }
       }
 
-      const drepIds = [...new Set(users.filter((u) => u.claimed_drep_id).map((u) => u.claimed_drep_id!))];
+      const drepIds = [
+        ...new Set(users.filter((u) => u.claimed_drep_id).map((u) => u.claimed_drep_id!)),
+      ];
 
       const { data: dreps } = await supabase
         .from('dreps')

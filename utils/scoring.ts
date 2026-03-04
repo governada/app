@@ -500,4 +500,3 @@ export function getEasiestWin(
 
   return best?.label ?? null;
 }
-

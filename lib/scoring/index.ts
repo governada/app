@@ -30,10 +30,7 @@ export {
   type SpoVoteData,
   type SpoScoreResult,
 } from './spoScore';
-export {
-  computeSpoGovernanceIdentity,
-  type SpoProfileData,
-} from './spoGovernanceIdentity';
+export { computeSpoGovernanceIdentity, type SpoProfileData } from './spoGovernanceIdentity';
 
 // Score Tiers
 export {

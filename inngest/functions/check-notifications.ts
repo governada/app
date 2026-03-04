@@ -515,7 +515,12 @@ export const checkNotifications = inngest.createFunction(
 
 function tierRank(tier: string): number {
   const ranks: Record<string, number> = {
-    Emerging: 0, Bronze: 1, Silver: 2, Gold: 3, Diamond: 4, Legendary: 5,
+    Emerging: 0,
+    Bronze: 1,
+    Silver: 2,
+    Gold: 3,
+    Diamond: 4,
+    Legendary: 5,
   };
   return ranks[tier] ?? 0;
 }

@@ -118,10 +118,7 @@ export const syncSpoScores = inngest.createFunction(
 
       try {
         const nowSeconds = Math.floor(Date.now() / 1000);
-        const proposalContexts = new Map<
-          string,
-          { blockTime: number; importanceWeight: number }
-        >();
+        const proposalContexts = new Map<string, { blockTime: number; importanceWeight: number }>();
         const allProposalTypes = new Set<string>();
         const proposalBlockTimes = new Map<string, number>();
 
@@ -211,10 +208,7 @@ export const syncSpoScores = inngest.createFunction(
         const { data: historyRows } = await supabase
           .from('spo_score_snapshots')
           .select('pool_id, governance_score, snapshot_at')
-          .gte(
-            'snapshot_at',
-            new Date(Date.now() - 14 * 86400000).toISOString(),
-          );
+          .gte('snapshot_at', new Date(Date.now() - 14 * 86400000).toISOString());
 
         const scoreHistory = new Map<string, { date: string; score: number }[]>();
         for (const h of historyRows || []) {
@@ -381,9 +375,7 @@ export const syncSpoScores = inngest.createFunction(
             record_count: finalScores.size,
             expected_count: poolVotes.size,
             coverage_pct:
-              poolVotes.size > 0
-                ? Math.round((finalScores.size / poolVotes.size) * 100)
-                : 100,
+              poolVotes.size > 0 ? Math.round((finalScores.size / poolVotes.size) * 100) : 100,
             metadata: {
               identityEnabled,
               votesProcessed: voteRows.length,
@@ -539,12 +531,18 @@ export const syncSpoScores = inngest.createFunction(
 
       if (!scoredPools?.length) return { snapshotted: 0 };
 
-      const rows = scoredPools.map((p: { pool_id: string; delegator_count: number | null; live_stake_lovelace: number | null }) => ({
-        pool_id: p.pool_id,
-        epoch_no: currentEpoch,
-        delegator_count: p.delegator_count ?? 0,
-        live_stake_lovelace: p.live_stake_lovelace ?? 0,
-      }));
+      const rows = scoredPools.map(
+        (p: {
+          pool_id: string;
+          delegator_count: number | null;
+          live_stake_lovelace: number | null;
+        }) => ({
+          pool_id: p.pool_id,
+          epoch_no: currentEpoch,
+          delegator_count: p.delegator_count ?? 0,
+          live_stake_lovelace: p.live_stake_lovelace ?? 0,
+        }),
+      );
 
       const BATCH_SIZE = 200;
       for (let i = 0; i < rows.length; i += BATCH_SIZE) {
@@ -597,21 +595,12 @@ export const syncSpoScores = inngest.createFunction(
           }
         }
 
-        await supabase
-          .from('pools')
-          .update({ current_tier: newTier })
-          .eq('pool_id', pool.pool_id);
+        await supabase.from('pools').update({ current_tier: newTier }).eq('pool_id', pool.pool_id);
       }
 
       if (tierChangeInserts.length > 0) {
         const { batchUpsert } = await import('@/lib/sync-utils');
-        await batchUpsert(
-          supabase,
-          'tier_changes',
-          tierChangeInserts,
-          'id',
-          'tier_changes',
-        );
+        await batchUpsert(supabase, 'tier_changes', tierChangeInserts, 'id', 'tier_changes');
       }
 
       return { tierChanges: tierChangeInserts.length };

@@ -125,11 +125,11 @@ Before switching to a new task or ending a session with incomplete work:
 
 Run this review after completing **any plan or named batch of work**. Scale depth to scope:
 
-| Scope | Review Depth |
-| --- | --- |
-| 1-3 focused fixes / small batch | Light — scan each section, 1-2 sentences per heading. Skip sections with nothing to report. |
-| Multi-batch feature / named plan phase | Full — thorough analysis per section, code-level citations, ranked recommendations. |
-| Multi-phase milestone (e.g., "Phase A complete") | Full + strategic alignment check against `docs/strategy/ultimate-vision.md` end-to-end. |
+| Scope                                            | Review Depth                                                                                |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| 1-3 focused fixes / small batch                  | Light — scan each section, 1-2 sentences per heading. Skip sections with nothing to report. |
+| Multi-batch feature / named plan phase           | Full — thorough analysis per section, code-level citations, ranked recommendations.         |
+| Multi-phase milestone (e.g., "Phase A complete") | Full + strategic alignment check against `docs/strategy/ultimate-vision.md` end-to-end.     |
 
 ### Review Structure
 

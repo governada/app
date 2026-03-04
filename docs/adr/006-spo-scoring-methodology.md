@@ -32,6 +32,7 @@ Proportional reduction from V1 to accommodate the 4th pillar. Participation rema
 ### Consistency (24%)
 
 Three equally-weighted sub-components:
+
 - **Vote diversity**: penalizes >85% same direction votes. Full score for balanced voting patterns.
 - **Type breadth**: proportion of proposal types covered. Full score for voting across all types.
 - **Dissent signal**: sweet spot at 15-40% dissent rate vs SPO majority. Too low = herd behavior; too high = contrarian noise.
@@ -39,6 +40,7 @@ Three equally-weighted sub-components:
 ### Reliability (23%)
 
 Five sub-components:
+
 - **Active streak (30%)**: consecutive epochs with votes. `min(100, streak * 15)`.
 - **Recency (25%)**: `100 * exp(-epochsSinceLastVote / 5)`.
 - **Gap penalty (15%)**: longest run without voting. `max(0, 100 - longestGap * 15)`.
@@ -48,6 +50,7 @@ Five sub-components:
 ### Governance Identity (15%)
 
 Two sub-components:
+
 - **Pool Identity Quality (60%)**: quality-tiered scoring across pool metadata fields (max 105, clamped to 100):
   - Ticker (10 pts, binary)
   - Pool name (10 pts, binary, >2 chars)
@@ -60,6 +63,7 @@ Two sub-components:
 - **Community Presence (40%)**: delegator count percentile across all scored pools. Count-based (not stake-based) to measure trust breadth rather than whale concentration.
 
 **Key fairness properties:**
+
 - Unclaimed pools score a baseline from on-chain metadata alone (ticker + name + hash = 25/100).
 - Claiming a profile on Civica unlocks up to 75 additional points via governance statement, description, social links, and homepage.
 - Pool size (live stake) is intentionally excluded — mirrors DRep Score's exclusion of voting power.

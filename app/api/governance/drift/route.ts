@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withRouteHandler } from '@/lib/api/withRouteHandler';
 import { createClient } from '@/lib/supabase';
-import { computeAlignmentDrift, type Alignment6D, ALIGNMENT_DIMENSIONS } from '@/lib/alignment/drift';
+import {
+  computeAlignmentDrift,
+  type Alignment6D,
+  ALIGNMENT_DIMENSIONS,
+} from '@/lib/alignment/drift';
 
 export const dynamic = 'force-dynamic';
 
@@ -99,11 +103,12 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
     .limit(10);
 
   const latestRecord = history?.[0];
-  const alternatives = (latestRecord?.alternative_dreps as Array<{
-    drep_id: string;
-    match_score: number;
-    governance_score: number;
-  }>) ?? [];
+  const alternatives =
+    (latestRecord?.alternative_dreps as Array<{
+      drep_id: string;
+      match_score: number;
+      governance_score: number;
+    }>) ?? [];
 
   return NextResponse.json({
     hasDelegation: true,

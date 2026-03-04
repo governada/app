@@ -18,6 +18,7 @@
 ## Architecture Overview
 
 ### What Stays
+
 - Next.js 15 App Router
 - Tailwind v4 + CSS variable design tokens
 - shadcn/ui primitives (button, dialog, sheet, tabs, etc.)
@@ -30,6 +31,7 @@
 - Admin routes (`/admin/*`)
 
 ### What Changes
+
 - Root layout shell (new nav, new providers, new metadata)
 - All 32 page routes replaced with 4-destination architecture
 - ~210 feature components redesigned from first principles
@@ -41,12 +43,14 @@
 - Font stack, color palette, motion system (new)
 
 ### What Dies
+
 - `/methodology` → dead redirect (methodology is contextual, in-profile)
 - `/simulate` → absorbed into My Gov action feed (impact prediction cards)
 - `/delegation` → premature, Phase D feature
 - `/learn` → replaced by contextual education within every page
 
 ### What Consolidates
+
 - `/governance` → absorbed into My Gov (segment-adaptive command center)
 - `/treasury` → section within Pulse
 - `/decentralization` → section within Pulse
@@ -93,6 +97,7 @@ app/
 ## Navigation Design
 
 ### Desktop
+
 Horizontal top bar with 4 primary destinations + wallet button:
 
 ```
@@ -104,6 +109,7 @@ Horizontal top bar with 4 primary destinations + wallet button:
 - ⌘K button opens command palette
 
 ### Mobile
+
 Fixed bottom tab bar with 4 icons + labels:
 
 ```
@@ -120,13 +126,13 @@ Fixed bottom tab bar with 4 icons + labels:
 
 On wallet connect, detect segment via `/api/user/detect-segment` (already built in Phase A):
 
-| Segment | Detection | Home Experience | My Gov Experience |
-| --- | --- | --- | --- |
-| **Anonymous** | No wallet | Constellation + "Find your representative" CTA | Prompt to connect wallet |
-| **Undelegated** | Wallet, no delegation | "Your ADA has no governance voice" + Quick Match | Quick Match → Delegation flow |
-| **Delegated Citizen** | `delegatedDrepId` present | DRep report card headline + epoch summary | Action feed: report card, drift alerts, delegation health |
-| **DRep** | `ownDRepId` present | Score headline + quick wins + competitive context | Score dashboard, action feed, claim/profile management |
-| **SPO** | Pool detected via wallet | Pool governance summary + claim prompt | SPO dashboard, voting actions, competitive context |
+| Segment               | Detection                 | Home Experience                                   | My Gov Experience                                         |
+| --------------------- | ------------------------- | ------------------------------------------------- | --------------------------------------------------------- |
+| **Anonymous**         | No wallet                 | Constellation + "Find your representative" CTA    | Prompt to connect wallet                                  |
+| **Undelegated**       | Wallet, no delegation     | "Your ADA has no governance voice" + Quick Match  | Quick Match → Delegation flow                             |
+| **Delegated Citizen** | `delegatedDrepId` present | DRep report card headline + epoch summary         | Action feed: report card, drift alerts, delegation health |
+| **DRep**              | `ownDRepId` present       | Score headline + quick wins + competitive context | Score dashboard, action feed, claim/profile management    |
+| **SPO**               | Pool detected via wallet  | Pool governance summary + claim prompt            | SPO dashboard, voting actions, competitive context        |
 
 Store detected segment in React context (`SegmentProvider`). Components conditionally render based on segment. Never show same generic page to all segments.
 
@@ -141,30 +147,35 @@ Store detected segment in React context (`SegmentProvider`). Components conditio
 **Tasks:**
 
 1.1 — **Design tokens refresh**
+
 - New font pairing (distinctive display + refined body — not Geist)
 - Revised color palette with tier-aware accent system
 - Motion tokens (enter, exit, hover, celebration durations/easings)
 - Update `globals.css` `@theme` block
 
-1.2 — **`SegmentProvider` context**
+  1.2 — **`SegmentProvider` context**
+
 - Wrap app in segment context
 - On wallet connect, call `/api/user/detect-segment`
 - Expose `useSegment()` hook: `{ segment, isLoading, stakeAddress, drepId?, poolId? }`
 - Persist segment in session to avoid re-detection
 
-1.3 — **`TierThemeProvider`**
+  1.3 — **`TierThemeProvider`**
+
 - Context that sets CSS variables for tier-specific colors/effects
 - `useTierTheme(score)` → returns tier name, color set, glow intensity
 - Consumed by score displays, profile headers, badges
 
-1.4 — **New `CivicaShell` layout**
+  1.4 — **New `CivicaShell` layout**
+
 - `app/(civica)/layout.tsx` — the new layout group
 - Desktop: `CivicaHeader` with 4 nav items + wallet + ⌘K
 - Mobile: `CivicaBottomNav` with 4 tabs
 - Remove: `SyncFreshnessBanner` (fold into notifications), `Footer` (minimal inline), `EasterEggs`
 - Keep: `CommandPalette`, `KeyboardShortcuts`, `OfflineBanner`, `InstallPrompt`
 
-1.5 — **Redirect old routes**
+  1.5 — **Redirect old routes**
+
 - `/methodology` → 301 to `/discover`
 - `/simulate` → 301 to `/my-gov`
 - `/delegation` → 301 to `/discover`
@@ -181,7 +192,8 @@ Store detected segment in React context (`SegmentProvider`). Components conditio
 - `/match` → 301 to `/discover` (Quick Match embedded in Discover)
 - `/profile` → 301 to `/my-gov/profile`
 
-1.6 — **Feature flag: `civica_frontend`**
+  1.6 — **Feature flag: `civica_frontend`**
+
 - When off, serve old layout + routes (no disruption)
 - When on, serve new CivicaShell + new routes
 - Allows progressive rollout
@@ -197,31 +209,36 @@ Store detected segment in React context (`SegmentProvider`). Components conditio
 **Tasks:**
 
 2.1 — **Home page — anonymous/undelegated**
+
 - Hero: "Cardano has a government. Meet your representatives."
 - Constellation visualization (keep existing, polish)
 - Quick Match inline (no separate page)
 - Trending DReps/SPOs by tier (social proof)
 - Live governance stats (total DReps, active proposals, participation rate)
 
-2.2 — **Home page — delegated citizen**
+  2.2 — **Home page — delegated citizen**
+
 - DRep report card headline: name, score, tier badge, trend arrow
 - "This epoch:" vote summary, alignment status, drift warning if applicable
 - Next actions: proposals needing attention, epoch recap CTA
 - Achievement feed (latest milestone)
 
-2.3 — **Home page — DRep**
+  2.3 — **Home page — DRep**
+
 - Score hero: score, tier badge with visual treatment, rank, momentum
 - Quick wins: "Submit rationale on Proposal X (+3 pts estimated)"
 - Competitive context: nearby DReps, movement
 - Delegator headline: count, trend
 
-2.4 — **Home page — SPO**
+  2.4 — **Home page — SPO**
+
 - Similar to DRep home but pool-centric
 - Claim prompt if unclaimed
 - Governance score hero + competitive context
 - Delegator headline: count, trend (from `spo_power_snapshots`)
 
-2.5 — **Discover — unified browse**
+  2.5 — **Discover — unified browse**
+
 - Tab bar: DReps | SPOs | Proposals | Committee
 - Each tab has filters, search, sort
 - DRep/SPO cards show: name, tier badge, score, top alignment dimensions, action button
@@ -229,7 +246,8 @@ Store detected segment in React context (`SegmentProvider`). Components conditio
 - Compare mode: select 2-3 DReps/SPOs for side-by-side
 - Quick Match embedded as prominent CTA when no wallet connected
 
-2.6 — **Custom DRep/SPO card component**
+  2.6 — **Custom DRep/SPO card component**
+
 - Tier-colored border/glow
 - Score displayed as hex badge (existing) with tier overlay
 - Compact alignment radar
@@ -246,13 +264,15 @@ Store detected segment in React context (`SegmentProvider`). Components conditio
 **Tasks:**
 
 3.1 — **Pulse overview**
+
 - GHI hero with trend spark line
 - EDI summary with cross-chain position
 - Active proposals count + epoch progress bar
 - Treasury health: balance, runway, recent withdrawals
 - Latest epoch recap link
 
-3.2 — **Epoch report redesign**
+  3.2 — **Epoch report redesign**
+
 - Personalized header if authenticated (your DRep's activity this epoch)
 - Proposal outcomes with tri-body vote bars
 - GHI movement explanation
@@ -260,19 +280,22 @@ Store detected segment in React context (`SegmentProvider`). Components conditio
 - Inter-body alignment shifts
 - Designed as a "newsletter" format — scannable, shareable sections
 
-3.3 — **Treasury section** (absorbed from `/treasury`)
+  3.3 — **Treasury section** (absorbed from `/treasury`)
+
 - Treasury balance visualization (custom, not chart.js)
 - Accountability polls
 - Spending effectiveness ratings
 - Fiscal sustainability indicators
 
-3.4 — **Governance trends**
+  3.4 — **Governance trends**
+
 - Participation trends over time
 - DRep/SPO population growth
 - Score distribution shift
 - Delegation concentration / decentralization
 
-3.5 — **Leaderboard**
+  3.5 — **Leaderboard**
+
 - DRep and SPO leaderboards by governance score
 - Tier distribution visualization
 - Biggest movers this epoch
@@ -289,6 +312,7 @@ Store detected segment in React context (`SegmentProvider`). Components conditio
 **Tasks:**
 
 4.1 — **Action feed architecture**
+
 - Feed of `ActionCard` components, each with:
   - Context (what happened / what needs attention)
   - One primary CTA button
@@ -296,7 +320,8 @@ Store detected segment in React context (`SegmentProvider`). Components conditio
   - Timestamp / urgency indicator
 - Actions sourced from: pending proposals, alignment drift, score changes, tier progress, achievements, epoch transitions
 
-4.2 — **Citizen command center**
+  4.2 — **Citizen command center**
+
 - DRep Report Card (detailed)
 - Alignment drift status + re-delegation prompt if drifted
 - Epoch summary (personalized)
@@ -304,7 +329,8 @@ Store detected segment in React context (`SegmentProvider`). Components conditio
 - Achievement timeline
 - Engagement level display + next level progress
 
-4.3 — **DRep command center**
+  4.3 — **DRep command center**
+
 - Score dashboard with pillar breakdown
 - Tier display with progress to next
 - Action feed: proposals to vote on (with impact estimates), rationales to write
@@ -312,7 +338,8 @@ Store detected segment in React context (`SegmentProvider`). Components conditio
 - Delegator stats + milestones
 - Profile management: edit governance statement, philosophy, social links
 
-4.4 — **SPO command center**
+  4.4 — **SPO command center**
+
 - Pool governance dashboard
 - Score + tier + competitive context
 - Delegator stats: count, trend spark line (from `spo_power_snapshots`), milestones
@@ -320,13 +347,15 @@ Store detected segment in React context (`SegmentProvider`). Components conditio
 - Profile management (if claimed)
 - Claim flow entry (if unclaimed)
 
-4.5 — **Inbox** (notifications hub)
+  4.5 — **Inbox** (notifications hub)
+
 - All notification types rendered in feed format
 - Filter by category: score, proposals, alignment, achievements
 - Mark read/unread, notification preferences
 - Deep-link to relevant action from each notification
 
-4.6 — **Profile & settings**
+  4.6 — **Profile & settings**
+
 - Governance philosophy editor
 - Quiz/alignment profile management
 - Notification channel preferences
@@ -344,6 +373,7 @@ Store detected segment in React context (`SegmentProvider`). Components conditio
 **Tasks:**
 
 5.1 — **DRep profile redesign**
+
 - Hero: avatar, name, tier badge with visual treatment, score, rank
 - Governance statement prominent
 - Pillar breakdown (custom visualization)
@@ -357,7 +387,8 @@ Store detected segment in React context (`SegmentProvider`). Components conditio
 - Action: Share profile
 - For the DRep themselves: edit mode, claim celebration if first visit
 
-5.2 — **SPO profile redesign**
+  5.2 — **SPO profile redesign**
+
 - Parity with DRep profile design
 - Pool metadata + governance statement
 - 4-pillar score breakdown (Participation, Consistency, Reliability, Governance Identity)
@@ -368,7 +399,8 @@ Store detected segment in React context (`SegmentProvider`). Components conditio
 - Action: Stake to this pool (link to wallet)
 - Action: Share profile
 
-5.3 — **Proposal detail redesign**
+  5.3 — **Proposal detail redesign**
+
 - AI classification badge + summary
 - Tri-body vote bars (DRep, SPO, CC) — custom visualization
 - Your DRep's vote highlighted (if delegated)
@@ -389,41 +421,48 @@ Store detected segment in React context (`SegmentProvider`). Components conditio
 **Tasks:**
 
 6.1 — **Tier celebration system**
+
 - Full-screen modal on tier change
 - Tier-specific visual effects (particle system, glow, animation)
 - "Share your achievement" CTA — prominent, not buried
 - Auto-generate shareable image via OG infrastructure
 - Share options: X, copy link, download image
 
-6.2 — **Achievement share flow**
+  6.2 — **Achievement share flow**
+
 - Consistent share modal for all milestones
 - Preview of shareable card before sharing
 - One-tap share to X with pre-filled text
 - Copy link to profile with achievement highlighted
 - Download image for manual sharing
 
-6.3 — **Score impact micro-interactions**
+  6.3 — **Score impact micro-interactions**
+
 - When action feed card shows "+3 points estimated," animate the score change on hover
 - Tier progress bar animates forward/backward based on prediction
 - "X points to [next tier]" always visible in My Gov
 
-6.4 — **Loading states**
+  6.4 — **Loading states**
+
 - Branded skeleton screens (not generic gray boxes)
 - Constellation-themed loading animation
 - Segment-aware loading (show segment-relevant placeholder)
 
-6.5 — **Error states**
+  6.5 — **Error states**
+
 - Helpful, actionable error messages
 - "Governance data is updating — here's what we know so far"
 - Offline mode: cached data with freshness indicator
 
-6.6 — **Page transitions**
+  6.6 — **Page transitions**
+
 - Polish existing `PageTransition` for new route structure
 - Tab switches: cross-fade or slide
 - Detail pages: expand from card
 - Modal overlays: scale up from center
 
-6.7 — **Mobile polish**
+  6.7 — **Mobile polish**
+
 - Touch targets ≥ 44px
 - Swipe gestures on action feed cards
 - Pull-to-refresh on feeds
@@ -438,35 +477,35 @@ Store detected segment in React context (`SegmentProvider`). Components conditio
 
 ### New Shared Components
 
-| Component | Purpose |
-| --- | --- |
-| `TierBadge` | Score tier with visual treatment (glow, color, icon) |
-| `ScoreHex` | Hex-shaped score display with tier overlay |
-| `ActionCard` | Feed card: context + CTA + impact prediction |
-| `AlignmentRadar` | Custom 6D radar (citizen vs representative) |
-| `TriBodyVoteBar` | DRep/SPO/CC vote split visualization |
-| `EpochProgress` | Current epoch progress indicator |
-| `TierProgress` | Points-to-next-tier bar |
-| `ShareModal` | Universal share flow (share image, X, link, download) |
-| `CelebrationOverlay` | Full-screen tier/achievement celebration |
-| `SegmentGate` | Conditionally renders children based on user segment |
-| `QuickMatch` | Inline matching flow (no separate page) |
-| `DRepCard` / `SpoCard` | Browse cards with tier treatment |
-| `ProposalCard` | Proposal browse card with vote bars |
-| `ScoreImpactChip` | "+3 pts estimated" inline indicator |
-| `ReportCard` | Citizen's DRep accountability summary |
-| `DriftAlert` | Alignment drift warning with alternatives |
+| Component              | Purpose                                               |
+| ---------------------- | ----------------------------------------------------- |
+| `TierBadge`            | Score tier with visual treatment (glow, color, icon)  |
+| `ScoreHex`             | Hex-shaped score display with tier overlay            |
+| `ActionCard`           | Feed card: context + CTA + impact prediction          |
+| `AlignmentRadar`       | Custom 6D radar (citizen vs representative)           |
+| `TriBodyVoteBar`       | DRep/SPO/CC vote split visualization                  |
+| `EpochProgress`        | Current epoch progress indicator                      |
+| `TierProgress`         | Points-to-next-tier bar                               |
+| `ShareModal`           | Universal share flow (share image, X, link, download) |
+| `CelebrationOverlay`   | Full-screen tier/achievement celebration              |
+| `SegmentGate`          | Conditionally renders children based on user segment  |
+| `QuickMatch`           | Inline matching flow (no separate page)               |
+| `DRepCard` / `SpoCard` | Browse cards with tier treatment                      |
+| `ProposalCard`         | Proposal browse card with vote bars                   |
+| `ScoreImpactChip`      | "+3 pts estimated" inline indicator                   |
+| `ReportCard`           | Citizen's DRep accountability summary                 |
+| `DriftAlert`           | Alignment drift warning with alternatives             |
 
 ### Reusable from Existing (refactor, don't rewrite)
 
-| Component | Notes |
-| --- | --- |
-| `Constellation` | Core visualization stays, update colors to new palette |
-| `GovernanceRadar` | Refactor into `AlignmentRadar` |
-| `ScoreHexBadge` | Refactor into `ScoreHex` with tier awareness |
-| `CommandPalette` | Keep as-is, extend search to new routes |
-| `WalletButton` | Extend with segment indicator |
-| `ThemeProvider` | Keep, extend with tier theme tokens |
+| Component         | Notes                                                  |
+| ----------------- | ------------------------------------------------------ |
+| `Constellation`   | Core visualization stays, update colors to new palette |
+| `GovernanceRadar` | Refactor into `AlignmentRadar`                         |
+| `ScoreHexBadge`   | Refactor into `ScoreHex` with tier awareness           |
+| `CommandPalette`  | Keep as-is, extend search to new routes                |
+| `WalletButton`    | Extend with segment indicator                          |
+| `ThemeProvider`   | Keep, extend with tier theme tokens                    |
 
 ---
 
@@ -474,11 +513,11 @@ Store detected segment in React context (`SegmentProvider`). Components conditio
 
 The following backend fixes are required for SPO data accuracy and must be completed before the frontend ships SPO-facing surfaces:
 
-| Fix | Why | File |
-| --- | --- | --- |
+| Fix                                         | Why                                                                                                                                                                                               | File                                                                                                                        |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | **`delegator_count` refresh on every sync** | `fetch-koios-metadata` step only enriches pools where `ticker IS NULL`. After first enrichment, `delegator_count` goes stale. SPO Governance Identity pillar (6% of total score) uses stale data. | `inngest/functions/sync-spo-scores.ts` — change `fetch-koios-metadata` step to refresh ALL pools, not just null-ticker ones |
-| **Create `spo_power_snapshots` table** | DReps have `drep_power_snapshots` for delegator trend charts. SPOs have nothing equivalent — no temporal delegator/stake data. SPO home, profile, and command center all need trend data. | New migration + populate during `sync-spo-scores` |
-| **SPO delegator trends API** | `/api/dashboard/delegator-trends` only works for DReps. SPO profiles and command center need an equivalent. | New route or extend existing to accept `poolId` parameter |
+| **Create `spo_power_snapshots` table**      | DReps have `drep_power_snapshots` for delegator trend charts. SPOs have nothing equivalent — no temporal delegator/stake data. SPO home, profile, and command center all need trend data.         | New migration + populate during `sync-spo-scores`                                                                           |
+| **SPO delegator trends API**                | `/api/dashboard/delegator-trends` only works for DReps. SPO profiles and command center need an equivalent.                                                                                       | New route or extend existing to accept `poolId` parameter                                                                   |
 
 These are **not Phase B work** — they are Phase A data integrity fixes that were missed in the initial backend batches.
 
@@ -547,15 +586,15 @@ No big-bang migration. Progressive, flag-controlled, reversible.
 
 ## Estimated Effort
 
-| Phase | Scope | Estimate |
-| --- | --- | --- |
-| Phase 1: Shell & Navigation | Layout, nav, providers, redirects, flag | 3-4 days |
-| Phase 2: Home & Discover | 2 major destinations, segment logic, cards | 5-7 days |
-| Phase 3: Pulse | GHI, treasury, epochs, trends, leaderboard | 4-5 days |
-| Phase 4: My Gov | Command center × 5 segments, inbox, profile | 6-8 days |
-| Phase 5: Profiles & Details | DRep, SPO, Proposal pages | 5-6 days |
-| Phase 6: Celebrations & Polish | Sharing, animations, mobile, error states | 4-5 days |
-| **Total** | | **27-35 days** |
+| Phase                          | Scope                                       | Estimate       |
+| ------------------------------ | ------------------------------------------- | -------------- |
+| Phase 1: Shell & Navigation    | Layout, nav, providers, redirects, flag     | 3-4 days       |
+| Phase 2: Home & Discover       | 2 major destinations, segment logic, cards  | 5-7 days       |
+| Phase 3: Pulse                 | GHI, treasury, epochs, trends, leaderboard  | 4-5 days       |
+| Phase 4: My Gov                | Command center × 5 segments, inbox, profile | 6-8 days       |
+| Phase 5: Profiles & Details    | DRep, SPO, Proposal pages                   | 5-6 days       |
+| Phase 6: Celebrations & Polish | Sharing, animations, mobile, error states   | 4-5 days       |
+| **Total**                      |                                             | **27-35 days** |
 
 ---
 
