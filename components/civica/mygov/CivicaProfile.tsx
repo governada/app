@@ -18,6 +18,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSegment } from '@/components/providers/SegmentProvider';
+import { useWallet } from '@/utils/wallet-context';
 import { useUser } from '@/hooks/queries';
 import {
   tierKey,
@@ -151,6 +152,7 @@ function Section({
 
 export function CivicaProfile() {
   const { segment, stakeAddress, drepId, poolId, delegatedDrep } = useSegment();
+  const { disconnect } = useWallet();
   const { data: rawUser, isLoading: userLoading } = useUser();
   const queryClient = useQueryClient();
 
@@ -440,12 +442,9 @@ export function CivicaProfile() {
           </p>
           <button
             onClick={() => {
-              try {
-                sessionStorage.removeItem('civica_segment');
-                window.location.href = '/';
-              } catch {
-                // ignore
-              }
+              disconnect();
+              sessionStorage.removeItem('civica_segment');
+              window.location.href = '/';
             }}
             className="flex items-center gap-2 text-sm font-medium text-rose-400 hover:text-rose-300 transition-colors"
           >

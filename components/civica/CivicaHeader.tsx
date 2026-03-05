@@ -4,12 +4,19 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { Home, Compass, Activity, Landmark, Search } from 'lucide-react';
+import { Home, Compass, Activity, Landmark, Search, User, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWallet } from '@/utils/wallet-context';
 import { useSegment, type UserSegment } from '@/components/providers/SegmentProvider';
 import { useUnreadNotifications } from '@/hooks/useUnreadNotifications';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const WalletConnectModal = dynamic(
   () => import('@/components/WalletConnectModal').then((mod) => mod.WalletConnectModal),
@@ -32,7 +39,7 @@ const SEGMENT_LABELS: Record<UserSegment, string> = {
 
 export function CivicaHeader() {
   const pathname = usePathname();
-  const { isAuthenticated, connected } = useWallet();
+  const { connected, disconnect } = useWallet();
   const { segment, stakeAddress } = useSegment();
   const unreadCount = useUnreadNotifications(stakeAddress ?? null);
   const [walletModalOpen, setWalletModalOpen] = useState(false);
@@ -101,13 +108,35 @@ export function CivicaHeader() {
             </kbd>
           </Button>
 
-          {isAuthenticated && segment !== 'anonymous' && (
-            <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-full">
-              {SEGMENT_LABELS[segment]}
-            </span>
-          )}
-
-          {!connected && (
+          {connected ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1.5 rounded-full hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer">
+                  <User className="h-3.5 w-3.5" />
+                  {segment !== 'anonymous' && SEGMENT_LABELS[segment]}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem asChild>
+                  <Link href="/my-gov/profile">
+                    <User className="h-4 w-4" />
+                    Profile & Settings
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  variant="destructive"
+                  onClick={() => {
+                    disconnect();
+                    sessionStorage.removeItem('civica_segment');
+                  }}
+                >
+                  <LogOut className="h-4 w-4" />
+                  Disconnect Wallet
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
             <>
               <Button variant="outline" size="sm" onClick={() => setWalletModalOpen(true)}>
                 Connect Wallet
