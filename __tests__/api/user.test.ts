@@ -31,6 +31,17 @@ vi.mock('@/lib/posthog-server', () => ({
   captureServerEvent: vi.fn(),
 }));
 
+vi.mock('@/lib/logger', () => ({
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+}));
+
+// Prevent rate limiter from hitting real Upstash Redis
+vi.mock('@/lib/redis', () => ({
+  getRedis: () => {
+    throw new Error('Redis not available in tests');
+  },
+}));
+
 import { NextResponse } from 'next/server';
 import { GET, POST } from '@/app/api/user/notification-prefs/route';
 
