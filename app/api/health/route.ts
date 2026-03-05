@@ -83,7 +83,7 @@ export const GET = withRouteHandler(async () => {
         { name: 'alignment_snapshots', col: 'epoch' },
         { name: 'spo_score_snapshots', col: 'epoch' },
         { name: 'spo_alignment_snapshots', col: 'epoch' },
-        { name: 'governance_epoch_stats', col: 'epoch' },
+        { name: 'governance_epoch_stats', col: 'epoch_no' },
       ];
 
       const snapshotChecks = await Promise.all(

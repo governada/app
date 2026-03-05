@@ -249,8 +249,8 @@ export const checkSnapshotCompleteness = inngest.createFunction(
         // 16. Governance epoch stats for current epoch
         const { data: govStatsRow } = await supabase
           .from('governance_epoch_stats')
-          .select('epoch')
-          .eq('epoch', epoch)
+          .select('epoch_no')
+          .eq('epoch_no', epoch)
           .maybeSingle();
         results.push({
           name: 'governance_epoch_stats',
