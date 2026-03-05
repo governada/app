@@ -52,7 +52,7 @@ export function DashboardUrgentBar({ drepId }: DashboardUrgentBarProps) {
             {proposals.slice(0, 3).map((p) => (
               <Link
                 key={`${p.txHash}-${p.index}`}
-                href={`/proposals/${p.txHash}/${p.index}`}
+                href={`/proposal/${p.txHash}/${p.index}`}
                 className="flex items-center justify-between gap-3 p-2 rounded-md hover:bg-amber-500/10 transition-colors"
               >
                 <div className="flex items-center gap-2 min-w-0">

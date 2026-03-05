@@ -348,7 +348,7 @@ export function ConstellationHero({
             </Link>
           ) : isAuthenticated && !showPersonalCard ? (
             <Link
-              href="/governance"
+              href="/my-gov"
               className="mt-8 px-8 py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-base hover:bg-primary/90 transition-all pointer-events-auto animate-fade-in-up animation-delay-400 inline-block"
             >
               See what changed

@@ -196,7 +196,7 @@ export function CivicaPulseOverview() {
                 }
                 icon={Vote}
                 accent={pulse?.criticalProposals > 0 ? 'warning' : 'success'}
-                href="/proposals"
+                href="/discover"
               />
               <StatCard
                 label="Active DReps"
@@ -286,7 +286,7 @@ export function CivicaPulseOverview() {
                 </p>
               </div>
               <Link
-                href={`/proposals/${pulse.spotlightProposal.txHash}/${pulse.spotlightProposal.index}`}
+                href={`/proposal/${pulse.spotlightProposal.txHash}/${pulse.spotlightProposal.index}`}
                 className="block text-sm font-medium text-foreground hover:text-primary transition-colors"
               >
                 {pulse.spotlightProposal.title}

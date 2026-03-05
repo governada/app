@@ -237,7 +237,7 @@ export function HomeDRep() {
               variant="outline"
               className="border-amber-700/50 text-amber-400 hover:bg-amber-950/40"
             >
-              <Link href={`/proposals/${topUrgent.txHash}/${topUrgent.index}`}>
+              <Link href={`/proposal/${topUrgent.txHash}/${topUrgent.index}`}>
                 Vote now <ChevronRight className="ml-1 h-3.5 w-3.5" />
               </Link>
             </Button>

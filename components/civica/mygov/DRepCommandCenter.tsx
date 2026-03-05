@@ -202,7 +202,7 @@ export function DRepCommandCenter({ drepId }: { drepId: string }) {
 
       {/* Pending votes widget */}
       {!pulseLoading && activeProposals > 0 && (
-        <Link href="/proposals" className="block group">
+        <Link href="/discover" className="block group">
           <div className="rounded-xl border border-amber-900/30 bg-amber-950/10 p-4 flex items-center justify-between hover:brightness-110 transition-all">
             <div className="flex items-center gap-3">
               <Clock className="h-4 w-4 text-amber-400" />

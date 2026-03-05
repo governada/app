@@ -132,7 +132,7 @@ export function ProposalsBrowse() {
             return (
               <Link
                 key={`${p.txHash}-${p.index}`}
-                href={`/proposals/${p.txHash}/${p.index}`}
+                href={`/proposal/${p.txHash}/${p.index}`}
                 className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors group"
               >
                 {p.type && (

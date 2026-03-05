@@ -209,7 +209,7 @@ export function Header() {
             <Compass className="h-4 w-4" />
             <span>Discover</span>
           </Link>
-          <Link href="/proposals" className={navLinkClass('/proposals')}>
+          <Link href="/discover" className={navLinkClass('/proposals')}>
             <ScrollText className="h-4 w-4" />
             <span>Proposals</span>
           </Link>
@@ -218,7 +218,7 @@ export function Header() {
             <span>Pulse</span>
           </Link>
           {isAuthenticated && (
-            <Link href="/governance" prefetch={false} className={navLinkClass('/governance')}>
+            <Link href="/my-gov" prefetch={false} className={navLinkClass('/governance')}>
               <Vote className="h-4 w-4" />
               <span>My Governance</span>
             </Link>

@@ -190,7 +190,7 @@ export function GovernanceDNAReveal({ result, onRetake }: GovernanceDNARevealPro
                 <RefreshCw className="h-3.5 w-3.5" />
                 Retake Quiz
               </Button>
-              <Link href="/proposals">
+              <Link href="/discover">
                 <Button variant="ghost" size="sm" className="gap-1.5">
                   <Vote className="h-3.5 w-3.5" />
                   Vote on Proposals

@@ -326,7 +326,7 @@ export function RepresentationScoreCard({ rep }: { rep: RepresentationData }) {
             Vote on proposals to see how well your DRep represents your views. Each poll vote you
             cast builds this score.
           </p>
-          <Link href="/proposals">
+          <Link href="/discover">
             <Button
               variant="outline"
               size="sm"
@@ -545,7 +545,7 @@ export function ActiveProposalsSection({ proposals }: { proposals: ActiveProposa
         </TooltipProvider>
 
         <div className="mt-3 pt-3 border-t">
-          <Link href="/proposals">
+          <Link href="/discover">
             <Button
               variant="outline"
               size="sm"

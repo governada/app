@@ -65,6 +65,7 @@ const nextConfig: NextConfig = {
         destination: '/proposal/:txHash/:index',
         permanent: true,
       },
+      { source: '/proposals', destination: '/discover', permanent: true },
       { source: '/committee', destination: '/discover/committee', permanent: true },
     ];
   },

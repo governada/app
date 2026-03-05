@@ -76,7 +76,7 @@ function ProposalDeadline({ proposal }: { proposal: CalendarData['upcoming'][0] 
 
   return (
     <Link
-      href={`/proposals/${proposal.txHash}/${proposal.index}`}
+      href={`/proposal/${proposal.txHash}/${proposal.index}`}
       className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors"
     >
       {urgent && <AlertTriangle className="h-3.5 w-3.5 text-rose-400 shrink-0" />}
@@ -226,7 +226,7 @@ export function CivicaGovernanceCalendar() {
       {/* Active proposals context */}
       {pulse?.activeProposals > 0 && (
         <Link
-          href="/proposals"
+          href="/discover"
           className="flex items-center justify-between rounded-xl border border-border bg-card p-4 hover:border-primary/30 transition-colors group"
         >
           <div>

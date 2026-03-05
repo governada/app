@@ -250,7 +250,7 @@ export function CivicaTreasury() {
                 </div>
                 {(item.txHash || item.tx_hash) && (
                   <Link
-                    href={`/proposals/${item.txHash ?? item.tx_hash}/${item.index ?? 0}`}
+                    href={`/proposal/${item.txHash ?? item.tx_hash}/${item.index ?? 0}`}
                     className="ml-3 shrink-0"
                   >
                     <ExternalLink className="h-3.5 w-3.5 text-muted-foreground hover:text-primary transition-colors" />

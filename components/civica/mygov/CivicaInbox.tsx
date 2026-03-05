@@ -423,7 +423,7 @@ export function CivicaInbox() {
             {inbox.pendingProposals.slice(0, 5).map((p: any) => (
               <Link
                 key={p.txHash ?? p.id}
-                href={`/governance/proposals/${p.txHash}/${p.index ?? 0}`}
+                href={`/proposal/${p.txHash}/${p.index ?? 0}`}
                 className="flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors group"
               >
                 <div className="flex-1 min-w-0">
@@ -454,7 +454,7 @@ export function CivicaInbox() {
           </div>
           {inbox.pendingProposals.length > 5 && (
             <Link
-              href="/governance/proposals"
+              href="/discover"
               className="block text-center text-xs text-muted-foreground hover:text-primary transition-colors py-1"
             >
               View all {inbox.pendingCount} pending proposals

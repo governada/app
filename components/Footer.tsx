@@ -57,7 +57,7 @@ export function Footer() {
             <Link href="/discover" className="hover:text-foreground transition-colors">
               Discover DReps
             </Link>
-            <Link href="/proposals" className="hover:text-foreground transition-colors">
+            <Link href="/discover" className="hover:text-foreground transition-colors">
               Proposals
             </Link>
             <a

@@ -142,14 +142,14 @@ export function CivicaEpochReport() {
               count={activeProposals}
               color={criticalProposals > 0 ? 'text-amber-400' : 'text-primary'}
               icon={Vote}
-              href="/proposals"
+              href="/discover"
             />
             <PipelineStep
               label="Critical"
               count={criticalProposals}
               color={criticalProposals > 0 ? 'text-rose-400' : 'text-muted-foreground'}
               icon={AlertCircle}
-              href={criticalProposals > 0 ? '/proposals' : undefined}
+              href={criticalProposals > 0 ? '/discover' : undefined}
             />
             <PipelineStep
               label="Votes/week"
@@ -262,7 +262,7 @@ export function CivicaEpochReport() {
             </p>
           </div>
           <Link
-            href={`/proposals/${pulse.spotlightProposal.txHash}/${pulse.spotlightProposal.index}`}
+            href={`/proposal/${pulse.spotlightProposal.txHash}/${pulse.spotlightProposal.index}`}
             className="block text-sm font-medium hover:text-primary transition-colors"
           >
             {pulse.spotlightProposal.title}

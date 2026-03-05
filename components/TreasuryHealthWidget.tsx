@@ -57,7 +57,7 @@ export function TreasuryHealthWidget() {
             <span className="text-sm font-medium">Treasury Health</span>
           </div>
           <Link
-            href="/treasury"
+            href="/pulse"
             className="flex items-center gap-1 text-xs text-primary hover:underline"
           >
             Full dashboard <ArrowRight className="h-3 w-3" />

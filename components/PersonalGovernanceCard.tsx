@@ -121,13 +121,13 @@ function DelegatedCard({ data }: { data: DelegatedData }) {
 
         <div className="flex gap-3">
           <Link
-            href="/governance"
+            href="/my-gov"
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
           >
             My Governance
           </Link>
           <Link
-            href="/proposals"
+            href="/discover"
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-border text-sm font-medium hover:bg-accent transition-colors"
           >
             View Proposals <ArrowRight className="h-3.5 w-3.5" />
@@ -217,7 +217,7 @@ function DRepCard({ data }: { data: DRepData }) {
             Open Dashboard
           </Link>
           <Link
-            href="/proposals"
+            href="/discover"
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-border text-sm font-medium hover:bg-accent transition-colors"
           >
             View Proposals <ArrowRight className="h-3.5 w-3.5" />
