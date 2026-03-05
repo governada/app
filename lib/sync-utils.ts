@@ -30,7 +30,10 @@ export type SyncType =
   | 'drep_lifecycle'
   | 'epoch_summaries'
   | 'committee_sync'
-  | 'metadata_archive';
+  | 'metadata_archive'
+  | 'catalyst'
+  | 'catalyst_proposals'
+  | 'catalyst_funds';
 
 const BATCH_SIZE = 100;
 const MAX_UPSERT_RETRIES = 3;
