@@ -441,6 +441,263 @@ export const generateEpochSummary = inngest.createFunction(
       }
     });
 
+    // Step 7: Governance epoch stats
+    const epochStats = await step.run('snapshot-governance-epoch-stats', async () => {
+      try {
+        const supabase = getSupabaseAdmin();
+        const { data: existing } = await supabase
+          .from('governance_epoch_stats')
+          .select('epoch_no')
+          .eq('epoch_no', epoch)
+          .maybeSingle();
+        if (existing) return { skipped: true };
+
+        const [votes, rationales, submitted, ratified, expired, dropped, totalProposals, scores] =
+          await Promise.all([
+            supabase.from('drep_votes').select('drep_id').eq('epoch_no', epoch),
+            supabase
+              .from('drep_votes')
+              .select('vote_tx_hash', { count: 'exact', head: true })
+              .eq('epoch_no', epoch)
+              .not('meta_url', 'is', null),
+            supabase
+              .from('proposals')
+              .select('tx_hash', { count: 'exact', head: true })
+              .eq('proposed_epoch', epoch),
+            supabase
+              .from('proposals')
+              .select('tx_hash', { count: 'exact', head: true })
+              .eq('ratified_epoch', epoch),
+            supabase
+              .from('proposals')
+              .select('tx_hash', { count: 'exact', head: true })
+              .eq('expired_epoch', epoch),
+            supabase
+              .from('proposals')
+              .select('tx_hash', { count: 'exact', head: true })
+              .eq('dropped_epoch', epoch),
+            supabase
+              .from('proposals')
+              .select('tx_hash', { count: 'exact', head: true })
+              .lte('proposed_epoch', epoch),
+            supabase
+              .from('drep_score_history')
+              .select('score')
+              .eq('epoch_no', epoch)
+              .not('score', 'is', null),
+          ]);
+
+        const uniqueVoters = new Set((votes.data || []).map((v) => v.drep_id));
+        const activeDreps = uniqueVoters.size;
+        const allVoters = await supabase
+          .from('drep_votes')
+          .select('drep_id')
+          .lte('epoch_no', epoch);
+        const totalDreps = new Set((allVoters.data || []).map((v) => v.drep_id)).size;
+        const totalVotes = (votes.data || []).length;
+        const participationRate =
+          totalDreps > 0 ? Math.round((activeDreps / totalDreps) * 10000) / 100 : 0;
+        const rationaleRate =
+          totalVotes > 0 ? Math.round(((rationales.count || 0) / totalVotes) * 10000) / 100 : 0;
+        const avgScore =
+          scores.data && scores.data.length > 0
+            ? Math.round(
+                (scores.data.reduce((s, r) => s + (r.score || 0), 0) / scores.data.length) * 100,
+              ) / 100
+            : null;
+
+        const { error } = await supabase.from('governance_epoch_stats').upsert(
+          {
+            epoch_no: epoch,
+            total_dreps: totalDreps,
+            active_dreps: activeDreps,
+            total_proposals: totalProposals.count || 0,
+            proposals_submitted: submitted.count || 0,
+            proposals_ratified: ratified.count || 0,
+            proposals_expired: expired.count || 0,
+            proposals_dropped: dropped.count || 0,
+            participation_rate: participationRate,
+            rationale_rate: rationaleRate,
+            avg_drep_score: avgScore,
+            computed_at: new Date().toISOString(),
+          },
+          { onConflict: 'epoch_no' },
+        );
+        if (error) throw new Error(error.message);
+        return { inserted: true };
+      } catch (err) {
+        logger.error('[epoch-summary] Epoch stats snapshot failed', { error: err });
+        return { error: errMsg(err) };
+      }
+    });
+
+    // Step 8: Vote snapshots + inter-body alignment for active proposals
+    const voteSnapshots = await step.run('snapshot-vote-alignment', async () => {
+      try {
+        const supabase = getSupabaseAdmin();
+
+        // Get proposals that were active during this epoch
+        const { data: activeProposals } = await supabase
+          .from('proposals')
+          .select('tx_hash, proposal_index')
+          .lte('proposed_epoch', epoch)
+          .or(
+            `enacted_epoch.gte.${epoch},ratified_epoch.gte.${epoch},expired_epoch.gte.${epoch},dropped_epoch.gte.${epoch},enacted_epoch.is.null`,
+          );
+
+        if (!activeProposals || activeProposals.length === 0) return { skipped: true };
+
+        let snapshotted = 0;
+        for (const prop of activeProposals) {
+          const [drepVotes, spoVotes, ccVotes] = await Promise.all([
+            supabase
+              .from('drep_votes')
+              .select('vote, voting_power_lovelace')
+              .eq('proposal_tx_hash', prop.tx_hash)
+              .eq('proposal_index', prop.proposal_index)
+              .eq('epoch_no', epoch),
+            supabase
+              .from('spo_votes')
+              .select('vote')
+              .eq('proposal_tx_hash', prop.tx_hash)
+              .eq('proposal_index', prop.proposal_index)
+              .eq('epoch', epoch),
+            supabase
+              .from('cc_votes')
+              .select('vote')
+              .eq('proposal_tx_hash', prop.tx_hash)
+              .eq('proposal_index', prop.proposal_index)
+              .eq('epoch', epoch),
+          ]);
+
+          const dv = drepVotes.data || [];
+          const sv = spoVotes.data || [];
+          const cv = ccVotes.data || [];
+          if (dv.length === 0 && sv.length === 0 && cv.length === 0) continue;
+
+          const drepYes = dv.filter((v) => v.vote === 'Yes');
+          const drepNo = dv.filter((v) => v.vote === 'No');
+          const drepAbstain = dv.filter((v) => v.vote === 'Abstain');
+
+          await supabase.from('proposal_vote_snapshots').upsert(
+            {
+              epoch,
+              proposal_tx_hash: prop.tx_hash,
+              proposal_index: prop.proposal_index,
+              drep_yes_count: drepYes.length,
+              drep_no_count: drepNo.length,
+              drep_abstain_count: drepAbstain.length,
+              drep_yes_power: drepYes.reduce((s, v) => s + Number(v.voting_power_lovelace || 0), 0),
+              drep_no_power: drepNo.reduce((s, v) => s + Number(v.voting_power_lovelace || 0), 0),
+              spo_yes_count: sv.filter((v) => v.vote === 'Yes').length,
+              spo_no_count: sv.filter((v) => v.vote === 'No').length,
+              spo_abstain_count: sv.filter((v) => v.vote === 'Abstain').length,
+              cc_yes_count: cv.filter((v) => v.vote === 'Yes').length,
+              cc_no_count: cv.filter((v) => v.vote === 'No').length,
+              cc_abstain_count: cv.filter((v) => v.vote === 'Abstain').length,
+              snapshot_at: new Date().toISOString(),
+            },
+            { onConflict: 'epoch,proposal_tx_hash,proposal_index' },
+          );
+
+          // Inter-body alignment
+          const dTotal = dv.length;
+          const sTotal = sv.length;
+          const cTotal = cv.length;
+          const dYesPct = dTotal > 0 ? Math.round((drepYes.length / dTotal) * 10000) / 100 : 0;
+          const sYesPct =
+            sTotal > 0
+              ? Math.round((sv.filter((v) => v.vote === 'Yes').length / sTotal) * 10000) / 100
+              : 0;
+          const cYesPct =
+            cTotal > 0
+              ? Math.round((cv.filter((v) => v.vote === 'Yes').length / cTotal) * 10000) / 100
+              : 0;
+
+          const bodies = [
+            dTotal > 0 ? dYesPct : null,
+            sTotal > 0 ? sYesPct : null,
+            cTotal > 0 ? cYesPct : null,
+          ].filter((v): v is number => v !== null);
+
+          let alignScore = 100;
+          if (bodies.length >= 2) {
+            let diff = 0;
+            let pairs = 0;
+            for (let i = 0; i < bodies.length; i++) {
+              for (let j = i + 1; j < bodies.length; j++) {
+                diff += Math.abs(bodies[i] - bodies[j]);
+                pairs++;
+              }
+            }
+            alignScore = Math.round((100 - diff / pairs) * 100) / 100;
+          }
+
+          await supabase.from('inter_body_alignment_snapshots').upsert(
+            {
+              epoch,
+              proposal_tx_hash: prop.tx_hash,
+              proposal_index: prop.proposal_index,
+              drep_yes_pct: dYesPct,
+              drep_no_pct: dTotal > 0 ? Math.round((drepNo.length / dTotal) * 10000) / 100 : 0,
+              drep_total: dTotal,
+              spo_yes_pct: sYesPct,
+              spo_no_pct:
+                sTotal > 0
+                  ? Math.round((sv.filter((v) => v.vote === 'No').length / sTotal) * 10000) / 100
+                  : 0,
+              spo_total: sTotal,
+              cc_yes_pct: cYesPct,
+              cc_no_pct:
+                cTotal > 0
+                  ? Math.round((cv.filter((v) => v.vote === 'No').length / cTotal) * 10000) / 100
+                  : 0,
+              cc_total: cTotal,
+              alignment_score: Math.max(0, Math.min(100, alignScore)),
+              snapshot_at: new Date().toISOString(),
+            },
+            { onConflict: 'epoch,proposal_tx_hash,proposal_index' },
+          );
+          snapshotted++;
+        }
+        return { snapshotted, proposals: activeProposals.length };
+      } catch (err) {
+        logger.error('[epoch-summary] Vote/alignment snapshots failed', { error: err });
+        return { error: errMsg(err) };
+      }
+    });
+
+    // Step 9: Delegation snapshots from power snapshots
+    const delegationSnapshot = await step.run('snapshot-delegation', async () => {
+      try {
+        const supabase = getSupabaseAdmin();
+        const { data: powerSnaps } = await supabase
+          .from('drep_power_snapshots')
+          .select('drep_id, amount_lovelace, delegator_count')
+          .eq('epoch_no', epoch);
+
+        if (!powerSnaps || powerSnaps.length === 0) return { skipped: true };
+
+        const rows = powerSnaps.map((s) => ({
+          epoch,
+          drep_id: s.drep_id,
+          delegator_count: s.delegator_count || 0,
+          total_power_lovelace: s.amount_lovelace,
+          snapshot_at: new Date().toISOString(),
+        }));
+
+        for (let i = 0; i < rows.length; i += 100) {
+          await supabase
+            .from('delegation_snapshots')
+            .upsert(rows.slice(i, i + 100), { onConflict: 'epoch,drep_id' });
+        }
+        return { inserted: rows.length };
+      } catch (err) {
+        logger.error('[epoch-summary] Delegation snapshot failed', { error: err });
+        return { error: errMsg(err) };
+      }
+    });
+
     logger.info('[epoch-summary] Epoch summary generated', { epoch, usersProcessed });
     return {
       epoch,
@@ -449,6 +706,9 @@ export const generateEpochSummary = inngest.createFunction(
       recap: recapResult,
       enrichment: enrichResult,
       participation: participationSnapshot,
+      epochStats,
+      voteSnapshots,
+      delegationSnapshot,
     };
   },
 );
