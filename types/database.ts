@@ -514,6 +514,9 @@ export type Database = {
           telegram?: string | null;
           twitter?: string | null;
           username?: string | null;
+        };
+        Relationships: [];
+      };
       cc_members: {
         Row: {
           cc_hot_id: string;
