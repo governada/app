@@ -27,6 +27,16 @@ export interface TierProgress {
   pointsToNext: number | null;
   percentWithinTier: number;
   nextTier: TierName | null;
+  /** Human-readable action that would most improve this entity's score. */
+  recommendedAction: string | null;
+}
+
+/** Pillar scores used to determine the most impactful recommended action. */
+export interface PillarBreakdown {
+  engagementQuality?: number | null;
+  effectiveParticipation?: number | null;
+  reliability?: number | null;
+  governanceIdentity?: number | null;
 }
 
 export interface TierChange {
@@ -53,7 +63,41 @@ export function getTierInfo(tierName: TierName): TierInfo {
   return { name: tier.name, min: tier.min, max: tier.max };
 }
 
-export function computeTierProgress(score: number): TierProgress {
+/**
+ * Determine which action would most improve the entity's score based on
+ * which pillar has the most room for improvement (lowest relative score).
+ */
+function deriveRecommendedAction(pillars?: PillarBreakdown): string | null {
+  if (!pillars) return null;
+
+  const entries: [string, number][] = [
+    // Weight × (100 - score) gives "impact potential"
+    // Weights: EQ 35%, EP 30%, R 20%, GI 15%
+    ['engagementQuality', (pillars.engagementQuality ?? 50) * 0.35],
+    ['effectiveParticipation', (pillars.effectiveParticipation ?? 50) * 0.30],
+    ['reliability', (pillars.reliability ?? 50) * 0.20],
+    ['governanceIdentity', (pillars.governanceIdentity ?? 50) * 0.15],
+  ];
+
+  // Find the pillar with the lowest weighted score (most room to grow)
+  const [weakest] = entries.sort((a, b) => a[1] - b[1]);
+  if (!weakest) return null;
+
+  const actions: Record<string, string> = {
+    engagementQuality:
+      'Submit rationales for your next votes to improve Engagement Quality',
+    effectiveParticipation:
+      'Vote on open governance proposals to improve Effective Participation',
+    reliability:
+      'Maintain a consistent voting streak to improve Reliability',
+    governanceIdentity:
+      'Complete your governance profile and social links to improve Governance Identity',
+  };
+
+  return actions[weakest[0]] ?? null;
+}
+
+export function computeTierProgress(score: number, pillars?: PillarBreakdown): TierProgress {
   const currentTier = computeTier(score);
   const currentTierInfo = getTierInfo(currentTier);
   const currentIdx = TIERS.findIndex((t) => t.name === currentTier);
@@ -69,6 +113,7 @@ export function computeTierProgress(score: number): TierProgress {
     pointsToNext: nextTierInfo ? nextTierInfo.min - Math.round(score) : null,
     percentWithinTier: Math.max(0, Math.min(100, percentWithinTier)),
     nextTier: nextTierInfo?.name ?? null,
+    recommendedAction: deriveRecommendedAction(pillars),
   };
 }
 

@@ -58,7 +58,12 @@ import {
   getIdentityColor,
   getDominantDimension,
   getPersonalityLabel,
+  getPersonalityLabelWithHysteresis,
 } from '@/lib/drepIdentity';
+import { computeTierProgress } from '@/lib/scoring/tiers';
+import { getFeatureFlag } from '@/lib/featureFlags';
+import { TierThemeProvider } from '@/components/providers/TierThemeProvider';
+import { DRepProfileTabsV2 } from '@/components/civica/profiles/DRepProfileTabsV2';
 import { getDRepTraitTags } from '@/lib/alignment';
 import { generateDRepNarrative } from '@/lib/narratives';
 import { NarrativeSummary } from '@/components/NarrativeSummary';
@@ -311,12 +316,14 @@ export default async function DRepDetailPage({ params, searchParams }: DRepDetai
 
   const matchScore = match ? parseInt(match, 10) : null;
 
-  const [scoreHistory, percentile, linkChecks, isClaimed, spoAlignPct] = await Promise.all([
+  const [scoreHistory, percentile, linkChecks, isClaimed, spoAlignPct, civicaEnabled, drepCommunicationEnabled] = await Promise.all([
     getScoreHistory(drep.drepId),
     getDRepPercentile(drep.drepScore),
     getSocialLinkChecks(drep.drepId),
     isDRepClaimed(drep.drepId),
     getSpoAlignment(drep.votes),
+    getFeatureFlag('civica_frontend', false),
+    getFeatureFlag('drep_communication', false),
   ]);
 
   const brokenLinks = new Set(linkChecks.filter((c) => c.status === 'broken').map((c) => c.uri));
@@ -366,9 +373,33 @@ export default async function DRepDetailPage({ params, searchParams }: DRepDetai
   const alignments = extractAlignments(drep);
   const drepName = getDRepPrimaryName(drep);
   const traitTags = getDRepTraitTags(drep as any);
-  const identityLabel = getPersonalityLabel(alignments);
 
-  return (
+  // Use hysteresis-aware label when civica is enabled (last_personality_label is null for
+  // all DReps currently — hysteresis kicks in once the sync pipeline starts persisting labels)
+  const lastPersonalityLabel = (drep as any).lastPersonalityLabel ?? null;
+  const identityLabel = civicaEnabled
+    ? getPersonalityLabelWithHysteresis(alignments, lastPersonalityLabel)
+    : getPersonalityLabel(alignments);
+
+  // Tier progress with recommended action (for Civica score analysis)
+  const tierProgress = computeTierProgress(drep.drepScore, {
+    engagementQuality: drep.engagementQuality,
+    effectiveParticipation: drep.effectiveParticipationV3,
+    reliability: drep.reliabilityV3,
+    governanceIdentity: drep.governanceIdentity,
+  });
+
+  // Phase B: Statements tab placeholder (scaffold for when drep_communication flag is on)
+  const statementsContent = drepCommunicationEnabled ? (
+    <div className="rounded-xl border border-border bg-card p-8 text-center space-y-2">
+      <p className="text-sm font-medium text-foreground">Statements coming soon</p>
+      <p className="text-xs text-muted-foreground">
+        Position statements and governance philosophy from this DRep will appear here.
+      </p>
+    </div>
+  ) : undefined;
+
+  const profileContent = (
     <div className="container mx-auto px-4 py-8 space-y-6">
       <ProfileViewTracker drepId={drep.drepId} />
       <PageViewTracker event="drep_profile_viewed" properties={{ drep_id: drep.drepId }} />
@@ -500,7 +531,9 @@ export default async function DRepDetailPage({ params, searchParams }: DRepDetai
           VP2 — "The Record" (below fold, tabbed)
           ════════════════════════════════════════════ */}
 
-      <DRepProfileTabs
+      <DRepProfileTabsV2
+        drepId={drep.drepId}
+        statementsContent={statementsContent}
         votingRecordContent={
           <div className="space-y-6">
             <Suspense fallback={<DetailPageSkeleton />}>
@@ -510,6 +543,26 @@ export default async function DRepDetailPage({ params, searchParams }: DRepDetai
         }
         scoreAnalysisContent={
           <div className="space-y-6">
+            {civicaEnabled && tierProgress.recommendedAction && (
+              <div className="rounded-xl border border-primary/20 bg-primary/5 px-5 py-4 flex items-start gap-3">
+                <div className="flex-1">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                    Recommended Action
+                  </p>
+                  <p className="text-sm font-medium">{tierProgress.recommendedAction}</p>
+                </div>
+                {tierProgress.pointsToNext != null && (
+                  <div className="shrink-0 text-right">
+                    <p className="text-xl font-bold font-display tabular-nums text-primary">
+                      +{tierProgress.pointsToNext}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                      pts to {tierProgress.nextTier}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
             <ScoreDeepDive
               score={drep.drepScore}
               engagementQuality={drep.engagementQuality}
@@ -583,5 +636,11 @@ export default async function DRepDetailPage({ params, searchParams }: DRepDetai
         </p>
       </section>
     </div>
+  );
+
+  return civicaEnabled ? (
+    <TierThemeProvider score={drep.drepScore}>{profileContent}</TierThemeProvider>
+  ) : (
+    profileContent
   );
 }

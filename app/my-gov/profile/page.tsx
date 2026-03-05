@@ -1,0 +1,15 @@
+import type { Metadata } from 'next';
+import { CivicaProfile } from '@/components/civica/mygov/CivicaProfile';
+
+export const metadata: Metadata = {
+  title: 'Civica — Profile & Settings',
+  description: 'Manage your governance identity, notification preferences, and account settings.',
+};
+
+export default function ProfilePage() {
+  return (
+    <div className="mx-auto max-w-2xl px-4 sm:px-6 py-8">
+      <CivicaProfile />
+    </div>
+  );
+}

@@ -9,6 +9,30 @@
  *
  * Targeting (future): the `targeting` JSONB column supports per-wallet overrides:
  *   { "wallets": { "stake1...": true } }  — enable for specific wallet even if globally off
+ *
+ * ---------------------------------------------------------------------------
+ * ACTIVE FLAGS (in feature_flags table, toggleable via /admin/flags)
+ * ---------------------------------------------------------------------------
+ * civica_frontend          — Civica redesign master switch (shell, routes, home)
+ * drep_communication       — DRep position statements / Phase B communication features
+ * score_tiers              — Tier computation + change detection in sync pipeline
+ * alignment_drift          — Citizen-DRep alignment drift detection
+ * spo_claim_flow           — SPO pool ownership claim flow
+ * spo_governance_identity  — SPO Governance Identity pillar (4th scoring pillar)
+ * interactive_constellation — WebGL constellation visualization
+ * ghi_citizen_engagement   — GHI citizen engagement component
+ * governance_footprint     — Wallet governance footprint feature
+ * cc_page                  — Constitutional Committee transparency page
+ * spo_profiles             — SPO governance profile pages
+ *
+ * ---------------------------------------------------------------------------
+ * RETIRED FLAGS (deleted in migration 039 — code checks removed or hardcoded)
+ * ---------------------------------------------------------------------------
+ * All other flags from migrations 035-036 were removed because either:
+ *   (a) the feature shipped and the check was removed from code, or
+ *   (b) the feature was abandoned.
+ * Do not re-add retired flags. Use hardcoded true/false in code instead.
+ * ---------------------------------------------------------------------------
  */
 
 import { createClient } from './supabase';

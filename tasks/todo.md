@@ -1,8 +1,9 @@
 # Civica — Active Work
 
-## Current Phase: Phase A (Backend Completion + Civic Foundation)
+## Current Phase: Phase 3B (My Gov Completion + DRep Profile Redesign)
 
 See `docs/strategy/ultimate-vision.md` for full build sequence.
+See `.cursor/plans/civica_phase_3b_eab7f1b4.plan.md` for this phase's detailed plan.
 
 ## Completed
 
@@ -15,7 +16,7 @@ See `docs/strategy/ultimate-vision.md` for full build sequence.
   - Root layout branching (old shell when flag off, CivicaShell when on)
   - /my-gov stub page (auth-gated)
 
-- [x] Civica Phase 1B — GovTerm, Metadata, Home Pages — PR #78
+- [x] Civica Phase 1B — GovTerm, Metadata, Home Pages
   - GovTerm component (localStorage progressive dismissal, segment-aware tooltips)
   - 12 governance terms in lib/microcopy.ts GOV_TERMS
   - generateMetadata() on /, /discover, /pulse, /my-gov (Civica-branded)
@@ -26,7 +27,7 @@ See `docs/strategy/ultimate-vision.md` for full build sequence.
   - CivicaHomePage segment dispatcher
   - useDRepReportCard, useDashboardCompetitive, useSPOPoolCompetitive hooks
 
-- [x] Civica Phase 2A — Discover, Cards, Leaderboard — PR #TBD
+- [x] Civica Phase 2A — Discover, Cards, Leaderboard
   - CivicaDRepCard: tier-colored browse card with score, tier badge, 6-axis alignment mini-bars, hover expansion
   - CivicaSPOCard: tier-colored pool card with governance score, participation/consistency/reliability bars, claimed badge
   - tierStyles.ts: shared token map (border/bg/glow/badge per tier)
@@ -35,16 +36,50 @@ See `docs/strategy/ultimate-vision.md` for full build sequence.
   - CivicaSPOBrowse: client-fetched SPO grid with search + tier + claimed filters
   - ProposalsBrowse: lightweight proposal list with search + status filter
   - CivicaLeaderboard: ranked DRep table with tier filter chips, delta trend arrows, 7-day movers strip, 25/page pagination
-  - CivicaPulseOverview (stretch): epoch health, active proposals, treasury balance/runway, movers strips
   - app/discover/page.tsx + app/pulse/page.tsx: civica_frontend flag-gated rendering
 
-## Next Up (Phase 2B)
+- [x] Civica Phase 2B — Pulse deep dive + My Gov action feed
+  - CivicaPulse: full Pulse page with GHI, cross-chain observatory, AI State of Governance narrative, governance calendar
+  - Action feed architecture (lib/actionFeed.ts + ActionFeed component)
+  - CitizenCommandCenter: delegation health card, recent DRep votes, action feed
+  - DRepCommandCenter: score gauge, stats row, pending votes widget, action feed
 
-- [ ] Civica Phase 2B — Pulse deep dive + My Gov action feed
-- [ ] Score Tier System (A1) — tier assignment, change detection, progress-to-next, history
-- [ ] Intelligent Notification Triggers (A2) — post-sync Inngest functions for meaningful state changes
-- [ ] Alignment Drift Detection (A3) — citizen-DRep alignment monitoring + re-delegation intelligence
-- [ ] Score Impact Prediction (A4) — lightweight simulation per action
-- [ ] SPO Experience Completion (A5) — wallet-to-pool detection, 4th pillar, claim flow, narrative parity
-- [ ] Citizen Intelligence (A6) — engagement levels, personalized epoch summaries, report cards
-- [ ] Scoring Cleanup (A8) — deprecate GHI Platform Engagement, audit legacy code, validate personality stability
+- [x] Civica Phase 3A — Pulse completion + SPO command center + SPO claim flow
+  - EDI-driven Cross-Chain Observatory in Pulse
+  - AI "State of Governance" narrative
+  - Governance Calendar
+  - SPOCommandCenter: score gauge, pool stats, governance activity, action feed
+  - SPO claim flow (wallet-verified pool ownership)
+
+- [x] Civica Phase 3B — My Gov completion + DRep Profile Redesign
+  - Feature flag audit: restored civica_frontend, drep_communication, score_tiers, alignment_drift,
+    spo_claim_flow, spo_governance_identity flags deleted by migration 039
+  - My Gov Inbox (4.5): multi-segment notification hub, filter tabs (All/Proposals/Score/Alignment/System),
+    read/unread state (localStorage), deep-link CTAs, DRep pending proposals detail
+  - My Gov Profile & Settings (4.6): identity card with tier ambient, governance philosophy editor,
+    Quick Match/alignment section, notification toggles, email digest prefs, disconnect wallet
+  - DRep Profile VP1: TierThemeProvider wrapping, personality label with hysteresis, tier progress
+    with recommendedAction chip in Score Analysis tab
+  - DRep Profile VP2: DRepProfileTabsV2 with Statements tab scaffold (behind drep_communication flag)
+  - Backend: getPersonalityLabelWithHysteresis() in lib/drepIdentity.ts,
+    computeTierProgress(score, pillars) with recommendedAction in lib/scoring/tiers.ts,
+    last_personality_label column on dreps table, spo_power_snapshots table verified
+  - Nav + route hygiene: My Gov sub-nav (Dashboard/Inbox/Profile), 8 legacy route redirects,
+    CommandPalette updated with Inbox/Profile routes
+
+## In Progress (Phase 3B — shipping)
+
+- [ ] Preflight (lint, type-check, build)
+- [ ] Commit, PR, merge, deploy, smoke test
+
+## Next Up (Phase 3C)
+
+- [ ] SPO Profile Redesign (5.2): Mirror DRep profile architecture — VP1 hero with SPO Score,
+  alignment radar, governance statement. VP2 tabs: voting record, score analysis, delegator breakdown,
+  competitive context. Wire retrospective #7 (Koios /pool_delegators + /pool_voting_power_history).
+- [ ] Proposal Detail Redesign (5.3): "Proposal cards that connect everything" — AI category badge,
+  tri-body vote bars, treasury impact, similar proposals, your DRep's vote highlighted,
+  Phase B scaffold "What representatives are saying" section.
+- [ ] CC Members Civica Integration: Evaluate if Discover > Committee tab suffices or if a
+  standalone Civica-styled /committee page adds value.
+- [ ] Phase 6: Celebrations, sharing, polish — after all profile pages are complete.

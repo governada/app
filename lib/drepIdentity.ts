@@ -247,3 +247,65 @@ export function getPersonalityLabel(alignments: AlignmentScores): string {
   if (distance > 15) return labels[1];
   return labels[2];
 }
+
+/**
+ * Hysteresis margin — new dominant dimension must lead by this many points
+ * over the previous dominant dimension before the label is allowed to change.
+ * Prevents flickering when a DRep's alignment hovers near a dimension boundary.
+ */
+const HYSTERESIS_MARGIN = 5;
+
+/**
+ * Reverse-lookup: given a personality label string, return the AlignmentDimension
+ * it originated from (or null if not found).
+ */
+function labelToDimension(label: string): AlignmentDimension | null {
+  for (const [dim, labels] of Object.entries(PERSONALITY_ARCHETYPES) as [
+    AlignmentDimension,
+    string[],
+  ][]) {
+    if (labels.includes(label)) return dim;
+  }
+  return null;
+}
+
+/**
+ * Stable personality label with hysteresis.
+ *
+ * If `previousLabel` is provided and was derived from a different dimension,
+ * the label only changes when the new dominant dimension leads the previous
+ * dominant dimension's distance-from-50 by HYSTERESIS_MARGIN or more.
+ *
+ * This prevents the "flicker" problem where minor alignment shifts cause
+ * the label to change every epoch.
+ *
+ * @param alignments Current alignment scores
+ * @param previousLabel The label stored on the DRep from the last computation (nullable)
+ */
+export function getPersonalityLabelWithHysteresis(
+  alignments: AlignmentScores,
+  previousLabel: string | null | undefined,
+): string {
+  const newLabel = getPersonalityLabel(alignments);
+
+  if (!previousLabel || previousLabel === newLabel) return newLabel;
+
+  const prevDimension = labelToDimension(previousLabel);
+  if (!prevDimension) return newLabel;
+
+  const newDominant = getDominantDimension(alignments);
+  if (prevDimension === newDominant) return newLabel;
+
+  // Compare distances: new dominant vs previous dominant
+  const newDominantScore = alignments[newDominant] ?? 50;
+  const prevDominantScore = alignments[prevDimension] ?? 50;
+  const newDistance = Math.abs(newDominantScore - 50);
+  const prevDistance = Math.abs(prevDominantScore - 50);
+
+  // Only switch if new dominant clearly leads (by HYSTERESIS_MARGIN)
+  if (newDistance - prevDistance < HYSTERESIS_MARGIN) {
+    return previousLabel;
+  }
+
+  return newLabel;
+}

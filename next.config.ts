@@ -50,11 +50,16 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
-      {
-        source: '/governance/calendar',
-        destination: '/pulse',
-        permanent: true,
-      },
+      // Legacy route redirects (Phase A Task 1.5 — civica cutover)
+      { source: '/governance/calendar', destination: '/pulse', permanent: true },
+      { source: '/governance', destination: '/my-gov', permanent: true },
+      { source: '/dashboard', destination: '/my-gov', permanent: true },
+      { source: '/dashboard/spo', destination: '/my-gov', permanent: true },
+      { source: '/dashboard/inbox', destination: '/my-gov/inbox', permanent: true },
+      { source: '/profile', destination: '/my-gov/profile', permanent: true },
+      { source: '/methodology', destination: '/discover', permanent: true },
+      { source: '/treasury', destination: '/pulse', permanent: true },
+      { source: '/decentralization', destination: '/pulse', permanent: true },
     ];
   },
   images: {
