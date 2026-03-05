@@ -8,6 +8,30 @@ updates:
     target-branch: main
     commit-message:
       prefix: 'deps:'
+    ignore:
+      - dependency-name: vitest
+        versions: ['>=4']
+      - dependency-name: '@vitest/*'
+        versions: ['>=4']
+    groups:
+      patch-updates:
+        update-types:
+          - patch
+      minor-updates:
+        update-types:
+          - minor
+      testing:
+        patterns:
+          - '@playwright/*'
+          - '@testing-library/*'
+      meshsdk:
+        patterns:
+          - '@meshsdk/*'
+      tailwind:
+        patterns:
+          - tailwindcss
+          - '@tailwindcss/*'
+          - tailwind-merge
 
   - package-ecosystem: github-actions
     directory: /
@@ -15,3 +39,7 @@ updates:
       interval: weekly
     commit-message:
       prefix: 'ci:'
+    groups:
+      actions:
+        patterns:
+          - '*'

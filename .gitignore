@@ -28,9 +28,10 @@
 *.pem
 response.json
 
-# local IDE settings
+# local IDE / agent settings
 .vscode/
-.cursor/mcp.json
+.cursor/
+.claude/
 .mcp.json
 
 # debug
