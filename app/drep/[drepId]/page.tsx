@@ -56,9 +56,7 @@ const AlignmentTrajectory = nextDynamic(
   { loading: () => <div className="h-32 animate-pulse bg-muted rounded-lg" /> },
 );
 const TierCelebrationManager = nextDynamic(() =>
-  import('@/components/civica/shared/TierCelebrationManager').then(
-    (m) => m.TierCelebrationManager,
-  ),
+  import('@/components/civica/shared/TierCelebrationManager').then((m) => m.TierCelebrationManager),
 );
 import {
   extractAlignments,
