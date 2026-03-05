@@ -12,7 +12,9 @@ export const GET = withRouteHandler(async (request, { requestId }) => {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from('proposals')
-    .select('tx_hash, proposal_index, title, status, proposal_type')
+    .select(
+      'tx_hash, proposal_index, title, proposal_type, expired_epoch, ratified_epoch, enacted_epoch, dropped_epoch',
+    )
     .order('proposed_epoch', { ascending: false })
     .limit(limit);
 
@@ -25,13 +27,20 @@ export const GET = withRouteHandler(async (request, { requestId }) => {
     return NextResponse.json({ error: 'Failed to fetch proposals' }, { status: 500 });
   }
 
-  const proposals = (data || []).map((p) => ({
-    txHash: p.tx_hash,
-    index: p.proposal_index,
-    title: p.title,
-    status: p.status,
-    type: p.proposal_type,
-  }));
+  const proposals = (data || []).map((p) => {
+    let status = 'active';
+    if (p.enacted_epoch) status = 'enacted';
+    else if (p.ratified_epoch) status = 'ratified';
+    else if (p.expired_epoch) status = 'expired';
+    else if (p.dropped_epoch) status = 'dropped';
+    return {
+      txHash: p.tx_hash,
+      index: p.proposal_index,
+      title: p.title,
+      status,
+      type: p.proposal_type,
+    };
+  });
 
   return NextResponse.json({ proposals });
 });
