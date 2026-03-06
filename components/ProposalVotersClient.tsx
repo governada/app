@@ -40,6 +40,7 @@ export function ProposalVotersClient({
   const [showAll, setShowAll] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showWatchlistOnly, setShowWatchlistOnly] = useState(false);
+  const [expandedRationale, setExpandedRationale] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     let result = filter === 'all' ? votes : votes.filter((v) => v.vote === filter);
@@ -205,14 +206,40 @@ export function ProposalVotersClient({
                       })}
                     </p>
 
-                    {/* Rationale AI summary with hash verification */}
-                    {v.rationaleAiSummary && (
+                    {/* Rationale AI summary with hash verification + expandable full text */}
+                    {(v.rationaleAiSummary || v.rationaleText) && (
                       <div className="bg-muted/30 rounded p-2 mt-2">
                         <div className="flex items-start gap-1.5">
-                          <p className="text-xs text-foreground/80 line-clamp-2 flex-1">
-                            <span className="font-semibold text-muted-foreground">Rationale: </span>
-                            {v.rationaleAiSummary}
-                          </p>
+                          <div className="flex-1 min-w-0">
+                            <p
+                              className={`text-xs text-foreground/80 ${expandedRationale === v.voteTxHash ? '' : 'line-clamp-2'}`}
+                            >
+                              <span className="font-semibold text-muted-foreground">
+                                {expandedRationale === v.voteTxHash && v.rationaleText
+                                  ? 'Full Rationale: '
+                                  : 'Rationale: '}
+                              </span>
+                              {expandedRationale === v.voteTxHash && v.rationaleText
+                                ? v.rationaleText
+                                : v.rationaleAiSummary || v.rationaleText}
+                            </p>
+                            {v.rationaleText && v.rationaleText.length > 100 && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setExpandedRationale(
+                                    expandedRationale === v.voteTxHash ? null : v.voteTxHash,
+                                  );
+                                }}
+                                className="text-[10px] text-primary hover:underline mt-1 font-medium"
+                              >
+                                {expandedRationale === v.voteTxHash
+                                  ? 'Show summary'
+                                  : 'Read full rationale'}
+                              </button>
+                            )}
+                          </div>
                           {v.hashVerified === true && (
                             <TooltipProvider>
                               <Tooltip>

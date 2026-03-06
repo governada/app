@@ -10,7 +10,7 @@ import { ProposalDescription } from '@/components/ProposalDescription';
 import { ProposalAiSummary } from '@/components/ProposalAiSummary';
 import { ThresholdMeter } from '@/components/ThresholdMeter';
 import { VoteTimeline } from '@/components/VoteTimeline';
-import { ArrowLeft, MessageSquare } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { getProposalStatus } from '@/utils/proposalPriority';
 import { ProposalOutcomeSection } from '@/components/ProposalOutcomeSection';
 import { ProposalVoterTabs } from '@/components/ProposalVoterTabs';
@@ -18,6 +18,11 @@ import { SimilarProposals } from '@/components/SimilarProposals';
 import { PageViewTracker } from '@/components/PageViewTracker';
 import { ProposalHeroV1 } from '@/components/civica/proposals/ProposalHeroV1';
 import { VoteAdoptionCurve } from '@/components/civica/charts/VoteAdoptionCurve';
+import { ProposalDimensionTags } from '@/components/civica/proposals/ProposalDimensionTags';
+import { ProposalTopRationales } from '@/components/civica/proposals/ProposalTopRationales';
+import { ProposalLifecycleTimeline } from '@/components/civica/proposals/ProposalLifecycleTimeline';
+import { ParamChangesCard } from '@/components/civica/proposals/ParamChangesCard';
+import { AlignmentCohortBreakdown } from '@/components/civica/proposals/AlignmentCohortBreakdown';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,6 +86,18 @@ export default async function ProposalDetailPage({ params }: PageProps) {
       abstainCount: counts.abstain,
     }));
 
+  // Build rationale entries for the top-rationales card
+  const rationaleEntries = votes
+    .filter((v) => v.rationaleAiSummary || v.rationaleText)
+    .map((v) => ({
+      drepId: v.drepId,
+      drepName: v.drepName,
+      vote: v.vote,
+      rationaleText: v.rationaleText,
+      rationaleAiSummary: v.rationaleAiSummary,
+      hashVerified: v.hashVerified,
+    }));
+
   const title = proposal.title || `Proposal ${txHash.slice(0, 12)}...`;
 
   return (
@@ -117,6 +134,25 @@ export default async function ProposalDetailPage({ params }: PageProps) {
         triBody={proposal.triBody ?? null}
         blockTime={proposal.blockTime}
       />
+
+      {/* Governance dimension tags */}
+      <ProposalDimensionTags relevantPrefs={proposal.relevantPrefs} />
+
+      {/* Lifecycle Timeline */}
+      <ProposalLifecycleTimeline
+        proposedEpoch={proposal.proposedEpoch}
+        expirationEpoch={proposal.expirationEpoch}
+        ratifiedEpoch={proposal.ratifiedEpoch}
+        enactedEpoch={proposal.enactedEpoch}
+        droppedEpoch={proposal.droppedEpoch}
+        expiredEpoch={proposal.expiredEpoch}
+        currentEpoch={currentEpoch}
+      />
+
+      {/* Parameter Changes (ParameterChange proposals only) */}
+      {proposal.proposalType === 'ParameterChange' && proposal.paramChanges && (
+        <ParamChangesCard paramChanges={proposal.paramChanges} />
+      )}
 
       {/* VP2 stack */}
 
@@ -161,22 +197,13 @@ export default async function ProposalDetailPage({ params }: PageProps) {
         </Card>
       )}
 
-      {/* 4. Representative comments scaffold (Phase 3D) */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="h-4 w-4" />
-            What representatives are saying
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            No representatives have commented on this proposal yet.
-          </p>
-        </CardContent>
-      </Card>
+      {/* 4. Alignment Cohort Breakdown */}
+      <AlignmentCohortBreakdown votes={votes} />
 
-      {/* 5. Vote Timeline */}
+      {/* 5. What Representatives Are Saying (real rationales) */}
+      <ProposalTopRationales rationales={rationaleEntries} />
+
+      {/* 6. Vote Timeline */}
       <VoteTimeline
         votes={timelineVotes}
         proposalBlockTime={proposal.blockTime || 0}
@@ -184,13 +211,13 @@ export default async function ProposalDetailPage({ params }: PageProps) {
         currentEpoch={currentEpoch}
       />
 
-      {/* 6. Voter Tabs */}
+      {/* 7. Voter Tabs */}
       <ProposalVoterTabs votes={votes} txHash={txHash} proposalIndex={proposalIndex} />
 
-      {/* 7. Similar Proposals */}
+      {/* 8. Similar Proposals */}
       <SimilarProposals txHash={txHash} proposalIndex={proposalIndex} />
 
-      {/* 8. Outcome (closed proposals only) */}
+      {/* 9. Outcome (closed proposals only) */}
       {!isOpen && (
         <ProposalOutcomeSection
           proposal={{
