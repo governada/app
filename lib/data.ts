@@ -574,6 +574,7 @@ export interface ProposalWithVoteSummary {
   expiredEpoch: number | null;
   expirationEpoch: number | null;
   triBody?: TriBodyVotes;
+  paramChanges: Record<string, unknown> | null;
 }
 
 /**
@@ -689,6 +690,7 @@ export async function getAllProposalsWithVoteSummary(): Promise<ProposalWithVote
         expiredEpoch: p.expired_epoch ?? null,
         expirationEpoch: p.expiration_epoch ?? null,
         triBody: triBodyMap.get(key),
+        paramChanges: (p.param_changes as Record<string, unknown>) ?? null,
       };
     });
   } catch (err) {
@@ -810,6 +812,7 @@ export async function getProposalByKey(
       expiredEpoch: row.expired_epoch ?? null,
       expirationEpoch: row.expiration_epoch ?? null,
       triBody,
+      paramChanges: (row.param_changes as Record<string, unknown>) ?? null,
     };
   } catch (err) {
     logger.error('[Data] getProposalByKey error', { error: err });
