@@ -34,15 +34,14 @@ interface MobileNavProps {
 
 const PRIMARY_NAV_ITEMS = [
   { href: '/discover', label: 'Discover', icon: Compass },
-  { href: '/proposals', label: 'Proposals', icon: ScrollText },
   { href: '/pulse', label: 'Pulse', icon: Activity },
 ];
 
-const AUTH_NAV_ITEM = { href: '/governance', label: 'My Governance', icon: Vote };
+const AUTH_NAV_ITEM = { href: '/my-gov', label: 'My Governance', icon: Vote };
 
 const DREP_NAV_ITEMS = [
-  { href: '/dashboard', label: 'Dashboard', icon: Sparkles },
-  { href: '/dashboard/inbox', label: 'Governance Inbox', icon: Inbox },
+  { href: '/my-gov', label: 'Dashboard', icon: Sparkles },
+  { href: '/my-gov/inbox', label: 'Governance Inbox', icon: Inbox },
 ];
 
 export function MobileNav({
@@ -62,7 +61,7 @@ export function MobileNav({
   }, [pathname]);
 
   const isActive = (href: string) => {
-    if (href === '/dashboard') return pathname === '/dashboard';
+    if (href === '/my-gov') return pathname === '/my-gov';
     return pathname === href || pathname.startsWith(href + '/');
   };
 
@@ -192,7 +191,7 @@ export function MobileNav({
                   <span className="truncate">{displayName || shortenAddress(sessionAddress)}</span>
                 </div>
                 <Link
-                  href="/profile"
+                  href="/my-gov/profile"
                   className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                 >
                   <User className="h-4 w-4" />

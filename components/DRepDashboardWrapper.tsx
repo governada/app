@@ -57,7 +57,7 @@ export function DRepDashboardWrapper({ drepId, drepName, isClaimed }: DRepDashbo
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           {shareButton}
-          <Link href="/dashboard">
+          <Link href="/my-gov">
             <Button size="sm" className="gap-1.5 text-xs">
               Open Dashboard <ArrowRight className="h-3.5 w-3.5" />
             </Button>

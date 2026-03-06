@@ -54,7 +54,7 @@ export const POST = withRouteHandler(
       fallback: {
         title: 'Your Weekly Governance Brief',
         body: brief.greeting,
-        url: '/dashboard',
+        url: '/my-gov',
       },
       data: {
         briefType: isDRep ? 'drep' : 'holder',

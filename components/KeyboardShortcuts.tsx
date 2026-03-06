@@ -33,10 +33,10 @@ export function KeyboardShortcuts() {
           router.push('/discover');
           break;
         case 'p':
-          router.push('/proposals');
+          router.push('/discover');
           break;
         case 'g':
-          router.push('/governance');
+          router.push('/my-gov');
           break;
       }
     };

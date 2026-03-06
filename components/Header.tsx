@@ -87,7 +87,7 @@ export function Header() {
 
   const shortenAddress = (addr: string) => `${addr.slice(0, 8)}...${addr.slice(-6)}`;
   const isActive = (href: string) => {
-    if (href === '/dashboard') return pathname === '/dashboard';
+    if (href === '/my-gov') return pathname === '/my-gov';
     return pathname === href || pathname.startsWith(href + '/');
   };
   const navLinkClass = (href: string) =>
@@ -209,7 +209,7 @@ export function Header() {
             <Compass className="h-4 w-4" />
             <span>Discover</span>
           </Link>
-          <Link href="/discover" className={navLinkClass('/proposals')}>
+          <Link href="/discover" className={navLinkClass('/discover')}>
             <ScrollText className="h-4 w-4" />
             <span>Proposals</span>
           </Link>
@@ -218,13 +218,13 @@ export function Header() {
             <span>Pulse</span>
           </Link>
           {isAuthenticated && (
-            <Link href="/my-gov" prefetch={false} className={navLinkClass('/governance')}>
+            <Link href="/my-gov" prefetch={false} className={navLinkClass('/my-gov')}>
               <Vote className="h-4 w-4" />
               <span>My Governance</span>
             </Link>
           )}
           {(ownDRepId || isAdmin) && (
-            <Link href="/dashboard" prefetch={false} className={navLinkClass('/dashboard')}>
+            <Link href="/my-gov" prefetch={false} className={navLinkClass('/my-gov')}>
               <Sparkles className="h-4 w-4" />
               <span>Dashboard</span>
             </Link>
@@ -351,7 +351,7 @@ export function Header() {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
-                    onSelect={() => router.push('/governance')}
+                    onSelect={() => router.push('/my-gov')}
                     className="cursor-pointer"
                   >
                     <Vote className="h-4 w-4 mr-2" />
@@ -360,20 +360,14 @@ export function Header() {
                   {(ownDRepId || isAdmin) && (
                     <>
                       <DropdownMenuItem
-                        onSelect={() => router.push('/dashboard')}
+                        onSelect={() => router.push('/my-gov')}
                         className="cursor-pointer"
                       >
                         <Sparkles className="h-4 w-4 mr-2" />
                         DRep Dashboard
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onSelect={() =>
-                          router.push(
-                            ownDRepId
-                              ? `/dashboard/inbox?drepId=${encodeURIComponent(ownDRepId)}`
-                              : '/dashboard/inbox',
-                          )
-                        }
+                        onSelect={() => router.push('/my-gov/inbox')}
                         className="cursor-pointer"
                       >
                         <Inbox className="h-4 w-4 mr-2" />
@@ -382,7 +376,7 @@ export function Header() {
                     </>
                   )}
                   <DropdownMenuItem
-                    onSelect={() => router.push('/profile')}
+                    onSelect={() => router.push('/my-gov/profile')}
                     className="cursor-pointer"
                   >
                     <User className="h-4 w-4 mr-2" />

@@ -406,7 +406,7 @@ export function useAlignmentAlerts() {
         type: 'new-proposals',
         title: `${newProposalCount} new proposal${newProposalCount !== 1 ? 's' : ''}`,
         description: `${newProposalCount} new governance proposal${newProposalCount !== 1 ? 's' : ''} since your last visit.`,
-        link: '/proposals',
+        link: '/discover',
         timestamp: now,
         read: false,
       });
@@ -421,7 +421,7 @@ export function useAlignmentAlerts() {
         type: 'vote-activity',
         title: `Your DRep voted ${v.vote}`,
         description: `On "${title}".`,
-        link: `/proposals/${v.proposalTxHash}/${v.proposalIndex}`,
+        link: `/proposal/${v.proposalTxHash}/${v.proposalIndex}`,
         timestamp: v.blockTime,
         read: false,
         metadata: { vote: v.vote },
@@ -476,7 +476,7 @@ export function useAlignmentAlerts() {
             inboxData.potentialGain > 0
               ? `Voting with rationale could boost your score by +${inboxData.potentialGain} pts.`
               : `Open proposals are awaiting your vote.`,
-          link: '/dashboard/inbox',
+          link: '/my-gov/inbox',
           timestamp: now,
           read: false,
           metadata: {
@@ -492,7 +492,7 @@ export function useAlignmentAlerts() {
           type: 'drep-urgent-deadline',
           title: `${inboxData.urgentCount} proposal${inboxData.urgentCount !== 1 ? 's' : ''} expiring soon`,
           description: `These proposals will expire within 2 epochs. Vote before they close.`,
-          link: '/dashboard/inbox',
+          link: '/my-gov/inbox',
           timestamp: now,
           read: false,
           metadata: { urgentCount: inboxData.urgentCount },
@@ -509,7 +509,7 @@ export function useAlignmentAlerts() {
           title: `${govSummary.criticalOpenCount} critical proposal${govSummary.criticalOpenCount !== 1 ? 's' : ''} open`,
           description:
             'A high-impact governance proposal (Hard Fork, No Confidence, or Constitution change) is currently open for voting.',
-          link: '/proposals',
+          link: '/discover',
           timestamp: now,
           read: false,
           metadata: { criticalCount: govSummary.criticalOpenCount },

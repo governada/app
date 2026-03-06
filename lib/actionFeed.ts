@@ -67,7 +67,7 @@ export function generateActions(input: ActionFeedInput): Action[] {
         type: 'vote_required',
         title: `${pendingVotesCount} proposal${pendingVotesCount > 1 ? 's' : ''} await your vote`,
         description: 'Voting on open proposals improves your participation score.',
-        href: '/proposals',
+        href: '/discover',
         priority: 1,
         cta: 'View Proposals',
       });
@@ -91,7 +91,7 @@ export function generateActions(input: ActionFeedInput): Action[] {
         type: 'delegation_stale',
         title: 'Your DRep status is inactive',
         description: 'Vote on open proposals to restore your active status.',
-        href: '/proposals',
+        href: '/discover',
         priority: 1,
         cta: 'View Proposals',
       });
@@ -121,7 +121,7 @@ export function generateActions(input: ActionFeedInput): Action[] {
         type: 'proposal_expiring',
         title: `${criticalProposals} critical proposal${criticalProposals > 1 ? 's' : ''} active`,
         description: 'High-importance proposals may expire soon.',
-        href: '/proposals',
+        href: '/discover',
         priority: 2,
         cta: 'View Now',
       });
@@ -167,7 +167,7 @@ export function generateActions(input: ActionFeedInput): Action[] {
         type: 'proposal_expiring',
         title: `${criticalProposals} critical proposal${criticalProposals > 1 ? 's' : ''} in progress`,
         description: 'Important governance decisions are being made.',
-        href: '/proposals',
+        href: '/discover',
         priority: 2,
         cta: 'View Proposals',
       });
@@ -179,7 +179,7 @@ export function generateActions(input: ActionFeedInput): Action[] {
         type: 'vote_required',
         title: `${activeProposals} open proposal${activeProposals > 1 ? 's' : ''} being voted on`,
         description: 'Your DRep is representing your vote on these proposals.',
-        href: '/proposals',
+        href: '/discover',
         priority: 3,
         cta: 'See Proposals',
       });
@@ -193,7 +193,7 @@ export function generateActions(input: ActionFeedInput): Action[] {
         type: 'vote_required',
         title: `${pendingVotesCount} proposal${pendingVotesCount > 1 ? 's' : ''} await your pool\u2019s vote`,
         description: 'Voting on governance proposals builds your governance reputation.',
-        href: '/proposals',
+        href: '/discover',
         priority: 1,
         cta: 'View Proposals',
       });
@@ -230,7 +230,7 @@ export function generateActions(input: ActionFeedInput): Action[] {
         type: 'vote_required',
         title: 'Cast your first governance vote',
         description: 'Start building your governance score by voting on an open proposal.',
-        href: '/proposals',
+        href: '/discover',
         priority: 2,
         cta: 'View Proposals',
       });
@@ -242,7 +242,7 @@ export function generateActions(input: ActionFeedInput): Action[] {
         type: 'proposal_expiring',
         title: `${criticalProposals} critical proposal${criticalProposals > 1 ? 's' : ''} active`,
         description: 'High-importance proposals may expire soon.',
-        href: '/proposals',
+        href: '/discover',
         priority: 2,
         cta: 'View Now',
       });
