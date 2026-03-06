@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback } from 'react';
-import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
   Activity,
@@ -114,7 +114,6 @@ function formatAda(ada: number): string {
 
 export function CivicaPulseOverview() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const pathname = usePathname();
 
   const activeTab = resolvePulseTab(searchParams.get('tab'));
@@ -128,9 +127,10 @@ export function CivicaPulseOverview() {
         params.set('tab', tab);
       }
       const qs = params.toString();
-      router.replace(`${pathname}${qs ? `?${qs}` : ''}`, { scroll: false });
+      // Use history API directly to avoid a full server re-render of the force-dynamic page
+      window.history.replaceState(null, '', `${pathname}${qs ? `?${qs}` : ''}`);
     },
-    [searchParams, router, pathname],
+    [searchParams, pathname],
   );
 
   const { data: rawPulse, isLoading: pulseLoading } = useGovernancePulse();

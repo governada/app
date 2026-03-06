@@ -276,7 +276,7 @@ function generateDRepBriefTemplate(ctx: DRepBriefContext): GeneratedBrief {
     greeting: `Hey ${ctx.drepName}, here's your weekly governance roundup.`,
     sections,
     ctaText: 'Open Dashboard',
-    ctaUrl: '/dashboard',
+    ctaUrl: '/my-gov',
   };
 }
 

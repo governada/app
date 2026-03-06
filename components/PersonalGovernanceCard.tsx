@@ -211,7 +211,7 @@ function DRepCard({ data }: { data: DRepData }) {
 
         <div className="flex gap-3">
           <Link
-            href="/dashboard"
+            href="/my-gov"
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
           >
             Open Dashboard

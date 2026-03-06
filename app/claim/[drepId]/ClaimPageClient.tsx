@@ -237,7 +237,7 @@ export function ClaimPageClient({
         rationale={rationale}
         reliability={reliability}
         profile={profile}
-        onContinue={() => router.push('/dashboard')}
+        onContinue={() => router.push('/my-gov')}
       />
     );
   }

@@ -163,7 +163,7 @@ export default async function StateOfGovernancePage({ params }: Props) {
         />
 
         <div className="text-center">
-          <Link href="/profile" className="text-sm text-primary hover:underline">
+          <Link href="/my-gov/profile" className="text-sm text-primary hover:underline">
             Subscribe to weekly governance updates
           </Link>
         </div>

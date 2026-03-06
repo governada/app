@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback } from 'react';
-import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { useSearchParams, usePathname } from 'next/navigation';
 import { Users, ShieldCheck, FileText, Scale, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CivicaDRepBrowse } from './CivicaDRepBrowse';
@@ -47,7 +47,6 @@ interface CivicaDiscoverProps {
 
 export function CivicaDiscover({ dreps, totalAvailable, proposalCount }: CivicaDiscoverProps) {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const pathname = usePathname();
 
   // Derive active tab directly from URL — searchParams is the source of truth
@@ -62,9 +61,10 @@ export function CivicaDiscover({ dreps, totalAvailable, proposalCount }: CivicaD
         params.set('tab', tab);
       }
       const qs = params.toString();
-      router.replace(`${pathname}${qs ? `?${qs}` : ''}`, { scroll: false });
+      // Use history API directly to avoid a full server re-render of the force-dynamic page
+      window.history.replaceState(null, '', `${pathname}${qs ? `?${qs}` : ''}`);
     },
-    [searchParams, router, pathname],
+    [searchParams, pathname],
   );
 
   const tabs: Tab[] = [

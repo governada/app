@@ -46,7 +46,7 @@ export const PAGE_COMMANDS: CommandItem[] = [
     sublabel: 'Browse active governance proposals',
     group: 'pages',
     icon: ScrollText,
-    href: '/proposals',
+    href: '/discover',
     shortcut: 'P',
   },
   {
@@ -200,6 +200,6 @@ export function searchProposals(proposals: SearchableProposal[], query: string):
       label: p.title || `${p.txHash.slice(0, 12)}...`,
       sublabel: p.status,
       group: 'proposals' as const,
-      href: `/proposals/${encodeURIComponent(p.txHash)}/${p.index}`,
+      href: `/proposal/${encodeURIComponent(p.txHash)}/${p.index}`,
     }));
 }

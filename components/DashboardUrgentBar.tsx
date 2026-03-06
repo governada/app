@@ -72,7 +72,7 @@ export function DashboardUrgentBar({ drepId }: DashboardUrgentBarProps) {
             ))}
           </div>
           {proposals.length > 3 && (
-            <Link href="/dashboard/inbox">
+            <Link href="/my-gov/inbox">
               <Button variant="ghost" size="sm" className="text-xs">
                 View all {proposals.length} pending proposals
               </Button>

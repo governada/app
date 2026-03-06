@@ -48,7 +48,7 @@ export const POST = withRouteHandler(
             body: proposalTitle
               ? `"${proposalTitle}" is open for voting. This is a high-impact proposal.`
               : 'A critical governance proposal is now open for voting.',
-            url: txHash ? `/proposals/${txHash}/${index || 0}` : '/proposals',
+            url: txHash ? `/proposal/${txHash}/${index || 0}` : '/discover',
           },
         };
         break;
@@ -68,7 +68,7 @@ export const POST = withRouteHandler(
                 ? `${criticalCount} critical proposal${criticalCount !== 1 ? 's' : ''} need your vote`
                 : `${pendingCount} proposal${pendingCount !== 1 ? 's' : ''} awaiting your vote`,
             body: 'Open your DRep dashboard to review and vote.',
-            url: '/dashboard/inbox',
+            url: '/my-gov/inbox',
           },
         };
         break;

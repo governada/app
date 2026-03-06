@@ -106,7 +106,7 @@ export function NotificationPreferences() {
             ...prev,
             telegram: { connected: true, identifier: 'connected' },
           }));
-          window.history.replaceState({}, '', '/profile');
+          window.history.replaceState({}, '', '/my-gov/profile');
         }
       })
       .catch(() => {})

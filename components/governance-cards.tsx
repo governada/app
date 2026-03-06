@@ -429,7 +429,7 @@ export function ActiveProposalsSection({ proposals }: { proposals: ActiveProposa
             icon={ScrollText}
             title="All Quiet on the Governance Front"
             message="No proposals are open right now. Check back next epoch, or review recent outcomes."
-            action={{ label: 'View Past Proposals', href: '/proposals' }}
+            action={{ label: 'View Past Proposals', href: '/discover' }}
             compact
             component="ActiveProposals"
           />
