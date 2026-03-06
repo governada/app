@@ -1164,6 +1164,51 @@ export async function getDRepPercentile(score: number): Promise<number> {
   }
 }
 
+/**
+ * Returns the 1-based rank of a DRep by score (1 = highest score).
+ */
+export async function getDRepRank(drepId: string): Promise<number | null> {
+  try {
+    const supabase = createClient();
+    const { data: drep } = await supabase.from('dreps').select('score').eq('id', drepId).single();
+    if (!drep?.score) return null;
+
+    const { count } = await supabase
+      .from('dreps')
+      .select('*', { count: 'exact', head: true })
+      .gt('score', drep.score);
+    return (count ?? 0) + 1;
+  } catch (err) {
+    logger.error('[Data] getDRepRank error', { error: err });
+    return null;
+  }
+}
+
+/**
+ * Returns epoch-by-epoch delegation power snapshots for a DRep.
+ */
+export async function getDRepDelegationTrend(
+  drepId: string,
+): Promise<{ epoch: number; votingPowerAda: number; delegatorCount: number }[]> {
+  try {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from('drep_power_snapshots')
+      .select('epoch_no, amount_lovelace, delegator_count')
+      .eq('drep_id', drepId)
+      .order('epoch_no', { ascending: true })
+      .limit(30);
+    return (data ?? []).map((s: any) => ({
+      epoch: s.epoch_no,
+      votingPowerAda: Math.round(Number(s.amount_lovelace) / 1_000_000),
+      delegatorCount: s.delegator_count ?? 0,
+    }));
+  } catch (err) {
+    logger.error('[Data] getDRepDelegationTrend error', { error: err });
+    return [];
+  }
+}
+
 // ============================================================================
 // SOCIAL LINK CHECKS
 // ============================================================================

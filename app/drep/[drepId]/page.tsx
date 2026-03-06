@@ -85,6 +85,8 @@ import {
   getRationalesByVoteTxHashes,
   getScoreHistory,
   getDRepPercentile,
+  getDRepRank,
+  getDRepDelegationTrend,
   getSocialLinkChecks,
   isDRepClaimed,
 } from '@/lib/data';
@@ -324,15 +326,25 @@ export default async function DRepDetailPage({ params, searchParams }: DRepDetai
 
   const matchScore = match ? parseInt(match, 10) : null;
 
-  const [scoreHistory, percentile, linkChecks, isClaimed, spoAlignPct, drepCommunicationEnabled] =
-    await Promise.all([
-      getScoreHistory(drep.drepId),
-      getDRepPercentile(drep.drepScore),
-      getSocialLinkChecks(drep.drepId),
-      isDRepClaimed(drep.drepId),
-      getSpoAlignment(drep.votes),
-      getFeatureFlag('drep_communication', false),
-    ]);
+  const [
+    scoreHistory,
+    percentile,
+    rank,
+    delegationTrend,
+    linkChecks,
+    isClaimed,
+    spoAlignPct,
+    drepCommunicationEnabled,
+  ] = await Promise.all([
+    getScoreHistory(drep.drepId),
+    getDRepPercentile(drep.drepScore),
+    getDRepRank(drep.drepId),
+    getDRepDelegationTrend(drep.drepId),
+    getSocialLinkChecks(drep.drepId),
+    isDRepClaimed(drep.drepId),
+    getSpoAlignment(drep.votes),
+    getFeatureFlag('drep_communication', false),
+  ]);
 
   const brokenLinks = new Set(linkChecks.filter((c) => c.status === 'broken').map((c) => c.uri));
 
@@ -433,7 +445,7 @@ export default async function DRepDetailPage({ params, searchParams }: DRepDetai
       <DRepProfileHero
         name={drepName}
         score={drep.drepScore}
-        rank={null}
+        rank={rank}
         delegatorCount={drep.delegatorCount}
         votingPowerFormatted={formatAda(drep.votingPower)}
         alignments={alignments}
@@ -452,7 +464,7 @@ export default async function DRepDetailPage({ params, searchParams }: DRepDetai
           participationRate: drep.effectiveParticipation,
           rationaleRate: drep.rationaleRate,
           drepScore: drep.drepScore,
-          rank: null,
+          rank,
           delegatorCount: drep.delegatorCount,
           votingPower: drep.votingPower,
           alignments,
@@ -463,7 +475,38 @@ export default async function DRepDetailPage({ params, searchParams }: DRepDetai
         accentColor={getIdentityColor(getDominantDimension(alignments)).hex}
       />
 
-      {/* 3. Key Facts Strip */}
+      {/* 3. Tier Progress + Momentum */}
+      {tierProgress.pointsToNext != null && (
+        <div className="flex items-center justify-between rounded-xl border border-border bg-card px-5 py-3">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium">
+              {tierProgress.pointsToNext} pts to{' '}
+              <span className="text-primary font-bold">{tierProgress.nextTier}</span>
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {tierProgress.percentWithinTier}% through {tierProgress.currentTier}
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            {drep.scoreMomentum != null && drep.scoreMomentum !== 0 && (
+              <span
+                className={`text-xs font-medium tabular-nums ${drep.scoreMomentum > 0 ? 'text-emerald-400' : 'text-rose-400'}`}
+              >
+                {drep.scoreMomentum > 0 ? '+' : ''}
+                {drep.scoreMomentum.toFixed(1)} pts/day
+              </span>
+            )}
+            <div className="w-24 h-1.5 bg-border rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full bg-primary"
+                style={{ width: `${tierProgress.percentWithinTier}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. Key Facts Strip */}
       <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 py-4 border-y border-border">
         <KeyFact
           label="Score"
@@ -475,6 +518,36 @@ export default async function DRepDetailPage({ params, searchParams }: DRepDetai
         <KeyFact label="Alignment" value={identityLabel} />
         {spoAlignPct !== null && (
           <KeyFact label="SPO Alignment" value={`${spoAlignPct}%`} subtext="of the time" />
+        )}
+        {drep.totalVotes > 0 && (
+          <div className="flex flex-col items-center text-center min-w-[100px]">
+            <span className="text-xs text-muted-foreground">Vote Split</span>
+            <div className="flex items-center gap-1 mt-0.5">
+              <div className="flex h-1.5 w-16 rounded-full overflow-hidden bg-border">
+                {drep.yesVotes > 0 && (
+                  <div
+                    className="h-full bg-emerald-500"
+                    style={{ width: `${(drep.yesVotes / drep.totalVotes) * 100}%` }}
+                  />
+                )}
+                {drep.noVotes > 0 && (
+                  <div
+                    className="h-full bg-rose-500"
+                    style={{ width: `${(drep.noVotes / drep.totalVotes) * 100}%` }}
+                  />
+                )}
+                {drep.abstainVotes > 0 && (
+                  <div
+                    className="h-full bg-muted-foreground/40"
+                    style={{ width: `${(drep.abstainVotes / drep.totalVotes) * 100}%` }}
+                  />
+                )}
+              </div>
+            </div>
+            <span className="text-[10px] text-muted-foreground">
+              {drep.yesVotes}Y {drep.noVotes}N {drep.abstainVotes}A
+            </span>
+          </div>
         )}
       </div>
 
@@ -535,10 +608,46 @@ export default async function DRepDetailPage({ params, searchParams }: DRepDetai
         <SocialProofBadge drepId={drep.drepId} variant="views" />
       </div>
 
-      {/* 5. Treasury Stance (compact in VP1) */}
+      {/* 5. Delegation Power Trend */}
+      {delegationTrend.length >= 2 && (
+        <div className="rounded-xl border border-border bg-card px-5 py-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Delegation Trend
+            </span>
+            <span className="text-xs text-muted-foreground">{delegationTrend.length} epochs</span>
+          </div>
+          <div className="flex items-end gap-[2px] h-10">
+            {(() => {
+              const counts = delegationTrend.map((d) => d.delegatorCount);
+              const maxCount = Math.max(...counts, 1);
+              return delegationTrend.map((d, i) => (
+                <div
+                  key={d.epoch}
+                  className="flex-1 bg-primary/60 rounded-t-sm min-w-[3px]"
+                  style={{ height: `${Math.max(4, (d.delegatorCount / maxCount) * 100)}%` }}
+                  title={`Epoch ${d.epoch}: ${d.delegatorCount.toLocaleString()} delegators, ${d.votingPowerAda.toLocaleString()} ADA`}
+                />
+              ));
+            })()}
+          </div>
+          <div className="flex justify-between text-[10px] text-muted-foreground tabular-nums">
+            <span>E{delegationTrend[0].epoch}</span>
+            <span>
+              {delegationTrend[delegationTrend.length - 1].delegatorCount.toLocaleString()}{' '}
+              delegators &middot;{' '}
+              {(delegationTrend[delegationTrend.length - 1].votingPowerAda / 1_000_000).toFixed(1)}M
+              ADA
+            </span>
+            <span>E{delegationTrend[delegationTrend.length - 1].epoch}</span>
+          </div>
+        </div>
+      )}
+
+      {/* 6. Treasury Stance (compact in VP1) */}
       <DRepTreasuryStance drepId={drep.drepId} compact />
 
-      {/* 6. Activity feed */}
+      {/* 7. Activity feed */}
       <ActivitySideWidget drepId={drep.drepId} limit={5} />
 
       {/* ════════════════════════════════════════════

@@ -558,7 +558,7 @@ export default async function PoolProfilePage({ params }: PageProps) {
               </span>
             </div>
 
-            <div className="flex items-baseline gap-2">
+            <div className="flex items-baseline gap-2 flex-wrap">
               <span className={`text-4xl font-bold tabular-nums ${TIER_SCORE_COLOR[tk]}`}>
                 {governanceScore}
               </span>
@@ -566,6 +566,14 @@ export default async function PoolProfilePage({ params }: PageProps) {
               {scoreRank != null && (
                 <span className="ml-2 inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
                   Top {100 - scoreRank}% of governance-active SPOs
+                </span>
+              )}
+              {poolRow.score_momentum != null && (poolRow.score_momentum as number) !== 0 && (
+                <span
+                  className={`text-xs font-medium tabular-nums ${(poolRow.score_momentum as number) > 0 ? 'text-emerald-400' : 'text-rose-400'}`}
+                >
+                  {(poolRow.score_momentum as number) > 0 ? '+' : ''}
+                  {(poolRow.score_momentum as number).toFixed(1)} pts/day
                 </span>
               )}
             </div>
@@ -580,6 +588,25 @@ export default async function PoolProfilePage({ params }: PageProps) {
               </p>
             )}
           </div>
+
+          {/* Tier progress */}
+          {tierProgress.pointsToNext != null && (
+            <div className="flex items-center gap-3 text-sm">
+              <span>
+                {tierProgress.pointsToNext} pts to{' '}
+                <span className="text-primary font-bold">{tierProgress.nextTier}</span>
+              </span>
+              <div className="w-20 h-1.5 bg-border rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-primary"
+                  style={{ width: `${tierProgress.percentWithinTier}%` }}
+                />
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {tierProgress.percentWithinTier}% through {tierProgress.currentTier}
+              </span>
+            </div>
+          )}
 
           {/* Key fact chips */}
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 py-4 border-y border-border">
@@ -618,6 +645,42 @@ export default async function PoolProfilePage({ params }: PageProps) {
                 <span className="text-xs text-muted-foreground">Agrees w/ CC</span>
                 <span className="text-sm font-semibold font-mono tabular-nums text-violet-400">
                   {interBody.ccPct}%
+                </span>
+              </div>
+            )}
+            {pledge != null && (
+              <div className="flex flex-col items-center text-center min-w-[80px]">
+                <span className="text-xs text-muted-foreground">Pledge</span>
+                <span className="text-sm font-semibold font-mono tabular-nums">
+                  {formatPledge(pledge)} ₳
+                </span>
+              </div>
+            )}
+            {totalVotes > 0 && (
+              <div className="flex flex-col items-center text-center min-w-[100px]">
+                <span className="text-xs text-muted-foreground">Vote Split</span>
+                <div className="flex h-1.5 w-16 rounded-full overflow-hidden bg-border mt-0.5">
+                  {yesCount > 0 && (
+                    <div
+                      className="h-full bg-emerald-500"
+                      style={{ width: `${(yesCount / totalVotes) * 100}%` }}
+                    />
+                  )}
+                  {noCount > 0 && (
+                    <div
+                      className="h-full bg-rose-500"
+                      style={{ width: `${(noCount / totalVotes) * 100}%` }}
+                    />
+                  )}
+                  {abstainCount > 0 && (
+                    <div
+                      className="h-full bg-muted-foreground/40"
+                      style={{ width: `${(abstainCount / totalVotes) * 100}%` }}
+                    />
+                  )}
+                </div>
+                <span className="text-[10px] text-muted-foreground">
+                  {yesCount}Y {noCount}N {abstainCount}A
                 </span>
               </div>
             )}
