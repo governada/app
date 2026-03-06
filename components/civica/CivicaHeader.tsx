@@ -58,7 +58,7 @@ export function CivicaHeader() {
   const pathname = usePathname();
   const { connected, disconnect } = useWallet();
   const { segment, realSegment, stakeAddress, setOverride } = useSegment();
-  const { data: adminData } = useAdminCheck();
+  const { data: adminData } = useAdminCheck(connected);
   const isAdmin = adminData?.isAdmin === true;
   const hasOverride = segment !== realSegment;
   const unreadCount = useUnreadNotifications(stakeAddress ?? null);

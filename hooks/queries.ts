@@ -314,9 +314,9 @@ export function useUser() {
   });
 }
 
-export function useAdminCheck() {
+export function useAdminCheck(isAuthenticated = false) {
   return useQuery({
-    queryKey: ['admin-check'],
+    queryKey: ['admin-check', isAuthenticated],
     queryFn: async () => {
       const { getStoredSession } = await import('@/lib/supabaseAuth');
       const token = getStoredSession();
@@ -331,6 +331,7 @@ export function useAdminCheck() {
       if (!res.ok) return { isAdmin: false };
       return res.json();
     },
+    enabled: isAuthenticated,
   });
 }
 
