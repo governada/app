@@ -286,11 +286,22 @@ void main() {
 }
 `;
 
-function GlobeAtmosphere({ radius, color, intensity }: { radius: number; color: string; intensity: number }) {
-  const uniforms = useMemo(() => ({
-    uColor: { value: new THREE.Color(color) },
-    uIntensity: { value: intensity },
-  }), [color, intensity]);
+function GlobeAtmosphere({
+  radius,
+  color,
+  intensity,
+}: {
+  radius: number;
+  color: string;
+  intensity: number;
+}) {
+  const uniforms = useMemo(
+    () => ({
+      uColor: { value: new THREE.Color(color) },
+      uIntensity: { value: intensity },
+    }),
+    [color, intensity],
+  );
 
   return (
     <mesh>
