@@ -36,7 +36,7 @@ const SPO_ARC_RADIUS = GLOBE_RADIUS + 0.3; // slightly above surface
 const MIN_VISIBLE_SCALE = 0.06;
 const MAX_VISIBLE_SCALE = 0.25;
 const SPO_SCALE_FACTOR = 0.6;
-const CC_SCALE_FACTOR = 1.5; // larger — few but important
+const CC_SCALE_FACTOR = 1.0; // same base size — perspective handles visual weight
 const SPO_LIMIT = 400;
 
 interface LayoutInput {
