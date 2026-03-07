@@ -158,7 +158,33 @@ export function TriBodyVotePanel({ triBody, txHash, proposalIndex }: TriBodyVote
             {alignmentCallout}
           </div>
         )}
+
+        <InterBodyNarrative txHash={txHash} proposalIndex={proposalIndex} />
       </CardContent>
     </Card>
+  );
+}
+
+function InterBodyNarrative({ txHash, proposalIndex }: { txHash: string; proposalIndex: number }) {
+  const [narrative, setNarrative] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch(`/api/governance/inter-body-narrative?txHash=${txHash}&index=${proposalIndex}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.narrative) setNarrative(data.narrative);
+      })
+      .catch(() => {});
+  }, [txHash, proposalIndex]);
+
+  if (!narrative) return null;
+
+  return (
+    <div className="rounded-md border border-primary/10 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
+      <span className="font-medium text-primary text-xs uppercase tracking-wider block mb-1">
+        Governance Dynamics
+      </span>
+      {narrative}
+    </div>
   );
 }
