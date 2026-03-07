@@ -50,9 +50,9 @@ interface SceneState {
 
 // Earth-like axial tilt: 23.4 degrees
 const AXIAL_TILT = 23.4 * (Math.PI / 180);
-const INITIAL_CAMERA: [number, number, number] = [0, -12, 14];
+const INITIAL_CAMERA: [number, number, number] = [0, 4, 20];
 const INITIAL_TARGET: [number, number, number] = [0, 0, 0];
-const ROTATION_SPEED = 0.04; // slightly slower than flat — globe needs to be readable
+const ROTATION_SPEED = 0.012; // slow, majestic rotation (~8.7 min/revolution)
 
 export const GlobeConstellation = forwardRef<
   import('@/components/GovernanceConstellation').ConstellationRef,
@@ -218,8 +218,9 @@ export const GlobeConstellation = forwardRef<
           <AmbientStarfield count={quality === 'low' ? 200 : 400} />
           <TiltedGlobeGroup enabled={!sceneState.animating} rotationRef={rotationAngleRef}>
             <GovernanceCore />
-            <GlobeWireframe radius={8} opacity={0.12} />
-            <GlobeWireframe radius={3.5} opacity={0.06} />
+            <GlobeAtmosphere radius={8.1} color="#4488cc" intensity={0.8} />
+            <GlobeAtmosphere radius={8.5} color="#2244aa" intensity={0.3} />
+            <GlobeWireframe radius={8} opacity={0.04} />
             <ConstellationNodes
               nodes={sceneState.nodes}
               highlightId={sceneState.highlightId}
@@ -256,15 +257,78 @@ export const GlobeConstellation = forwardRef<
   );
 });
 
-// --- Globe wireframe (lat/lon lines) ---
+// --- Atmospheric glow shell (fresnel rim effect) ---
+
+const ATMOSPHERE_VERT = /* glsl */ `
+varying vec3 vNormal;
+varying vec3 vWorldPosition;
+
+void main() {
+  vNormal = normalize(normalMatrix * normal);
+  vec4 worldPos = modelMatrix * vec4(position, 1.0);
+  vWorldPosition = worldPos.xyz;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}
+`;
+
+const ATMOSPHERE_FRAG = /* glsl */ `
+uniform vec3 uColor;
+uniform float uIntensity;
+varying vec3 vNormal;
+varying vec3 vWorldPosition;
+
+void main() {
+  // Fresnel: bright at edges, transparent in center
+  vec3 viewDir = normalize(cameraPosition - vWorldPosition);
+  float fresnel = 1.0 - abs(dot(viewDir, vNormal));
+  float rim = pow(fresnel, 3.0) * uIntensity;
+  gl_FragColor = vec4(uColor, rim);
+}
+`;
+
+function GlobeAtmosphere({
+  radius,
+  color,
+  intensity,
+}: {
+  radius: number;
+  color: string;
+  intensity: number;
+}) {
+  const uniforms = useMemo(
+    () => ({
+      uColor: { value: new THREE.Color(color) },
+      uIntensity: { value: intensity },
+    }),
+    [color, intensity],
+  );
+
+  return (
+    <mesh>
+      <sphereGeometry args={[radius, 48, 48]} />
+      <shaderMaterial
+        vertexShader={ATMOSPHERE_VERT}
+        fragmentShader={ATMOSPHERE_FRAG}
+        uniforms={uniforms}
+        transparent
+        side={THREE.FrontSide}
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+        toneMapped={false}
+      />
+    </mesh>
+  );
+}
+
+// --- Subtle wireframe grid (very faint structural lines) ---
 
 function GlobeWireframe({ radius, opacity }: { radius: number; opacity: number }) {
   const geometry = useMemo(() => {
     const points: number[] = [];
     const segments = 64;
 
-    // Latitude lines at 30° intervals: -60, -30, 0, 30, 60
-    for (let latDeg = -60; latDeg <= 60; latDeg += 30) {
+    // Only equator + 2 latitude lines for subtle structure
+    for (const latDeg of [-45, 0, 45]) {
       const lat = (latDeg * Math.PI) / 180;
       const r = radius * Math.cos(lat);
       const z = radius * Math.sin(lat);
@@ -276,8 +340,8 @@ function GlobeWireframe({ radius, opacity }: { radius: number; opacity: number }
       }
     }
 
-    // Longitude lines at 30° intervals (12 meridians)
-    for (let lonDeg = 0; lonDeg < 360; lonDeg += 30) {
+    // Only 6 meridians (60° apart) instead of 12
+    for (let lonDeg = 0; lonDeg < 360; lonDeg += 60) {
       const lon = (lonDeg * Math.PI) / 180;
       for (let i = 0; i < segments; i++) {
         const lat1 = (i / segments) * Math.PI - Math.PI / 2;
@@ -673,16 +737,8 @@ function AmbientStarfield({ count }: { count: number }) {
     return positions;
   }, [count]);
 
-  const ref = useRef<THREE.Points>(null);
-
-  useFrame((_, delta) => {
-    if (ref.current) {
-      ref.current.rotation.y += delta * 0.005;
-    }
-  });
-
   return (
-    <points ref={ref}>
+    <points>
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[points, 3]} />
       </bufferGeometry>
