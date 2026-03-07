@@ -75,6 +75,29 @@ interface KoiosPoolInfo {
 
 const KOIOS_BASE = process.env.NEXT_PUBLIC_KOIOS_BASE_URL || 'https://api.koios.rest/api/v1';
 
+/** Check if an IPv4 address is private/reserved (RFC 1918, RFC 6598, link-local) */
+function isPrivateIP(ip: string): boolean {
+  if (
+    ip === '0.0.0.0' ||
+    ip.startsWith('127.') ||
+    ip.startsWith('10.') ||
+    ip.startsWith('192.168.') ||
+    ip.startsWith('169.254.')
+  )
+    return true;
+  // 172.16.0.0/12 — 172.16.x.x through 172.31.x.x
+  if (ip.startsWith('172.')) {
+    const second = parseInt(ip.split('.')[1], 10);
+    if (second >= 16 && second <= 31) return true;
+  }
+  // 100.64.0.0/10 — CGNAT (100.64.x.x through 100.127.x.x)
+  if (ip.startsWith('100.')) {
+    const second = parseInt(ip.split('.')[1], 10);
+    if (second >= 64 && second <= 127) return true;
+  }
+  return false;
+}
+
 export const syncSpoScores = inngest.createFunction(
   {
     id: 'sync-spo-scores',
@@ -617,6 +640,176 @@ export const syncSpoScores = inngest.createFunction(
       }
 
       return { refreshed };
+    });
+
+    // Geocode SPO relay IPs for globe visualization
+    await step.run('geocode-relay-ips', async () => {
+      const supabase = getSupabaseAdmin();
+
+      // Only geocode pools that haven't been processed yet
+      // Limit to 100 per run to stay well under Cloudflare's 100s timeout
+      const { data: poolsNeedingGeo } = await supabase
+        .from('pools')
+        .select('pool_id')
+        .is('relay_locations', null)
+        .gt('vote_count', 0)
+        .limit(100);
+
+      if (!poolsNeedingGeo?.length) return { geocoded: 0 };
+
+      const BATCH = 100;
+      let geocoded = 0;
+
+      for (let i = 0; i < poolsNeedingGeo.length; i += BATCH) {
+        const batch = poolsNeedingGeo.slice(i, i + BATCH);
+        const poolIds = batch.map((p: { pool_id: string }) => p.pool_id);
+
+        try {
+          // Fetch relay info from Koios
+          const relayRes = await fetch(`${KOIOS_BASE}/pool_relays`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ _pool_bech32_ids: poolIds }),
+            signal: AbortSignal.timeout(15_000),
+          });
+
+          if (!relayRes.ok) {
+            logger.warn('[sync-spo-scores] Koios pool_relays failed', { status: relayRes.status });
+            continue;
+          }
+
+          const relayData = (await relayRes.json()) as Array<{
+            pool_id_bech32: string;
+            relays: Array<{
+              dns?: string;
+              srv?: string;
+              ipv4?: string;
+              ipv6?: string;
+              port?: number;
+            }>;
+          }>;
+
+          // Collect all unique IPv4 addresses for batch geocoding
+          const ipToPoolMap = new Map<string, string[]>();
+          for (const pool of relayData) {
+            if (!pool.relays?.length) continue;
+            for (const relay of pool.relays) {
+              const ip = relay.ipv4;
+              if (!ip || isPrivateIP(ip)) continue;
+              const pools = ipToPoolMap.get(ip) ?? [];
+              pools.push(pool.pool_id_bech32);
+              ipToPoolMap.set(ip, pools);
+            }
+          }
+
+          if (ipToPoolMap.size === 0) {
+            // DNS-only relays or no public IPs — mark as processed (empty) so we don't re-query
+            for (const pool of relayData) {
+              if (!pool.relays?.length) continue;
+              await supabase
+                .from('pools')
+                .update({ relay_locations: [] })
+                .eq('pool_id', pool.pool_id_bech32);
+            }
+            continue;
+          }
+
+          // Batch geocode via ip-api.com (max 100 per request, free, no key needed)
+          const ips = [...ipToPoolMap.keys()].slice(0, 100);
+          const geoRes = await fetch(
+            'http://ip-api.com/batch?fields=query,status,lat,lon,country,city',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(ips.map((ip) => ({ query: ip }))),
+              signal: AbortSignal.timeout(10_000),
+            },
+          );
+
+          if (!geoRes.ok) {
+            logger.warn('[sync-spo-scores] ip-api.com batch failed', { status: geoRes.status });
+            continue;
+          }
+
+          const geoResults = (await geoRes.json()) as Array<{
+            query: string;
+            status: string;
+            lat?: number;
+            lon?: number;
+            country?: string;
+            city?: string;
+          }>;
+
+          // Build IP -> geo lookup
+          const ipGeo = new Map<
+            string,
+            { lat: number; lon: number; country: string; city: string }
+          >();
+          for (const g of geoResults) {
+            if (g.status === 'success' && g.lat != null && g.lon != null) {
+              ipGeo.set(g.query, {
+                lat: g.lat,
+                lon: g.lon,
+                country: g.country ?? '',
+                city: g.city ?? '',
+              });
+            }
+          }
+
+          // Update pools with geocoded relay data
+          const poolGeo = new Map<
+            string,
+            {
+              lats: number[];
+              lons: number[];
+              locations: Array<{
+                lat: number;
+                lon: number;
+                country: string;
+                city: string;
+                ip: string;
+              }>;
+            }
+          >();
+
+          for (const [ip, pools] of ipToPoolMap) {
+            const geo = ipGeo.get(ip);
+            if (!geo) continue;
+            for (const poolId of pools) {
+              const entry = poolGeo.get(poolId) ?? { lats: [], lons: [], locations: [] };
+              entry.lats.push(geo.lat);
+              entry.lons.push(geo.lon);
+              entry.locations.push({ ...geo, ip });
+              poolGeo.set(poolId, entry);
+            }
+          }
+
+          for (const [poolId, data] of poolGeo) {
+            // Use centroid of all relay locations as primary position
+            const avgLat = data.lats.reduce((a, b) => a + b, 0) / data.lats.length;
+            const avgLon = data.lons.reduce((a, b) => a + b, 0) / data.lons.length;
+            const { error } = await supabase
+              .from('pools')
+              .update({
+                relay_lat: avgLat,
+                relay_lon: avgLon,
+                relay_locations: data.locations,
+              })
+              .eq('pool_id', poolId);
+            if (!error) geocoded++;
+          }
+
+          // Rate limit: ip-api.com free tier allows 45 requests/minute
+          // Each batch is 1 request, so sleep 1.5s between batches
+          if (i + BATCH < poolsNeedingGeo.length) {
+            await new Promise((r) => setTimeout(r, 1500));
+          }
+        } catch (err) {
+          logger.warn('[sync-spo-scores] relay geocoding batch error', { error: errMsg(err) });
+        }
+      }
+
+      return { geocoded };
     });
 
     // Snapshot SPO power (delegator count + live stake) for trend tracking

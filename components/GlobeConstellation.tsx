@@ -230,7 +230,6 @@ export const GlobeConstellation = forwardRef<
             />
             <ConstellationEdges edges={sceneState.edges} dimmed={sceneState.dimmed} />
           </TiltedGlobeGroup>
-          <ShootingStars />
 
           {quality !== 'low' && (
             <EffectComposer>
@@ -349,6 +348,23 @@ void main() {
 }
 `;
 
+// Diamond-shaped fragment shader for SPO infrastructure nodes
+const SPO_FRAG = /* glsl */ `
+varying vec3 vColor;
+varying float vAlpha;
+
+void main() {
+  vec2 p = gl_PointCoord - vec2(0.5);
+  // Diamond (rotated square) distance: |x| + |y|
+  float diamond = abs(p.x) + abs(p.y);
+  if (diamond > 0.5) discard;
+  float glow = 1.0 - smoothstep(0.0, 0.5, diamond);
+  float core = 1.0 - smoothstep(0.0, 0.15, diamond);
+  vec3 col = vColor * (1.0 + core * 2.0);
+  gl_FragColor = vec4(col, glow * vAlpha);
+}
+`;
+
 // --- Scene sub-components ---
 
 function RaycastConfig() {
@@ -423,6 +439,7 @@ function ConstellationNodes({
           onNodeClick={onNodeClick}
           getColor={getSpoColor}
           emissive={1.5}
+          fragmentShader={SPO_FRAG}
         />
       )}
       {groups.cc.length > 0 && (
@@ -450,6 +467,7 @@ function NodePoints({
   onNodeClick,
   getColor,
   emissive,
+  fragmentShader,
 }: {
   nodes: ConstellationNode3D[];
   highlightId: string | null;
@@ -459,6 +477,7 @@ function NodePoints({
   onNodeClick?: (node: ConstellationNode3D) => void;
   getColor: (node: ConstellationNode3D) => string;
   emissive: number;
+  fragmentShader?: string;
 }) {
   const tmpColor = useMemo(() => new THREE.Color(), []);
 
@@ -537,7 +556,7 @@ function NodePoints({
       <bufferGeometry ref={geoRef} />
       <shaderMaterial
         vertexShader={NODE_VERT}
-        fragmentShader={NODE_FRAG}
+        fragmentShader={fragmentShader ?? NODE_FRAG}
         transparent
         depthWrite={false}
         blending={THREE.AdditiveBlending}
@@ -547,7 +566,21 @@ function NodePoints({
   );
 }
 
-function ConstellationEdges({ edges, dimmed }: { edges: ConstellationEdge3D[]; dimmed: boolean }) {
+const EDGE_STYLES = {
+  proximity: { color: '#4488aa', opacity: 0.12, dimOpacity: 0.03 },
+  infrastructure: { color: '#06b6d4', opacity: 0.18, dimOpacity: 0.04 },
+  lastmile: { color: '#1a3a4a', opacity: 0.06, dimOpacity: 0.015 },
+} as const;
+
+function EdgeLayer({
+  edges,
+  dimmed,
+  edgeType,
+}: {
+  edges: ConstellationEdge3D[];
+  dimmed: boolean;
+  edgeType: keyof typeof EDGE_STYLES;
+}) {
   const geometry = useMemo(() => {
     if (edges.length === 0) return null;
     const positions: number[] = [];
@@ -560,16 +593,42 @@ function ConstellationEdges({ edges, dimmed }: { edges: ConstellationEdge3D[]; d
   }, [edges]);
 
   if (!geometry) return null;
+  const style = EDGE_STYLES[edgeType];
 
   return (
     <lineSegments geometry={geometry}>
       <lineBasicMaterial
-        color="#4488aa"
+        color={style.color}
         transparent
-        opacity={dimmed ? 0.03 : 0.12}
+        opacity={dimmed ? style.dimOpacity : style.opacity}
         toneMapped={false}
+        depthWrite={false}
       />
     </lineSegments>
+  );
+}
+
+function ConstellationEdges({ edges, dimmed }: { edges: ConstellationEdge3D[]; dimmed: boolean }) {
+  const layers = useMemo(() => {
+    const proximity: ConstellationEdge3D[] = [];
+    const infrastructure: ConstellationEdge3D[] = [];
+    const lastmile: ConstellationEdge3D[] = [];
+    for (const e of edges) {
+      if (e.edgeType === 'infrastructure') infrastructure.push(e);
+      else if (e.edgeType === 'lastmile') lastmile.push(e);
+      else proximity.push(e);
+    }
+    return { proximity, infrastructure, lastmile };
+  }, [edges]);
+
+  if (edges.length === 0) return null;
+
+  return (
+    <>
+      <EdgeLayer edges={layers.proximity} dimmed={dimmed} edgeType="proximity" />
+      <EdgeLayer edges={layers.infrastructure} dimmed={dimmed} edgeType="infrastructure" />
+      <EdgeLayer edges={layers.lastmile} dimmed={dimmed} edgeType="lastmile" />
+    </>
   );
 }
 
@@ -678,107 +737,6 @@ function GovernanceCore() {
         />
       </mesh>
       <pointLight color={CORE_COLOR} intensity={4} distance={12} decay={2} />
-    </group>
-  );
-}
-
-// --- Shooting stars (same as original) ---
-
-const METEOR_POOL = 4;
-const SPAWN_MIN_S = 4;
-const SPAWN_MAX_S = 10;
-
-function ShootingStars() {
-  const groupRef = useRef<THREE.Group>(null);
-  const stateRef = useRef({
-    meteors: Array.from({ length: METEOR_POOL }, () => ({
-      active: false,
-      start: new THREE.Vector3(),
-      end: new THREE.Vector3(),
-      progress: 0,
-      speed: 0,
-    })),
-    timer: SPAWN_MIN_S + Math.random() * (SPAWN_MAX_S - SPAWN_MIN_S),
-  });
-
-  const _pos = useRef(new THREE.Vector3());
-  const _dir = useRef(new THREE.Vector3());
-  const _up = useRef(new THREE.Vector3(0, 1, 0));
-
-  useFrame((_, delta) => {
-    const group = groupRef.current;
-    if (!group) return;
-    const { meteors } = stateRef.current;
-
-    stateRef.current.timer -= delta;
-    if (stateRef.current.timer <= 0) {
-      stateRef.current.timer = SPAWN_MIN_S + Math.random() * (SPAWN_MAX_S - SPAWN_MIN_S);
-      const slot = meteors.find((m) => !m.active);
-      if (slot) {
-        const angle = Math.random() * Math.PI * 2;
-        const r = 15 + Math.random() * 5;
-        slot.start.set(Math.cos(angle) * r, Math.sin(angle) * r, (Math.random() - 0.5) * 10);
-        const endAngle = angle + Math.PI + (Math.random() - 0.5) * 0.8;
-        const endR = 1 + Math.random() * 6;
-        slot.end.set(
-          Math.cos(endAngle) * endR,
-          Math.sin(endAngle) * endR,
-          (Math.random() - 0.5) * 6,
-        );
-        slot.progress = 0;
-        slot.speed = 0.5 + Math.random() * 0.4;
-        slot.active = true;
-      }
-    }
-
-    for (let i = 0; i < METEOR_POOL; i++) {
-      const m = meteors[i];
-      const mesh = group.children[i] as THREE.Mesh;
-      if (!mesh) continue;
-
-      if (!m.active) {
-        mesh.visible = false;
-        continue;
-      }
-
-      m.progress += delta * m.speed;
-      if (m.progress >= 1) {
-        m.active = false;
-        mesh.visible = false;
-        continue;
-      }
-
-      _pos.current.lerpVectors(m.start, m.end, m.progress);
-      mesh.position.copy(_pos.current);
-
-      _dir.current.subVectors(m.end, m.start).normalize();
-      mesh.quaternion.setFromUnitVectors(_up.current, _dir.current);
-
-      const fadeIn = Math.min(1, m.progress * 8);
-      const fadeOut = 1 - m.progress * m.progress;
-      const opacity = fadeIn * fadeOut * 0.8;
-      mesh.scale.set(1, 0.4 + opacity * 0.8, 1);
-
-      (mesh.material as THREE.MeshBasicMaterial).opacity = opacity;
-      mesh.visible = true;
-    }
-  });
-
-  return (
-    <group ref={groupRef}>
-      {Array.from({ length: METEOR_POOL }, (_, i) => (
-        <mesh key={i} visible={false}>
-          <cylinderGeometry args={[0.03, 0.003, 1.5, 8]} />
-          <meshBasicMaterial
-            color="#e8dcc8"
-            transparent
-            opacity={0}
-            blending={THREE.AdditiveBlending}
-            depthWrite={false}
-            toneMapped={false}
-          />
-        </mesh>
-      ))}
     </group>
   );
 }

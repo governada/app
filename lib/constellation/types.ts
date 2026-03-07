@@ -14,11 +14,18 @@ export interface ConstellationNode3D {
   scale: number;
   isAnchor?: boolean;
   nodeType: GovernanceNodeType;
+  /** Real-world latitude from relay geolocation (SPOs only) */
+  geoLat?: number;
+  /** Real-world longitude from relay geolocation (SPOs only) */
+  geoLon?: number;
 }
+
+export type EdgeType = 'proximity' | 'infrastructure' | 'lastmile';
 
 export interface ConstellationEdge3D {
   from: [number, number, number];
   to: [number, number, number];
+  edgeType?: EdgeType;
 }
 
 export interface FindMeTarget {
@@ -45,6 +52,8 @@ export interface ConstellationApiData {
     dominant: AlignmentDimension;
     alignments: number[];
     nodeType: GovernanceNodeType;
+    geoLat?: number;
+    geoLon?: number;
   }>;
   recentEvents: ConstellationEvent[];
   stats: {
