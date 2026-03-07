@@ -49,6 +49,8 @@ interface LayoutInput {
   dominant: AlignmentDimension;
   alignments: number[];
   nodeType: GovernanceNodeType;
+  geoLat?: number;
+  geoLon?: number;
 }
 
 export function computeGlobeLayout(inputs: LayoutInput[], nodeLimit: number): LayoutResult {
@@ -85,18 +87,37 @@ export function computeGlobeLayout(inputs: LayoutInput[], nodeLimit: number): La
     nodeMap.set(node.id, node);
   }
 
-  // SPOs — positioned on the surface for now, arcs computed as edges
+  // SPOs — positioned by real relay geolocation when available, hash fallback
   const spoNodes: ConstellationNode3D[] = [];
   for (let i = 0; i < spoInputs.length; i++) {
     const input = spoInputs[i];
-    const hash = simpleHash(input.id);
-    const lon = (i / spoInputs.length) * Math.PI * 2 - Math.PI;
-    const lat = (((hash % 140) - 70) / 70) * (Math.PI / 2) * 0.85; // spread across latitudes
+    let lat: number;
+    let lon: number;
+
+    if (input.geoLat != null && input.geoLon != null) {
+      // Real geolocation: convert degrees to radians
+      lat = (input.geoLat * Math.PI) / 180;
+      lon = (input.geoLon * Math.PI) / 180;
+    } else {
+      // Fallback: hash-based distribution
+      const hash = simpleHash(input.id);
+      lon = (i / spoInputs.length) * Math.PI * 2 - Math.PI;
+      lat = (((hash % 140) - 70) / 70) * (Math.PI / 2) * 0.85;
+    }
+
     const pos = sphereToCartesian(lat, lon, GLOBE_RADIUS);
     const scale =
       (MIN_VISIBLE_SCALE + input.power * (MAX_VISIBLE_SCALE - MIN_VISIBLE_SCALE)) *
       SPO_SCALE_FACTOR;
-    const node: ConstellationNode3D = { ...input, position: pos, scale };
+    // Score-based glow: higher governance score = brighter node
+    const scoreNorm = Math.max(0, Math.min(1, (input.score - 30) / 70));
+    const node: ConstellationNode3D = {
+      ...input,
+      position: pos,
+      scale: scale * (0.7 + scoreNorm * 0.6),
+      geoLat: input.geoLat,
+      geoLon: input.geoLon,
+    };
     spoNodes.push(node);
     nodes.push(node);
     nodeMap.set(node.id, node);
@@ -150,8 +171,10 @@ function computeSpherePosition(input: LayoutInput): [number, number] {
 }
 
 /**
- * Compute edges for the globe visualization.
- * SPO nodes become infrastructure arcs — great circle segments connecting nearby DRep/CC nodes.
+ * Compute edges for the globe visualization with three distinct layers:
+ * - proximity: DRep-DRep connections within same alignment dimension
+ * - infrastructure: SPO-SPO mesh backbone (nearest geo neighbors)
+ * - lastmile: faint SPO-to-nearest-DRep connections
  */
 function computeGlobeEdges(
   allNodes: ConstellationNode3D[],
@@ -160,7 +183,7 @@ function computeGlobeEdges(
   const edges: ConstellationEdge3D[] = [];
   const drepNodes = allNodes.filter((n) => n.nodeType === 'drep');
 
-  // Proximity edges among DReps in the same dimension (surface connections)
+  // Layer 1: Proximity edges among DReps in the same dimension (surface connections)
   const maxProximity = 200;
   for (let i = 0; i < drepNodes.length && edges.length < maxProximity; i++) {
     for (let j = i + 1; j < drepNodes.length && edges.length < maxProximity; j++) {
@@ -168,25 +191,49 @@ function computeGlobeEdges(
       const b = drepNodes[j];
       if (a.dominant !== b.dominant) continue;
       if (dist3D(a.position, b.position) > 3) continue;
-      edges.push({ from: a.position, to: b.position });
+      edges.push({ from: a.position, to: b.position, edgeType: 'proximity' });
     }
   }
 
-  // SPO infrastructure arcs — each SPO connects to its 2 nearest DRep nodes
-  const maxSpoEdges = 300;
-  for (const spo of spoNodes) {
-    if (edges.length >= maxProximity + maxSpoEdges) break;
-    const nearest = drepNodes
+  // Layer 2: SPO-to-SPO infrastructure mesh — each SPO connects to its 2-3 nearest SPO neighbors
+  const maxInfraEdges = 400;
+  let infraCount = 0;
+  for (let i = 0; i < spoNodes.length && infraCount < maxInfraEdges; i++) {
+    const spo = spoNodes[i];
+    const nearest = spoNodes
+      .filter((_, j) => j !== i)
       .map((n) => ({ node: n, dist: dist3D(spo.position, n.position) }))
       .sort((a, b) => a.dist - b.dist)
-      .slice(0, 2);
+      .slice(0, 3);
 
-    for (const { node } of nearest) {
-      // Create a great-circle arc as a series of segments
-      const arcPoints = greatCircleArc(spo.position, node.position, SPO_ARC_RADIUS, 8);
-      for (let i = 0; i < arcPoints.length - 1; i++) {
-        edges.push({ from: arcPoints[i], to: arcPoints[i + 1] });
+    for (const { node, dist } of nearest) {
+      if (dist > 6) continue; // only connect reasonably close SPOs
+      // Great-circle arc above the surface
+      const arcPoints = greatCircleArc(spo.position, node.position, SPO_ARC_RADIUS, 6);
+      for (let k = 0; k < arcPoints.length - 1; k++) {
+        edges.push({ from: arcPoints[k], to: arcPoints[k + 1], edgeType: 'infrastructure' });
+        infraCount++;
       }
+    }
+  }
+
+  // Layer 3: Last-mile connections — each SPO to its nearest DRep
+  const maxLastMile = 300;
+  let lastMileCount = 0;
+  for (const spo of spoNodes) {
+    if (lastMileCount >= maxLastMile) break;
+    if (drepNodes.length === 0) break;
+    const nearest = drepNodes
+      .map((n) => ({ node: n, dist: dist3D(spo.position, n.position) }))
+      .sort((a, b) => a.dist - b.dist)[0];
+
+    if (nearest && nearest.dist < 5) {
+      edges.push({
+        from: spo.position,
+        to: nearest.node.position,
+        edgeType: 'lastmile',
+      });
+      lastMileCount++;
     }
   }
 

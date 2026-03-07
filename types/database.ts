@@ -2187,6 +2187,9 @@ export type Database = {
           pledge_lovelace: number | null;
           pool_id: string;
           pool_name: string | null;
+          relay_lat: number | null;
+          relay_locations: Json | null;
+          relay_lon: number | null;
           reliability_pct: number | null;
           reliability_raw: number | null;
           score_momentum: number | null;
@@ -2226,6 +2229,9 @@ export type Database = {
           pledge_lovelace?: number | null;
           pool_id: string;
           pool_name?: string | null;
+          relay_lat?: number | null;
+          relay_locations?: Json | null;
+          relay_lon?: number | null;
           reliability_pct?: number | null;
           reliability_raw?: number | null;
           score_momentum?: number | null;
@@ -2265,6 +2271,9 @@ export type Database = {
           pledge_lovelace?: number | null;
           pool_id?: string;
           pool_name?: string | null;
+          relay_lat?: number | null;
+          relay_locations?: Json | null;
+          relay_lon?: number | null;
           reliability_pct?: number | null;
           reliability_raw?: number | null;
           score_momentum?: number | null;
