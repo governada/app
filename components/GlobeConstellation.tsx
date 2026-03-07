@@ -431,7 +431,7 @@ void main() {
 }
 `;
 
-// Ring + core shader for CC orbital nodes (satellite halo effect)
+// Soft wide-glow shader for CC orbital nodes (warm diffused presence)
 const CC_FRAG = /* glsl */ `
 varying vec3 vColor;
 varying float vAlpha;
@@ -439,13 +439,10 @@ varying float vAlpha;
 void main() {
   float dist = length(gl_PointCoord - vec2(0.5));
   if (dist > 0.5) discard;
-  // Bright core
-  float core = 1.0 - smoothstep(0.0, 0.12, dist);
-  // Ring halo around the core
-  float ring = smoothstep(0.2, 0.25, dist) * (1.0 - smoothstep(0.35, 0.5, dist));
-  float alpha = max(ring * 0.7, core);
-  vec3 col = vColor * (1.0 + core * 2.5);
-  gl_FragColor = vec4(col, alpha * vAlpha);
+  float glow = 1.0 - smoothstep(0.0, 0.5, dist);
+  float core = 1.0 - smoothstep(0.0, 0.2, dist);
+  vec3 col = vColor * (1.0 + core * 1.5);
+  gl_FragColor = vec4(col, glow * vAlpha);
 }
 `;
 
