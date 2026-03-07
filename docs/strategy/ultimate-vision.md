@@ -470,7 +470,7 @@ The on-ramp. Without a clear, unintimidating path from "I hold ADA" to "I'm a Ca
 
 ### Step 5: Governance Workspace (MEDIUM-HIGH complexity)
 
-> **Status: IN PROGRESS** -- 5a Vote Casting (PR #143), 5b Rationale Submission (PR #145), 5c Governance Statement shipped. 5d/5e pending.
+> **Status: SHIPPED** -- 5a Vote Casting (PR #143), 5b Rationale Submission (PR #145), 5c Governance Statement (PR #148), 5d Constitutional Alignment + 5e DRep Epoch Updates (PR #150). Remaining: citizen sentiment (Step 6 dep), SPO pool updates (lower priority).
 > **Primary persona:** DRep, SPO
 > **Secondary impact:** Citizen (more rationales = better transparency), Researcher (richer data)
 
