@@ -55,6 +55,7 @@ const SimilarDReps = nextDynamic(
 import { ActivityHeatmap } from '@/components/ActivityHeatmap';
 import { DRepTreasuryStance } from '@/components/DRepTreasuryStance';
 import { DRepProfileHero } from '@/components/DRepProfileHero';
+import { DRepCitizenSignals } from '@/components/DRepCitizenSignals';
 const AlignmentTrajectory = nextDynamic(
   () => import('@/components/AlignmentTrajectory').then((m) => m.AlignmentTrajectory),
   { loading: () => <div className="h-32 animate-pulse bg-muted rounded-lg" /> },
@@ -611,6 +612,9 @@ export default async function DRepDetailPage({ params, searchParams }: DRepDetai
         delegatorCount={drep.delegatorCount}
         scoreMomentum={drep.scoreMomentum}
       />
+
+      {/* 3c. Citizen Sentiment Signal */}
+      <DRepCitizenSignals drepId={drep.drepId} />
 
       {/* 4. Key Facts Strip */}
       <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 py-4 border-y border-border">
