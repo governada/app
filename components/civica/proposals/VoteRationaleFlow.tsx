@@ -519,7 +519,10 @@ export function VoteRationaleFlow({
             {/* Rationale editor */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-medium text-muted-foreground">
+                <label
+                  htmlFor="vote-rationale-editor"
+                  className="text-xs font-medium text-muted-foreground"
+                >
                   Vote Rationale (CIP-100)
                 </label>
                 <Button
@@ -538,11 +541,13 @@ export function VoteRationaleFlow({
                 </Button>
               </div>
               <textarea
+                id="vote-rationale-editor"
                 value={rationaleText}
                 onChange={(e) => setRationaleText(e.target.value)}
                 placeholder="Explain your vote. This will be published as a CIP-100 document anchored to your on-chain vote — making your reasoning transparent to delegators."
                 className="w-full min-h-[160px] p-3 text-sm border rounded-lg bg-background resize-y focus:outline-none focus:ring-2 focus:ring-primary/30"
                 maxLength={10000}
+                // eslint-disable-next-line jsx-a11y/no-autofocus -- intentional: user just entered rationale step
                 autoFocus
               />
               <div className="flex items-center justify-between">
@@ -847,6 +852,7 @@ function PostVoteRationale({
         placeholder="Explain your vote. This will re-submit your vote with a CIP-100 rationale anchor attached."
         className="w-full min-h-[120px] p-3 text-sm border rounded-lg bg-background resize-y focus:outline-none focus:ring-2 focus:ring-primary/30"
         maxLength={10000}
+        // eslint-disable-next-line jsx-a11y/no-autofocus -- intentional: user is adding rationale
         autoFocus
       />
       <div className="flex items-center justify-between">
