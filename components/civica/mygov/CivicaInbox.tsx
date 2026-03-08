@@ -12,9 +12,11 @@ import {
   CheckCircle,
   Bell,
   ChevronRight,
+  ChevronDown,
   BarChart2,
   Activity,
   MessageSquare,
+  Shield,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -210,6 +212,93 @@ function NotificationCard({
 }
 
 // ---------------------------------------------------------------------------
+// Quiet-mode summary — shown when only informational (priority 3) items exist
+// ---------------------------------------------------------------------------
+
+function QuietModeSummary({
+  ghiScore,
+  ghiDelta,
+  activeProposals,
+  infoCount,
+  showDetails,
+  onToggleDetails,
+}: {
+  ghiScore?: number;
+  ghiDelta?: number;
+  activeProposals?: number;
+  infoCount: number;
+  showDetails: boolean;
+  onToggleDetails: () => void;
+}) {
+  const ghiLabel =
+    ghiScore != null
+      ? ghiScore >= 70
+        ? 'healthy'
+        : ghiScore >= 45
+          ? 'moderate'
+          : 'needs attention'
+      : null;
+  const ghiColor =
+    ghiLabel === 'healthy'
+      ? 'text-emerald-400'
+      : ghiLabel === 'moderate'
+        ? 'text-amber-400'
+        : ghiLabel === 'needs attention'
+          ? 'text-rose-400'
+          : 'text-muted-foreground';
+
+  return (
+    <div className="rounded-xl border border-emerald-900/30 bg-emerald-950/10 px-5 py-6 space-y-3">
+      <div className="flex items-center gap-3">
+        <Shield className="h-6 w-6 text-emerald-400 shrink-0" />
+        <div>
+          <p className="text-sm font-medium text-emerald-300">Governance is running smoothly</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            No urgent items require your attention this epoch.
+          </p>
+        </div>
+      </div>
+
+      {/* Quick stats */}
+      <div className="flex gap-4 text-xs text-muted-foreground">
+        {ghiScore != null && (
+          <span>
+            Health:{' '}
+            <strong className={ghiColor}>
+              {ghiScore.toFixed(0)}
+              {ghiDelta != null && ghiDelta !== 0 && (
+                <span className="ml-0.5">
+                  ({ghiDelta > 0 ? '+' : ''}
+                  {ghiDelta.toFixed(1)})
+                </span>
+              )}
+            </strong>
+          </span>
+        )}
+        {activeProposals != null && activeProposals > 0 && (
+          <span>
+            Active proposals: <strong className="text-foreground">{activeProposals}</strong>
+          </span>
+        )}
+      </div>
+
+      {/* Toggle for informational items */}
+      {infoCount > 0 && (
+        <button
+          onClick={onToggleDetails}
+          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ChevronDown
+            className={cn('h-3 w-3 transition-transform', showDetails && 'rotate-180')}
+          />
+          {showDetails ? 'Hide' : 'View'} {infoCount} informational update{infoCount > 1 ? 's' : ''}
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Supplemental system notifications (epoch health, governance activity)
 // ---------------------------------------------------------------------------
 
@@ -270,6 +359,7 @@ export function CivicaInbox() {
   const { segment, drepId, delegatedDrep } = useSegment();
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
   const [readSet, setReadSet] = useState<Set<string>>(new Set());
+  const [showInfoItems, setShowInfoItems] = useState(false);
 
   const { data: rawCard } = useDRepReportCard(segment === 'drep' ? drepId : delegatedDrep);
   const { data: rawPulse, isLoading: pulseLoading } = useGovernancePulse();
@@ -440,35 +530,111 @@ export function CivicaInbox() {
         })}
       </div>
 
-      {/* Content */}
-      {isLoading ? (
-        <div className="space-y-2">
-          {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} className="h-16 w-full rounded-xl" />
-          ))}
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="rounded-xl border border-emerald-900/30 bg-emerald-950/10 px-5 py-10 text-center space-y-2">
-          <CheckCircle className="h-8 w-8 text-emerald-400 mx-auto" />
-          <p className="text-sm font-medium text-emerald-300">You&apos;re all caught up</p>
-          <p className="text-xs text-muted-foreground">
-            {activeFilter === 'all'
-              ? 'No governance notifications right now. Your participation is healthy.'
-              : `No ${activeFilter} notifications right now.`}
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {filtered.map((item) => (
-            <NotificationCard
-              key={item.id}
-              item={item}
-              isRead={readSet.has(item.id)}
-              onRead={handleRead}
-            />
-          ))}
-        </div>
-      )}
+      {/* Content — smart quiet mode */}
+      {(() => {
+        if (isLoading) {
+          return (
+            <div className="space-y-2">
+              {[...Array(4)].map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full rounded-xl" />
+              ))}
+            </div>
+          );
+        }
+
+        if (filtered.length === 0) {
+          return (
+            <div className="rounded-xl border border-emerald-900/30 bg-emerald-950/10 px-5 py-10 text-center space-y-2">
+              <CheckCircle className="h-8 w-8 text-emerald-400 mx-auto" />
+              <p className="text-sm font-medium text-emerald-300">You&apos;re all caught up</p>
+              <p className="text-xs text-muted-foreground">
+                {activeFilter === 'all'
+                  ? 'No governance notifications right now. Your participation is healthy.'
+                  : `No ${activeFilter} notifications right now.`}
+              </p>
+            </div>
+          );
+        }
+
+        // Split into urgent (priority 1-2) and informational (priority 3)
+        const urgentItems = filtered.filter((n) => n.priority <= 2);
+        const infoItems = filtered.filter((n) => n.priority > 2);
+
+        // Quiet mode: no urgent items, only informational
+        if (urgentItems.length === 0 && infoItems.length > 0 && activeFilter === 'all') {
+          return (
+            <div className="space-y-2">
+              <QuietModeSummary
+                ghiScore={pulse?.ghiScore ?? undefined}
+                ghiDelta={pulse?.ghiDelta ?? undefined}
+                activeProposals={pulse?.activeProposals ?? undefined}
+                infoCount={infoItems.length}
+                showDetails={showInfoItems}
+                onToggleDetails={() => setShowInfoItems((v) => !v)}
+              />
+              {showInfoItems && (
+                <div className="space-y-2">
+                  {infoItems.map((item) => (
+                    <NotificationCard
+                      key={item.id}
+                      item={item}
+                      isRead={readSet.has(item.id)}
+                      onRead={handleRead}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        }
+
+        // Normal mode: show urgent items first, then info items
+        return (
+          <div className="space-y-2">
+            {urgentItems.map((item) => (
+              <NotificationCard
+                key={item.id}
+                item={item}
+                isRead={readSet.has(item.id)}
+                onRead={handleRead}
+              />
+            ))}
+            {infoItems.length > 0 && urgentItems.length > 0 && (
+              <div className="pt-2">
+                <button
+                  onClick={() => setShowInfoItems((v) => !v)}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors mb-2"
+                >
+                  <ChevronDown
+                    className={cn('h-3 w-3 transition-transform', showInfoItems && 'rotate-180')}
+                  />
+                  {showInfoItems ? 'Hide' : 'Show'} {infoItems.length} informational update
+                  {infoItems.length > 1 ? 's' : ''}
+                </button>
+                {showInfoItems &&
+                  infoItems.map((item) => (
+                    <NotificationCard
+                      key={item.id}
+                      item={item}
+                      isRead={readSet.has(item.id)}
+                      onRead={handleRead}
+                    />
+                  ))}
+              </div>
+            )}
+            {infoItems.length > 0 &&
+              urgentItems.length === 0 &&
+              infoItems.map((item) => (
+                <NotificationCard
+                  key={item.id}
+                  item={item}
+                  isRead={readSet.has(item.id)}
+                  onRead={handleRead}
+                />
+              ))}
+          </div>
+        );
+      })()}
 
       {/* DRep pending proposals detail (DRep segment only) */}
       {segment === 'drep' && inbox?.pendingProposals && inbox.pendingProposals.length > 0 && (
