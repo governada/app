@@ -473,9 +473,7 @@ function EpochBriefingContent({
           {voiceData.summary.avgCommunityAgreement != null && (
             <>
               {' \u00B7 '}
-              <span className="font-semibold">
-                {voiceData.summary.avgCommunityAgreement}%
-              </span>{' '}
+              <span className="font-semibold">{voiceData.summary.avgCommunityAgreement}%</span>{' '}
               community agreement
             </>
           )}

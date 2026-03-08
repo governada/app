@@ -364,7 +364,6 @@ export async function notifySegment(
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
- 
 async function logAndTrack(
   supabase: any,
   userId: string,
