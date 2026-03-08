@@ -116,6 +116,7 @@ C:\Users\dalto\drepscore\
 | `/audit-data [domain]` | Data integrity, completeness, consistency | Monthly |
 | `/audit-scoring [system]` | Scoring methodology, calibration, gaming resistance | Quarterly |
 | `/audit-ux [persona\|surface]` | UX quality, intelligence surfacing, persona journeys, retention | Monthly persona, quarterly full |
+| `/audit-journeys [persona\|task]` | End-to-end task flows, friction measurement, edge cases, regression | Monthly persona, quarterly full |
 
 ## Path-Scoped Rules
 
