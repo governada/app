@@ -708,6 +708,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      cc_transparency_snapshots: {
+        Row: {
+          cc_hot_id: string;
+          community_engagement_score: number | null;
+          eligible_proposals: number | null;
+          epoch_no: number;
+          independence_score: number | null;
+          participation_score: number | null;
+          rationale_quality_score: number | null;
+          responsiveness_score: number | null;
+          snapshot_at: string | null;
+          transparency_index: number | null;
+          votes_cast: number | null;
+        };
+        Insert: {
+          cc_hot_id: string;
+          community_engagement_score?: number | null;
+          eligible_proposals?: number | null;
+          epoch_no: number;
+          independence_score?: number | null;
+          participation_score?: number | null;
+          rationale_quality_score?: number | null;
+          responsiveness_score?: number | null;
+          snapshot_at?: string | null;
+          transparency_index?: number | null;
+          votes_cast?: number | null;
+        };
+        Update: {
+          cc_hot_id?: string;
+          community_engagement_score?: number | null;
+          eligible_proposals?: number | null;
+          epoch_no?: number;
+          independence_score?: number | null;
+          participation_score?: number | null;
+          rationale_quality_score?: number | null;
+          responsiveness_score?: number | null;
+          snapshot_at?: string | null;
+          transparency_index?: number | null;
+          votes_cast?: number | null;
+        };
+        Relationships: [];
+      };
       cc_votes: {
         Row: {
           block_time: number;
@@ -2825,6 +2867,74 @@ export type Database = {
         };
         Relationships: [];
       };
+      proposal_outcomes: {
+        Row: {
+          created_at: string;
+          delivered_count: number;
+          delivery_score: number | null;
+          delivery_status: string;
+          enacted_epoch: number | null;
+          epochs_since_enactment: number | null;
+          last_evaluated_epoch: number | null;
+          milestones_completed: number | null;
+          milestones_total: number | null;
+          not_delivered_count: number;
+          partial_count: number;
+          proposal_index: number;
+          proposal_tx_hash: string;
+          too_early_count: number;
+          total_poll_responses: number;
+          updated_at: string;
+          would_approve_again_pct: number | null;
+        };
+        Insert: {
+          created_at?: string;
+          delivered_count?: number;
+          delivery_score?: number | null;
+          delivery_status?: string;
+          enacted_epoch?: number | null;
+          epochs_since_enactment?: number | null;
+          last_evaluated_epoch?: number | null;
+          milestones_completed?: number | null;
+          milestones_total?: number | null;
+          not_delivered_count?: number;
+          partial_count?: number;
+          proposal_index: number;
+          proposal_tx_hash: string;
+          too_early_count?: number;
+          total_poll_responses?: number;
+          updated_at?: string;
+          would_approve_again_pct?: number | null;
+        };
+        Update: {
+          created_at?: string;
+          delivered_count?: number;
+          delivery_score?: number | null;
+          delivery_status?: string;
+          enacted_epoch?: number | null;
+          epochs_since_enactment?: number | null;
+          last_evaluated_epoch?: number | null;
+          milestones_completed?: number | null;
+          milestones_total?: number | null;
+          not_delivered_count?: number;
+          partial_count?: number;
+          proposal_index?: number;
+          proposal_tx_hash?: string;
+          too_early_count?: number;
+          total_poll_responses?: number;
+          updated_at?: string;
+          would_approve_again_pct?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'fk_proposal';
+            columns: ['proposal_tx_hash', 'proposal_index'];
+            isOneToOne: true;
+            referencedRelation: 'proposals';
+            referencedColumns: ['tx_hash', 'proposal_index'];
+          },
+        ];
+      };
       proposal_similarity_cache: {
         Row: {
           computed_at: string | null;
@@ -3646,6 +3756,7 @@ export type Database = {
         Row: {
           alignment_scores: Json | null;
           confidence: number | null;
+          confidence_sources: Json | null;
           pca_coordinates: number[] | null;
           personality_label: string | null;
           snapshot_at: string;
@@ -3656,6 +3767,7 @@ export type Database = {
         Insert: {
           alignment_scores?: Json | null;
           confidence?: number | null;
+          confidence_sources?: Json | null;
           pca_coordinates?: number[] | null;
           personality_label?: string | null;
           snapshot_at?: string;
@@ -3666,6 +3778,7 @@ export type Database = {
         Update: {
           alignment_scores?: Json | null;
           confidence?: number | null;
+          confidence_sources?: Json | null;
           pca_coordinates?: number[] | null;
           personality_label?: string | null;
           snapshot_at?: string;
@@ -3687,6 +3800,8 @@ export type Database = {
         Row: {
           alignment_scores: Json | null;
           confidence: number;
+          confidence_sources: Json | null;
+          has_quick_match: boolean;
           pca_coordinates: number[] | null;
           personality_label: string | null;
           updated_at: string | null;
@@ -3697,6 +3812,8 @@ export type Database = {
         Insert: {
           alignment_scores?: Json | null;
           confidence?: number;
+          confidence_sources?: Json | null;
+          has_quick_match?: boolean;
           pca_coordinates?: number[] | null;
           personality_label?: string | null;
           updated_at?: string | null;
@@ -3707,6 +3824,8 @@ export type Database = {
         Update: {
           alignment_scores?: Json | null;
           confidence?: number;
+          confidence_sources?: Json | null;
+          has_quick_match?: boolean;
           pca_coordinates?: number[] | null;
           personality_label?: string | null;
           updated_at?: string | null;
