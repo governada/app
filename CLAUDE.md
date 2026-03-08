@@ -120,6 +120,14 @@ C:\Users\dalto\drepscore\
 | `/audit-security [area]`          | Auth, RLS, API security, data protection, infra hardening, anti-gaming | Pre-launch full, quarterly, after auth changes |
 | `/audit-all [full\|areas\|steps\|quick]` | Orchestrator: launches all audits as parallel subagents, synthesizes unified report | Quarterly full, monthly quick |
 
+## Build Commands
+
+| Command | Purpose |
+| ------- | ------- |
+| `/build-step N` | End-to-end step builder: vision research → architecture → decision gate → parallel execution → autonomous deploy → post-build audit |
+| `/ship` | Full deploy pipeline for a single PR (preflight → CI → merge → deploy → verify) |
+| `/hotfix` | Single-commit fix directly on main |
+
 ## Path-Scoped Rules
 
 Detailed context loads automatically from `.claude/rules/` when working on:
