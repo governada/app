@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { getStoredSession } from '@/lib/supabaseAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -379,7 +380,7 @@ function SyncRow({ entry }: { entry: IntegrityData['sync_history'][0] }) {
 
 // ── Main Component ───────────────────────────────────────────────────────────
 
-export function IntegrityDashboard({ adminAddress }: { adminAddress: string }) {
+export function IntegrityDashboard({ adminAddress: _adminAddress }: { adminAddress: string }) {
   const [data, setData] = useState<IntegrityData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -388,7 +389,10 @@ export function IntegrityDashboard({ adminAddress }: { adminAddress: string }) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/admin/integrity?address=${encodeURIComponent(adminAddress)}`);
+      const token = getStoredSession();
+      const headers: HeadersInit = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const res = await fetch('/api/admin/integrity', { headers });
       if (!res.ok) throw new Error(`${res.status}`);
       setData(await res.json());
     } catch (err) {
@@ -396,7 +400,7 @@ export function IntegrityDashboard({ adminAddress }: { adminAddress: string }) {
     } finally {
       setLoading(false);
     }
-  }, [adminAddress]);
+  }, []);
 
   useEffect(() => {
     fetchData();

@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { getStoredSession } from '@/lib/supabaseAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
@@ -250,9 +251,12 @@ export function PipelineClient() {
   const { data, isLoading } = useQuery<PipelineData>({
     queryKey: ['admin', 'pipeline', hours, syncTypeFilter],
     queryFn: async () => {
+      const token = getStoredSession();
+      const headers: HeadersInit = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
       const params = new URLSearchParams({ hours });
       if (syncTypeFilter !== 'all') params.set('syncType', syncTypeFilter);
-      const res = await fetch(`/api/admin/pipeline?${params}`);
+      const res = await fetch(`/api/admin/pipeline?${params}`, { headers });
       if (!res.ok) throw new Error('Failed to fetch pipeline data');
       return res.json();
     },

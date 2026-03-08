@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { getStoredSession } from '@/lib/supabaseAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Users, Vote, TrendingUp, Shield, BarChart3 } from 'lucide-react';
@@ -246,7 +247,10 @@ export function GovernanceClient() {
   const { data, isLoading } = useQuery<GovernanceData>({
     queryKey: ['admin', 'governance'],
     queryFn: async () => {
-      const res = await fetch('/api/admin/governance');
+      const token = getStoredSession();
+      const headers: HeadersInit = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const res = await fetch('/api/admin/governance', { headers });
       if (!res.ok) throw new Error('Failed to fetch governance data');
       return res.json();
     },
