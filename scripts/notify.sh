@@ -7,7 +7,8 @@
 #   bash scripts/notify.sh "Edge case" "Chunk agent hit unexpected fork — needs input"
 #
 # Channels (sends to all configured):
-#   - Discord webhook (DISCORD_WEBHOOK_URL)
+#   - Discord agent alerts (DISCORD_AGENT_WEBHOOK_URL) — dedicated #agent-alerts channel
+#   - Discord fallback (DISCORD_WEBHOOK_URL) — used only if agent webhook not set
 #   - Telegram bot (TELEGRAM_BOT_TOKEN + TELEGRAM_FOUNDER_CHAT_ID)
 #
 # Set NOTIFY_DISABLED=1 to suppress all notifications (e.g., during testing).
@@ -26,7 +27,10 @@ fi
 SENT=0
 
 # --- Discord ---
-if [ -n "${DISCORD_WEBHOOK_URL:-}" ]; then
+# Prefer dedicated agent channel; fall back to general webhook
+DISCORD_URL="${DISCORD_AGENT_WEBHOOK_URL:-${DISCORD_WEBHOOK_URL:-}}"
+
+if [ -n "$DISCORD_URL" ]; then
   # Discord embed for rich formatting
   PAYLOAD=$(cat <<ENDJSON
 {
@@ -44,7 +48,7 @@ ENDJSON
   )
 
   HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
-    -X POST "$DISCORD_WEBHOOK_URL" \
+    -X POST "$DISCORD_URL" \
     -H "Content-Type: application/json" \
     -d "$PAYLOAD" 2>/dev/null || echo "000")
 
@@ -80,7 +84,7 @@ fi
 # --- Summary ---
 if [ "$SENT" -eq 0 ]; then
   echo "WARNING: No notification channels configured or all failed."
-  echo "Set DISCORD_WEBHOOK_URL and/or TELEGRAM_BOT_TOKEN + TELEGRAM_FOUNDER_CHAT_ID"
+  echo "Set DISCORD_AGENT_WEBHOOK_URL and/or TELEGRAM_BOT_TOKEN + TELEGRAM_FOUNDER_CHAT_ID"
   exit 1
 fi
 
