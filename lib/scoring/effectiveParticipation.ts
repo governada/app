@@ -9,9 +9,10 @@ import {
   type ProposalScoringContext,
   type ProposalVotingSummary,
 } from './types';
+import { CLOSE_MARGIN, IMPORTANCE_WEIGHTS } from './calibration';
 
-const CLOSE_MARGIN_THRESHOLD = 0.2;
-const CLOSE_MARGIN_MULTIPLIER = 1.5;
+const CLOSE_MARGIN_THRESHOLD = CLOSE_MARGIN.threshold;
+const CLOSE_MARGIN_MULTIPLIER = CLOSE_MARGIN.multiplier;
 
 /**
  * Compute raw Effective Participation scores (0-100) for all DReps.
@@ -123,33 +124,26 @@ export function getExtendedImportanceWeight(
   treasuryTier: string | null,
   withdrawalAmountAda: number | null,
 ): number {
-  const CRITICAL_TYPES = [
-    'HardForkInitiation',
-    'NoConfidence',
-    'NewCommittee',
-    'NewConstitutionalCommittee',
-    'NewConstitution',
-    'UpdateConstitution',
-  ];
-
   let base: number;
-  if (CRITICAL_TYPES.includes(proposalType)) {
-    base = 3;
-  } else if (proposalType === 'ParameterChange') {
-    base = 2;
+  if (IMPORTANCE_WEIGHTS.criticalTypes.includes(proposalType)) {
+    base = IMPORTANCE_WEIGHTS.critical;
+  } else if (IMPORTANCE_WEIGHTS.importantTypes.includes(proposalType)) {
+    base = IMPORTANCE_WEIGHTS.important;
   } else if (
     proposalType === 'TreasuryWithdrawals' &&
-    (treasuryTier === 'significant' || treasuryTier === 'major')
+    treasuryTier &&
+    IMPORTANCE_WEIGHTS.treasuryImportantTiers.includes(treasuryTier)
   ) {
-    base = 2;
+    base = IMPORTANCE_WEIGHTS.important;
   } else {
-    base = 1;
+    base = IMPORTANCE_WEIGHTS.standard;
   }
 
   // Continuous treasury scaling for treasury withdrawals
   if (proposalType === 'TreasuryWithdrawals' && withdrawalAmountAda && withdrawalAmountAda > 0) {
-    const treasuryMultiplier = 1 + Math.log10(withdrawalAmountAda + 1) / 7;
-    return base * Math.min(2.4, treasuryMultiplier);
+    const treasuryMultiplier =
+      1 + Math.log10(withdrawalAmountAda + 1) / IMPORTANCE_WEIGHTS.treasuryLogDivisor;
+    return base * Math.min(IMPORTANCE_WEIGHTS.treasuryMultiplierCap, treasuryMultiplier);
   }
 
   return base;

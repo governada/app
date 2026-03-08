@@ -6,6 +6,7 @@
 import { Matrix, SVD } from 'ml-matrix';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
+import { PCA_CONFIG } from '@/lib/scoring/calibration';
 import { imputeMatrix } from './voteMatrix';
 import type { ProposalClassification } from './classifyProposals';
 
@@ -16,9 +17,11 @@ export interface PCAResult {
   totalExplainedVariance: number;
   loadings: number[][];
   componentLabels: string[];
+  /** Whether explained variance meets the minimum threshold. */
+  meetsVarianceThreshold: boolean;
 }
 
-const DEFAULT_COMPONENTS = 6;
+const DEFAULT_COMPONENTS = PCA_CONFIG.defaultComponents;
 
 /**
  * Run PCA on the vote matrix. Returns per-DRep coordinates in PCA space.
@@ -90,6 +93,14 @@ export function computePCA(
   // Generate component labels from loadings
   const componentLabels = generateComponentLabels(loadings, proposalIds, classifications);
 
+  const meetsVarianceThreshold = totalExplainedVariance >= PCA_CONFIG.minExplainedVariance;
+  if (!meetsVarianceThreshold) {
+    logger.warn('[PCA] Low explained variance — consider falling back to manual dimensions', {
+      totalExplainedVariance: parseFloat((totalExplainedVariance * 100).toFixed(1)),
+      threshold: PCA_CONFIG.minExplainedVariance * 100,
+    });
+  }
+
   return {
     runId: crypto.randomUUID(),
     coordinates,
@@ -97,6 +108,7 @@ export function computePCA(
     totalExplainedVariance,
     loadings,
     componentLabels,
+    meetsVarianceThreshold,
   };
 }
 
@@ -222,21 +234,27 @@ export async function loadActivePCA(): Promise<{
   loadings: number[][];
   proposalIds: string[];
   explainedVariance: number[];
+  totalExplainedVariance: number;
+  meetsVarianceThreshold: boolean;
 } | null> {
   const supabase = getSupabaseAdmin();
 
   const { data } = await supabase
     .from('pca_results')
-    .select('run_id, loadings, proposal_ids, explained_variance')
+    .select('run_id, loadings, proposal_ids, explained_variance, total_explained_variance')
     .eq('is_active', true)
     .single();
 
   if (!data) return null;
+
+  const totalExplainedVariance = (data.total_explained_variance as number) ?? 0;
 
   return {
     runId: data.run_id,
     loadings: data.loadings as number[][],
     proposalIds: data.proposal_ids as string[],
     explainedVariance: data.explained_variance as number[],
+    totalExplainedVariance,
+    meetsVarianceThreshold: totalExplainedVariance >= PCA_CONFIG.minExplainedVariance,
   };
 }

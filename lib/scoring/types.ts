@@ -3,16 +3,12 @@
  * All pillar modules consume these; the Inngest sync function constructs them.
  */
 
-// Temporal decay: half-life of 180 days (~6 months)
-export const DECAY_HALF_LIFE_DAYS = 180;
-export const DECAY_LAMBDA = Math.LN2 / DECAY_HALF_LIFE_DAYS;
+import { TEMPORAL_DECAY, DREP_PILLAR_WEIGHTS } from './calibration';
 
-export const PILLAR_WEIGHTS = {
-  engagementQuality: 0.35,
-  effectiveParticipation: 0.25,
-  reliability: 0.25,
-  governanceIdentity: 0.15,
-} as const;
+// Re-export from calibration config for backward compatibility
+export const DECAY_HALF_LIFE_DAYS = TEMPORAL_DECAY.halfLifeDays;
+export const DECAY_LAMBDA = TEMPORAL_DECAY.lambda;
+export const PILLAR_WEIGHTS = DREP_PILLAR_WEIGHTS;
 
 export interface VoteData {
   drepId: string;

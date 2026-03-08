@@ -9,6 +9,9 @@ import { loadActivePCA } from '@/lib/alignment/pca';
 import { projectUserVector } from '@/lib/representationMatch';
 import { getPersonalityLabel } from '@/lib/drepIdentity';
 import type { AlignmentScores, AlignmentDimension } from '@/lib/drepIdentity';
+import type { ProposalClassification } from '@/lib/alignment/classifyProposals';
+import { projectPCAToDimensions, reconcileDimensionScores } from '@/lib/alignment/pcaProjection';
+import type { DimensionScores } from '@/lib/alignment/dimensions';
 import { deriveUserAlignments } from './dimensionAgreement';
 import {
   calculateProgressiveConfidence,
@@ -85,7 +88,8 @@ export async function updateUserProfile(userId: string): Promise<UserGovernanceP
     }
   }
 
-  const alignmentScores =
+  // Derive manual alignment scores from poll votes + classifications
+  const manualAlignmentScores =
     classMap.size > 0
       ? deriveUserAlignments(pollVotes, classMap)
       : ({
@@ -96,6 +100,36 @@ export async function updateUserProfile(userId: string): Promise<UserGovernanceP
           innovation: null,
           transparency: null,
         } satisfies AlignmentScores);
+
+  // QP-6 Hybrid: project PCA coordinates to named dimensions when available
+  let alignmentScores = manualAlignmentScores;
+  if (pca && pcaCoordinates && classifications) {
+    const classificationsList: ProposalClassification[] = classifications.map((c) => ({
+      proposalTxHash: c.proposal_tx_hash as string,
+      proposalIndex: c.proposal_index as number,
+      dimTreasuryConservative: Number(c.dim_treasury_conservative) || 0,
+      dimTreasuryGrowth: Number(c.dim_treasury_growth) || 0,
+      dimDecentralization: Number(c.dim_decentralization) || 0,
+      dimSecurity: Number(c.dim_security) || 0,
+      dimInnovation: Number(c.dim_innovation) || 0,
+      dimTransparency: Number(c.dim_transparency) || 0,
+      aiSummary: null,
+    }));
+
+    const pcaDimScores = projectPCAToDimensions(
+      pcaCoordinates,
+      pca.loadings,
+      pca.proposalIds,
+      classificationsList,
+    );
+
+    const reconciled = reconcileDimensionScores(
+      pcaDimScores,
+      manualAlignmentScores as DimensionScores,
+      pca.meetsVarianceThreshold,
+    );
+    alignmentScores = reconciled.scores as AlignmentScores;
+  }
 
   const personalityLabel = getPersonalityLabel(alignmentScores);
 
