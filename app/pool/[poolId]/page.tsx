@@ -23,8 +23,10 @@ const CitizenEndorsements = nextDynamic(
 );
 import { SpoProfileHero } from '@/components/civica/profiles/SpoProfileHero';
 import { SpoProfileTabsV1 } from '@/components/civica/profiles/SpoProfileTabsV1';
+import { PoolClaimCard } from '@/components/civica/profiles/PoolClaimCard';
 import { computeTier, computeTierProgress } from '@/lib/scoring/tiers';
 import { tierKey, TIER_BADGE_BG, TIER_SCORE_COLOR } from '@/components/civica/cards/tierStyles';
+import { Archive } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -72,7 +74,7 @@ async function getPoolRow(poolId: string) {
     const { data, error } = await supabase
       .from('pools')
       .select(
-        'pool_id, ticker, pool_name, pledge_lovelace, governance_score, participation_pct, deliberation_pct, consistency_pct, reliability_pct, governance_identity_pct, confidence, alignment_treasury_conservative, alignment_treasury_growth, alignment_decentralization, alignment_security, alignment_innovation, alignment_transparency, delegator_count, live_stake_lovelace, vote_count, governance_statement, current_tier, score_momentum, homepage_url',
+        'pool_id, ticker, pool_name, pledge_lovelace, governance_score, participation_pct, deliberation_pct, consistency_pct, reliability_pct, governance_identity_pct, confidence, alignment_treasury_conservative, alignment_treasury_growth, alignment_decentralization, alignment_security, alignment_innovation, alignment_transparency, delegator_count, live_stake_lovelace, vote_count, governance_statement, current_tier, score_momentum, homepage_url, pool_status, claimed_by, claimed_at, retiring_epoch',
       )
       .eq('pool_id', poolId)
       .single();
@@ -348,6 +350,11 @@ export default async function PoolProfilePage({ params }: PageProps) {
   const homepage = (poolRow.homepage_url as string) ?? null;
   const alignments = toAlignments(poolRow);
   const scoreMomentum = (poolRow.score_momentum as number) ?? null;
+  const poolStatus = (poolRow.pool_status as string) ?? 'registered';
+  const claimedBy = (poolRow.claimed_by as string) ?? null;
+  const retiringEpoch = (poolRow.retiring_epoch as number) ?? null;
+  const isRetired = poolStatus === 'retired';
+  const isRetiring = poolStatus === 'retiring';
 
   const tier = computeTier(governanceScore);
   const tierProgress = computeTierProgress(governanceScore);
@@ -369,7 +376,7 @@ export default async function PoolProfilePage({ params }: PageProps) {
     delegatorCount,
     liveStakeAda,
     alignments,
-    isClaimed: false,
+    isClaimed: !!claimedBy,
     governanceStatement,
     scoreMomentum,
   });
@@ -775,7 +782,53 @@ export default async function PoolProfilePage({ params }: PageProps) {
           narrative={narrative}
           scoreMomentum={scoreMomentum}
           lastVotedText={lastVotedText}
+          isRetired={isRetired}
+          isRetiring={isRetiring}
+          isClaimed={!!claimedBy}
         />
+
+        {/* Retired pool notice */}
+        {isRetired && (
+          <Card className="border-muted bg-muted/20">
+            <CardContent className="flex items-start gap-3 py-4">
+              <div className="p-2 rounded-full bg-muted shrink-0 mt-0.5">
+                <Archive className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  This pool has retired from the network.
+                </p>
+                <p className="text-xs text-muted-foreground/70 mt-0.5">
+                  Their governance record is preserved. Voting history and scores remain visible for
+                  transparency.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Retiring pool notice */}
+        {isRetiring && retiringEpoch != null && (
+          <Card className="border-amber-500/30 bg-amber-500/5">
+            <CardContent className="flex items-start gap-3 py-4">
+              <div className="p-2 rounded-full bg-amber-500/10 shrink-0 mt-0.5">
+                <Archive className="h-4 w-4 text-amber-500" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-amber-400">
+                  This pool is scheduled to retire at epoch {retiringEpoch}.
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  The pool operator has submitted a retirement certificate. Governance scores will
+                  be preserved after retirement.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Pool claim card */}
+        <PoolClaimCard poolId={poolId} poolName={displayName} claimedBy={claimedBy} />
 
         {tierProgressBar}
 

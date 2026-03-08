@@ -71,6 +71,8 @@ interface KoiosPoolInfo {
   fixed_cost?: number;
   live_delegators?: number;
   live_stake?: number;
+  pool_status?: string;
+  retiring_epoch?: number | null;
   relays?: Array<{ dns?: string; srv?: string; ipv4?: string; ipv6?: string; port?: number }>;
 }
 
@@ -587,6 +589,8 @@ export const syncSpoScores = inngest.createFunction(
             delegator_count: p.live_delegators ?? 0,
             live_stake_lovelace: p.live_stake ?? 0,
             homepage_url: p.meta_json?.homepage ?? null,
+            pool_status: p.pool_status ?? 'registered',
+            retiring_epoch: p.retiring_epoch ?? null,
           });
         }
 
