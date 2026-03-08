@@ -38,45 +38,7 @@ export function calibrate(raw: number, curve: CalibrationCurve): number {
   return 95;
 }
 
-// ---------------------------------------------------------------------------
-// Per-component calibration targets (configurable, tune after initial data)
-// ---------------------------------------------------------------------------
+import { GHI_CALIBRATION } from '@/lib/scoring/calibration';
 
-export const CALIBRATION = {
-  drepParticipation: {
-    floor: 20,
-    targetLow: 40,
-    targetHigh: 70,
-    ceiling: 90,
-  },
-  citizenEngagement: {
-    floor: 10,
-    targetLow: 30,
-    targetHigh: 60,
-    ceiling: 80,
-  },
-  deliberationQuality: {
-    floor: 15,
-    targetLow: 35,
-    targetHigh: 65,
-    ceiling: 85,
-  },
-  governanceEffectiveness: {
-    floor: 20,
-    targetLow: 40,
-    targetHigh: 70,
-    ceiling: 90,
-  },
-  powerDistribution: {
-    floor: 15,
-    targetLow: 35,
-    targetHigh: 65,
-    ceiling: 85,
-  },
-  systemStability: {
-    floor: 30,
-    targetLow: 50,
-    targetHigh: 75,
-    ceiling: 90,
-  },
-} as const;
+// Re-export from centralized calibration config
+export const CALIBRATION = GHI_CALIBRATION;

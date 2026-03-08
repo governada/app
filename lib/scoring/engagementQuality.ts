@@ -5,9 +5,16 @@
  */
 
 import { DECAY_LAMBDA, type VoteData, type ProposalVotingSummary } from './types';
+import {
+  ENGAGEMENT_LAYER_WEIGHTS,
+  DELIBERATION_WEIGHTS,
+  VOTE_DIVERSITY_THRESHOLDS,
+  VOTE_DIVERSITY_MIN_VOTES,
+  DISSENT_CURVE,
+} from './calibration';
 
-const LAYER_WEIGHTS = { provision: 0.4, quality: 0.4, deliberation: 0.2 };
-const DELIB_WEIGHTS = { voteDiversity: 0.4, dissent: 0.35, typeBreadth: 0.25 };
+const LAYER_WEIGHTS = ENGAGEMENT_LAYER_WEIGHTS;
+const DELIB_WEIGHTS = DELIBERATION_WEIGHTS;
 const INFO_ACTION = 'InfoAction';
 
 /**
@@ -121,7 +128,7 @@ function computeDeliberationSignal(
  * Penalizes rubber-stamping (>85% same vote direction).
  */
 function computeVoteDiversity(votes: VoteData[]): number {
-  if (votes.length <= 5) return 50; // too few votes to judge
+  if (votes.length <= VOTE_DIVERSITY_MIN_VOTES) return 50; // too few votes to judge
 
   const counts = { Yes: 0, No: 0, Abstain: 0 };
   for (const v of votes) counts[v.vote]++;
@@ -129,11 +136,11 @@ function computeVoteDiversity(votes: VoteData[]): number {
   const dominant = Math.max(counts.Yes, counts.No, counts.Abstain);
   const dominantRatio = dominant / votes.length;
 
-  if (dominantRatio > 0.95) return 15;
-  if (dominantRatio > 0.9) return 35;
-  if (dominantRatio > 0.85) return 55;
-  if (dominantRatio > 0.75) return 75;
-  return 100;
+  // Thresholds sorted ascending by maxRatio — first match wins
+  for (const t of VOTE_DIVERSITY_THRESHOLDS) {
+    if (dominantRatio <= t.maxRatio) return t.score;
+  }
+  return VOTE_DIVERSITY_THRESHOLDS[VOTE_DIVERSITY_THRESHOLDS.length - 1].score;
 }
 
 /**
@@ -160,7 +167,7 @@ function computeDissentRate(
     if (v.vote !== majority) dissentCount++;
   }
 
-  if (eligibleCount < 5) return 50; // too few data points
+  if (eligibleCount < DISSENT_CURVE.minVotes) return 50; // too few data points
 
   const rate = dissentCount / eligibleCount;
   return scoreDissentCurve(rate);
@@ -170,11 +177,17 @@ function computeDissentRate(
  * Dissent scoring curve: sweet spot at 15-40%.
  */
 function scoreDissentCurve(rate: number): number {
-  if (rate <= 0) return 25;
-  if (rate < 0.15) return 25 + (rate / 0.15) * 75;
-  if (rate <= 0.4) return 100;
-  if (rate < 1.0) return Math.max(15, 100 - ((rate - 0.4) / 0.6) * 85);
-  return 15;
+  const { zeroRate, sweetSpotStart, sweetSpotEnd, sweetSpotScore, minScore } = DISSENT_CURVE;
+  if (rate <= 0) return zeroRate;
+  if (rate < sweetSpotStart)
+    return zeroRate + (rate / sweetSpotStart) * (sweetSpotScore - zeroRate);
+  if (rate <= sweetSpotEnd) return sweetSpotScore;
+  if (rate < 1.0)
+    return Math.max(
+      minScore,
+      sweetSpotScore - ((rate - sweetSpotEnd) / (1 - sweetSpotEnd)) * (sweetSpotScore - minScore),
+    );
+  return minScore;
 }
 
 /**

@@ -16,6 +16,7 @@ import {
   HelpCircle,
   Info,
   RefreshCw,
+  RotateCcw,
   Wallet,
 } from 'lucide-react';
 import { resolveRewardAddress } from '@meshsdk/core';
@@ -37,6 +38,7 @@ export function ProposalSentiment({ txHash, proposalIndex, isOpen }: ProposalSen
   const {
     data: results,
     isLoading,
+    isError: fetchError,
     refetch,
   } = useSentimentResults(txHash, proposalIndex, ownDRepId);
 
@@ -150,6 +152,20 @@ export function ProposalSentiment({ txHash, proposalIndex, isOpen }: ProposalSen
     );
   }
 
+  if (fetchError) {
+    return (
+      <Card className="ring-1 ring-primary/10">
+        <CardContent className="py-6 text-center space-y-3">
+          <p className="text-sm text-muted-foreground">Couldn&apos;t load sentiment data</p>
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+            Try again
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const community = results?.community ?? { support: 0, oppose: 0, unsure: 0, total: 0 };
   const showButtons = isOpen && (!hasVoted || changingVote);
 
@@ -228,7 +244,9 @@ export function ProposalSentiment({ txHash, proposalIndex, isOpen }: ProposalSen
           </div>
         )}
 
-        {error && <p className="text-xs text-destructive">{error}</p>}
+        <div aria-live="polite" role="status">
+          {error && <p className="text-xs text-destructive">{error}</p>}
+        </div>
       </CardContent>
     </Card>
   );
@@ -274,18 +292,28 @@ function SentimentButtons({
   ];
 
   return (
-    <div className="flex gap-2">
+    <div
+      className="flex gap-2"
+      role="radiogroup"
+      aria-label="Share your sentiment on this proposal"
+    >
       {buttons.map(({ vote, label, icon: Icon, activeClass, hoverClass }) => (
         <Button
           key={vote}
           variant="outline"
-          className={`flex-1 gap-1.5 h-11 transition-all duration-150 hover:scale-[1.02] active:scale-[0.98] ${
+          role="radio"
+          aria-checked={currentVote === vote}
+          className={`flex-1 gap-1.5 h-11 transition-all duration-150 motion-safe:hover:scale-[1.02] motion-safe:active:scale-[0.98] ${
             currentVote === vote ? activeClass : hoverClass
           }`}
           disabled={voting}
           onClick={() => onVote(vote)}
         >
-          {voting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}
+          {voting ? (
+            <RefreshCw className="h-4 w-4 animate-spin" aria-hidden="true" />
+          ) : (
+            <Icon className="h-4 w-4" aria-hidden="true" />
+          )}
           {label}
         </Button>
       ))}
@@ -320,7 +348,7 @@ function ResultsView({
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" aria-live="polite">
       {userSentiment && (
         <div className="flex items-center gap-2 text-sm">
           <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
@@ -414,7 +442,14 @@ function SentimentBar({
           {count} ({percent}%)
         </span>
       </div>
-      <div className="h-2 rounded-full bg-muted overflow-hidden">
+      <div
+        className="h-2 rounded-full bg-muted overflow-hidden"
+        role="progressbar"
+        aria-valuenow={percent}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`${label}: ${count} votes, ${percent}%`}
+      >
         <div
           className={`h-full rounded-full ${color} transition-all duration-700 ease-out`}
           style={{ width: `${percent}%` }}

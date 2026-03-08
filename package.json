@@ -24,7 +24,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "preflight": "run-p format:check lint type-check test",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test:scoring": "vitest run __tests__/scoring/ __tests__/alignment/ __tests__/ghi/ __tests__/matching/"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,mjs}": [
@@ -86,6 +87,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.1",
     "@next/bundle-analyzer": "^16.1.6",
     "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4",
@@ -103,6 +105,7 @@
     "dotenv": "^17.3.1",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
     "husky": "^9.1.7",
     "jsdom": "^28.1.0",
     "lint-staged": "^16.3.2",

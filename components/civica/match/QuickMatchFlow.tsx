@@ -29,7 +29,10 @@ import { RadarOverlay } from '@/components/matching/RadarOverlay';
 import { cn } from '@/lib/utils';
 import { usePostHog } from 'posthog-js/react';
 import { DelegateButton } from '@/components/DelegateButton';
+import { getStoredSession } from '@/lib/supabaseAuth';
 import type { AlignmentScores } from '@/lib/drepIdentity';
+import type { ConfidenceBreakdown } from '@/lib/matching/confidence';
+import { MatchConfidenceCTA } from '@/components/matching/MatchConfidenceCTA';
 import { saveMatchProfile, loadMatchProfile, type StoredMatchProfile } from '@/lib/matchStore';
 
 /* ─── Types ─────────────────────────────────────────────── */
@@ -51,6 +54,7 @@ interface QuickMatchResponse {
   userAlignments: AlignmentScores;
   personalityLabel: string;
   identityColor: string;
+  confidenceBreakdown?: ConfidenceBreakdown;
 }
 
 /* ─── Question definitions ──────────────────────────────── */
@@ -192,6 +196,15 @@ export function QuickMatchFlow() {
         setResults(data);
         setStep('results');
 
+        // Mark quick match as completed for authenticated users
+        const token = getStoredSession();
+        if (token) {
+          fetch('/api/governance/quick-match/mark-completed', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+          }).catch(() => {});
+        }
+
         // Persist match profile
         saveMatchProfile({
           userAlignments: data.userAlignments,
@@ -263,7 +276,14 @@ export function QuickMatchFlow() {
               >
                 <ArrowLeft className="h-4 w-4" />
               </button>
-              <div className="flex-1 flex gap-2">
+              <div
+                className="flex-1 flex gap-2"
+                role="progressbar"
+                aria-valuenow={typeof step === 'number' ? step + 1 : 0}
+                aria-valuemin={1}
+                aria-valuemax={3}
+                aria-label={`Question ${typeof step === 'number' ? step + 1 : 0} of 3`}
+              >
                 {[0, 1, 2].map((i) => (
                   <div key={i} className="h-1 flex-1 rounded-full overflow-hidden bg-muted">
                     <div
@@ -275,7 +295,9 @@ export function QuickMatchFlow() {
                   </div>
                 ))}
               </div>
-              <span className="text-xs text-muted-foreground tabular-nums">{step + 1}/3</span>
+              <span className="text-xs text-muted-foreground tabular-nums" aria-hidden="true">
+                {step + 1}/3
+              </span>
             </div>
           </div>
         </div>
@@ -359,9 +381,15 @@ function IntroScreen({
       </div>
 
       {/* Match type toggle */}
-      <div className="inline-flex rounded-lg border border-border p-0.5 bg-muted/30">
+      <div
+        className="inline-flex rounded-lg border border-border p-0.5 bg-muted/30"
+        role="radiogroup"
+        aria-label="Match type"
+      >
         <button
           onClick={() => onMatchTypeChange('drep')}
+          role="radio"
+          aria-checked={matchType === 'drep'}
           className={cn(
             'px-4 py-1.5 rounded-md text-sm font-medium transition-all',
             matchType === 'drep'
@@ -369,11 +397,13 @@ function IntroScreen({
               : 'text-muted-foreground hover:text-foreground',
           )}
         >
-          <Users className="h-3.5 w-3.5 inline mr-1.5" />
+          <Users className="h-3.5 w-3.5 inline mr-1.5" aria-hidden="true" />
           DReps
         </button>
         <button
           onClick={() => onMatchTypeChange('spo')}
+          role="radio"
+          aria-checked={matchType === 'spo'}
           className={cn(
             'px-4 py-1.5 rounded-md text-sm font-medium transition-all',
             matchType === 'spo'
@@ -381,7 +411,7 @@ function IntroScreen({
               : 'text-muted-foreground hover:text-foreground',
           )}
         >
-          <Server className="h-3.5 w-3.5 inline mr-1.5" />
+          <Server className="h-3.5 w-3.5 inline mr-1.5" aria-hidden="true" />
           SPOs
         </button>
       </div>
@@ -471,8 +501,12 @@ function QuestionScreen({
 
 function LoadingScreen() {
   return (
-    <div className="text-center space-y-6 animate-in fade-in duration-300">
-      <div className="relative mx-auto w-24 h-24">
+    <div
+      className="text-center space-y-6 animate-in fade-in duration-300"
+      role="status"
+      aria-live="polite"
+    >
+      <div className="relative mx-auto w-24 h-24" aria-hidden="true">
         <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-ping" />
         <div className="absolute inset-2 rounded-full border-2 border-primary/40 animate-pulse" />
         <div className="absolute inset-0 flex items-center justify-center">
@@ -558,6 +592,11 @@ function ResultsScreen({
           ))}
         </div>
       </div>
+
+      {/* Confidence breakdown + improvement CTAs */}
+      {results.confidenceBreakdown && (
+        <MatchConfidenceCTA breakdown={results.confidenceBreakdown} variant="full" />
+      )}
 
       {/* CTAs */}
       <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2 pb-8">

@@ -9,6 +9,7 @@ import { inngest } from '@/lib/inngest';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import {
   computeAlignmentDrift,
+  toAlignment6D,
   type Alignment6D,
   ALIGNMENT_DIMENSIONS,
 } from '@/lib/alignment/drift';
@@ -136,17 +137,7 @@ export const detectAlignmentDrift = inngest.createFunction(
         const drepAlignment = drepAlignmentMap.get(drepId);
         if (!drepAlignment) continue;
 
-        const citizenAlignment: Alignment6D = {
-          treasury_conservative: 50,
-          treasury_growth: 50,
-          decentralization: 50,
-          security: 50,
-          innovation: 50,
-          transparency: 50,
-        };
-        for (const dim of ALIGNMENT_DIMENSIONS) {
-          citizenAlignment[dim] = userAlignment[dim] ?? 50;
-        }
+        const citizenAlignment = toAlignment6D(userAlignment);
 
         const drift = computeAlignmentDrift(citizenAlignment, drepAlignment);
 

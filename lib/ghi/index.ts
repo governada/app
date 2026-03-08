@@ -31,18 +31,13 @@ export {
 import type { GHIComponent, GHIResult } from './types';
 import { getBand } from './types';
 
+import { GHI_COMPONENT_WEIGHTS } from '@/lib/scoring/calibration';
+
 // ---------------------------------------------------------------------------
 // Weight configuration
 // ---------------------------------------------------------------------------
 
-const BASE_WEIGHTS = {
-  'DRep Participation': 0.2,
-  'Citizen Engagement': 0.15,
-  'Deliberation Quality': 0.2,
-  'Governance Effectiveness': 0.2,
-  'Power Distribution': 0.15,
-  'System Stability': 0.1,
-} as const;
+const BASE_WEIGHTS = GHI_COMPONENT_WEIGHTS;
 
 type ComponentName = keyof typeof BASE_WEIGHTS;
 

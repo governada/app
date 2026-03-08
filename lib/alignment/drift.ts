@@ -34,13 +34,16 @@ export interface DriftResult {
   worstDimension: AlignmentDimension | null;
 }
 
+import { ALIGNMENT_DRIFT_WEIGHTS, DRIFT_THRESHOLDS } from '@/lib/scoring/calibration';
+
+// Map camelCase calibration keys to snake_case drift dimension keys
 const DIMENSION_WEIGHTS: Record<AlignmentDimension, number> = {
-  treasury_conservative: 0.2,
-  treasury_growth: 0.2,
-  decentralization: 0.2,
-  security: 0.15,
-  innovation: 0.15,
-  transparency: 0.1,
+  treasury_conservative: ALIGNMENT_DRIFT_WEIGHTS.treasuryConservative,
+  treasury_growth: ALIGNMENT_DRIFT_WEIGHTS.treasuryGrowth,
+  decentralization: ALIGNMENT_DRIFT_WEIGHTS.decentralization,
+  security: ALIGNMENT_DRIFT_WEIGHTS.security,
+  innovation: ALIGNMENT_DRIFT_WEIGHTS.innovation,
+  transparency: ALIGNMENT_DRIFT_WEIGHTS.transparency,
 };
 
 /**
@@ -91,7 +94,36 @@ export function computeAlignmentDrift(
 }
 
 function classifyDrift(score: number): DriftClassification {
-  if (score <= 15) return 'low';
-  if (score <= 30) return 'moderate';
+  if (score <= DRIFT_THRESHOLDS.low) return 'low';
+  if (score <= DRIFT_THRESHOLDS.moderate) return 'moderate';
   return 'high';
+}
+
+/**
+ * Convert camelCase alignment scores (as stored in user_governance_profiles)
+ * to the snake_case Alignment6D format used by the drift engine.
+ */
+const CAMEL_TO_SNAKE: Record<string, AlignmentDimension> = {
+  treasuryConservative: 'treasury_conservative',
+  treasuryGrowth: 'treasury_growth',
+  decentralization: 'decentralization',
+  security: 'security',
+  innovation: 'innovation',
+  transparency: 'transparency',
+};
+
+export function toAlignment6D(camelScores: Record<string, number | null>): Alignment6D {
+  const result: Alignment6D = {
+    treasury_conservative: 50,
+    treasury_growth: 50,
+    decentralization: 50,
+    security: 50,
+    innovation: 50,
+    transparency: 50,
+  };
+  for (const [camel, snake] of Object.entries(CAMEL_TO_SNAKE)) {
+    const val = camelScores[camel];
+    if (val != null) result[snake] = val;
+  }
+  return result;
 }
