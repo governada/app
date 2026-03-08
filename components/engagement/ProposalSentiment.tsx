@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useWallet } from '@/utils/wallet';
 import { getStoredSession } from '@/lib/supabaseAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,6 +34,7 @@ interface ProposalSentimentProps {
 export function ProposalSentiment({ txHash, proposalIndex, isOpen }: ProposalSentimentProps) {
   const { connected, isAuthenticated, address, delegatedDrepId, ownDRepId, authenticate } =
     useWallet();
+  const queryClient = useQueryClient();
   const {
     data: results,
     isLoading,
@@ -47,6 +49,8 @@ export function ProposalSentiment({ txHash, proposalIndex, isOpen }: ProposalSen
   const hasVoted = results?.hasVoted ?? false;
   const userSentiment = results?.userSentiment ?? null;
 
+  const queryKey = ['citizen-sentiment', txHash, proposalIndex, ownDRepId ?? null];
+
   const castVote = async (sentiment: SentimentChoice) => {
     hapticLight();
     if (!isAuthenticated) {
@@ -56,6 +60,26 @@ export function ProposalSentiment({ txHash, proposalIndex, isOpen }: ProposalSen
 
     setVoting(true);
     setError(null);
+
+    // Optimistic update: show vote immediately
+    const previousData = queryClient.getQueryData<SentimentResults>(queryKey);
+    queryClient.setQueryData<SentimentResults>(queryKey, (old) => {
+      if (!old) return old;
+      const prev = old.userSentiment;
+      const community = { ...old.community };
+      // Remove previous vote if changing
+      if (prev) {
+        community[prev] = Math.max(0, community[prev] - 1);
+        community.total = Math.max(0, community.total - 1);
+      }
+      // Add new vote (only increment total for new votes)
+      community[sentiment] = (community[sentiment] ?? 0) + 1;
+      if (!prev) community.total += 1;
+      else community.total += 1;
+      return { ...old, community, userSentiment: sentiment, hasVoted: true };
+    });
+    setChangingVote(false);
+
     try {
       const token = getStoredSession();
       if (!token) throw new Error('Not authenticated');
@@ -89,9 +113,8 @@ export function ProposalSentiment({ txHash, proposalIndex, isOpen }: ProposalSen
         throw new Error(data.error || 'Vote failed');
       }
 
-      // Refetch via TanStack Query to get fresh results
+      // Refetch to reconcile with server
       await refetch();
-      setChangingVote(false);
 
       import('@/lib/posthog')
         .then(({ posthog }) => {
@@ -103,6 +126,8 @@ export function ProposalSentiment({ txHash, proposalIndex, isOpen }: ProposalSen
         })
         .catch(() => {});
     } catch (err) {
+      // Rollback optimistic update on error
+      if (previousData) queryClient.setQueryData(queryKey, previousData);
       setError(err instanceof Error ? err.message : 'Vote failed');
     } finally {
       setVoting(false);

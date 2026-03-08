@@ -13,6 +13,7 @@ import {
   tierKey,
 } from './tierStyles';
 import type { EnrichedDRep } from '@/lib/koios';
+import { ScoreExplainer } from '@/components/ui/ScoreExplainer';
 import { getDRepTraitTags } from '@/lib/alignment';
 import {
   extractAlignments,
@@ -101,13 +102,16 @@ export function CivicaDRepCard({ drep, rank, matchScore }: CivicaDRepCardProps) 
 
         {/* Score + tier badge */}
         <div className="text-right shrink-0">
-          <div
-            className={cn(
-              'font-display text-3xl font-bold tabular-nums leading-none',
-              TIER_SCORE_COLOR[tier],
-            )}
-          >
-            {score}
+          <div className="flex items-start gap-0.5 justify-end">
+            <ScoreExplainer type="drep" className="mt-1" />
+            <div
+              className={cn(
+                'font-display text-3xl font-bold tabular-nums leading-none',
+                TIER_SCORE_COLOR[tier],
+              )}
+            >
+              {score}
+            </div>
           </div>
           <span
             className={cn(

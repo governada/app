@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useSegment } from '@/components/providers/SegmentProvider';
+import { FirstVisitBanner } from '@/components/ui/FirstVisitBanner';
 import { CitizenCommandCenter } from './mygov/CitizenCommandCenter';
 import { DRepCommandCenter } from './mygov/DRepCommandCenter';
 import { SPOCommandCenter } from './mygov/SPOCommandCenter';
@@ -105,6 +106,11 @@ export function MyGovClient() {
       </div>
 
       <MyGovSubNav />
+
+      <FirstVisitBanner
+        pageKey="my-gov"
+        message="Your governance command center. Track your delegation health, milestones, and activity all in one place."
+      />
 
       {isLoading ? (
         <div className="space-y-3">

@@ -366,9 +366,18 @@ function IntroScreen({
           {matchType === 'spo' ? 'Find Your SPO' : 'Find Your DRep'}
         </h1>
         <p className="text-muted-foreground text-base sm:text-lg leading-relaxed">
-          Answer 3 questions about your governance values. We&apos;ll match you to{' '}
-          {matchType === 'spo' ? 'stake pool operators' : 'DReps'} who think like you.
+          These questions help match you with{' '}
+          {matchType === 'spo'
+            ? 'a stake pool operator who shares your governance values'
+            : 'a representative (DRep) who shares your governance values'}
+          . 3 questions, under 60 seconds.
         </p>
+        {matchType === 'drep' && (
+          <p className="text-xs text-muted-foreground/80 max-w-md mx-auto">
+            When you delegate to a DRep, they vote on governance proposals on your behalf. Your
+            funds stay in your wallet.
+          </p>
+        )}
       </div>
 
       {/* Match type toggle */}
@@ -566,6 +575,10 @@ function ResultsScreen({
         <h3 className="font-display text-lg font-semibold text-center">
           Your Top {isSPO ? 'SPO' : 'DRep'} Matches
         </h3>
+        <p className="text-xs text-muted-foreground text-center max-w-md mx-auto">
+          Match score shows how aligned this {isSPO ? 'SPO' : 'DRep'}&apos;s voting record is with
+          your preferences. Higher is better.
+        </p>
 
         <div className="grid gap-3">
           {results.matches.map((match, i) => (

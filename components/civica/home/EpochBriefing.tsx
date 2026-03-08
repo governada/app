@@ -25,6 +25,8 @@ import { AsyncContent } from '@/components/ui/AsyncContent';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTreasuryCurrent, useTreasuryPending } from '@/hooks/queries';
+import { briefingContainer, briefingItem } from '@/lib/animations';
+import { GovTerm } from '@/components/ui/GovTerm';
 
 /* ── Types ──────────────────────────────────────────────────────── */
 
@@ -454,24 +456,27 @@ function EpochBriefingContent({
       </div>
       <p className="text-2xl font-bold tabular-nums text-foreground">
         {formatAdaCompact(treasury?.balance ?? data.treasury?.balanceAda ?? 0)} ADA
-        <span className="text-sm font-normal text-muted-foreground ml-2">in the treasury</span>
+        <span className="text-sm font-normal text-muted-foreground ml-2">
+          in the <GovTerm term="treasury">treasury</GovTerm>
+        </span>
       </p>
       {treasury?.runwayMonths != null && (
         <p className="text-sm text-muted-foreground mt-1">
           {treasury.runwayMonths >= 999
-            ? '10+ year runway'
-            : `${Math.round(treasury.runwayMonths / 12)} year runway`}
+            ? '10+ year '
+            : `${Math.round(treasury.runwayMonths / 12)} year `}
+          <GovTerm term="runway">runway</GovTerm>
           {' at current spending rate'}
         </p>
       )}
       {data.treasury?.proportionalShareAda != null && data.treasury.proportionalShareAda > 0 && (
         <p className="text-sm text-muted-foreground mt-1">
-          Your DRep&apos;s {formatAdaCompact(data.treasury.drepDelegatedAda ?? 0)} ADA delegation
-          represents{' '}
+          Your DRep&apos;s {formatAdaCompact(data.treasury.drepDelegatedAda ?? 0)} ADA{' '}
+          <GovTerm term="delegation">delegation</GovTerm> represents{' '}
           <span className="font-medium text-foreground">
             {formatAdaCompact(data.treasury.proportionalShareAda)} ADA
           </span>{' '}
-          of the treasury
+          <GovTerm term="proportional share">of the treasury</GovTerm>
         </p>
       )}
       {pendingProposals.length > 0 && (
@@ -622,15 +627,20 @@ function EpochBriefingContent({
   /* ── Desktop: vertical stacked layout ───────────────────────── */
 
   return (
-    <article className="space-y-0">
-      {briefingHeader}
-      {statusBanner}
-      {narrativeSection}
-      {headlinesSection}
-      {drepSection}
-      {treasurySection}
-      {upcomingSection}
-      {civicIdentityStrip}
-    </article>
+    <motion.article
+      className="space-y-0"
+      variants={briefingContainer}
+      initial="hidden"
+      animate="visible"
+    >
+      <motion.div variants={briefingItem}>{briefingHeader}</motion.div>
+      <motion.div variants={briefingItem}>{statusBanner}</motion.div>
+      <motion.div variants={briefingItem}>{narrativeSection}</motion.div>
+      <motion.div variants={briefingItem}>{headlinesSection}</motion.div>
+      <motion.div variants={briefingItem}>{drepSection}</motion.div>
+      <motion.div variants={briefingItem}>{treasurySection}</motion.div>
+      <motion.div variants={briefingItem}>{upcomingSection}</motion.div>
+      <motion.div variants={briefingItem}>{civicIdentityStrip}</motion.div>
+    </motion.article>
   );
 }

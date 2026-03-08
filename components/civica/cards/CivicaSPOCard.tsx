@@ -12,6 +12,7 @@ import {
   TIER_BADGE_BG,
   tierKey,
 } from './tierStyles';
+import { ScoreExplainer } from '@/components/ui/ScoreExplainer';
 
 export interface CivicaSPOData {
   poolId: string;
@@ -118,13 +119,16 @@ export function CivicaSPOCard({ pool, rank }: CivicaSPOCardProps) {
 
         {/* Score + tier */}
         <div className="text-right shrink-0">
-          <div
-            className={cn(
-              'font-display text-3xl font-bold tabular-nums leading-none',
-              TIER_SCORE_COLOR[tier],
-            )}
-          >
-            {score}
+          <div className="flex items-start gap-0.5 justify-end">
+            <ScoreExplainer type="spo" className="mt-1" />
+            <div
+              className={cn(
+                'font-display text-3xl font-bold tabular-nums leading-none',
+                TIER_SCORE_COLOR[tier],
+              )}
+            >
+              {score}
+            </div>
           </div>
           <div className="flex items-center justify-end gap-1 mt-1">
             <span
