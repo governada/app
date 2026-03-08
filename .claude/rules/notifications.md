@@ -59,6 +59,7 @@ Be verbose and specific. The founder may be away from their computer and needs e
 ## Channels
 
 The script auto-sources `.env.local` and sends to all configured channels:
+
 - **Discord**: `DISCORD_AGENT_WEBHOOK_URL` (agent-alerts channel), falls back to `DISCORD_WEBHOOK_URL`
 - **Telegram**: `TELEGRAM_BOT_TOKEN` + `TELEGRAM_FOUNDER_CHAT_ID`
 
