@@ -1,10 +1,15 @@
+'use client';
+
+import { AlertCircle, RotateCcw } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 
 interface AsyncContentProps {
   isLoading: boolean;
   isError: boolean;
   data: unknown;
   errorMessage?: string;
+  onRetry?: () => void;
   skeleton?: React.ReactNode;
   children: React.ReactNode;
 }
@@ -18,6 +23,7 @@ export function AsyncContent({
   isError,
   data,
   errorMessage = 'Unable to load this section.',
+  onRetry,
   skeleton,
   children,
 }: AsyncContentProps) {
@@ -34,7 +40,18 @@ export function AsyncContent({
   }
 
   if (isError) {
-    return <p className="text-sm text-muted-foreground text-center py-4">{errorMessage}</p>;
+    return (
+      <div className="flex flex-col items-center gap-3 py-6 text-center">
+        <AlertCircle className="h-5 w-5 text-muted-foreground" />
+        <p className="text-sm font-medium text-foreground">{errorMessage}</p>
+        {onRetry && (
+          <Button variant="outline" size="sm" onClick={onRetry}>
+            <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+            Try again
+          </Button>
+        )}
+      </div>
+    );
   }
 
   if (!data) return null;

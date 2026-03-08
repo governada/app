@@ -4,14 +4,8 @@ import Link from 'next/link';
 import { ShieldCheck, ChevronRight, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { computeTier } from '@/lib/scoring/tiers';
-import {
-  TIER_SCORE_COLOR,
-  TIER_BORDER,
-  TIER_BG,
-  TIER_GLOW,
-  TIER_BADGE_BG,
-  tierKey,
-} from './tierStyles';
+import { TIER_SCORE_COLOR, TIER_BORDER, TIER_BG, TIER_GLOW, tierKey } from './tierStyles';
+import { TierBadge } from './TierBadge';
 import { ScoreExplainer } from '@/components/ui/ScoreExplainer';
 
 export interface CivicaSPOData {
@@ -132,14 +126,7 @@ export function CivicaSPOCard({ pool, rank }: CivicaSPOCardProps) {
             </div>
           </div>
           <div className="flex items-center justify-end gap-1 mt-1">
-            <span
-              className={cn(
-                'text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full inline-block',
-                TIER_BADGE_BG[tier],
-              )}
-            >
-              {tier}
-            </span>
+            <TierBadge tier={tier} />
             {isProvisional && (
               <span className="inline-flex items-center gap-0.5 text-[9px] text-amber-500 font-medium">
                 <AlertTriangle className="h-2.5 w-2.5" />
