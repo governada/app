@@ -24,6 +24,7 @@ import { CivicaGovernanceTrends } from './CivicaGovernanceTrends';
 import { CivicaObservatory } from './CivicaObservatory';
 import { CivicaGovernanceCalendar } from './CivicaGovernanceCalendar';
 import { StateOfGovernance } from './StateOfGovernance';
+import { FirstVisitBanner } from '@/components/ui/FirstVisitBanner';
 
 type PulseTab = 'now' | 'history' | 'observatory';
 
@@ -156,6 +157,10 @@ export function CivicaPulseOverview() {
 
   return (
     <div className="space-y-6 pt-4">
+      <FirstVisitBanner
+        pageKey="pulse"
+        message="The big picture. How healthy is Cardano governance right now? Track participation, treasury, and trends over time."
+      />
       {/* ── Tab bar ─────────────────────────────────────────── */}
       <div className="flex gap-1 border-b border-border -mb-2 overflow-x-auto">
         {TABS.map((tab) => (

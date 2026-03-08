@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
 import { posthog } from '@/lib/posthog';
 import {
   CheckCircle2,
@@ -22,6 +23,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTreasuryCurrent, useTreasuryPending } from '@/hooks/queries';
+import { briefingContainer, briefingItem } from '@/lib/animations';
+import { GovTerm } from '@/components/ui/GovTerm';
 
 /* ── Types ──────────────────────────────────────────────────────── */
 
@@ -157,19 +160,27 @@ export function EpochBriefing({ wallet }: EpochBriefingProps) {
   const pendingProposals = Array.isArray(pending?.proposals) ? pending.proposals.slice(0, 3) : [];
 
   return (
-    <article className="space-y-0">
+    <motion.article
+      className="space-y-0"
+      variants={briefingContainer}
+      initial="hidden"
+      animate="visible"
+    >
       {/* ── Briefing Header ───────────────────────────────────────── */}
-      <header className="pb-5 border-b border-border">
+      <motion.header variants={briefingItem} className="pb-5 border-b border-border">
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
           Your Governance Briefing
         </p>
         <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground mt-1">
           Epoch {data.epoch}
         </h1>
-      </header>
+      </motion.header>
 
       {/* ── Status Banner ─────────────────────────────────────────── */}
-      <div className="py-4 border-b border-border flex items-center gap-3">
+      <motion.div
+        variants={briefingItem}
+        className="py-4 border-b border-border flex items-center gap-3"
+      >
         <StatusIcon className={cn('h-5 w-5 shrink-0', config.iconColor)} />
         <p className="flex-1 text-sm font-semibold text-foreground">
           {data.status?.headline ?? 'Governance is active'}
@@ -186,20 +197,20 @@ export function EpochBriefing({ wallet }: EpochBriefingProps) {
             <Link href="/match">Find My DRep</Link>
           </Button>
         )}
-      </div>
+      </motion.div>
 
       {/* ── The Lead (AI narrative) ───────────────────────────────── */}
       {data.recap?.narrative && (
-        <div className="py-5 border-b border-border">
+        <motion.div variants={briefingItem} className="py-5 border-b border-border">
           <p className="text-base sm:text-lg leading-relaxed text-foreground">
             {data.recap.narrative}
           </p>
-        </div>
+        </motion.div>
       )}
 
       {/* ── What Happened (headlines) ─────────────────────────────── */}
       {data.headlines && data.headlines.length > 0 && (
-        <div className="py-5 border-b border-border space-y-3">
+        <motion.div variants={briefingItem} className="py-5 border-b border-border space-y-3">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             What happened
           </p>
@@ -216,12 +227,12 @@ export function EpochBriefing({ wallet }: EpochBriefingProps) {
                 </li>
               ))}
           </ul>
-        </div>
+        </motion.div>
       )}
 
       {/* ── Your DRep This Epoch ──────────────────────────────────── */}
       {data.drepPerformance && (
-        <div className="py-5 border-b border-border">
+        <motion.div variants={briefingItem} className="py-5 border-b border-border">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
             Your DRep this epoch
           </p>
@@ -275,11 +286,11 @@ export function EpochBriefing({ wallet }: EpochBriefingProps) {
                 )}
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* ── Treasury ──────────────────────────────────────────────── */}
-      <div className="py-5 border-b border-border">
+      <motion.div variants={briefingItem} className="py-5 border-b border-border">
         <div className="flex items-center justify-between mb-3">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Where your money goes
@@ -294,24 +305,35 @@ export function EpochBriefing({ wallet }: EpochBriefingProps) {
         </div>
         <p className="text-2xl font-bold tabular-nums text-foreground">
           {formatAdaCompact(treasury?.balance ?? data.treasury?.balanceAda ?? 0)} ADA
-          <span className="text-sm font-normal text-muted-foreground ml-2">in the treasury</span>
+          <span className="text-sm font-normal text-muted-foreground ml-2">
+            in the <GovTerm term="treasury">treasury</GovTerm>
+          </span>
         </p>
         {treasury?.runwayMonths != null && (
           <p className="text-sm text-muted-foreground mt-1">
-            {treasury.runwayMonths >= 999
-              ? '10+ year runway'
-              : `${Math.round(treasury.runwayMonths / 12)} year runway`}
+            {treasury.runwayMonths >= 999 ? (
+              <>
+                10+ year <GovTerm term="runway">runway</GovTerm>
+              </>
+            ) : (
+              <>
+                {Math.round(treasury.runwayMonths / 12)} year{' '}
+                <GovTerm term="runway">runway</GovTerm>
+              </>
+            )}
             {' at current spending rate'}
           </p>
         )}
         {data.treasury?.proportionalShareAda != null && data.treasury.proportionalShareAda > 0 && (
           <p className="text-sm text-muted-foreground mt-1">
-            Your DRep&apos;s {formatAdaCompact(data.treasury.drepDelegatedAda ?? 0)} ADA delegation
-            represents{' '}
-            <span className="font-medium text-foreground">
-              {formatAdaCompact(data.treasury.proportionalShareAda)} ADA
-            </span>{' '}
-            of the treasury
+            Your DRep&apos;s {formatAdaCompact(data.treasury.drepDelegatedAda ?? 0)} ADA{' '}
+            <GovTerm term="delegation">delegation</GovTerm> represents a{' '}
+            <GovTerm term="proportional share">
+              <span className="font-medium text-foreground">
+                {formatAdaCompact(data.treasury.proportionalShareAda)} ADA
+              </span>
+            </GovTerm>{' '}
+            share of the treasury
           </p>
         )}
         {pendingProposals.length > 0 && (
@@ -342,11 +364,11 @@ export function EpochBriefing({ wallet }: EpochBriefingProps) {
             {data.treasury.pendingProposals !== 1 ? 's' : ''} requesting funds
           </p>
         )}
-      </div>
+      </motion.div>
 
       {/* ── What's Coming ─────────────────────────────────────────── */}
       {data.upcoming && data.upcoming.activeProposals > 0 && (
-        <div className="py-5 border-b border-border">
+        <motion.div variants={briefingItem} className="py-5 border-b border-border">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm text-foreground">
               <Vote className="h-4 w-4 text-muted-foreground" />
@@ -368,12 +390,15 @@ export function EpochBriefing({ wallet }: EpochBriefingProps) {
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* ── Civic Identity (compact strip) ────────────────────────── */}
       {identity && (
-        <div className="pt-5 flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+        <motion.div
+          variants={briefingItem}
+          className="pt-5 flex items-center gap-4 text-xs text-muted-foreground flex-wrap"
+        >
           {identity.citizenSinceEpoch != null && (
             <span className="inline-flex items-center gap-1.5">
               <Calendar className="h-3.5 w-3.5" />
@@ -398,8 +423,8 @@ export function EpochBriefing({ wallet }: EpochBriefingProps) {
               {formatAdaCompact(identity.adaGoverned)} ADA governed
             </span>
           )}
-        </div>
+        </motion.div>
       )}
-    </article>
+    </motion.article>
   );
 }

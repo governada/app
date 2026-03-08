@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useWallet } from '@/utils/wallet';
 import { getStoredSession } from '@/lib/supabaseAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,9 +33,12 @@ interface ConcernFlagsProps {
 
 export function ConcernFlags({ txHash, proposalIndex, isOpen }: ConcernFlagsProps) {
   const { connected, isAuthenticated, authenticate } = useWallet();
+  const queryClient = useQueryClient();
   const { data: results, isLoading, refetch } = useConcernFlags(txHash, proposalIndex);
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const queryKey = ['concern-flags', txHash, proposalIndex];
 
   const toggleFlag = async (flagType: ConcernFlagType) => {
     hapticLight();
@@ -49,6 +53,26 @@ export function ConcernFlags({ txHash, proposalIndex, isOpen }: ConcernFlagsProp
     const isRemoving = results?.userFlags.includes(flagType);
     setSubmitting(flagType);
     setError(null);
+
+    // Optimistic update
+    const previousData = queryClient.getQueryData(queryKey);
+    queryClient.setQueryData(queryKey, (old: typeof results) => {
+      if (!old) return old;
+      const flags = { ...old.flags };
+      const userFlags = [...old.userFlags];
+      let total = old.total;
+      if (isRemoving) {
+        flags[flagType] = Math.max(0, (flags[flagType] || 0) - 1);
+        total = Math.max(0, total - 1);
+        const idx = userFlags.indexOf(flagType);
+        if (idx >= 0) userFlags.splice(idx, 1);
+      } else {
+        flags[flagType] = (flags[flagType] || 0) + 1;
+        total += 1;
+        userFlags.push(flagType);
+      }
+      return { ...old, flags, userFlags, total };
+    });
 
     try {
       const res = await fetch('/api/engagement/concerns', {
@@ -80,6 +104,8 @@ export function ConcernFlags({ txHash, proposalIndex, isOpen }: ConcernFlagsProp
         })
         .catch(() => {});
     } catch (err) {
+      // Rollback on error
+      if (previousData) queryClient.setQueryData(queryKey, previousData);
       setError(err instanceof Error ? err.message : 'Failed to update flag');
     } finally {
       setSubmitting(null);

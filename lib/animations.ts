@@ -3,6 +3,25 @@
 import { type Transition, type Variants } from 'framer-motion';
 
 /* ──────────────────────────────────────────────
+   Duration tokens (milliseconds)
+   ────────────────────────────────────────────── */
+
+export const DURATION = {
+  fast: 0.15,
+  normal: 0.25,
+  slow: 0.4,
+} as const;
+
+/* ──────────────────────────────────────────────
+   Easing curves
+   ────────────────────────────────────────────── */
+
+export const EASE = {
+  out: [0.16, 1, 0.3, 1] as [number, number, number, number],
+  inOut: [0.42, 0, 0.58, 1] as [number, number, number, number],
+} as const;
+
+/* ──────────────────────────────────────────────
    Spring presets — the animation vocabulary
    for the entire app. Every animated element
    uses one of these three springs.
@@ -131,3 +150,26 @@ export function getPageInitial(direction: NavDirection) {
       return 'enterNeutral';
   }
 }
+
+/* ──────────────────────────────────────────────
+   Briefing entrance — orchestrated stagger
+   ────────────────────────────────────────────── */
+
+export const briefingContainer: Variants = {
+  hidden: {},
+  visible: {
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.05,
+    },
+  },
+};
+
+export const briefingItem: Variants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: DURATION.normal, ease: EASE.out },
+  },
+};

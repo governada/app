@@ -4,6 +4,7 @@ import { PrioritySignals } from '@/components/engagement/PrioritySignals';
 import { CitizenAssembly } from '@/components/engagement/CitizenAssembly';
 import { AssemblyHistory } from '@/components/engagement/AssemblyHistory';
 import { PageViewTracker } from '@/components/PageViewTracker';
+import { FirstVisitBanner } from '@/components/ui/FirstVisitBanner';
 
 interface EngageClientProps {
   epoch: number;
@@ -21,6 +22,11 @@ export function EngageClient({ epoch }: EngageClientProps) {
           teams.
         </p>
       </div>
+
+      <FirstVisitBanner
+        pageKey="engage"
+        message="Your input here directly influences the governance intelligence engine. Every signal you send — sentiment, priority, concern — helps DReps make better decisions."
+      />
 
       {/* Citizen Assembly (if active) */}
       <section>

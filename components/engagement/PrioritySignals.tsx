@@ -80,6 +80,10 @@ export function PrioritySignals({ epoch }: PrioritySignalsProps) {
 
     setSubmitting(true);
     setError(null);
+
+    // Optimistic: show confirmed state immediately
+    setSubmitted(true);
+
     try {
       const res = await fetch('/api/engagement/priorities', {
         method: 'POST',
@@ -93,9 +97,11 @@ export function PrioritySignals({ epoch }: PrioritySignalsProps) {
         }),
       });
 
-      if (!res.ok) throw new Error('Failed to submit priorities');
+      if (!res.ok) {
+        setSubmitted(false); // Rollback
+        throw new Error('Failed to submit priorities');
+      }
 
-      setSubmitted(true);
       await Promise.all([refetchRankings(), refetchUser()]);
 
       import('@/lib/posthog')
@@ -107,6 +113,7 @@ export function PrioritySignals({ epoch }: PrioritySignalsProps) {
         })
         .catch(() => {});
     } catch (err) {
+      setSubmitted(false); // Rollback on error
       setError(err instanceof Error ? err.message : 'Failed to submit priorities');
     } finally {
       setSubmitting(false);
