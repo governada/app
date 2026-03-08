@@ -6,6 +6,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import Link from 'next/link';
 
 export function MethodologyAccordion() {
   return (
@@ -129,6 +130,12 @@ export function MethodologyAccordion() {
           </AccordionContent>
         </AccordionItem>
       </Accordion>
+      <Link
+        href="/methodology"
+        className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-2"
+      >
+        See full methodology &rarr;
+      </Link>
     </div>
   );
 }
