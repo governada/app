@@ -261,9 +261,82 @@ Even if actual performance is good, does it *feel* fast?
 - Are transitions smooth between routes? (no flash of white/loading)
 - Is the initial app shell meaningful? (not a blank page with a spinner)
 
-## Phase 6: Retention & Engagement Architecture
+## Phase 6: Visual Design Craft Audit
 
-### 6.1 Epoch Cadence Design
+This phase evaluates whether the product looks like it was designed by a world-class design team — not just whether it functions correctly. Functional polish (Phase 5) tells you the mechanics work. This phase tells you whether the product is *beautiful*, *distinctive*, and *intentionally crafted*.
+
+### 6.1 Visual Identity System
+
+Evaluate the coherence of the design language across all surfaces:
+- **Color system:** Is there a deliberate palette beyond shadcn defaults? Does the palette evoke governance/civic themes? Is color used semantically (not just decoratively)?
+- **Typography:** Is there a clear type hierarchy (display → heading → body → caption)? Does type feel intentional or default? Are font pairings distinctive?
+- **Spacing & rhythm:** Is there a consistent spacing scale? Do pages have visual rhythm (alternating density/breathing room)?
+- **Iconography:** Custom icons or generic Lucide throughout? Do icons reinforce the governance/civic identity?
+- **Illustration/imagery:** Is there a visual language beyond components? Custom graphics, illustrations, or patterns that say "governance"?
+
+For each element, rate: DISTINCTIVE / INTENTIONAL / DEFAULT / INCONSISTENT.
+
+### 6.2 Component Design Quality
+
+For each major component category, evaluate craft level:
+
+| Component Type | Key Examples | Check |
+|---|---|---|
+| Cards | DRep cards, proposal cards, pool cards | Are they purpose-built for governance data, or generic card with different content? |
+| Score displays | ScoreRing, HexScore, ScoreCard, ScoreBreakdown | Do they feel premium and distinctive? Would you show them in a pitch deck? |
+| Data visualizations | Charts, constellation, alignment viz, GHI trend | Custom D3/SVG or stock Recharts? Do they feel purpose-built? |
+| Hero sections | ConstellationHero, GovernanceImpactHero, DRepProfileHero | Do they set a visual bar the rest of the app matches? |
+| Navigation | Header, sidebar, breadcrumbs, tabs | Does navigation feel cohesive with the rest of the design? |
+| Forms & inputs | Match questionnaire, filters, search | Do form elements feel intentional or browser-default? |
+| Badges & status | Score tiers, milestone badges, health indicators | Are they distinctive visual elements or text with a colored background? |
+
+For each: rate as WORLD-CLASS / CRAFTED / FUNCTIONAL / STOCK.
+
+### 6.3 Information Hierarchy & Layout
+
+For each major page, evaluate visual information architecture:
+- **Visual weight:** Is the most important element the most visually prominent?
+- **Eye flow:** Does the page guide the eye naturally from primary → secondary → tertiary information?
+- **Density calibration:** Is information density appropriate for the persona? (Citizens: spacious and focused. DReps: dense but organized. Researchers: maximum density.)
+- **Whitespace:** Is negative space used intentionally to create focus, or is the page either cramped or sparse?
+- **Grid system:** Is there a consistent underlying grid, or does each page feel independently laid out?
+
+Pages to evaluate: homepage, `/discover`, `/drep/[id]`, `/pool/[id]`, `/proposal/[tx]/[i]`, `/pulse`, `/match`, `/engage`, `/my-gov`.
+
+### 6.4 Dark Mode Excellence
+
+Dark mode is not just "invert the colors." Evaluate against the Vercel/Linear standard:
+- **Contrast hierarchy:** Are there multiple levels of surface depth (not just one dark background)?
+- **Color vibrancy:** Do accent colors pop against dark surfaces, or do they look washed out?
+- **Borders & dividers:** Are they subtle (1px, low-opacity) or harsh lines?
+- **Shadow system:** Are shadows replaced with luminance differences in dark mode?
+- **Chart/viz adaptation:** Do data visualizations look as good in dark mode as light?
+- **Image handling:** Are images, avatars, and graphics adapted for dark backgrounds?
+- **Consistency:** Is dark mode a first-class experience or an afterthought with visual bugs?
+
+### 6.5 Data Visualization Craft
+
+Governance data is Civica's core differentiator. Visualizations must be exceptional:
+- **Custom vs library:** What % of charts are custom D3/SVG vs Recharts/chart library defaults?
+- **Governance-specific:** Do visualizations communicate governance concepts that generic charts can't? (e.g., constellation for alignment, score ring for multi-pillar assessment, GHI gauge for health)
+- **Annotation & context:** Do charts have meaningful annotations (epoch boundaries, significant events) or just axes and data points?
+- **Interactive quality:** Do hover states, tooltips, and click interactions feel premium?
+- **Responsive:** Do visualizations degrade gracefully on mobile, or become unusable?
+- **Printable/shareable:** Do key visualizations look good as static images (for share cards, OG images)?
+
+### 6.6 Brand Distinctiveness Benchmark
+
+The ultimate design test — screenshot each major page and evaluate:
+- **Remove the logo.** Would anyone know this is Civica? What visual elements make it unmistakable?
+- **Compare to shadcn templates.** How many components could exist unchanged in a generic shadcn/Next.js starter?
+- **Compare to competitors.** Screenshot GovTool, Tally, Snapshot side-by-side. Where does Civica look clearly more polished? Where does it look generic by comparison?
+- **The "pitch deck" test.** Would you put this screenshot in a presentation to investors/partners? If not, what's holding it back?
+
+Score the product overall: if 10 screenshots were shared on X with no context, would the reaction be "this looks incredible" or "this looks like another crypto dashboard"?
+
+## Phase 7: Retention & Engagement Architecture
+
+### 7.1 Epoch Cadence Design
 
 Cardano epochs are ~5 days. For each persona, answer:
 - What changes at epoch boundary that makes them want to check in?
@@ -271,7 +344,7 @@ Cardano epochs are ~5 days. For each persona, answer:
 - Does the epoch briefing (if built) create a natural "check-in" ritual?
 - Would a push notification for epoch change be valuable and welcomed?
 
-### 6.2 Progressive Engagement
+### 7.2 Progressive Engagement
 
 Map the ladder from anonymous → engaged for each persona:
 - **Anonymous → Wallet connected:** What's the incentive? How frictionless is it?
@@ -281,28 +354,28 @@ Map the ladder from anonymous → engaged for each persona:
 
 For each transition, rate: COMPELLING / ADEQUATE / WEAK / MISSING.
 
-### 6.3 Notification & Alert Strategy
+### 7.3 Notification & Alert Strategy
 
 - Smart alerts: Do they exist? What triggers them?
 - Epoch briefing delivery: In-app only, or email/push?
 - Alert fatigue: Is there a "most epochs, nothing to report" quiet mode?
 - Urgency calibration: Do alerts differentiate "your DRep voted" from "your DRep was deregistered"?
 
-### 6.4 Civic Identity as Retention
+### 7.4 Civic Identity as Retention
 
 - Does civic identity (milestones, streaks, history) create investment that increases switching cost?
 - Is identity visible to others? (social proof, shareable)
 - Does identity progress feel achievable and rewarding?
 - Is there a "civic identity" equivalent for DReps/SPOs? (reputation compounds)
 
-### 6.5 Social & Viral Loops
+### 7.5 Social & Viral Loops
 
 - Can users share their governance involvement? (share cards, wrapped, civic identity)
 - Do shared artifacts drive new users to the product?
 - Is there a referral or advocacy mechanic?
 - Do engagement mechanisms (sentiment votes, assemblies) create social proof?
 
-## Phase 7: Scoring (5 dimensions, 10 pts each = 50 total)
+## Phase 8: Scoring (6 dimensions, 10 pts each = 60 total)
 
 ### U1: Intelligence Surfacing (10 pts)
 | Score | Anchor |
@@ -344,7 +417,15 @@ For each transition, rate: COMPELLING / ADEQUATE / WEAK / MISSING.
 | 7-8 | Epoch cadence creates natural check-in ritual, progressive engagement ladder for each persona, smart alerts with appropriate quiet mode, civic identity creates meaningful switching cost, share cards for key moments |
 | 9-10 | Measured retention rates improve quarter-over-quarter, notification strategy validated by engagement data, civic identity cited as reason users stay, viral loops drive measurable acquisition, DAU/MAU ratios competitive with best consumer apps |
 
-## Phase 8: Work Plan
+### U6: Visual Design Craft (10 pts)
+| Score | Anchor |
+|-------|--------|
+| 1-3 | Stock shadcn components throughout, no visual identity, dark mode is just inverted colors, generic charts |
+| 4-6 | Some custom components (hero sections, score ring), basic color system, dark mode functional but not polished, mix of custom and stock visualizations |
+| 7-8 | Coherent visual identity system (color, type, spacing, iconography), hero sections set a bar the app matches, dark mode is a first-class experience with depth and vibrancy, data visualizations are custom and governance-specific, most screenshots pass the "pitch deck" test, clear visual differentiation from competitors |
+| 9-10 | Every component feels purpose-built, visual identity is instantly recognizable (remove logo and you still know it's Civica), dark mode rivals Vercel/Linear, visualizations are category-defining, design system documented and maintained, screenshots consistently provoke "this looks incredible" reactions, brand design could win awards |
+
+## Phase 9: Work Plan
 
 For each gap, propose improvements following `docs/strategy/context/work-plan-template.md`.
 
@@ -353,6 +434,7 @@ Categorize each issue:
 - **journey** — persona journey gap (step missing or weak)
 - **storytelling** — data presented without narrative or emotional context
 - **polish** — interaction quality issue (loading, error, responsive, accessibility)
+- **design** — visual craft issue (stock components, weak identity, dark mode gaps, generic visualizations)
 - **retention** — missing engagement loop or return incentive
 
 **Key decision prompts for the user:**
@@ -361,6 +443,8 @@ Categorize each issue:
 - Which unsurfaced backend capabilities have the highest impact-to-effort ratio?
 - Should we invest in push notifications / email briefings before perfecting in-app?
 - Is the Wrapped/report format premium enough to be a shareable viral artifact?
+- Which components should be upgraded from stock shadcn to custom governance-specific designs first?
+- Should we invest in a formal design system (tokens, component library documentation) or continue ad hoc?
 
 ## Recommended Cadence
 
