@@ -125,15 +125,9 @@ export function tauDecentralization(values: number[], threshold = 0.66): number 
 // Composite score
 // ---------------------------------------------------------------------------
 
-const METRIC_WEIGHTS = {
-  nakamoto: 0.2,
-  gini: 0.15,
-  shannonEntropy: 0.2,
-  hhi: 0.15,
-  theil: 0.1,
-  concentration: 0.1,
-  tau: 0.1,
-} as const;
+import { EDI_METRIC_WEIGHTS } from '@/lib/scoring/calibration';
+
+const METRIC_WEIGHTS = EDI_METRIC_WEIGHTS;
 
 export interface EDIBreakdown {
   nakamotoCoefficient: number;

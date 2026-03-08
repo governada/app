@@ -7,13 +7,14 @@
 import { percentileNormalize } from './percentile';
 import { percentileNormalizeWeighted } from './confidence';
 import { DECAY_LAMBDA } from './types';
+import {
+  SPO_PILLAR_WEIGHTS as _SPO_WEIGHTS,
+  SPO_MARGIN,
+  SPO_RELIABILITY_WEIGHTS,
+  SPO_RELIABILITY_PARAMS,
+} from './calibration';
 
-export const SPO_PILLAR_WEIGHTS = {
-  participation: 0.35,
-  deliberation: 0.25,
-  reliability: 0.25,
-  governanceIdentity: 0.15,
-} as const;
+export const SPO_PILLAR_WEIGHTS = _SPO_WEIGHTS;
 
 export interface SpoVoteDataV3 {
   poolId: string;
@@ -206,7 +207,7 @@ function computeReliability(
   // Engagement consistency: coefficient of variation of votes-per-active-epoch
   const activeEpochsInRange = [...activeEpochs].filter((e) => e >= firstEpoch && e <= currentEpoch);
   let consistencyScore = 50; // default
-  if (activeEpochsInRange.length >= 3) {
+  if (activeEpochsInRange.length >= SPO_RELIABILITY_PARAMS.consistencyMinEpochs) {
     const votesPerEpoch = activeEpochsInRange.map((e) => votes.filter((v) => v.epoch === e).length);
     const mean = votesPerEpoch.reduce((a, b) => a + b, 0) / votesPerEpoch.length;
     if (mean > 0) {
@@ -218,17 +219,23 @@ function computeReliability(
     }
   }
 
-  const activeStreakScore = Math.min(streak * 15, 100);
-  const recencyScore = 100 * Math.exp(-epochsSinceLastVote / 5);
-  const gapScore = Math.max(0, 100 - longestGap * 15);
-  const tenureScore = Math.min(20 + 80 * (1 - Math.exp(-epochsSinceFirst / 30)), 100);
+  const activeStreakScore = Math.min(streak * SPO_RELIABILITY_PARAMS.streakPointsPerEpoch, 100);
+  const recencyScore =
+    100 * Math.exp(-epochsSinceLastVote / SPO_RELIABILITY_PARAMS.recencyDecayDivisor);
+  const gapScore = Math.max(0, 100 - longestGap * SPO_RELIABILITY_PARAMS.gapPenaltyPerEpoch);
+  const tenureScore = Math.min(
+    SPO_RELIABILITY_PARAMS.tenureFloor +
+      SPO_RELIABILITY_PARAMS.tenureGrowth *
+        (1 - Math.exp(-epochsSinceFirst / SPO_RELIABILITY_PARAMS.tenureDecayEpochs)),
+    100,
+  );
 
   return (
-    activeStreakScore * 0.3 +
-    recencyScore * 0.25 +
-    gapScore * 0.15 +
-    consistencyScore * 0.15 +
-    tenureScore * 0.15
+    activeStreakScore * SPO_RELIABILITY_WEIGHTS.activeStreak +
+    recencyScore * SPO_RELIABILITY_WEIGHTS.recency +
+    gapScore * SPO_RELIABILITY_WEIGHTS.gap +
+    consistencyScore * SPO_RELIABILITY_WEIGHTS.engagementConsistency +
+    tenureScore * SPO_RELIABILITY_WEIGHTS.tenure
   );
 }
 
@@ -255,7 +262,7 @@ export function computeProposalMarginMultipliers(allVotes: SpoVoteDataV3[]): Map
       continue;
     }
     const margin = Math.abs(counts.yes / total - counts.no / total);
-    result.set(key, margin < 0.2 ? 1.5 : 1);
+    result.set(key, margin < SPO_MARGIN.threshold ? SPO_MARGIN.multiplier : 1);
   }
   return result;
 }

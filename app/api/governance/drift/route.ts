@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withRouteHandler } from '@/lib/api/withRouteHandler';
 import { createClient } from '@/lib/supabase';
-import {
-  computeAlignmentDrift,
-  type Alignment6D,
-  ALIGNMENT_DIMENSIONS,
-} from '@/lib/alignment/drift';
+import { computeAlignmentDrift, toAlignment6D, type Alignment6D } from '@/lib/alignment/drift';
 
 export const dynamic = 'force-dynamic';
 
@@ -70,18 +66,7 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
     });
   }
 
-  const citizenAlignment: Alignment6D = {
-    treasury_conservative: 50,
-    treasury_growth: 50,
-    decentralization: 50,
-    security: 50,
-    innovation: 50,
-    transparency: 50,
-  };
-  const scores = profile.alignment_scores as Record<string, number>;
-  for (const dim of ALIGNMENT_DIMENSIONS) {
-    citizenAlignment[dim] = scores[dim] ?? 50;
-  }
+  const citizenAlignment = toAlignment6D(profile.alignment_scores as Record<string, number | null>);
 
   const drepAlignment: Alignment6D = {
     treasury_conservative: drep.alignment_treasury_conservative ?? 50,

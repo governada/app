@@ -19,3 +19,4 @@ export { scoreRationalesBatch } from './rationaleQuality';
 export { normalizeToPercentiles, type RawScoreRow, type NormalizedScoreRow } from './normalize';
 export { computePCA, storePCAResults, loadActivePCA, type PCAResult } from './pca';
 export { validateDimensionIndependence, type ValidationReport } from './validate';
+export { projectPCAToDimensions, reconcileDimensionScores } from './pcaProjection';

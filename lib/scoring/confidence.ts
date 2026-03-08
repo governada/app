@@ -8,6 +8,8 @@
  * - UI renders low-confidence scores with a "provisional" marker
  */
 
+import { SPO_CONFIDENCE } from './calibration';
+
 /**
  * Compute confidence (0-100) for a single SPO based on evidence volume.
  *
@@ -20,11 +22,16 @@ export function computeConfidence(
   epochSpan: number,
   typeCoverage: number,
 ): number {
-  const voteFactor = 1 - Math.exp(-voteCount / 12); // 80% at ~15 votes
-  const spanFactor = 1 - Math.exp(-epochSpan / 20); // 80% at ~20 epochs
-  const typeFactor = Math.min(1, typeCoverage / 0.6); // 100% at 60% type coverage
+  const voteFactor = 1 - Math.exp(-voteCount / SPO_CONFIDENCE.voteDecayRate);
+  const spanFactor = 1 - Math.exp(-epochSpan / SPO_CONFIDENCE.spanDecayRate);
+  const typeFactor = Math.min(1, typeCoverage / SPO_CONFIDENCE.typeCoverageThreshold);
 
-  return Math.round((voteFactor * 0.5 + spanFactor * 0.3 + typeFactor * 0.2) * 100);
+  return Math.round(
+    (voteFactor * SPO_CONFIDENCE.weights.vote +
+      spanFactor * SPO_CONFIDENCE.weights.span +
+      typeFactor * SPO_CONFIDENCE.weights.type) *
+      100,
+  );
 }
 
 /**
@@ -86,4 +93,4 @@ export function percentileNormalizeWeighted(
 }
 
 /** Minimum confidence required for tier assignment above Emerging. */
-export const CONFIDENCE_TIER_THRESHOLD = 60;
+export const CONFIDENCE_TIER_THRESHOLD = SPO_CONFIDENCE.tierThreshold;

@@ -5,14 +5,9 @@
  */
 
 import type { VoteData } from './types';
+import { RELIABILITY_WEIGHTS, RELIABILITY_PARAMS } from './calibration';
 
-const WEIGHTS = {
-  streak: 0.3,
-  recency: 0.25,
-  gap: 0.2,
-  responsiveness: 0.15,
-  tenure: 0.1,
-};
+const WEIGHTS = RELIABILITY_WEIGHTS;
 
 export interface ReliabilityV3Result {
   score: number;
@@ -100,11 +95,13 @@ function computeSingleDRepReliability(
       break;
     }
   }
-  const streakScore = Math.min(100, streak * 10);
+  const streakScore = Math.min(100, streak * RELIABILITY_PARAMS.streakPointsPerEpoch);
 
   // 2. Recency (25%) — exponential decay from last vote
   const recency = Math.max(0, currentEpoch - lastVotedEpoch);
-  const recencyScore = Math.round(100 * Math.exp(-recency / 5));
+  const recencyScore = Math.round(
+    100 * Math.exp(-recency / RELIABILITY_PARAMS.recencyDecayDivisor),
+  );
 
   // 3. Gap Penalty (20%) — longest run of proposal-epochs without a vote
   let longestGap = 0;
@@ -119,14 +116,21 @@ function computeSingleDRepReliability(
     }
   }
   longestGap = Math.max(longestGap, currentGap);
-  const gapScore = Math.max(0, 100 - longestGap * 12);
+  const gapScore = Math.max(0, 100 - longestGap * RELIABILITY_PARAMS.gapPenaltyPerEpoch);
 
   // 4. Responsiveness (15%) — median days from proposal to vote
   const responsivenessScore = computeResponsiveness(votes);
 
   // 5. Tenure (10%) — epochs since first vote, diminishing returns
   const tenure = Math.max(0, currentEpoch - firstEpoch);
-  const tenureScore = Math.min(100, Math.round(20 + 80 * (1 - Math.exp(-tenure / 30))));
+  const tenureScore = Math.min(
+    100,
+    Math.round(
+      RELIABILITY_PARAMS.tenureFloor +
+        RELIABILITY_PARAMS.tenureGrowth *
+          (1 - Math.exp(-tenure / RELIABILITY_PARAMS.tenureDecayEpochs)),
+    ),
+  );
 
   const combined = Math.round(
     streakScore * WEIGHTS.streak +
@@ -166,7 +170,7 @@ function computeResponsiveness(votes: VoteData[]): number {
   deltas.sort((a, b) => a - b);
   const median = deltas[Math.floor(deltas.length / 2)];
 
-  return Math.round(100 * Math.exp(-median / 14));
+  return Math.round(100 * Math.exp(-median / RELIABILITY_PARAMS.responsivenessDivisor));
 }
 
 function clamp(v: number): number {
