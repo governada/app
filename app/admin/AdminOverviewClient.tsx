@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { getStoredSession } from '@/lib/supabaseAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Activity, Database, TrendingUp, AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -22,7 +23,10 @@ interface OverviewData {
 }
 
 async function fetchOverview(): Promise<OverviewData> {
-  const res = await fetch('/api/admin/overview');
+  const token = getStoredSession();
+  const headers: HeadersInit = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch('/api/admin/overview', { headers });
   if (!res.ok) throw new Error('Failed to fetch overview');
   return res.json();
 }

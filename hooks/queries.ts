@@ -407,7 +407,15 @@ export function useFeatureFlags() {
 export function useAdminIntegrity(address: string | null | undefined) {
   return useQuery({
     queryKey: ['admin-integrity', address],
-    queryFn: () => fetchJson(`/api/admin/integrity?address=${encodeURIComponent(address!)}`),
+    queryFn: async () => {
+      const { getStoredSession } = await import('@/lib/supabaseAuth');
+      const token = getStoredSession();
+      const headers: HeadersInit = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const res = await fetch('/api/admin/integrity', { headers });
+      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+      return res.json();
+    },
     enabled: !!address,
   });
 }

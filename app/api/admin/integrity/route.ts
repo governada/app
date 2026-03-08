@@ -1,49 +1,23 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase';
-import { bech32 } from 'bech32';
 import { withRouteHandler } from '@/lib/api/withRouteHandler';
+import { requireAuth } from '@/lib/supabaseAuth';
+import { isAdminWallet } from '@/lib/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
-function deriveStakeFromPaymentAddress(paymentAddress: string): string | null {
-  try {
-    const decoded = bech32.decode(paymentAddress, 256);
-    if (decoded.prefix !== 'addr' && decoded.prefix !== 'addr_test') return null;
-    const data = bech32.fromWords(decoded.words);
-    if (data.length !== 57) return null;
-    const headerByte = data[0];
-    if ((headerByte & 0xf0) >> 4 > 3) return null;
-    const networkId = headerByte & 0x0f;
-    const stakeKeyHash = data.slice(29);
-    const stakeBytes = new Uint8Array(1 + stakeKeyHash.length);
-    stakeBytes[0] = 0xe0 | networkId;
-    stakeBytes.set(stakeKeyHash, 1);
-    return bech32.encode(networkId === 1 ? 'stake' : 'stake_test', bech32.toWords(stakeBytes), 256);
-  } catch {
-    return null;
-  }
-}
-
-async function isAuthorized(request: NextRequest): Promise<boolean> {
-  const authHeader = request.headers.get('authorization');
-  if (authHeader && authHeader === `Bearer ${process.env.CRON_SECRET}`) return true;
-
-  const { searchParams } = new URL(request.url);
-  const address = searchParams.get('address');
-  if (!address) return false;
-  const adminWallets = (process.env.ADMIN_WALLETS || '')
-    .split(',')
-    .map((s) => s.trim().toLowerCase())
-    .filter(Boolean);
-  const lower = address.toLowerCase();
-  if (adminWallets.includes(lower)) return true;
-  const stakeAddr = deriveStakeFromPaymentAddress(lower);
-  return !!(stakeAddr && adminWallets.includes(stakeAddr.toLowerCase()));
-}
-
 export const GET = withRouteHandler(async (request) => {
-  if (!(await isAuthorized(request))) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // Allow cron jobs via CRON_SECRET bearer token
+  const authHeader = request.headers.get('authorization');
+  const isCron = authHeader === `Bearer ${process.env.CRON_SECRET}`;
+
+  if (!isCron) {
+    // Require authenticated admin session
+    const auth = await requireAuth(request);
+    if (auth instanceof NextResponse) return auth;
+    if (!isAdminWallet(auth.wallet)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
   }
 
   const supabase = createClient();

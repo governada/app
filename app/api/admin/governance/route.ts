@@ -1,9 +1,17 @@
 export const dynamic = 'force-dynamic';
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase';
+import { requireAuth } from '@/lib/supabaseAuth';
+import { isAdminWallet } from '@/lib/adminAuth';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const auth = await requireAuth(request);
+  if (auth instanceof NextResponse) return auth;
+  if (!isAdminWallet(auth.wallet)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   const supabase = getSupabaseAdmin();
 
   const [epochStats, ghiSnapshots, decentralization, tierDistribution, proposalTypes] =
