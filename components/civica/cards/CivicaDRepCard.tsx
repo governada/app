@@ -4,14 +4,8 @@ import Link from 'next/link';
 import { TrendingUp, TrendingDown, Minus, CheckCircle2, XCircle, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { computeTier } from '@/lib/scoring/tiers';
-import {
-  TIER_SCORE_COLOR,
-  TIER_BORDER,
-  TIER_BG,
-  TIER_GLOW,
-  TIER_BADGE_BG,
-  tierKey,
-} from './tierStyles';
+import { TIER_SCORE_COLOR, TIER_BORDER, TIER_BG, TIER_GLOW, tierKey } from './tierStyles';
+import { TierBadge } from './TierBadge';
 import type { EnrichedDRep } from '@/lib/koios';
 import { ScoreExplainer } from '@/components/ui/ScoreExplainer';
 import { getDRepTraitTags } from '@/lib/alignment';
@@ -115,14 +109,7 @@ export function CivicaDRepCard({ drep, rank, matchScore }: CivicaDRepCardProps) 
               {score}
             </div>
           </div>
-          <span
-            className={cn(
-              'text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full mt-1 inline-block',
-              TIER_BADGE_BG[tier],
-            )}
-          >
-            {tier}
-          </span>
+          <TierBadge tier={tier} className="mt-1" />
           {matchScore != null && (
             <span
               className={cn(
