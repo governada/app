@@ -115,6 +115,7 @@ C:\Users\dalto\drepscore\
 | `/audit-sync [type]` | Sync pipeline health, performance, self-healing | Monthly, quarterly full |
 | `/audit-data [domain]` | Data integrity, completeness, consistency | Monthly |
 | `/audit-scoring [system]` | Scoring methodology, calibration, gaming resistance | Quarterly |
+| `/audit-ux [persona\|surface]` | UX quality, intelligence surfacing, persona journeys, retention | Monthly persona, quarterly full |
 
 ## Path-Scoped Rules
 

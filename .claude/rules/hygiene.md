@@ -19,6 +19,8 @@ paths:
   - Audit scoring: read `docs/strategy/context/audit-rubric.md` (~180 lines)
   - Work plan structure: read `docs/strategy/context/work-plan-template.md` (~80 lines)
   - Competitive intelligence: read `docs/strategy/context/competitive-landscape.md` (~150 lines)
+  - UX standards & design principles: read `.claude/rules/product-vision.md` (~54 lines)
+  - Full persona UX specs: read `docs/strategy/personas/[persona].md`
   - Only read `docs/strategy/ultimate-vision.md` (952 lines) when updating the vision itself or doing a deep strategic audit
 - **Rules files are self-sufficient.** The `.claude/rules/product-strategy.md` contains all principles needed for most feature decisions. Don't read the full vision doc "just in case."
 
