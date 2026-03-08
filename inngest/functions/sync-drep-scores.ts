@@ -64,22 +64,28 @@ export const syncDrepScores = inngest.createFunction(
           { data: proposalRows },
           { data: summaryRows },
         ] = await Promise.all([
-          supabase.from('dreps').select('id, info, metadata, metadata_hash_verified, anchor_hash'),
+          supabase
+            .from('dreps')
+            .select('id, info, metadata, metadata_hash_verified, anchor_hash')
+            .range(0, 99999),
           supabase
             .from('drep_votes')
             .select(
               'drep_id, proposal_tx_hash, proposal_index, vote, block_time, epoch_no, rationale_quality',
-            ),
+            )
+            .range(0, 99999),
           supabase
             .from('proposals')
             .select(
               'tx_hash, proposal_index, proposal_type, treasury_tier, withdrawal_amount, block_time, proposed_epoch, expired_epoch, ratified_epoch, dropped_epoch',
-            ),
+            )
+            .range(0, 99999),
           supabase
             .from('proposal_voting_summary')
             .select(
               'proposal_tx_hash, proposal_index, drep_yes_vote_power, drep_no_vote_power, drep_abstain_vote_power',
-            ),
+            )
+            .range(0, 99999),
         ]);
 
         if (!drepRows?.length || !voteRows?.length) {
@@ -271,7 +277,8 @@ export const syncDrepScores = inngest.createFunction(
           .select('drep_id, snapshot_date, score')
           .in('drep_id', drepIds)
           .gte('snapshot_date', new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10))
-          .order('snapshot_date', { ascending: true });
+          .order('snapshot_date', { ascending: true })
+          .range(0, 99999);
 
         const scoreHistory = new Map<string, { date: string; score: number }[]>();
         for (const h of historyRows || []) {
@@ -303,7 +310,8 @@ export const syncDrepScores = inngest.createFunction(
         const { data: priorDreps } = await supabase
           .from('dreps')
           .select('id, score, current_tier')
-          .in('id', drepIdList);
+          .in('id', drepIdList)
+          .range(0, 99999);
 
         const oldTierMap = new Map<string, { score: number; tier: string | null }>();
         for (const d of priorDreps || []) {
