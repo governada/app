@@ -118,6 +118,7 @@ C:\Users\dalto\drepscore\
 | `/audit-ux [persona\|surface]`    | UX quality, intelligence surfacing, persona journeys, retention        | Monthly persona, quarterly full                |
 | `/audit-journeys [persona\|task]` | End-to-end task flows, friction measurement, edge cases, regression    | Monthly persona, quarterly full                |
 | `/audit-security [area]`          | Auth, RLS, API security, data protection, infra hardening, anti-gaming | Pre-launch full, quarterly, after auth changes |
+| `/audit-all [full\|areas\|steps\|quick]` | Orchestrator: launches all audits as parallel subagents, synthesizes unified report | Quarterly full, monthly quick |
 
 ## Path-Scoped Rules
 
