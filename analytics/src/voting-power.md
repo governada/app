@@ -144,7 +144,7 @@ display(
       Tier: (d) => html`<span class="badge badge-purple">${d}</span>`,
       Name: (d, i) =>
         html`<a
-          href="https://drepscore.io/drep/${top10Table[i].ID}"
+          href="https://governada.io/drep/${top10Table[i].ID}"
           target="_blank"
           style="color:var(--accent)"
           >${d}</a
@@ -250,7 +250,7 @@ if (prevEpoch != null) {
                   html`<span class="badge badge-green">+₳${formatAda(Math.abs(d))}</span>`,
                 Name: (d, i) =>
                   html`<a
-                    href="https://drepscore.io/drep/${gainers[i].ID}"
+                    href="https://governada.io/drep/${gainers[i].ID}"
                     target="_blank"
                     style="color:var(--accent)"
                     >${d}</a
@@ -273,7 +273,7 @@ if (prevEpoch != null) {
                   html`<span class="badge badge-red">-₳${formatAda(Math.abs(d))}</span>`,
                 Name: (d, i) =>
                   html`<a
-                    href="https://drepscore.io/drep/${losers[i].ID}"
+                    href="https://governada.io/drep/${losers[i].ID}"
                     target="_blank"
                     style="color:var(--accent)"
                     >${d}</a

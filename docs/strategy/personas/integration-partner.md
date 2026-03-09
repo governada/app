@@ -8,7 +8,7 @@
 
 ## Who They Are
 
-Integration Partners are the businesses, platforms, and projects that serve Cardano users and need governance intelligence they don't want to build themselves. They embed Civica's data, scores, and experiences into their own products -- extending Civica's reach to users who may never visit the site directly.
+Integration Partners are the businesses, platforms, and projects that serve Cardano users and need governance intelligence they don't want to build themselves. They embed Governada's data, scores, and experiences into their own products -- extending Governada's reach to users who may never visit the site directly.
 
 ### Partner Types
 
@@ -17,17 +17,17 @@ Integration Partners are the businesses, platforms, and projects that serve Card
 - The highest-value integration target. Wallets are where delegation actually happens.
 - Need: DRep scores, matching API, SPO governance scores, delegation health indicators, embeddable Quick Match widget.
 - What they don't want to build: scoring engines, alignment models, matching algorithms, proposal intelligence.
-- Impact: Every wallet embedding Civica's intelligence is distribution to every wallet user.
+- Impact: Every wallet embedding Governada's intelligence is distribution to every wallet user.
 
 **Crypto Exchanges** (Binance, Coinbase, Kraken)
 
 - Custody billions in ADA. Face growing pressure (regulatory and competitive) to participate in governance on behalf of users or enable user participation.
 - Need: governance data for informed delegation decisions, DRep/SPO scoring for user-facing displays, governance health dashboards for compliance reporting.
-- Emerging use case: "Your ADA on Coinbase is delegated to DRep X, who scored 85 on Civica" -- making custodied governance transparent.
+- Emerging use case: "Your ADA on Coinbase is delegated to DRep X, who scored 85 on Governada" -- making custodied governance transparent.
 
 **Stake Pool Comparison Tools** (PoolTool, ADApools)
 
-- Deep infrastructure metrics but zero governance data. Civica's SPO governance scores are a completely new dimension for pool comparison.
+- Deep infrastructure metrics but zero governance data. Governada's SPO governance scores are a completely new dimension for pool comparison.
 - Need: SPO governance scores, alignment data, governance participation rates.
 - Low-friction integration: adding a "Governance Score" column to existing pool listings.
 
@@ -39,14 +39,14 @@ Integration Partners are the businesses, platforms, and projects that serve Card
 
 **Block Explorers** (CardanoScan, Cexplorer)
 
-- Show raw governance transactions but no intelligence. A vote is data; Civica makes it meaning.
+- Show raw governance transactions but no intelligence. A vote is data; Governada makes it meaning.
 - Need: DRep profiles, scores, and analysis to embed alongside existing governance data views.
 
 **Governance Tools** (GovTool, Summon)
 
 - Handle voting mechanics but lack the intelligence layer.
 - Need: proposal analysis, DRep context, citizen sentiment, constitutional alignment analysis.
-- Partially competitive (Civica builds its own vote-casting flow), but the intelligence layer is complementary.
+- Partially competitive (Governada builds its own vote-casting flow), but the intelligence layer is complementary.
 
 **Institutional Delegators and Funds**
 
@@ -77,7 +77,7 @@ Integration Partners are the businesses, platforms, and projects that serve Card
 
 ### 1. Distribution Without Acquisition Cost
 
-Every wallet embedding Civica's DRep score is marketing to every wallet user. Every pool tool showing governance scores introduces governance reputation to staking delegators. Every exchange displaying governance health makes custodied ADA holders aware of governance. Civica doesn't need to acquire those users -- the partners already have them.
+Every wallet embedding Governada's DRep score is marketing to every wallet user. Every pool tool showing governance scores introduces governance reputation to staking delegators. Every exchange displaying governance health makes custodied ADA holders aware of governance. Governada doesn't need to acquire those users -- the partners already have them.
 
 This is potentially the most efficient growth channel in the entire product strategy.
 
@@ -85,9 +85,9 @@ This is potentially the most efficient growth channel in the entire product stra
 
 Integrations create feedback loops:
 
-- A wallet using Civica's matching API generates delegation data (which recommendations led to delegations)
+- A wallet using Governada's matching API generates delegation data (which recommendations led to delegations)
 - An exchange providing governance reporting validates data quality at institutional scale
-- Pool tools linking to Civica profiles drive traffic that generates engagement data
+- Pool tools linking to Governada profiles drive traffic that generates engagement data
 - More integrations produce more data, which improves the intelligence, which makes integrations more valuable
 
 ### 3. Revenue at Scale
@@ -96,7 +96,7 @@ Individual consumers pay $15-25/mo. Integration partners pay $50-200/mo for API 
 
 ### 4. Ecosystem Lock-In
 
-When a wallet's delegation picker depends on Civica's scoring API, switching costs are high. When a pool tool displays Civica's governance scores, removing them means removing a feature their users value. Each integration deepens Civica's position as infrastructure.
+When a wallet's delegation picker depends on Governada's scoring API, switching costs are high. When a pool tool displays Governada's governance scores, removing them means removing a feature their users value. Each integration deepens Governada's position as infrastructure.
 
 ---
 
@@ -124,11 +124,11 @@ Partners pull governance intelligence via REST API. Lowest integration effort, b
 | Pro        | 100,000 req/day | $200/mo | Production integrations, exchanges     |
 | Enterprise | Custom          | Custom  | Institutional, high-volume, SLA-backed |
 
-**Requirements:** API key registration. "Powered by Civica" attribution encouraged but not required at this tier.
+**Requirements:** API key registration. "Powered by Governada" attribution encouraged but not required at this tier.
 
 ### Tier 2: Widget Embedders (UI Components)
 
-Partners embed pre-built Civica UI components directly in their products. Moderate integration effort, higher value.
+Partners embed pre-built Governada UI components directly in their products. Moderate integration effort, higher value.
 
 **Available widgets:**
 
@@ -142,7 +142,7 @@ Partners embed pre-built Civica UI components directly in their products. Modera
 
 **Pricing:** Premium tier pricing or revenue share model. Negotiated per partner.
 
-**Requirements:** "Powered by Civica" attribution required. Links back to full profiles on Civica.
+**Requirements:** "Powered by Governada" attribution required. Links back to full profiles on Governada.
 
 ### Tier 3: Deep Integrations (Strategic Partnerships)
 
@@ -150,42 +150,42 @@ Custom, co-developed experiences for high-value partners. Highest integration ef
 
 **Examples:**
 
-- Eternl embeds Civica's full delegation flow: quiz, match, compare, delegate -- all inside the wallet
-- Coinbase integrates governance reporting: custodied ADA governance transparency powered by Civica
-- PoolTool co-brands governance metrics: "Governance data by Civica" as a first-class section in pool profiles
+- Eternl embeds Governada's full delegation flow: quiz, match, compare, delegate -- all inside the wallet
+- Coinbase integrates governance reporting: custodied ADA governance transparency powered by Governada
+- PoolTool co-brands governance metrics: "Governance data by Governada" as a first-class section in pool profiles
 
-**What Civica provides:**
+**What Governada provides:**
 
 - Custom data feeds optimized for the partner's use case
 - Co-branded UI components
-- Shared user flows (e.g., wallet connect -> Civica quiz -> delegation -> back to wallet)
+- Shared user flows (e.g., wallet connect -> Governada quiz -> delegation -> back to wallet)
 - Dedicated integration support and developer relations
 - Custom pricing, potentially including revenue share
 
 **What partners provide:**
 
 - Distribution to their user base
-- Data feedback (anonymized usage data that improves Civica's intelligence)
+- Data feedback (anonymized usage data that improves Governada's intelligence)
 - Brand amplification and co-marketing
-- Real-world validation of Civica's data quality at scale
+- Real-world validation of Governada's data quality at scale
 
 ---
 
-## The "Powered by Civica" Brand Strategy
+## The "Powered by Governada" Brand Strategy
 
 Every integration is a brand touchpoint. The strategy:
 
-- **API consumers:** Attribution encouraged. "Governance data from Civica" link in footnotes or tooltips.
-- **Widget embedders:** Attribution required. "Powered by Civica" with link. The widget itself is a brand impression.
-- **Deep integrations:** Co-branding negotiated per partnership. "Governance intelligence by Civica" or equivalent.
+- **API consumers:** Attribution encouraged. "Governance data from Governada" link in footnotes or tooltips.
+- **Widget embedders:** Attribution required. "Powered by Governada" with link. The widget itself is a brand impression.
+- **Deep integrations:** Co-branding negotiated per partnership. "Governance intelligence by Governada" or equivalent.
 
 **The flywheel:** More integrations -> more brand recognition -> more direct users -> more data -> better intelligence -> more integration value -> more integrations.
 
-**The end state:** "Civica" becomes synonymous with Cardano governance intelligence the way "Powered by Google" became synonymous with search or "Charts by TradingView" became synonymous with financial data. Not everyone visits Civica directly, but everyone encounters Civica's intelligence through the products they already use.
+**The end state:** "Governada" becomes synonymous with Cardano governance intelligence the way "Powered by Google" became synonymous with search or "Charts by TradingView" became synonymous with financial data. Not everyone visits Governada directly, but everyone encounters Governada's intelligence through the products they already use.
 
 ---
 
-## What Partners Need From Civica
+## What Partners Need From Governada
 
 ### Technical Requirements
 
@@ -199,20 +199,20 @@ Every integration is a brand touchpoint. The strategy:
 
 - **Developer relations:** Dedicated support for integration partners. Not a support ticket queue -- a relationship.
 - **Attribution guidelines:** Clear branding specs that work across partner UIs. Logo assets, placement guidelines, color variations.
-- **Usage analytics:** Partners want to know how their users interact with Civica's data. Aggregate metrics, not individual tracking.
-- **Roadmap visibility:** Partners building on Civica's API need confidence that the data they depend on will continue to exist and improve.
+- **Usage analytics:** Partners want to know how their users interact with Governada's data. Aggregate metrics, not individual tracking.
+- **Roadmap visibility:** Partners building on Governada's API need confidence that the data they depend on will continue to exist and improve.
 
 ---
 
 ## How Integration Partners Connect to Other Personas
 
-| Persona            | How Partners Serve Them                                                                                                                                                                                                                                                                                                                          |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Citizens**       | Every integration ultimately serves citizens. A wallet embedding Quick Match means more citizens find aligned DReps. A pool tool showing governance scores means governance-informed staking decisions. An exchange displaying governance health means custodied holders see governance. Partners are Civica's distribution channel to citizens. |
-| **DReps**          | Wallet integrations surface DRep scores and profiles to potential delegators inside the tools where delegation happens. This drives delegation to high-scoring DReps.                                                                                                                                                                            |
-| **SPOs**           | Pool comparison tools embedding governance scores create market pressure for SPO governance participation. SPOs who participate are visible; those who don't are invisible on a new competitive dimension.                                                                                                                                       |
-| **Treasury Teams** | Explorer integrations that show Civica's proposal intelligence and project tracking extend treasury transparency beyond Civica's direct user base.                                                                                                                                                                                               |
-| **Researchers**    | Researchers and integration partners share the API surface. Researcher needs drive API depth; partner needs drive API reliability. Both benefit from the same infrastructure investment.                                                                                                                                                         |
+| Persona            | How Partners Serve Them                                                                                                                                                                                                                                                                                                                             |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Citizens**       | Every integration ultimately serves citizens. A wallet embedding Quick Match means more citizens find aligned DReps. A pool tool showing governance scores means governance-informed staking decisions. An exchange displaying governance health means custodied holders see governance. Partners are Governada's distribution channel to citizens. |
+| **DReps**          | Wallet integrations surface DRep scores and profiles to potential delegators inside the tools where delegation happens. This drives delegation to high-scoring DReps.                                                                                                                                                                               |
+| **SPOs**           | Pool comparison tools embedding governance scores create market pressure for SPO governance participation. SPOs who participate are visible; those who don't are invisible on a new competitive dimension.                                                                                                                                          |
+| **Treasury Teams** | Explorer integrations that show Governada's proposal intelligence and project tracking extend treasury transparency beyond Governada's direct user base.                                                                                                                                                                                            |
+| **Researchers**    | Researchers and integration partners share the API surface. Researcher needs drive API depth; partner needs drive API reliability. Both benefit from the same infrastructure investment.                                                                                                                                                            |
 
 ---
 
@@ -231,20 +231,20 @@ Every integration is a brand touchpoint. The strategy:
 
 ## Metrics That Matter
 
-| Metric                                   | What It Measures           | Target                                                            |
-| ---------------------------------------- | -------------------------- | ----------------------------------------------------------------- |
-| **Active API keys**                      | Developer adoption         | 20+ registered, 5-10 active integrations                          |
-| **API request volume**                   | Usage depth                | Growing monthly request volume                                    |
-| **Paid API subscriptions**               | Monetization               | $1,500-4,000/mo from 5-10 partners                                |
-| **Widget deployments**                   | Embedded distribution      | Quick Match or score cards in 3+ wallets/tools                    |
-| **Delegations via partner integrations** | Distribution effectiveness | Measurable delegation flow from embedded Quick Match              |
-| **"Powered by Civica" impressions**      | Brand reach                | Civica attribution visible to 100K+ monthly users across partners |
-| **Partner retention**                    | Integration stickiness     | >90% annual retention of paying partners                          |
+| Metric                                   | What It Measures           | Target                                                               |
+| ---------------------------------------- | -------------------------- | -------------------------------------------------------------------- |
+| **Active API keys**                      | Developer adoption         | 20+ registered, 5-10 active integrations                             |
+| **API request volume**                   | Usage depth                | Growing monthly request volume                                       |
+| **Paid API subscriptions**               | Monetization               | $1,500-4,000/mo from 5-10 partners                                   |
+| **Widget deployments**                   | Embedded distribution      | Quick Match or score cards in 3+ wallets/tools                       |
+| **Delegations via partner integrations** | Distribution effectiveness | Measurable delegation flow from embedded Quick Match                 |
+| **"Powered by Governada" impressions**   | Brand reach                | Governada attribution visible to 100K+ monthly users across partners |
+| **Partner retention**                    | Integration stickiness     | >90% annual retention of paying partners                             |
 
 ---
 
 ## The One-Line Vision
 
-**Civica becomes the governance intelligence engine underneath every Cardano product -- wallets, exchanges, explorers, and pool tools all surface Civica's data because building it themselves would take years and never catch up.**
+**Governada becomes the governance intelligence engine underneath every Cardano product -- wallets, exchanges, explorers, and pool tools all surface Governada's data because building it themselves would take years and never catch up.**
 
-Not every Cardano user will visit Civica. But every Cardano user will encounter Civica's intelligence through the products they already use. The API and widget ecosystem turns Civica from a destination into infrastructure -- the canonical source of governance truth for the entire ecosystem.
+Not every Cardano user will visit Governada. But every Cardano user will encounter Governada's intelligence through the products they already use. The API and widget ecosystem turns Governada from a destination into infrastructure -- the canonical source of governance truth for the entire ecosystem.

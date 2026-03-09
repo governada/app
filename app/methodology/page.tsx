@@ -7,13 +7,13 @@ import { SPO_PILLAR_WEIGHTS } from '@/lib/scoring/spoScore';
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'Scoring Methodology — Civica',
+  title: 'Scoring Methodology — Governada',
   description:
-    'How Civica scores DReps, SPOs, and CC members. Transparent, reproducible scoring methodology for Cardano governance research.',
+    'How Governada scores DReps, SPOs, and CC members. Transparent, reproducible scoring methodology for Cardano governance research.',
   openGraph: {
-    title: 'Scoring Methodology — Civica',
+    title: 'Scoring Methodology — Governada',
     description:
-      'How Civica scores DReps, SPOs, and CC members. Transparent, reproducible scoring methodology for Cardano governance research.',
+      'How Governada scores DReps, SPOs, and CC members. Transparent, reproducible scoring methodology for Cardano governance research.',
     type: 'website',
   },
 };
@@ -314,12 +314,15 @@ export default function MethodologyPage() {
       <div className="max-w-3xl mx-auto px-4 py-12 space-y-16">
         {/* Hero */}
         <div className="space-y-4">
-          <h1 className="text-3xl font-bold text-foreground sm:text-4xl">How Civica Scores Work</h1>
+          <h1 className="text-3xl font-bold text-foreground sm:text-4xl">
+            How Governada Scores Work
+          </h1>
           <p className="text-base text-muted-foreground leading-relaxed max-w-2xl">
-            Civica measures governance quality for DReps, Stake Pool Operators, and Constitutional
-            Committee members on the Cardano network. Every score is computed from on-chain data,
-            percentile-normalized across all active entities, and decayed over time to reflect
-            current behavior. Scores measure process and engagement, not political positions.
+            Governada measures governance quality for DReps, Stake Pool Operators, and
+            Constitutional Committee members on the Cardano network. Every score is computed from
+            on-chain data, percentile-normalized across all active entities, and decayed over time
+            to reflect current behavior. Scores measure process and engagement, not political
+            positions.
           </p>
           <TableOfContents />
         </div>
@@ -531,7 +534,7 @@ export default function MethodologyPage() {
           <SectionAnchor id="alignment" />
           <h2 className="text-xl font-bold">6D Alignment Model</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Civica maps every DRep onto six governance dimensions derived from their voting
+            Governada maps every DRep onto six governance dimensions derived from their voting
             patterns. AI-classified proposal relevance scores determine which votes contribute to
             each dimension. Each dimension score ranges from 0 to 100, with 50 as neutral. Temporal
             decay and amount-weighting ensure recent, material votes carry more weight. The dominant
@@ -622,8 +625,8 @@ export default function MethodologyPage() {
               >
                 Koios API
               </a>
-              , a community-maintained, open-source query layer for Cardano. Civica does not run its
-              own indexer — we consume the same public data available to every researcher.
+              , a community-maintained, open-source query layer for Cardano. Governada does not run
+              its own indexer — we consume the same public data available to every researcher.
             </p>
             <div className="rounded-xl border border-border bg-card p-4 space-y-2">
               <p className="text-xs font-semibold text-foreground">Sync pipeline</p>
@@ -666,36 +669,36 @@ export default function MethodologyPage() {
           <SectionAnchor id="citation" />
           <h2 className="text-xl font-bold">Citation Guide</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Researchers, journalists, and governance participants are welcome to reference Civica
+            Researchers, journalists, and governance participants are welcome to reference Governada
             scores in their work. We suggest the following formats:
           </p>
           <div className="space-y-3">
             <div className="rounded-xl border border-border bg-card p-4 space-y-2">
               <p className="text-xs font-semibold text-foreground">Individual DRep score</p>
               <code className="block text-[11px] text-muted-foreground font-mono bg-muted p-2 rounded">
-                &ldquo;[DRep Name] holds a Civica DRep Score of [X]/100 ([Tier] tier) as of epoch
-                [N]. Source: drepscore.io/drep/[drep_id]&rdquo;
+                &ldquo;[DRep Name] holds a Governada DRep Score of [X]/100 ([Tier] tier) as of epoch
+                [N]. Source: governada.io/drep/[drep_id]&rdquo;
               </code>
             </div>
             <div className="rounded-xl border border-border bg-card p-4 space-y-2">
               <p className="text-xs font-semibold text-foreground">GHI reference</p>
               <code className="block text-[11px] text-muted-foreground font-mono bg-muted p-2 rounded">
-                &ldquo;Cardano governance health stands at [X]/100 ([Band]) per the Civica
-                Governance Health Index, epoch [N]. Source: drepscore.io/pulse&rdquo;
+                &ldquo;Cardano governance health stands at [X]/100 ([Band]) per the Governada
+                Governance Health Index, epoch [N]. Source: governada.io/pulse&rdquo;
               </code>
             </div>
             <div className="rounded-xl border border-border bg-card p-4 space-y-2">
               <p className="text-xs font-semibold text-foreground">Academic citation</p>
               <code className="block text-[11px] text-muted-foreground font-mono bg-muted p-2 rounded whitespace-pre-wrap">
-                Civica. (2026). Scoring Methodology: DRep Score V3, SPO Governance Score V3, CC
+                Governada. (2026). Scoring Methodology: DRep Score V3, SPO Governance Score V3, CC
                 Transparency Index, Governance Health Index. Retrieved from
-                https://drepscore.io/methodology
+                https://governada.io/methodology
               </code>
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
             All scores are point-in-time snapshots. Always include the epoch number or date for
-            reproducibility. Score history is available via the Civica API for longitudinal
+            reproducibility. Score history is available via the Governada API for longitudinal
             analysis.
           </p>
         </section>

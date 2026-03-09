@@ -117,7 +117,7 @@ export const generateCitizenAssembly = inngest.createFunction(
         ? `${Math.round(context.treasury.balance_ada / 1_000_000)}M ADA`
         : 'Unknown';
 
-      const prompt = `You are the civic editor for Civica, the civic hub for Cardano governance. Generate 1-2 citizen assembly questions for this epoch.
+      const prompt = `You are the civic editor for Governada, the civic hub for Cardano governance. Generate 1-2 citizen assembly questions for this epoch.
 
 CONTEXT:
 - Current epoch: ${currentEpoch}

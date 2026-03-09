@@ -44,11 +44,11 @@ async function getReport(epochParam: string) {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { epoch } = await params;
   const report = await getReport(epoch);
-  if (!report) return { title: 'Report Not Found | Civica' };
+  if (!report) return { title: 'Report Not Found | Governada' };
 
   const reportData = report.report_data as unknown as ReportData;
   return {
-    title: `State of Governance — Epoch ${report.epoch_no} | Civica`,
+    title: `State of Governance — Epoch ${report.epoch_no} | Governada`,
     description: `Cardano governance health score: ${reportData.ghi.score}/100 (${GHI_BAND_LABELS[reportData.ghi.band as GHIBand]}). ${reportData.stats.activeDReps} active DReps governing ${reportData.stats.totalAdaGoverned} ADA.`,
     openGraph: {
       title: `State of Governance — Epoch ${report.epoch_no}`,
@@ -156,8 +156,8 @@ export default async function StateOfGovernancePage({ params }: Props) {
       {/* Share footer */}
       <div className="border-t pt-8 space-y-4">
         <ShareActions
-          url={`https://drepscore.io/pulse/report/${data.epoch}`}
-          text={`State of Governance — Epoch ${data.epoch}. GHI: ${data.ghi.score}/100. Via @CivicaGov`}
+          url={`https://governada.io/pulse/report/${data.epoch}`}
+          text={`State of Governance — Epoch ${data.epoch}. GHI: ${data.ghi.score}/100. Via @GovernadaIO`}
           imageUrl={`/api/og/governance-report/${data.epoch}`}
           surface="governance_report"
         />

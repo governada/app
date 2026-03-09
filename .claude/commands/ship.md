@@ -13,8 +13,8 @@ All code changes compile clean. Execute the full deploy pipeline autonomously. D
 9. **Merge**: `gh pr merge <N> --squash --delete-branch` (or `gh api .../merge` from worktrees)
 10. **Migrations**: Apply pending via Supabase MCP `apply_migration` → `npm run gen:types`
 11. **Deploy monitor**: Wait ~5 min, poll Railway until deployed, verify health endpoint returns 200
-12. **Inngest sync**: PUT `https://drepscore.io/api/inngest` if functions changed → `npm run inngest:status`
-13. **Smoke test**: Hit new/changed endpoints on `drepscore.io`, run `npm run smoke-test`
+12. **Inngest sync**: PUT `https://governada.io/api/inngest` if functions changed → `npm run inngest:status`
+13. **Smoke test**: Hit new/changed endpoints on `governada.io`, run `npm run smoke-test`
 14. **Analytics**: `npm run posthog:check <event>` if new events
 15. **Cleanup**: Switch to main, pull, delete branch, update lessons if needed
 

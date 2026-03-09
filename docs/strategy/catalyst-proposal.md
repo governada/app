@@ -1,8 +1,8 @@
-# Project Catalyst Funding Proposal — Civica
+# Project Catalyst Funding Proposal — Governada
 
 > **Status:** Active — Drafting for Fund 16
 > **Parent:** [monetization-strategy.md](monetization-strategy.md) — Section 3
-> **Last updated:** March 2026 (Civica rebrand, expanded vision)
+> **Last updated:** March 2026 (Governada rebrand, expanded vision)
 > **Target fund:** Fund 16 (estimated mid-2026, prepare proposal by May 2026)
 
 ## Fund Intelligence
@@ -18,7 +18,7 @@
 - Community review: Dec 2 - Jan 8, 2026
 - Voting: TBA
 
-### Target Categories for Civica
+### Target Categories for Governada
 
 1. **Cardano Open: Ecosystem** — Governance tooling, civic engagement, ecosystem growth. This is our primary fit.
 2. **Cardano Open: Developers** — If we open-source the scoring engine / API. Secondary option.
@@ -35,7 +35,7 @@
 
 ---
 
-## Proposal Draft: "Civica — The Civic Hub for the Cardano Nation"
+## Proposal Draft: "Governada — The Civic Hub for the Cardano Nation"
 
 ### Problem Statement
 
@@ -51,7 +51,7 @@ This undermines the entire premise of delegated governance. If citizens can't ev
 
 ### Solution
 
-Civica is the civic hub for the Cardano Nation:
+Governada is the civic hub for the Cardano Nation:
 
 1. **Scores every DRep and SPO (0-100)** based on transparent, verifiable metrics — participation, rationale quality, reliability, and governance identity. No subjective ratings; pure on-chain data.
 2. **Matches citizens to aligned representatives** through a PCA-based value-preference system across 6 governance dimensions. 60 seconds to delegation.
@@ -61,9 +61,9 @@ Civica is the civic hub for the Cardano Nation:
 
 ### What Already Exists (Traction)
 
-Civica is not a concept — it's a live, functioning platform with 90+ API routes and 22 background sync functions:
+Governada is not a concept — it's a live, functioning platform with 90+ API routes and 22 background sync functions:
 
-- **Production URL:** https://drepscore.io (domain transition planned)
+- **Production URL:** https://governada.io (domain transition planned)
 - **DRep Scoring V3** — 4-pillar model (Engagement Quality, Effective Participation, Reliability, Governance Identity) with percentile normalization
 - **SPO Governance Scoring** — 3-pillar model scoring ~3,000 pool operators on governance participation
 - **PCA Alignment System** — 6D alignment with AI proposal classification, temporal trajectories
@@ -79,7 +79,7 @@ This proposal funds the **next phase** — transforming a robust governance inte
 
 ### What Catalyst Funding Enables
 
-#### Phase 1: Civica Civic Experience (Months 1-3)
+#### Phase 1: Governada Civic Experience (Months 1-3)
 
 - Clean-sheet frontend redesign with citizen-centric UX (4-nav architecture, segment detection, action-first design)
 - Score tier system with emotional design (Emerging → Bronze → Silver → Gold → Diamond → Legendary)
@@ -102,12 +102,12 @@ This proposal funds the **next phase** — transforming a robust governance inte
 
 ### Milestones (for 75K-150K ADA ask)
 
-| Milestone | Deliverable                                                                                | Verification                                                  | Timeline |
-| --------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------- | -------- |
-| M1        | Civica frontend launched with citizen-centric UX; score tiers live; SPO profiles at parity | Live platform demo, user metrics, DRep + SPO profiles live    | Month 3  |
-| M2        | Governance Wrapped shipped; notification system live; growth loops operational             | Wrapped demo, sharing metrics, return visit data              | Month 5  |
-| M3        | DRep Pro + SPO Pro launched; API v2 with 1+ integration partner                            | Revenue metrics, API docs, integration demo                   | Month 7  |
-| Final     | Full project report; open-source scoring engine; sustainability plan                       | Report published, GitHub repo, revenue/sustainability metrics | Month 8  |
+| Milestone | Deliverable                                                                                   | Verification                                                  | Timeline |
+| --------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------- | -------- |
+| M1        | Governada frontend launched with citizen-centric UX; score tiers live; SPO profiles at parity | Live platform demo, user metrics, DRep + SPO profiles live    | Month 3  |
+| M2        | Governance Wrapped shipped; notification system live; growth loops operational                | Wrapped demo, sharing metrics, return visit data              | Month 5  |
+| M3        | DRep Pro + SPO Pro launched; API v2 with 1+ integration partner                               | Revenue metrics, API docs, integration demo                   | Month 7  |
+| Final     | Full project report; open-source scoring engine; sustainability plan                          | Report published, GitHub repo, revenue/sustainability metrics | Month 8  |
 
 ### Budget Breakdown (Estimated — Adjust Based on ADA Price)
 
@@ -140,7 +140,7 @@ This proposal funds the **next phase** — transforming a robust governance inte
 
 ### Sustainability Plan
 
-Civica is designed for long-term sustainability beyond Catalyst funding:
+Governada is designed for long-term sustainability beyond Catalyst funding:
 
 - **DRep Pro + SPO Pro tiers** — Premium features for representatives ($15-25/mo in ADA)
 - **Governance Data API** — Paid API access for wallets, pool comparison tools, and researchers
@@ -150,7 +150,7 @@ Civica is designed for long-term sustainability beyond Catalyst funding:
 
 ### Why This Matters for Cardano
 
-CIP-1694 created a decentralized nation but gave its citizens no civic infrastructure. Without accountability tooling, delegation becomes random noise. Without governance visibility for SPOs, staking and governance remain disconnected. Civica turns Cardano's governance experiment into a transparent, participatory democracy — the civic infrastructure the Cardano Nation needs to prove to the world that on-chain governance can work at scale.
+CIP-1694 created a decentralized nation but gave its citizens no civic infrastructure. Without accountability tooling, delegation becomes random noise. Without governance visibility for SPOs, staking and governance remain disconnected. Governada turns Cardano's governance experiment into a transparent, participatory democracy — the civic infrastructure the Cardano Nation needs to prove to the world that on-chain governance can work at scale.
 
 ---
 
@@ -163,7 +163,7 @@ Based on Catalyst scoring criteria (impact, feasibility, value for money, resour
 - [ ] Clearly quantify how many users benefit
 - [ ] Show how this improves governance participation rates
 - [ ] Reference CIP-1694 and governance health metrics
-- [ ] Demonstrate ecosystem-wide benefit (not just DRepScore users)
+- [ ] Demonstrate ecosystem-wide benefit (not just Governada users)
 
 ### Feasibility
 
@@ -197,7 +197,7 @@ Concrete pre-submission roadmap with deadlines. Monitor Fund 16 timeline via @Ca
 - Join Catalyst Discord and Telegram (do not pitch — participate)
 - Attend 1+ Catalyst Town Hall (schedule: check docs.projectcatalyst.io)
 - Register on app.projectcatalyst.io as a proposer
-- Publish 1 Cardano Forum post using DRepScore data to educate on governance (not a pitch)
+- Publish 1 Cardano Forum post using Governada data to educate on governance (not a pitch)
 - Reach out to 10-15 active DReps for feedback and relationship building
 
 ### Phase 2: Social Proof — by April 30, 2026
@@ -223,7 +223,7 @@ Concrete pre-submission roadmap with deadlines. Monitor Fund 16 timeline via @Ca
 - Submit within first 48 hours of window opening
 - Announce on X/Twitter, Cardano subreddit, Catalyst channels
 - Respond to every community reviewer comment during review period
-- Direct existing DRepScore users to vote for the proposal
+- Direct existing Governada users to vote for the proposal
 
 ## Open Questions
 

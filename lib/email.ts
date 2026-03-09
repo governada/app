@@ -20,8 +20,8 @@ function getResend(): Resend {
   if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY);
   return _resend;
 }
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'DRepScore <onboarding@resend.dev>';
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://drepscore.io';
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Governada <onboarding@resend.dev>';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://governada.io';
 
 // ── Core Send ─────────────────────────────────────────────────────────────────
 

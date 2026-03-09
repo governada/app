@@ -1,4 +1,4 @@
-# Civica: The Definitive Product Vision (V2)
+# Governada: The Definitive Product Vision (V2)
 
 > **Status:** Active north star -- all build decisions, monetization timing, and architecture choices should align with this document.
 > **Created:** March 2026
@@ -11,13 +11,13 @@
 
 ## The Vision in One Sentence
 
-**Civica is the civic hub for the Cardano nation -- the one place where every ADA holder goes to understand what their stake is doing in governance, and where every governance participant goes to do their work.**
+**Governada is the governance intelligence platform for Cardano -- the one place where every ADA holder goes to understand what their stake is doing in governance, and where every governance participant goes to do their work.**
 
 ---
 
 ## The Thesis
 
-Civica is not a dashboard and not just an intelligence layer. It is the **civic hub** for Cardano -- the place where citizenship in a digital nation becomes real. Underneath, a governance intelligence engine ingests every governance action on-chain, layers opinionated analysis on top, and delivers personalized, actionable insight to every participant in the ecosystem. But the engine is not the product. The product is the experience of being a Cardano citizen: informed, represented, engaged, and empowered.
+Governada is not a dashboard and not just an intelligence layer. It is the **governance intelligence platform** for Cardano -- the place where citizenship in a digital nation becomes real. Underneath, a governance intelligence engine ingests every governance action on-chain, layers opinionated analysis on top, and delivers personalized, actionable insight to every participant in the ecosystem. But the engine is not the product. The product is the experience of being a Cardano citizen: informed, represented, engaged, and empowered.
 
 The product moat is not code -- it is the compounding historical dataset that grows every epoch and becomes impossible to replicate. And increasingly, it is the community engagement data -- citizen sentiment, priority signals, endorsements, impact reports -- that no competitor collects because no competitor has built the civic hub where citizens participate.
 
@@ -25,19 +25,19 @@ The architectural insight that makes this possible: **every data point feeds eve
 
 ### The Identity Shift
 
-The fundamental transformation Civica drives: ADA holders go from thinking **"I own tokens"** to feeling **"I'm a citizen of a digital nation."**
+The fundamental transformation Governada drives: ADA holders go from thinking **"I own tokens"** to feeling **"I'm a citizen of a digital nation."**
 
-Cardano has a ratified constitution, a treasury worth billions of ADA, elected representatives (DReps), three branches of governance, and a 5-day legislative cycle. It is structurally more democratic than most countries. Every ADA holder has governance rights whether they exercise them or not. Civica makes that citizenship tangible, valuable, and effortless.
+Cardano has a ratified constitution, a treasury worth billions of ADA, elected representatives (DReps), three branches of governance, and a 5-day legislative cycle. It is structurally more democratic than most countries. Every ADA holder has governance rights whether they exercise them or not. Governada makes that citizenship tangible, valuable, and effortless.
 
 ---
 
 ## Personas
 
-Civica serves six distinct personas. Each sees a product tailored to their needs, all powered by the same interconnected data and intelligence engine. The Citizen is the anchor -- every other persona either serves citizens or is accountable to them.
+Governada serves six distinct personas. Each sees a product tailored to their needs, all powered by the same interconnected data and intelligence engine. The Citizen is the anchor -- every other persona either serves citizens or is accountable to them.
 
 > **Detailed persona documents** live in `docs/strategy/personas/`. Each document covers: who they are, what they want, their complete product experience, free vs. paid boundaries, connections to other personas, and success metrics. The summaries below provide the essential frame; the persona docs are the authoritative reference for product decisions.
 
-| Persona                  | Role in Ecosystem                                                  | Civica Experience                                                                                                                                                       | Monetization                                                      | Persona Doc                                               |
+| Persona                  | Role in Ecosystem                                                  | Governada Experience                                                                                                                                                    | Monetization                                                      | Persona Doc                                               |
 | ------------------------ | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------- |
 | **Citizen** (ADA Holder) | The foundation. 80%+ of users.                                     | Civic hub: epoch briefing, treasury transparency, civic identity, community engagement, smart alerts. Summary intelligence, not analytics.                              | Free core. Premium Delegator (Step 6).                            | [citizen.md](personas/citizen.md)                         |
 | **DRep**                 | Elected governance representatives (~700). Supply side.            | Governance workspace: vote casting, rationale submission, proposal analysis, reputation management, delegator communication. Citizens first, professional layer on top. | Free governance operations. DRep Pro for analytics + growth.      | [drep.md](personas/drep.md)                               |
@@ -45,7 +45,7 @@ Civica serves six distinct personas. Each sees a product tailored to their needs
 | **CC Member**            | Constitutional guardians (~7-10). Highest authority.               | 80% public accountability surface, 20% optional tooling. Transparency Index, voting record, inter-body dynamics. Not a user product -- an ecosystem trust layer.        | Free (no Pro tier).                                               | [cc-member.md](personas/cc-member.md)                     |
 | **Treasury Team**        | Builders who seek governance funding. Accountability subjects.     | Mutual benefit: proposer reputation, pre-proposal validation, milestone tracking, citizen impact reports. Accountability as competitive advantage.                      | Verified Project badge ($10-25/project).                          | [treasury-team.md](personas/treasury-team.md)             |
 | **Researcher**           | Governance scholars, analysts, data journalists.                   | API-first data platform: historical datasets, methodology docs, bulk exports, versioned data. Credibility flows back to all personas.                                   | Research API subscriptions ($50-200/mo).                          | [researcher.md](personas/researcher.md)                   |
-| **Integration Partner**  | Wallets, exchanges, pool tools, DeFi, explorers. B2B distribution. | Governance intelligence engine via API + embeddable widgets. Every integration extends Civica's reach without acquisition cost.                                         | API tiers ($50-200/mo). Widgets + deep integrations custom.       | [integration-partner.md](personas/integration-partner.md) |
+| **Integration Partner**  | Wallets, exchanges, pool tools, DeFi, explorers. B2B distribution. | Governance intelligence engine via API + embeddable widgets. Every integration extends Governada's reach without acquisition cost.                                      | API tiers ($50-200/mo). Widgets + deep integrations custom.       | [integration-partner.md](personas/integration-partner.md) |
 
 ### Citizen-Centric Architecture
 
@@ -64,7 +64,7 @@ Every feature decision should pass the citizen test: **"Does this ultimately mak
 
 Most governance participants span multiple personas simultaneously. A DRep is also a citizen. An SPO may also be a DRep. A CC member has personal delegation and may operate a pool. A treasury team member is also an ADA holder tracking their own governance health.
 
-Civica treats segments as **additive facets of one identity**, not separate user types. The product adapts to the union of all segments detected across a user's linked wallets. A DRep sees the citizen experience PLUS the governance workspace. An SPO sees the citizen experience PLUS pool identity management. Nobody loses the citizen layer; personas add professional capabilities on top.
+Governada treats segments as **additive facets of one identity**, not separate user types. The product adapts to the union of all segments detected across a user's linked wallets. A DRep sees the citizen experience PLUS the governance workspace. An SPO sees the citizen experience PLUS pool identity management. Nobody loses the citizen layer; personas add professional capabilities on top.
 
 See [Multi-Wallet Identity & Unified Experience](#multi-wallet-identity--unified-experience) and [ADR 007](../adr/007-multi-wallet-identity.md) for the technical model.
 
@@ -72,7 +72,7 @@ See [Multi-Wallet Identity & Unified Experience](#multi-wallet-identity--unified
 
 ## The Civic Hub: Three Product Pillars
 
-The civic hub rests on three pillars that together make Civica a destination citizens return to every epoch. Each pillar is described in detail in the [Citizen persona doc](personas/citizen.md). The summaries below establish the concepts that all persona experiences build on.
+The civic hub rests on three pillars that together make Governada a destination citizens return to every epoch. Each pillar is described in detail in the [Citizen persona doc](personas/citizen.md). The summaries below establish the concepts that all persona experiences build on.
 
 ### Pillar 1: The Briefing (Summary Intelligence)
 
@@ -118,7 +118,7 @@ The layer that gives every citizen a voice without creating a forum. Seven mecha
 
 ## Treasury Accountability
 
-Treasury transparency is elevated to a first-class product pillar, not just a data layer. The Cardano treasury holds billions of ADA -- citizens' collective wealth -- and the governance process allocates it. Civica makes every aspect of that process visible, understandable, and accountable.
+Treasury transparency is elevated to a first-class product pillar, not just a data layer. The Cardano treasury holds billions of ADA -- citizens' collective wealth -- and the governance process allocates it. Governada makes every aspect of that process visible, understandable, and accountable.
 
 **For citizens:**
 
@@ -137,7 +137,7 @@ Treasury transparency is elevated to a first-class product pillar, not just a da
 
 - Proposer reputation that compounds: delivery scores, citizen impact, milestone completion across all projects.
 - Pre-proposal validation: test concepts with citizen interest and DRep support signals before investing in a full proposal.
-- Impact amplification: when funded projects ship, Civica surfaces them to citizens.
+- Impact amplification: when funded projects ship, Governada surfaces them to citizens.
 - The trust ladder: anonymous -> registered -> active -> verified -> established. Each step voluntary, each step advantageous.
 
 See [Treasury Team persona doc](personas/treasury-team.md) for the full mutual benefit model.
@@ -146,17 +146,17 @@ See [Treasury Team persona doc](personas/treasury-team.md) for the full mutual b
 
 ## The Governance Workspace
 
-Civica is not just where governance is observed -- it is **where governance happens.** DReps, SPOs, and CC members can perform their core governance operations directly within Civica, eliminating the fragmented multi-tool workflow that characterizes governance today.
+Governada is not just where governance is observed -- it is **where governance happens.** DReps, SPOs, and CC members can perform their core governance operations directly within Governada, eliminating the fragmented multi-tool workflow that characterizes governance today.
 
 ### Vote Casting
 
-DReps, SPOs, and CC members cast votes directly from Civica via MeshJS (CIP-95). The vote is cast from the same page where they reviewed the proposal analysis -- AI summary, treasury impact, citizen sentiment, inter-body context, constitutional alignment. No context switch. The analysis feeds directly into the action.
+DReps, SPOs, and CC members cast votes directly from Governada via MeshJS (CIP-95). The vote is cast from the same page where they reviewed the proposal analysis -- AI summary, treasury impact, citizen sentiment, inter-body context, constitutional alignment. No context switch. The analysis feeds directly into the action.
 
 ### Rationale Submission (The Killer Feature)
 
-The single most impactful capability Civica can offer. Today, CIP-100 rationale submission requires manual JSON creation, self-hosting, and anchor hash submission. Most governance participants skip it because the friction is too high.
+The single most impactful capability Governada can offer. Today, CIP-100 rationale submission requires manual JSON creation, self-hosting, and anchor hash submission. Most governance participants skip it because the friction is too high.
 
-Civica's flow:
+Governada's flow:
 
 1. Rich-text editor for writing the rationale (or AI-assisted first draft from proposal + voting history + governance philosophy)
 2. Auto-format to CIP-100 compliant JSON behind the scenes
@@ -166,7 +166,7 @@ Civica's flow:
 Effects cascade across every persona:
 
 - More rationales on-chain (better for Cardano governance)
-- DReps/SPOs who use Civica score higher (rationale quality is a scoring factor)
+- DReps/SPOs who use Governada score higher (rationale quality is a scoring factor)
 - Citizens see WHY their representative voted a certain way (better citizen experience)
 - AI gets more training data (better governance intelligence)
 - Governance transparency improves measurably (better for Cardano's reputation)
@@ -336,14 +336,14 @@ flowchart TB
 
 Growth comes from three channels, operating in parallel:
 
-### 1. Direct Acquisition (Citizens Come to Civica)
+### 1. Direct Acquisition (Citizens Come to Governada)
 
 - Simplified anonymous experience: two paths in (Stake / Govern), education woven in, gentle wallet connect prompts
 - Quick Match as primary conversion funnel: 3 questions, 60 seconds, delegation
 - Epoch briefing as retention driver: fresh content every ~5 days
 - Civic identity as attachment mechanism: growing footprint creates switching cost
 
-### 2. Viral Distribution (Personas Share Civica)
+### 2. Viral Distribution (Personas Share Governada)
 
 - DReps share scores, profiles, and Wrapped to attract delegation
 - SPOs share governance reputation to differentiate their pools
@@ -351,13 +351,13 @@ Growth comes from three channels, operating in parallel:
 - Every share is a billboard. DReps and SPOs are the unpaid sales force (Principle #5).
 - Wrapped (Step 4) is the dedicated viral engine
 
-### 3. B2B Distribution (Partners Embed Civica)
+### 3. B2B Distribution (Partners Embed Governada)
 
 - Wallet providers embed Quick Match, DRep scores, delegation health
 - Pool comparison tools add SPO governance scores as a new column
 - Exchanges display governance data for custodied ADA
 - Block explorers add intelligence layer to raw governance data
-- "Powered by Civica" brand touchpoints across every integration
+- "Powered by Governada" brand touchpoints across every integration
 - See [Integration Partner persona doc](personas/integration-partner.md) for full strategy
 
 **B2B distribution should begin before Step 7.** Early API access and widget prototypes for high-value partners (Eternl, PoolTool) can start as soon as the data is trustworthy (after Steps 0-2.5). The formal API product (Step 7) is the scalable version, but partnerships should not wait.
@@ -474,7 +474,7 @@ The on-ramp. Without a clear, unintimidating path from "I hold ADA" to "I'm a Ca
 > **Primary persona:** DRep, SPO
 > **Secondary impact:** Citizen (more rationales = better transparency), Researcher (richer data)
 
-The capability that makes Civica indispensable: governance operations happen here, not somewhere else. Citizens are now using the platform (Step 4). DReps and SPOs need a reason to make it their daily tool.
+The capability that makes Governada indispensable: governance operations happen here, not somewhere else. Citizens are now using the platform (Step 4). DReps and SPOs need a reason to make it their daily tool.
 
 **What gets built:**
 
@@ -516,10 +516,10 @@ The capability that makes Civica indispensable: governance operations happen her
 | `lib/cip100.ts`                     | CIP-100 JSON-LD document construction and validation                                   |
 | `lib/metadataAnchor.ts`             | Document hosting (Supabase Storage) + URI generation                                   |
 | MeshJS + `@meshsdk/core` dependency | Wallet interaction for governance transactions                                         |
-| `governance_actions` table          | Track votes cast through Civica (analytics + verification)                             |
+| `governance_actions` table          | Track votes cast through Governada (analytics + verification)                          |
 | `rationale_documents` table         | Hosted CIP-100 documents with URIs and on-chain anchors                                |
 
-**Key metric:** If Civica 2x's the ecosystem rationale rate for its users, the value proposition is proven.
+**Key metric:** If Governada 2x's the ecosystem rationale rate for its users, the value proposition is proven.
 
 ---
 
@@ -547,7 +547,7 @@ Seven engagement mechanisms, each producing structured data that feeds the intel
 
 6. **Citizen Questions:** Directed questions to DReps about specific proposals or positions. Structured format, delivered to DRep inbox, answered asynchronously. Not a chat -- a query/response system.
 
-7. **Citizen Assemblies (lightweight):** Time-bounded structured consultations. "Should governance prioritize X or Y this quarter?" Multiple-choice, 1-week duration, results published. 1-2 per epoch, curated by Civica.
+7. **Citizen Assemblies (lightweight):** Time-bounded structured consultations. "Should governance prioritize X or Y this quarter?" Multiple-choice, 1-week duration, results published. 1-2 per epoch, curated by Governada.
 
 **What exists (reuse/modify):**
 
@@ -689,7 +689,7 @@ DReps and SPOs are now using the free workspace daily. Community is engaged. Pro
 
 3. **Research tier:** Academic pricing ($50-100/mo), bulk exports (CSV/JSON), versioned datasets, methodology documentation.
 
-4. **Embeddable widgets:** Quick Match, DRep Score card, SPO Governance badge, Governance Health gauge, Delegation Health indicator. Themeable, "Powered by Civica" attribution.
+4. **Embeddable widgets:** Quick Match, DRep Score card, SPO Governance badge, Governance Health gauge, Delegation Health indicator. Themeable, "Powered by Governada" attribution.
 
 5. **Developer experience:** OpenAPI spec, SDK generation (TypeScript, Python), interactive API explorer, sandbox environment, webhook system for real-time partner notifications.
 
@@ -789,7 +789,7 @@ Two major features that require the full data picture:
   - Confidential delegation analytics
 - ENS/.ada integration for governance identity
 
-**Why last:** Genuinely novel and depends on protocol-level support (Midnight, DID standards, cross-chain bridges). The value is enormous but the execution risk is highest. By this point, Civica's reputation and data moat make it the natural home for governance identity.
+**Why last:** Genuinely novel and depends on protocol-level support (Midnight, DID standards, cross-chain bridges). The value is enormous but the execution risk is highest. By this point, Governada's reputation and data moat make it the natural home for governance identity.
 
 **Monetization angle:** The "Stripe for blockchain governance" play -- other chains and protocols pay to access governance reputation data.
 
@@ -821,7 +821,7 @@ Two major features that require the full data picture:
 
 The wow score is an emergent property of how well these systems connect. Here is how each capability contributes:
 
-**A citizen who gets it in 30 seconds:** A new visitor sees two paths: Stake or Govern. They choose Govern, answer 3 questions, see a radar chart form in real-time, match with a DRep who shares their values, and delegate. 90 seconds from stranger to citizen. The next epoch, they open Civica and see: "Your DRep voted Yes on a developer toolkit proposal. Everything's healthy." They close the app, informed and confident. That is the entire citizen product, and it is enough. (Foundation + Step 4)
+**A citizen who gets it in 30 seconds:** A new visitor sees two paths: Stake or Govern. They choose Govern, answer 3 questions, see a radar chart form in real-time, match with a DRep who shares their values, and delegate. 90 seconds from stranger to citizen. The next epoch, they open Governada and see: "Your DRep voted Yes on a developer toolkit proposal. Everything's healthy." They close the app, informed and confident. That is the entire citizen product, and it is enough. (Foundation + Step 4)
 
 **Scores that matter (not a vibe):** A DRep profile shows a score reflecting actual governance behavior -- rationale quality assessed by AI, voting patterns weighted by importance, reliability measured by responsiveness. The user trusts this score because it means something specific and defensible. (Foundation)
 
@@ -910,7 +910,7 @@ This is the silent engine. Every day the product runs, the moat deepens.
 
 ## Competitive Position
 
-No governance product in crypto does what Civica does -- and no competitor CAN, because no competitor has the civic hub where citizens engage and the compounding dataset that makes the intelligence possible.
+No governance product in crypto does what Governada does -- and no competitor CAN, because no competitor has the platform where citizens engage and the compounding dataset that makes the intelligence possible.
 
 The closest comparators:
 
@@ -921,7 +921,7 @@ The closest comparators:
 - **PoolTool / ADApools:** Stake pool metrics (uptime, rewards, fees). Zero governance data. The SPO governance layer is a completely untapped opportunity.
 - **GovTool:** Cardano's official governance tool. Handles voting mechanics but has no intelligence layer, no scoring, no matching, no citizen experience, no community engagement. Complementary infrastructure, not a competitor.
 
-Civica's advantage is not any single feature -- it is the system. The scoring engine feeds the matching engine feeds the intelligence engine feeds the community engagement engine feeds the notification engine feeds the growth engine. Six personas served by one interconnected data flywheel, powered by community engagement data no competitor collects. No one can replicate this by copying one feature.
+Governada's advantage is not any single feature -- it is the system. The scoring engine feeds the matching engine feeds the intelligence engine feeds the community engagement engine feeds the notification engine feeds the growth engine. Six personas served by one interconnected data flywheel, powered by community engagement data no competitor collects. No one can replicate this by copying one feature.
 
 **The civic hub moat:** Even if a competitor replicated every algorithm, they would still lack: (a) the compounding historical dataset, (b) the citizen engagement data, (c) the proposer reputation records, (d) the integration partner ecosystem, and (e) the governance workspace adoption. The moat is not code -- it is the system operating over time.
 
@@ -937,7 +937,7 @@ Civica's advantage is not any single feature -- it is the system. The scoring en
 
 4. **Persona-appropriate depth.** Citizens get summary intelligence. DReps get a workspace. SPOs get an identity platform. CC members get a transparency surface. Each persona's primary experience must be emotionally complete for their needs. Different personas need different products, not different depths of the same product.
 
-5. **Intelligence demands action.** Every insight must connect to something the user can do. A score without a delegation button is just a number. A health warning without a "fix this" CTA is just anxiety. A proposal without a vote button is a missed opportunity. Civica is where governance HAPPENS, not just where it is observed.
+5. **Intelligence demands action.** Every insight must connect to something the user can do. A score without a delegation button is just a number. A health warning without a "fix this" CTA is just anxiety. A proposal without a vote button is a missed opportunity. Governada is where governance HAPPENS, not just where it is observed.
 
 6. **Accountability is advantage.** Transparency is not imposed -- it is rewarded. DReps who provide rationales score higher. SPOs who participate in governance get discovered. Treasury teams who deliver build reputation. The system creates natural incentives for good governance behavior.
 

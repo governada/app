@@ -145,7 +145,7 @@ export const GOV_TERMS: Record<string, GovTermDef> = {
     whyItMatters: {
       citizen:
         'The more ADA holders delegate to your DRep, the greater their weight in deciding governance outcomes.',
-      drep: 'Civica deliberately excludes voting power from your score — governance quality, not whale capture, is what we reward.',
+      drep: 'Governada deliberately excludes voting power from your score — governance quality, not whale capture, is what we reward.',
       default:
         "Voting power determines how much weight a DRep's vote carries. High voting power doesn't mean high quality.",
     },
@@ -165,7 +165,7 @@ export const GOV_TERMS: Record<string, GovTermDef> = {
   drepScore: {
     label: 'DRep Score',
     definition:
-      "Civica's composite 0–100 governance quality score, combining Engagement Quality (35%), Effective Participation (25%), Reliability (25%), and Governance Identity (15%).",
+      "Governada's composite 0–100 governance quality score, combining Engagement Quality (35%), Effective Participation (25%), Reliability (25%), and Governance Identity (15%).",
     whyItMatters: {
       citizen:
         'The score compresses hundreds of governance data points into one number — but always drill into the pillars to understand the story behind it.',

@@ -1,4 +1,4 @@
-# Civica — Active Work
+# Governada — Active Work
 
 ## Current Phase: Phase 3B (My Gov Completion + DRep Profile Redesign)
 
@@ -7,7 +7,7 @@ See `.cursor/plans/civica_phase_3b_eab7f1b4.plan.md` for this phase's detailed p
 
 ## Completed
 
-- [x] Civica Shell Foundation (Phase 1A) — PR #77 merged
+- [x] Governada Shell Foundation (Phase 1A) — PR #77 merged
   - Feature flag `civica_frontend` in feature_flags table
   - SegmentProvider + useSegment() hook
   - TierThemeProvider + useTierTheme() hook
@@ -16,10 +16,10 @@ See `.cursor/plans/civica_phase_3b_eab7f1b4.plan.md` for this phase's detailed p
   - Root layout branching (old shell when flag off, CivicaShell when on)
   - /my-gov stub page (auth-gated)
 
-- [x] Civica Phase 1B — GovTerm, Metadata, Home Pages
+- [x] Governada Phase 1B — GovTerm, Metadata, Home Pages
   - GovTerm component (localStorage progressive dismissal, segment-aware tooltips)
   - 12 governance terms in lib/microcopy.ts GOV_TERMS
-  - generateMetadata() on /, /discover, /pulse, /my-gov (Civica-branded)
+  - generateMetadata() on /, /discover, /pulse, /my-gov (Governada-branded)
   - Home/anonymous: constellation hero + value prop + Quick Match CTA + SSR stats
   - Home/citizen: DRep report card, pillar bars, epoch callout
   - Home/DRep: score hero, sparkline, quick win card, competitive context
@@ -27,7 +27,7 @@ See `.cursor/plans/civica_phase_3b_eab7f1b4.plan.md` for this phase's detailed p
   - CivicaHomePage segment dispatcher
   - useDRepReportCard, useDashboardCompetitive, useSPOPoolCompetitive hooks
 
-- [x] Civica Phase 2A — Discover, Cards, Leaderboard
+- [x] Governada Phase 2A — Discover, Cards, Leaderboard
   - CivicaDRepCard: tier-colored browse card with score, tier badge, 6-axis alignment mini-bars, hover expansion
   - CivicaSPOCard: tier-colored pool card with governance score, participation/consistency/reliability bars, claimed badge
   - tierStyles.ts: shared token map (border/bg/glow/badge per tier)
@@ -38,20 +38,20 @@ See `.cursor/plans/civica_phase_3b_eab7f1b4.plan.md` for this phase's detailed p
   - CivicaLeaderboard: ranked DRep table with tier filter chips, delta trend arrows, 7-day movers strip, 25/page pagination
   - app/discover/page.tsx + app/pulse/page.tsx: civica_frontend flag-gated rendering
 
-- [x] Civica Phase 2B — Pulse deep dive + My Gov action feed
+- [x] Governada Phase 2B — Pulse deep dive + My Gov action feed
   - CivicaPulse: full Pulse page with GHI, cross-chain observatory, AI State of Governance narrative, governance calendar
   - Action feed architecture (lib/actionFeed.ts + ActionFeed component)
   - CitizenCommandCenter: delegation health card, recent DRep votes, action feed
   - DRepCommandCenter: score gauge, stats row, pending votes widget, action feed
 
-- [x] Civica Phase 3A — Pulse completion + SPO command center + SPO claim flow
+- [x] Governada Phase 3A — Pulse completion + SPO command center + SPO claim flow
   - EDI-driven Cross-Chain Observatory in Pulse
   - AI "State of Governance" narrative
   - Governance Calendar
   - SPOCommandCenter: score gauge, pool stats, governance activity, action feed
   - SPO claim flow (wallet-verified pool ownership)
 
-- [x] Civica Phase 3B — My Gov completion + DRep Profile Redesign
+- [x] Governada Phase 3B — My Gov completion + DRep Profile Redesign
   - Feature flag audit: restored civica_frontend, drep_communication, score_tiers, alignment_drift,
     spo_claim_flow, spo_governance_identity flags deleted by migration 039
   - My Gov Inbox (4.5): multi-segment notification hub, filter tabs (All/Proposals/Score/Alignment/System),
@@ -80,7 +80,7 @@ See `.cursor/plans/civica_phase_3b_eab7f1b4.plan.md` for this phase's detailed p
 - [x] Proposal Detail Redesign (5.3): "Proposal cards that connect everything" — AI category badge,
       tri-body vote bars, treasury impact, similar proposals, your DRep's vote highlighted,
       Phase B scaffold "What representatives are saying" section.
-- [x] CC Members Civica Integration: /discover/committee — server-rendered page with CC transparency
+- [x] CC Members Governada Integration: /discover/committee — server-rendered page with CC transparency
       scores (participation rate + DRep alignment), alignment tension detection, route redirects
       (/committee → /discover/committee, /proposals/:txHash/:index → /proposal/:txHash/:index),
       CommandPalette entry added.

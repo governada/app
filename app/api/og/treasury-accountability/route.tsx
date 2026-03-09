@@ -28,7 +28,7 @@ export async function GET() {
           <div
             style={{ display: 'flex', fontSize: '18px', color: OG.textMuted, marginBottom: '24px' }}
           >
-            Cardano Treasury Accountability — Civica
+            Cardano Treasury Accountability — Governada
           </div>
 
           <div

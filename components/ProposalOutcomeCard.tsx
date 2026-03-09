@@ -62,7 +62,7 @@ export function ProposalOutcomeCard({
     });
   }, [proposal.outcome, proposal.proposalType, isWinner]);
 
-  const shareText = `Proposal "${proposal.title}" was ${config.label.toLowerCase()}${drepVote ? ` — my DRep voted ${drepVote}` : ''}. Check it out on DRepScore!`;
+  const shareText = `Proposal "${proposal.title}" was ${config.label.toLowerCase()}${drepVote ? ` — my DRep voted ${drepVote}` : ''}. Check it out on Governada!`;
 
   return (
     <Card className="overflow-hidden">

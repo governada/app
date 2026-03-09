@@ -22,7 +22,7 @@ interface DRepProfileTabsV2Props {
 }
 
 /**
- * Civica VP2 tabs — same as DRepProfileTabs but with Phase B "Statements" tab scaffold.
+ * Governada VP2 tabs — same as DRepProfileTabs but with Phase B "Statements" tab scaffold.
  * The Statements tab is conditionally rendered (caller gates it with drep_communication flag).
  */
 export function DRepProfileTabsV2({

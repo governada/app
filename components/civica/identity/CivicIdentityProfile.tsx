@@ -170,12 +170,12 @@ export function CivicIdentityProfile() {
   if (isLoading) return <ProfileSkeleton />;
 
   const shareUrl = stakeAddress
-    ? `https://drepscore.io/my-gov/identity`
-    : 'https://drepscore.io/my-gov/identity';
+    ? `https://governada.io/my-gov/identity`
+    : 'https://governada.io/my-gov/identity';
   const shareOgUrl = stakeAddress
     ? `/api/og/civic-identity/${encodeURIComponent(stakeAddress)}`
     : '';
-  const shareText = `Check out my Civic Identity on Cardano! ${earned.length} milestones earned. @CivicaGov`;
+  const shareText = `Check out my Civic Identity on Cardano! ${earned.length} milestones earned. @GovernadaIO`;
 
   return (
     <div className="space-y-8">

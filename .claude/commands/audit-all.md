@@ -1,4 +1,4 @@
-Run a comprehensive audit of Civica by launching parallel subagents for all area audits and step verification. Each subagent gets its own full context window — no depth sacrificed.
+Run a comprehensive audit of Governada by launching parallel subagents for all area audits and step verification. Each subagent gets its own full context window — no depth sacrificed.
 
 ## Scope
 
@@ -32,7 +32,7 @@ Each subagent prompt tells the agent to read its audit command file and execute 
 **1. Sync Pipeline Audit**
 
 ```
-You are auditing the Civica sync pipeline. This is a READ-ONLY audit — do not modify any files.
+You are auditing the Governada sync pipeline. This is a READ-ONLY audit — do not modify any files.
 
 Instructions:
 1. Read `.claude/commands/audit-sync.md` for the full audit methodology
@@ -69,7 +69,7 @@ RAW_EVIDENCE: [2-3 sentences of the most important specific findings — numbers
 **2. Data Integrity Audit**
 
 ```
-You are auditing Civica's data integrity. This is a READ-ONLY audit — do not modify any files.
+You are auditing Governada's data integrity. This is a READ-ONLY audit — do not modify any files.
 
 Instructions:
 1. Read `.claude/commands/audit-data.md` for the full audit methodology
@@ -106,7 +106,7 @@ RAW_EVIDENCE: [2-3 sentences of the most important specific findings]
 **3. Scoring Methodology Audit**
 
 ```
-You are auditing Civica's scoring methodology. This is a READ-ONLY audit — do not modify any files.
+You are auditing Governada's scoring methodology. This is a READ-ONLY audit — do not modify any files.
 
 Instructions:
 1. Read `.claude/commands/audit-scoring.md` for the full audit methodology
@@ -143,7 +143,7 @@ RAW_EVIDENCE: [2-3 sentences of the most important specific findings — distrib
 **4. UX Quality Audit**
 
 ```
-You are auditing Civica's UX quality. This is a READ-ONLY audit — do not modify any files.
+You are auditing Governada's UX quality. This is a READ-ONLY audit — do not modify any files.
 
 Instructions:
 1. Read `.claude/commands/audit-ux.md` for the full audit methodology
@@ -183,7 +183,7 @@ RAW_EVIDENCE: [2-3 sentences — specific components, missing states, persona co
 **5. User Journey Audit**
 
 ```
-You are auditing Civica's user journeys end-to-end. This is a READ-ONLY audit — do not modify any files.
+You are auditing Governada's user journeys end-to-end. This is a READ-ONLY audit — do not modify any files.
 
 Instructions:
 1. Read `.claude/commands/audit-journeys.md` for the full audit methodology
@@ -226,7 +226,7 @@ RAW_EVIDENCE: [2-3 sentences — broken flows, friction measurements, edge case 
 **6. Security Audit**
 
 ```
-You are auditing Civica's security posture. This is a READ-ONLY audit — do not modify any files.
+You are auditing Governada's security posture. This is a READ-ONLY audit — do not modify any files.
 
 Instructions:
 1. Read `.claude/commands/audit-security.md` for the full audit methodology
@@ -270,7 +270,7 @@ These verify that completed vision steps are truly "flawless bedrock" for future
 **7. Engine Bedrock (Steps 0–2.5)**
 
 ```
-You are verifying that Civica's engine foundation (Steps 0, 1, 2, 2.5) is flawless bedrock for all future features. This is a READ-ONLY audit — do not modify any files.
+You are verifying that Governada's engine foundation (Steps 0, 1, 2, 2.5) is flawless bedrock for all future features. This is a READ-ONLY audit — do not modify any files.
 
 Instructions:
 1. Read `docs/strategy/context/build-manifest.md` for the checkbox list
@@ -317,7 +317,7 @@ BEDROCK_BLOCKERS:
 **8. Frontend Bedrock (Steps 3–6)**
 
 ```
-You are verifying that Civica's frontend and feature layers (Steps 3, 4, 5, 6) are solid enough to build Steps 7+ on. This is a READ-ONLY audit — do not modify any files.
+You are verifying that Governada's frontend and feature layers (Steps 3, 4, 5, 6) are solid enough to build Steps 7+ on. This is a READ-ONLY audit — do not modify any files.
 
 Instructions:
 1. Read `docs/strategy/context/build-manifest.md` for the checkbox list

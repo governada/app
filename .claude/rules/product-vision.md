@@ -7,7 +7,7 @@ paths:
 
 # Product Vision & UX Execution Standards
 
-Core thesis: Civica is the **civic hub for the Cardano nation**. Users are citizens, not dashboard consumers. The product makes citizenship in a digital nation feel real.
+Core thesis: Governada is the **civic hub for the Cardano nation**. Users are citizens, not dashboard consumers. The product makes citizenship in a digital nation feel real.
 
 ## Design Principles
 
@@ -46,7 +46,7 @@ Every user-facing surface should look purpose-built, not assembled from a compon
 
 1. **Default to the most visually distinctive option.** Custom SVG over Recharts, physics-based animations (Framer Motion/spring) over CSS transitions, bespoke visualizations over chart libraries. The user must explicitly request the simpler option.
 2. **Performance is a constraint, not a goal.** Lazy-loading (`next/dynamic`, `ssr: false`), code splitting, and adaptive quality tiers handle bundle concerns. A 200KB lazy-loaded package with zero LCP impact is always acceptable for a premium result.
-3. **Every screenshot must be unmistakably Civica.** If a component could exist in any shadcn/Next.js app, it needs more work.
+3. **Every screenshot must be unmistakably Governada.** If a component could exist in any shadcn/Next.js app, it needs more work.
 4. **"Good enough" creates rework; "premium" ships once.** The constellation hero is React Three Fiber with WebGL bloom -- that's the baseline for hero-level visuals.
 
 **Applies to:** hero sections, profile pages, data visualizations, OG images, share cards, onboarding.

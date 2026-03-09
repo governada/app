@@ -1,5 +1,5 @@
 /**
- * React Email Templates for DRepScore notifications.
+ * React Email Templates for Governada notifications.
  * Each template is a React component that Resend renders to HTML.
  */
 
@@ -18,7 +18,7 @@ import {
 } from '@react-email/components';
 import * as React from 'react';
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://drepscore.io';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://governada.io';
 
 // ── Shared Styles ────────────────────────────────────────────────────────────
 
@@ -99,15 +99,15 @@ function EmailLayout({
               margin: '0 0 24px',
             }}
           >
-            DREPSCORE
+            GOVERNADA
           </Text>
           {children}
           <Hr style={hr} />
           <Text style={footer}>
-            DRepScore — Cardano Governance Intelligence
+            Governada — Cardano Governance Intelligence
             <br />
             <Link href={BASE_URL} style={{ color: '#6366f1' }}>
-              drepscore.io
+              governada.io
             </Link>
             {unsubscribeUrl && (
               <>
@@ -144,7 +144,7 @@ export function GenericNotificationEmail({
       {url && (
         <Section style={{ textAlign: 'center', margin: '24px 0' }}>
           <Button style={button} href={url.startsWith('http') ? url : `${BASE_URL}${url}`}>
-            View on DRepScore
+            View on Governada
           </Button>
         </Section>
       )}
@@ -156,11 +156,11 @@ export function GenericNotificationEmail({
 
 export function EmailVerificationEmail({ verifyUrl }: { verifyUrl: string }) {
   return (
-    <EmailLayout preview="Verify your email address for DRepScore governance notifications">
+    <EmailLayout preview="Verify your email address for Governada governance notifications">
       <Heading style={heading}>Verify Your Email</Heading>
       <Text style={paragraph}>
         Click the button below to verify your email address and start receiving governance
-        notifications from DRepScore.
+        notifications from Governada.
       </Text>
       <Section style={{ textAlign: 'center', margin: '24px 0' }}>
         <Button style={button} href={verifyUrl}>
@@ -197,12 +197,12 @@ export function ScoreChangeEmail({
 
   return (
     <EmailLayout
-      preview={`Your DRepScore ${direction} by ${Math.abs(delta)} points`}
+      preview={`Your Governada score ${direction} by ${Math.abs(delta)} points`}
       unsubscribeUrl={unsubscribeUrl}
     >
       <Heading style={heading}>Score {direction === 'increased' ? 'Up' : 'Down'}</Heading>
       <Text style={paragraph}>
-        {drepName}&apos;s DRepScore {direction} from <strong>{oldScore}</strong> to{' '}
+        {drepName}&apos;s Governada score {direction} from <strong>{oldScore}</strong> to{' '}
         <strong style={{ color }}>{newScore}</strong> (
         <span style={{ color }}>
           {delta > 0 ? '+' : ''}
@@ -325,7 +325,7 @@ export function GovernanceDigestEmail({
 }) {
   return (
     <EmailLayout
-      preview="Your weekly governance brief from DRepScore"
+      preview="Your weekly governance brief from Governada"
       unsubscribeUrl={unsubscribeUrl}
     >
       <Heading style={heading}>Weekly Governance Brief</Heading>

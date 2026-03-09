@@ -52,7 +52,7 @@ export async function GET(
                 marginBottom: '24px',
               }}
             >
-              $drepscore
+              $governada
             </div>
             <div
               style={{
@@ -76,7 +76,7 @@ export async function GET(
             >
               Connect your wallet to see your governance wrapped
             </div>
-            <OGFooter left="$drepscore" right="drepscore.io" />
+            <OGFooter left="$governada" right="governada.io" />
           </div>
         </OGBackground>,
         {
@@ -119,7 +119,7 @@ export async function GET(
                 marginBottom: '24px',
               }}
             >
-              $drepscore
+              $governada
             </div>
             <div
               style={{
@@ -131,7 +131,7 @@ export async function GET(
             >
               Connect your wallet to see your governance story
             </div>
-            <OGFooter left="$drepscore" right="drepscore.io" />
+            <OGFooter left="$governada" right="governada.io" />
           </div>
         </OGBackground>,
         {
@@ -304,7 +304,7 @@ export async function GET(
             </div>
           </div>
 
-          <OGFooter left="$drepscore" right="drepscore.io" />
+          <OGFooter left="$governada" right="governada.io" />
         </div>
       </OGBackground>,
       {

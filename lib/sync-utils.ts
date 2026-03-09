@@ -314,7 +314,7 @@ export async function alertDiscord(title: string, details: string): Promise<void
               title: `⚠️ ${title}`,
               description: details,
               color: 0xf59e0b,
-              footer: { text: 'DRepScore Sync Monitor' },
+              footer: { text: 'Governada Sync Monitor' },
               timestamp: new Date().toISOString(),
             },
           ],
@@ -342,9 +342,9 @@ export async function alertEmail(subject: string, body: string): Promise<void> {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: 'DRepScore Alerts <alerts@drepscore.io>',
-        to: ['admin@drepscore.io'],
-        subject: `[DRepScore Alert] ${subject}`,
+        from: 'Governada Alerts <alerts@governada.io>',
+        to: ['admin@governada.io'],
+        subject: `[Governada Alert] ${subject}`,
         text: body,
       }),
     });

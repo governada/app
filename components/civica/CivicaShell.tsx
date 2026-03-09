@@ -41,7 +41,7 @@ function DeepLinkHandler() {
 }
 
 /**
- * Civica layout shell — wraps children with 4-tab nav + providers.
+ * Governada layout shell — wraps children with 4-tab nav + providers.
  */
 export function CivicaShell({ children }: { children: React.ReactNode }) {
   return (

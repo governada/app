@@ -122,7 +122,7 @@ export function AskYourDRep({ txHash, proposalIndex, proposalTitle }: AskYourDRe
               <TooltipContent side="left" className="max-w-[260px]">
                 <p className="text-xs">
                   Send a question to your delegated DRep about this proposal. They&apos;ll see it in
-                  their Civica inbox with a link to this proposal.
+                  their Governada inbox with a link to this proposal.
                 </p>
               </TooltipContent>
             </Tooltip>

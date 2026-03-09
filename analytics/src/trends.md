@@ -83,7 +83,7 @@ function formatAda(v) {
 
 ## How is the network score trending?
 
-_The overall trajectory of DRepScore across all active DReps. Hover points for exact values._
+_The overall trajectory of Governada scores across all active DReps. Hover points for exact values._
 
 ```js
 const pillarFocus = view(

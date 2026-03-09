@@ -59,8 +59,8 @@ export function ScoreCard({
   const ogImageUrl = `/api/og/drep/${encodeURIComponent(drep.drepId)}`;
 
   const shareText = isOwnProfile
-    ? `My DRepScore is ${drep.drepScore}/100!\n\nParticipation: ${drep.effectiveParticipation}% | Rationale: ${adjustedRationale}% | Reliability: ${drep.reliabilityScore}%\n\nSee my full report on @drepscore:`
-    : `${drep.name || 'This DRep'} scored ${drep.drepScore}/100 on @drepscore!\n\nCheck out their governance track record:`;
+    ? `My Governada Score is ${drep.drepScore}/100!\n\nParticipation: ${drep.effectiveParticipation}% | Rationale: ${adjustedRationale}% | Reliability: ${drep.reliabilityScore}%\n\nSee my full report on @GovernadaIO:`
+    : `${drep.name || 'This DRep'} scored ${drep.drepScore}/100 on @GovernadaIO!\n\nCheck out their governance track record:`;
 
   const hints = [participationHint, rationaleHint, reliabilityHint, profileHint];
 

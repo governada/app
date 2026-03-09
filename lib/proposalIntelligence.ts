@@ -92,7 +92,7 @@ export async function computeInsights(): Promise<GovernanceInsight[]> {
             category: 'behavior',
             methodology:
               'Compares the No-vote rate among votes with published rationale vs votes without.',
-            shareText: `On @DRepScore: DReps who explain their votes are ${ratio.toFixed(1)}x more likely to vote No. Accountability breeds independence.`,
+            shareText: `On @GovernadaIO: DReps who explain their votes are ${ratio.toFixed(1)}x more likely to vote No. Accountability breeds independence.`,
           });
         }
       }
@@ -131,7 +131,7 @@ export async function computeInsights(): Promise<GovernanceInsight[]> {
           category: 'treasury',
           methodology:
             'Pass rate = (ratified + enacted) / (ratified + enacted + dropped + expired) for each proposal type.',
-          shareText: `Treasury proposals on Cardano pass at just ${fmtPct(treasuryPassRate)}. DReps take money decisions seriously. Via @DRepScore`,
+          shareText: `Treasury proposals on Cardano pass at just ${fmtPct(treasuryPassRate)}. DReps take money decisions seriously. Via @GovernadaIO`,
         });
       }
     }
@@ -185,7 +185,7 @@ export async function computeInsights(): Promise<GovernanceInsight[]> {
             category: 'voting',
             methodology:
               'Pairwise agreement rate across all proposals where at least 2 of the top 10 scored DReps voted.',
-            shareText: `Cardano's top 10 DReps agree on ${fmtPct(agreementRate)} of votes. Consensus or groupthink? Via @DRepScore`,
+            shareText: `Cardano's top 10 DReps agree on ${fmtPct(agreementRate)} of votes. Consensus or groupthink? Via @GovernadaIO`,
           });
         }
       }
@@ -226,7 +226,7 @@ export async function computeInsights(): Promise<GovernanceInsight[]> {
             category: 'participation',
             methodology:
               'Sum of voting power (lovelace) held by the top 10 DReps divided by total active voting power.',
-            shareText: `The top 10 Cardano DReps control ${fmtPct(concentration)} of voting power. How distributed is governance really? Via @DRepScore`,
+            shareText: `The top 10 Cardano DReps control ${fmtPct(concentration)} of voting power. How distributed is governance really? Via @GovernadaIO`,
           });
         }
       }
@@ -266,7 +266,7 @@ export async function computeInsights(): Promise<GovernanceInsight[]> {
           stat: `${fmtPct(highestRate)} vs ${fmtPct(lowestRate)}`,
           category: 'voting',
           methodology: 'Pass rate by proposal_type for types with at least 2 resolved proposals.',
-          shareText: `On Cardano, ${highestName} proposals pass at ${fmtPct(highestRate)} while ${lowestName} is just ${fmtPct(lowestRate)}. Via @DRepScore`,
+          shareText: `On Cardano, ${highestName} proposals pass at ${fmtPct(highestRate)} while ${lowestName} is just ${fmtPct(lowestRate)}. Via @GovernadaIO`,
         });
       }
     }
@@ -309,7 +309,7 @@ export async function computeInsights(): Promise<GovernanceInsight[]> {
             category: 'behavior',
             methodology:
               'Average score of DReps whose rationales average 300+ characters vs those under 300.',
-            shareText: `DReps who write detailed rationales score ${delta} points higher on @DRepScore. Words matter in governance.`,
+            shareText: `DReps who write detailed rationales score ${delta} points higher on @GovernadaIO. Words matter in governance.`,
           });
         }
       }
@@ -362,7 +362,7 @@ export async function computeInsights(): Promise<GovernanceInsight[]> {
                 : undefined,
             methodology:
               'Abstain votes as a percentage of total votes, compared across recent (last 3) vs earlier (prior 3) epochs.',
-            shareText: `Abstention rate in Cardano governance is ${direction} at ${fmtPct(recentRate)}. Via @DRepScore`,
+            shareText: `Abstention rate in Cardano governance is ${direction} at ${fmtPct(recentRate)}. Via @GovernadaIO`,
           });
         }
       }
@@ -427,7 +427,7 @@ export async function computeInsights(): Promise<GovernanceInsight[]> {
             category: 'voting',
             methodology:
               'Compares the majority vote direction of DReps scoring 70+ vs under 40 on proposals where each group has 2+ voters.',
-            shareText: `High-scoring vs low-scoring DReps disagree on ${fmtPct(disagreementRate)} of Cardano proposals. Score ≠ ideology. Via @DRepScore`,
+            shareText: `High-scoring vs low-scoring DReps disagree on ${fmtPct(disagreementRate)} of Cardano proposals. Score ≠ ideology. Via @GovernadaIO`,
           });
         }
       }
@@ -471,7 +471,7 @@ export async function computeInsights(): Promise<GovernanceInsight[]> {
           category: 'participation',
           methodology:
             'Votes cast within 1 epoch of proposal expiration vs earlier votes, for proposals with known expiration epochs.',
-          shareText: `${fmtPct(lateRate)} of Cardano governance votes come in the final epoch. Deadline-driven or deliberate? Via @DRepScore`,
+          shareText: `${fmtPct(lateRate)} of Cardano governance votes come in the final epoch. Deadline-driven or deliberate? Via @GovernadaIO`,
         });
       }
     }

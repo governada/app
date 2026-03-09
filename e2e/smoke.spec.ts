@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Smoke tests', () => {
   test('homepage loads and shows heading', async ({ page }) => {
     await page.goto('/');
-    await expect(page).toHaveTitle(/Civica/i);
+    await expect(page).toHaveTitle(/Governada/i);
     await expect(page.locator('#main-content')).toBeVisible();
   });
 

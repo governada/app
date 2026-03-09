@@ -346,7 +346,7 @@ async function runSocialLinkChecks(supabase: SupabaseClient) {
         method: 'HEAD',
         redirect: 'follow',
         signal: controller.signal,
-        headers: { 'User-Agent': 'DRepScore-LinkChecker/1.0' },
+        headers: { 'User-Agent': 'Governada-LinkChecker/1.0' },
       });
       clearTimeout(timeout);
       httpStatus = res.status;
@@ -626,7 +626,7 @@ async function runCriticalProposalNotifications(supabase: SupabaseClient) {
   if (critical.length === 0) return { sent: 0, skipped: false };
 
   const newest = critical[0];
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://drepscore.io';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://governada.io';
 
   const event = {
     eventType: 'critical-proposal-open' as const,

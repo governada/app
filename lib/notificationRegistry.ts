@@ -33,7 +33,7 @@ export const EVENT_REGISTRY: EventDefinition[] = [
     audience: 'drep',
     urgency: 'batched',
     label: 'Score Changes',
-    description: 'When your DRepScore changes by 3+ points',
+    description: 'When your Governada Score changes by 3+ points',
     defaultChannels: ['push', 'email'],
     channels: ['push', 'email', 'discord', 'telegram'],
   },

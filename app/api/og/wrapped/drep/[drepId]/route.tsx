@@ -125,7 +125,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ drep
               marginBottom: '16px',
             }}
           >
-            {period ? 'My Civica Score This Epoch' : 'My Civica Score'}
+            {period ? 'My Governada Score This Epoch' : 'My Governada Score'}
           </div>
 
           <OGScoreRing score={drep.drepScore} size={280} />
@@ -214,7 +214,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ drep
             </div>
           )}
 
-          <OGFooter left="$drepscore" right="drepscore.io" />
+          <OGFooter left="$governada" right="governada.io" />
         </div>
       </OGBackground>,
       {
@@ -225,7 +225,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ drep
     );
   } catch (error) {
     console.error('[OG Wrapped DRep] Error:', error);
-    return new ImageResponse(<OGFallback message="My Civica Score" />, {
+    return new ImageResponse(<OGFallback message="My Governada Score" />, {
       width: 1080,
       height: 1080,
     });

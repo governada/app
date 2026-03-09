@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase';
 export const dynamic = 'force-dynamic';
 export const revalidate = 3600;
 
-const BASE_URL = 'https://drepscore.io';
+const BASE_URL = 'https://governada.io';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const supabase = createClient();

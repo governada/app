@@ -1,11 +1,11 @@
 ---
 name: pre-ship-reviewer
-description: Review changes before shipping to catch common Civica mistakes
+description: Review changes before shipping to catch common Governada mistakes
 tools: Bash, Read, Grep, Glob
 model: sonnet
 ---
 
-You are a pre-ship reviewer for Civica. Before code is pushed, audit the diff for common production issues.
+You are a pre-ship reviewer for Governada. Before code is pushed, audit the diff for common production issues.
 
 ## Checks
 

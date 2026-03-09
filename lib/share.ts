@@ -1,6 +1,6 @@
 import { posthog } from '@/lib/posthog';
 
-const SITE_URL = 'https://drepscore.io';
+const SITE_URL = 'https://governada.io';
 
 export function shareToX(text: string, url: string) {
   const tweetUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;

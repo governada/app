@@ -37,11 +37,11 @@ export async function generateMetadata({ searchParams }: ComparePageProps): Prom
   const ids = drepsParam?.split(',').filter(Boolean) ?? [];
 
   if (ids.length < 2) {
-    return { title: 'Compare DReps — Civica' };
+    return { title: 'Compare DReps — Governada' };
   }
 
   return {
-    title: `Compare ${ids.length} DReps — Civica`,
+    title: `Compare ${ids.length} DReps — Governada`,
     description:
       'Side-by-side comparison of DRep governance scores, alignment, and voting records.',
   };

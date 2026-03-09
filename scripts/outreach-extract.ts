@@ -11,7 +11,7 @@ config({ path: resolve(process.cwd(), '.env.local') });
 import { getSupabaseAdmin } from '../lib/supabase';
 import { writeFileSync } from 'fs';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://drepscore.io';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://governada.io';
 
 interface DRepRow {
   id: string;

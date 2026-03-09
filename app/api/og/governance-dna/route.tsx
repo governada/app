@@ -139,7 +139,7 @@ export async function GET(request: NextRequest) {
             </div>
           ) : (
             <div style={{ display: 'flex', fontSize: '22px', color: OG.textMuted }}>
-              Take the quiz at drepscore.io to find your matches
+              Take the quiz at governada.io to find your matches
             </div>
           )}
 
@@ -152,10 +152,10 @@ export async function GET(request: NextRequest) {
               marginTop: '40px',
             }}
           >
-            Find your Governance DNA at drepscore.io
+            Find your Governance DNA at governada.io
           </div>
 
-          <OGFooter left="$drepscore" right="drepscore.io/discover" />
+          <OGFooter left="$governada" right="governada.io/discover" />
         </div>
       </OGBackground>,
       {

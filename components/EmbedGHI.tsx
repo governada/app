@@ -106,7 +106,7 @@ export function EmbedGHI({ theme }: EmbedGHIProps) {
 
       <div className="mt-2 flex justify-between items-center">
         <a
-          href="https://drepscore.io/pulse"
+          href="https://governada.io/pulse"
           target="_blank"
           rel="noopener noreferrer"
           className="text-[10px] font-medium hover:underline"
@@ -115,7 +115,7 @@ export function EmbedGHI({ theme }: EmbedGHIProps) {
           View full report →
         </a>
         <span className="text-[9px]" style={{ color: isDark ? '#374151' : '#d1d5db' }}>
-          drepscore.io
+          governada.io
         </span>
       </div>
     </div>

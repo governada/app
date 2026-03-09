@@ -1,4 +1,4 @@
-# Civica Operational Runbook
+# Governada Operational Runbook
 
 ## Sync Pipeline Failure
 

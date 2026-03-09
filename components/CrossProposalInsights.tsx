@@ -190,7 +190,7 @@ function InsightShareButton({
   const [copied, setCopied] = useState(false);
 
   const copyShareText = useCallback(() => {
-    const text = insight.shareText || `${insight.headline}: ${insight.stat} — via DRepScore`;
+    const text = insight.shareText || `${insight.headline}: ${insight.stat} — via Governada`;
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);

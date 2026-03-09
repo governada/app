@@ -233,7 +233,7 @@ PR Group I (QP-13)        ─── depends on all other QPs (validate final sta
 
 ### QP-4: Error Recovery + Resilience
 
-**Problem:** Async failures surface as gray text with no retry mechanism. No graceful degradation. No offline detection. A citizen who opens Civica during a Koios outage sees a broken page with no explanation.
+**Problem:** Async failures surface as gray text with no retry mechanism. No graceful degradation. No offline detection. A citizen who opens Governada during a Koios outage sees a broken page with no explanation.
 
 **Goal:** Every async surface has a complete loading → content → error lifecycle with retry and graceful degradation.
 
@@ -464,7 +464,7 @@ These are not reconciled. A DRep's PCA position may contradict their manual dime
    - Trigger on:
      - First delegation completed (DelegationCeremony flow)
      - Milestone achieved (citizen-level-up notification)
-     - First vote cast through Civica
+     - First vote cast through Governada
      - First rationale submitted
      - Match confidence reaching 100%
 
@@ -501,7 +501,7 @@ These are not reconciled. A DRep's PCA position may contradict their manual dime
 
 **Problem:** The product assumes governance literacy. Treasury section uses "runway months" and "proportional share" without explanation. Quick Match assumes delegation is understood. New citizens from other crypto ecosystems (or non-crypto) get lost.
 
-**Goal:** Progressive disclosure of governance concepts. First-time users get contextual education. Returning users see clean UI. Nobody needs to leave Civica to understand what they're looking at.
+**Goal:** Progressive disclosure of governance concepts. First-time users get contextual education. Returning users see clean UI. Nobody needs to leave Governada to understand what they're looking at.
 
 **Scope:**
 

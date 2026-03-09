@@ -147,7 +147,7 @@ export function ClaimCelebration({
           <Check className="h-7 w-7 text-green-600 dark:text-green-400" />
         </div>
         <h1 className="text-2xl font-bold">Welcome, {name}!</h1>
-        <p className="text-sm text-muted-foreground">Your Civica command center is live.</p>
+        <p className="text-sm text-muted-foreground">Your Governada command center is live.</p>
       </div>
 
       <div className="space-y-1">

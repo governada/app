@@ -54,7 +54,7 @@ interface CitizenDRepRow {
 
 const SCORE_CHANGE_THRESHOLD = 3;
 const INACTIVITY_EPOCH_THRESHOLD = 3;
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://drepscore.io';
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://governada.io';
 
 export const checkNotifications = inngest.createFunction(
   {
@@ -150,7 +150,7 @@ export const checkNotifications = inngest.createFunction(
             await notifyUser(user.id, {
               eventType: 'score-change',
               title: `Score ${delta > 0 ? 'increased' : 'decreased'} by ${Math.abs(delta)} points`,
-              body: `Your DRepScore is now ${history[0].score}/100.`,
+              body: `Your Governada Score is now ${history[0].score}/100.`,
               url: `${BASE_URL}/dashboard`,
             });
             stats.scoreChange++;

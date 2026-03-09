@@ -1,6 +1,6 @@
-# Civica Frontend — Clean Sheet Redesign Plan
+# Governada Frontend — Clean Sheet Redesign Plan
 
-> Phase A, Task A7. Transforms the DRepScore data platform (32 pages, ~237 components) into a citizen-centric civic hub.
+> Phase A, Task A7. Transforms the Governada data platform (32 pages, ~237 components) into a citizen-centric governance hub.
 
 ---
 
@@ -62,7 +62,7 @@
 
 ```
 app/
-├── (civica)/                    # Route group — Civica layout shell
+├── (civica)/                    # Route group — Governada layout shell
 │   ├── layout.tsx               # CivicaShell: nav, segment provider, tier theme
 │   ├── page.tsx                 # Home (constellation + personalized feed)
 │   ├── discover/
@@ -101,7 +101,7 @@ app/
 Horizontal top bar with 4 primary destinations + wallet button:
 
 ```
-[Civica Logo]   Home   Discover   Pulse   My Gov        [⌘K] [Wallet]
+[Governada Logo]   Home   Discover   Pulse   My Gov        [⌘K] [Wallet]
 ```
 
 - Active state: bold + accent underline
@@ -245,7 +245,7 @@ For citizens viewing a DRep's profile: the profile page adopts that DRep's tier 
   1.8 — **Metadata architecture**
 
 - Every route in `(civica)` gets a `generateMetadata()` function with:
-  - Dynamic title: "Civica — [Page Name]"
+  - Dynamic title: "Governada — [Page Name]"
   - Description tailored to route (DRep profiles get DRep-specific descriptions)
   - OG image: route-specific (DRep/SPO profiles use existing OG generation, Pulse uses GHI OG, Home uses branded default)
   - Twitter card: `summary_large_image` for profiles and proposals
@@ -306,7 +306,7 @@ Technical: the existing `ConstellationHero.tsx` already has expanded/contracted 
 
 - Hero: "Cardano has a government. Know who represents you."
 - Constellation visualization (keep existing, polish — see constellation behavior above)
-- Social proof strip below constellation: "12,000+ delegators use DRepScore to track their governance | 300+ DReps scored | 2,800+ SPOs tracked" — numbers pulled from `/api/stats/claimed` and governance stats
+- Social proof strip below constellation: "12,000+ delegators use Governada to track their governance | 300+ DReps scored | 2,800+ SPOs tracked" — numbers pulled from `/api/stats/claimed` and governance stats
 - Live governance stats (total DReps, active proposals, participation rate) as ambient counters overlaid on constellation
 
 **Quick Match inline design:**
@@ -607,8 +607,8 @@ Leaderboards are discovery tools — users browse them to find DReps/SPOs. They 
 - One-tap share to X with pre-filled text
 - Copy link to profile with achievement highlighted
 - Download image for manual sharing
-- Every shareable card includes "via DRepScore" branding + URL
-- Share preview images (OG) always include the DRepScore logo — already enforced by `lib/og-utils.tsx` `OGFooter`
+- Every shareable card includes "via Governada" branding + URL
+- Share preview images (OG) always include the Governada logo — already enforced by `lib/og-utils.tsx` `OGFooter`
 
   6.3 — **Score impact micro-interactions**
 

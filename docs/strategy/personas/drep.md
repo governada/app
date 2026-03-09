@@ -14,7 +14,7 @@ They range from highly professional governance participants treating it as a car
 
 **A DRep is a citizen first.** They hold ADA, they stake, they have their own governance values and delegation preferences (many delegate to themselves, some to other DReps). Everything in the Citizen experience applies to them -- the briefing, the civic identity, the treasury transparency, the engagement mechanisms. The DRep layer adds professional governance tooling on top of that foundation.
 
-The analogy is a politician who is also a citizen. They vote in elections, they pay taxes, they use public services. But they also have a professional workspace for doing the work of governance. Civica serves both roles in one product.
+The analogy is a politician who is also a citizen. They vote in elections, they pay taxes, they use public services. But they also have a professional workspace for doing the work of governance. Governada serves both roles in one product.
 
 ### Current Population
 
@@ -40,7 +40,7 @@ The analogy is a politician who is also a citizen. They vote in elections, they 
 ### What would delight them
 
 - Casting a vote and submitting a CIP-100 rationale in the same flow, in under 2 minutes
-- Opening Civica and seeing exactly what needs their attention, prioritized by urgency and impact
+- Opening Governada and seeing exactly what needs their attention, prioritized by urgency and impact
 - Watching their governance score improve as they participate more effectively
 - Getting a notification that says "15 new delegators this epoch -- here's why they chose you"
 - An AI that drafts their rationale from the proposal text + their voting history + their governance philosophy
@@ -51,7 +51,7 @@ The analogy is a politician who is also a citizen. They vote in elections, they 
 
 ### Philosophy
 
-The DRep experience is a **professional governance workspace** -- Civica is to DReps what VS Code is to developers. They open it, see what needs attention, do the work, track their performance, and communicate with constituents. The intelligence layer (AI analysis, citizen sentiment, treasury context) makes them better at governance without requiring extra effort.
+The DRep experience is a **professional governance workspace** -- Governada is to DReps what VS Code is to developers. They open it, see what needs attention, do the work, track their performance, and communicate with constituents. The intelligence layer (AI analysis, citizen sentiment, treasury context) makes them better at governance without requiring extra effort.
 
 The citizen experience runs underneath. The DRep layer adds to it; it never replaces it.
 
@@ -59,7 +59,7 @@ The citizen experience runs underneath. The DRep layer adds to it; it never repl
 
 #### Inbox / Action Queue (Primary Surface)
 
-When a DRep opens Civica, they see what needs their attention, prioritized:
+When a DRep opens Governada, they see what needs their attention, prioritized:
 
 - **Urgent votes:** Proposals expiring soon that they haven't voted on
 - **New proposals:** Recently submitted governance actions awaiting review
@@ -80,7 +80,7 @@ The DRep's primary work surface. Everything they need to make an informed vote a
 - AI-generated plain-English summary of the proposal
 - Treasury impact: amount requested, percentage of treasury, spending category
 - Similar past proposals and their outcomes (delivered, partial, failed)
-- Citizen sentiment from Civica's engagement layer: support %, concern flags, priority alignment
+- Citizen sentiment from Governada's engagement layer: support %, concern flags, priority alignment
 - Citizen questions: "31 citizens want to know your position on this"
 - Inter-body context: how SPOs and CC members are leaning
 - Constitutional alignment: AI analysis of whether the proposal conflicts with the ratified constitution
@@ -89,7 +89,7 @@ The DRep's primary work surface. Everything they need to make an informed vote a
 
 **Action layer:**
 
-- **Vote casting** directly from Civica. The DRep selects Yes / No / Abstain, the app constructs the governance transaction via MeshJS (CIP-95), the DRep signs with their governance wallet, and the vote is submitted on-chain.
+- **Vote casting** directly from Governada. The DRep selects Yes / No / Abstain, the app constructs the governance transaction via MeshJS (CIP-95), the DRep signs with their governance wallet, and the vote is submitted on-chain.
 - **Rationale authoring** integrated with the vote flow:
   - Rich-text editor for writing the rationale
   - AI-assisted drafting: generates a first draft from the proposal text, the DRep's voting history, and their stated governance philosophy
@@ -99,7 +99,7 @@ The DRep's primary work surface. Everything they need to make an informed vote a
   - The rationale automatically appears on the DRep's profile
 - **Information requests** to proposal authors: structured asks for clarification, aggregated with other DRep requests ("4 DReps requested clarification on milestones"), proposal authors respond publicly
 
-**Why this matters:** Today, voting and rationale submission are separate, tedious processes across multiple tools. Making them a single 2-minute flow inside the analysis workspace fundamentally changes DRep behavior. DReps who use Civica will provide more rationales, score higher, and attract more delegation. The tool makes them better at governance.
+**Why this matters:** Today, voting and rationale submission are separate, tedious processes across multiple tools. Making them a single 2-minute flow inside the analysis workspace fundamentally changes DRep behavior. DReps who use Governada will provide more rationales, score higher, and attract more delegation. The tool makes them better at governance.
 
 #### Reputation Dashboard
 
@@ -132,8 +132,8 @@ Structured governance communication -- not a blog, not a forum:
 **Vote explanations:**
 
 - Every vote + rationale is automatically visible to delegators on the DRep's profile
-- Civica surfaces these as "Your DRep voted Yes on Proposal X" in delegator briefings
-- The rationale IS the communication -- Civica just makes it visible where it matters
+- Governada surfaces these as "Your DRep voted Yes on Proposal X" in delegator briefings
+- The rationale IS the communication -- Governada just makes it visible where it matters
 
 **Position statements:**
 
@@ -180,7 +180,7 @@ The free tier gives DReps everything they need to govern effectively. Pro gives 
 
 Everything a DRep needs to do their job:
 
-- **Vote casting** from within Civica
+- **Vote casting** from within Governada
 - **Rationale authoring + submission** (editor, CIP-100 formatting, hosting, bundled submission)
 - **Proposal workspace** (full analysis: AI summary, treasury impact, citizen sentiment, similar proposals, constitutional alignment)
 - **Basic delegation stats** (total delegators, voting power, recent changes)
@@ -208,10 +208,10 @@ Tools for DReps who want to actively grow their reputation and delegation:
 
 The free tier is generous because DRep usage IS the product:
 
-- Every vote cast through Civica feeds the intelligence engine
+- Every vote cast through Governada feeds the intelligence engine
 - Every rationale submitted improves the citizen experience
-- Every DRep managing their profile through Civica creates better data
-- The more DReps use free Civica, the more valuable the platform is for everyone
+- Every DRep managing their profile through Governada creates better data
+- The more DReps use free Governada, the more valuable the platform is for everyone
 
 Pro monetizes the competitive layer. DReps who want to _win_ -- attract more delegation, climb rankings, outperform peers -- will pay for the edge. The free tier makes them effective. Pro makes them strategic.
 
@@ -231,22 +231,22 @@ Pro monetizes the competitive layer. DReps who want to _win_ -- attract more del
 
 ## The Rationale Revolution
 
-The single most impactful thing Civica can do for DRep governance quality is make rationale submission effortless. Today:
+The single most impactful thing Governada can do for DRep governance quality is make rationale submission effortless. Today:
 
 - CIP-100 rationale submission requires manual JSON creation, self-hosting, and anchor hash submission
 - Most DReps skip it because the friction is too high
 - Citizens have no idea why their DRep voted the way they did
 - Rationale quality is a major scoring factor, but the tooling punishes DReps for trying
 
-If Civica reduces rationale submission to "write (or edit an AI draft) and click submit," the effects cascade:
+If Governada reduces rationale submission to "write (or edit an AI draft) and click submit," the effects cascade:
 
 - More rationales exist on-chain (better for the entire ecosystem)
-- DReps who use Civica score higher (better for them)
+- DReps who use Governada score higher (better for them)
 - Citizens can see why their DRep voted a certain way (better citizen experience)
 - The AI gets more training data for governance analysis (better intelligence)
 - Governance transparency improves measurably (better for Cardano's reputation)
 
-This is the feature that could make Civica indispensable for DReps overnight. It solves a real pain point that no other tool addresses, and the benefits compound across every persona.
+This is the feature that could make Governada indispensable for DReps overnight. It solves a real pain point that no other tool addresses, and the benefits compound across every persona.
 
 ---
 
@@ -283,20 +283,20 @@ This is the feature that could make Civica indispensable for DReps overnight. It
 
 ## Metrics That Matter
 
-| Metric                                 | What It Measures                      | Target                                                   |
-| -------------------------------------- | ------------------------------------- | -------------------------------------------------------- |
-| **DReps using Civica for voting**      | Workspace adoption                    | >30% of active DReps within 6 months                     |
-| **Rationale submission rate**          | Did we solve the friction problem?    | 2x increase in rationale rate for Civica-using DReps     |
-| **Time from proposal to vote**         | Workspace efficiency                  | Measurable reduction vs. multi-tool workflow             |
-| **DRep Pro conversion**                | Monetization                          | 50-100 paying DReps at $15-25/mo                         |
-| **DRep Pro retention**                 | Is Pro actually valuable?             | >80% monthly retention                                   |
-| **Delegation growth for Civica DReps** | Does the platform help DReps succeed? | Civica-using DReps grow delegation faster than non-users |
-| **Citizen question response rate**     | Is the accountability loop working?   | >50% of aggregated questions get DRep responses          |
+| Metric                                    | What It Measures                      | Target                                                      |
+| ----------------------------------------- | ------------------------------------- | ----------------------------------------------------------- |
+| **DReps using Governada for voting**      | Workspace adoption                    | >30% of active DReps within 6 months                        |
+| **Rationale submission rate**             | Did we solve the friction problem?    | 2x increase in rationale rate for Governada-using DReps     |
+| **Time from proposal to vote**            | Workspace efficiency                  | Measurable reduction vs. multi-tool workflow                |
+| **DRep Pro conversion**                   | Monetization                          | 50-100 paying DReps at $15-25/mo                            |
+| **DRep Pro retention**                    | Is Pro actually valuable?             | >80% monthly retention                                      |
+| **Delegation growth for Governada DReps** | Does the platform help DReps succeed? | Governada-using DReps grow delegation faster than non-users |
+| **Citizen question response rate**        | Is the accountability loop working?   | >50% of aggregated questions get DRep responses             |
 
 ---
 
 ## The One-Line Vision
 
-**Civica is where DReps do governance -- review proposals, cast votes, explain their reasoning, and build their reputation, all in one place.**
+**Governada is where DReps do governance -- review proposals, cast votes, explain their reasoning, and build their reputation, all in one place.**
 
 The intelligence layer makes them better at governance. The citizen engagement layer keeps them accountable. The reputation system rewards quality participation. And underneath it all, they're citizens too -- receiving the same briefing, building the same civic identity, participating in the same community as the people they represent.

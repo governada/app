@@ -78,7 +78,7 @@ export function EpochSummaryCard({ epoch, summary }: EpochSummaryCardProps) {
         <CardAction>
           <ShareActions
             url={`${siteUrl}/?epoch=${epoch}`}
-            text={`Cardano Epoch ${epoch} governance recap via @DRepScore — ${summary.drepVoteCount} DRep votes, ${summary.proposalsOpened} proposals opened.`}
+            text={`Cardano Epoch ${epoch} governance recap via @GovernadaIO — ${summary.drepVoteCount} DRep votes, ${summary.proposalsOpened} proposals opened.`}
             imageUrl={`/api/og/epoch-summary?epoch=${epoch}&votes=${summary.drepVoteCount}&rationales=${summary.drepRationaleCount}&proposals=${summary.proposalsOpened}${summary.representationScore != null ? `&repScore=${summary.representationScore}` : ''}`}
             imageFilename={`epoch-${epoch}-summary.png`}
             surface="epoch_summary_card"
@@ -140,7 +140,7 @@ export function EpochSummaryCard({ epoch, summary }: EpochSummaryCardProps) {
       </CardContent>
 
       <CardFooter>
-        <p className="text-xs text-muted-foreground">drepscore.io</p>
+        <p className="text-xs text-muted-foreground">governada.io</p>
       </CardFooter>
     </Card>
   );

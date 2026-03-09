@@ -1,6 +1,6 @@
 # Persona: The Cardano Citizen
 
-> **Status:** Active -- defines the anchor persona and primary acquisition target for Civica.
+> **Status:** Active -- defines the anchor persona and primary acquisition target for Governada.
 > **Created:** March 2026
 > **Companion to:** `docs/strategy/ultimate-vision.md`
 
@@ -8,7 +8,7 @@
 
 ## Who They Are
 
-The Cardano Citizen is anyone who holds ADA. Not governance experts, not DReps, not pool operators -- just people who own a stake in the Cardano network. They range from the ultra-passive investor who only cares about price to the moderately engaged holder who follows ecosystem news. They are 80%+ of Civica's potential userbase and the foundation the entire product is built on.
+The Cardano Citizen is anyone who holds ADA. Not governance experts, not DReps, not pool operators -- just people who own a stake in the Cardano network. They range from the ultra-passive investor who only cares about price to the moderately engaged holder who follows ecosystem news. They are 80%+ of Governada's potential userbase and the foundation the entire product is built on.
 
 Most Cardano Citizens today:
 
@@ -21,7 +21,7 @@ Most Cardano Citizens today:
 
 ### The Identity Shift
 
-The fundamental job of Civica is to transform the Citizen's self-perception from **"I own tokens"** to **"I'm a citizen of a digital nation."**
+The fundamental job of Governada is to transform the Citizen's self-perception from **"I own tokens"** to **"I'm a citizen of a digital nation."**
 
 This is not marketing language. Cardano has a ratified constitution, a treasury worth billions of ADA, elected representatives (DReps), three branches of governance, and a 5-day legislative cycle. It is structurally more democratic than most countries. Every ADA holder has governance rights whether they exercise them or not.
 
@@ -66,7 +66,7 @@ Progressive depth is available for the curious. Every summary has a path to more
 
 ### Pre-Connection: The Front Door
 
-Before connecting a wallet, Civica should feel like an invitation, not a dashboard. The anonymous experience has one job: convince the visitor that being an active Cardano citizen is easy, valuable, and risk-free.
+Before connecting a wallet, Governada should feel like an invitation, not a dashboard. The anonymous experience has one job: convince the visitor that being an active Cardano citizen is easy, valuable, and risk-free.
 
 **What they see:**
 
@@ -151,7 +151,7 @@ Structured mechanisms for citizens to participate beyond delegation. Every inter
 
 1. **Proposal Sentiment**
    - On every active proposal: "Do you support this? Yes / No / Not sure"
-   - Aggregate shown publicly: "72% of Civica citizens support this proposal"
+   - Aggregate shown publicly: "72% of Governada citizens support this proposal"
    - Divergence highlighted: "Citizens support this 80%, but DReps are voting 55% Yes"
    - Creates accountability signal and citizen voice without formal governance weight
 
@@ -310,8 +310,8 @@ The cadence is natural: Cardano epochs are ~5 days. Every epoch is a new briefin
 
 ## The One-Line Vision
 
-**Civica tells Cardano citizens what their ADA is doing in governance, so they don't have to follow it themselves.**
+**Governada tells Cardano citizens what their ADA is doing in governance, so they don't have to follow it themselves.**
 
 Not analytics. Not research. Not deep intelligence. Just: "Here's what happened. Here's what your representative did. Here's whether you should care. And here's how to make your voice heard if you want to."
 
-The deeper intelligence, DRep/SPO analytics, research tools, and power features serve the other personas and eventually monetize. But the thing that makes Civica a _hub_ for every Cardano citizen is the 30-second epoch check-in that nobody else provides, wrapped in a civic identity that grows over time and a community layer that gives every citizen a voice.
+The deeper intelligence, DRep/SPO analytics, research tools, and power features serve the other personas and eventually monetize. But the thing that makes Governada the go-to for every Cardano citizen is the 30-second epoch check-in that nobody else provides, wrapped in a civic identity that grows over time and a community layer that gives every citizen a voice.

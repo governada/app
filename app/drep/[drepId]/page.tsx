@@ -128,12 +128,12 @@ export async function generateMetadata({ params }: DRepDetailPageProps): Promise
 
   if (!drep) {
     return {
-      title: 'DRep Not Found — Civica',
+      title: 'DRep Not Found — Governada',
     };
   }
 
   const name = getDRepPrimaryName(drep);
-  const title = `${name} — Civica ${drep.drepScore}/100`;
+  const title = `${name} — Governada ${drep.drepScore}/100`;
   const description = `Participation: ${drep.effectiveParticipation}% · Rationale: ${drep.rationaleRate}% · Reliability: ${drep.reliabilityScore}% · Profile: ${drep.profileCompleteness}%`;
   const ogImageUrl = `${BASE_URL}/api/og/drep/${encodeURIComponent(drepId)}`;
 
@@ -144,7 +144,7 @@ export async function generateMetadata({ params }: DRepDetailPageProps): Promise
       title,
       description,
       type: 'profile',
-      images: [{ url: ogImageUrl, width: 1200, height: 630, alt: `${name} Civica card` }],
+      images: [{ url: ogImageUrl, width: 1200, height: 630, alt: `${name} Governada card` }],
     },
     twitter: {
       card: 'summary_large_image',
@@ -533,7 +533,7 @@ export default async function DRepDetailPage({ params, searchParams }: DRepDetai
     ((drep as unknown as Record<string, unknown>).lastPersonalityLabel as string | null) ?? null;
   const identityLabel = getPersonalityLabelWithHysteresis(alignments, lastPersonalityLabel);
 
-  // Tier progress with recommended action (for Civica score analysis)
+  // Tier progress with recommended action (for Governada score analysis)
   const tierProgress = computeTierProgress(drep.drepScore, {
     engagementQuality: drep.engagementQuality,
     effectiveParticipation: drep.effectiveParticipationV3,
@@ -557,7 +557,7 @@ export default async function DRepDetailPage({ params, searchParams }: DRepDetai
         entityName={drepName}
         enabled
         ogImageUrl={`/api/og/wrapped/drep/${encodeURIComponent(drep.drepId)}`}
-        shareUrl={`https://drepscore.io/drep/${encodeURIComponent(drep.drepId)}`}
+        shareUrl={`https://governada.io/drep/${encodeURIComponent(drep.drepId)}`}
       />
 
       <Link href="/">

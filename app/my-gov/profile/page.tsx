@@ -4,7 +4,7 @@ import type { Metadata } from 'next';
 import { CivicaProfile } from '@/components/civica/mygov/CivicaProfile';
 
 export const metadata: Metadata = {
-  title: 'Civica — Profile & Settings',
+  title: 'Governada — Profile & Settings',
   description: 'Manage your governance identity, notification preferences, and account settings.',
 };
 

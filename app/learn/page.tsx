@@ -3,11 +3,11 @@ import { PageViewTracker } from '@/components/PageViewTracker';
 import { LearnClient } from './LearnClient';
 
 export const metadata: Metadata = {
-  title: 'Civica — Learn Governance',
+  title: 'Governada — Learn Governance',
   description:
     'Understand Cardano governance: DReps, delegation, proposals, treasury, and how your voice shapes the network.',
   openGraph: {
-    title: 'Civica — Learn Governance',
+    title: 'Governada — Learn Governance',
     description: 'Everything you need to understand Cardano on-chain governance.',
     type: 'website',
   },

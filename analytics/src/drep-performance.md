@@ -265,7 +265,7 @@ const rationaleTargets = activeDreps
 ```
 
 <div class="tip-box">
-  <strong>Rationale = 35% of DRepScore.</strong> These DReps have significant voting power but almost never explain their votes. "Potential Lift" estimates the score improvement if they reach 50% rationale rate.
+  <strong>Rationale = 35% of Governada Score.</strong> These DReps have significant voting power but almost never explain their votes. "Potential Lift" estimates the score improvement if they reach 50% rationale rate.
 </div>
 
 ```js

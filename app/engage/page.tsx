@@ -5,7 +5,7 @@ import { EngageClient } from './EngageClient';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Civic Engagement — Civica',
+  title: 'Civic Engagement — Governada',
   description:
     'Shape Cardano governance. Vote on priorities, participate in citizen assemblies, and make your voice heard.',
 };

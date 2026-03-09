@@ -1,4 +1,4 @@
-# Civica Audit Rubric
+# Governada Audit Rubric
 
 > **Purpose:** Anchored scoring criteria for reproducible, comparable audits across sessions.
 > **Usage:** Read by `/audit` command. Each dimension has specific criteria and a 1-10 scale with defined anchors.
@@ -145,7 +145,7 @@ How much of the vision is realized at the quality bar the vision demands?
 Every audit must produce:
 
 ```markdown
-## Civica Audit — [DATE] — Scope: [full | step:N | area:NAME]
+## Governada Audit — [DATE] — Scope: [full | step:N | area:NAME]
 
 ### Scores
 

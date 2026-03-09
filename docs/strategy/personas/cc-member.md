@@ -21,14 +21,14 @@ CC members are citizens first. They hold ADA, they stake, they have personal gov
 
 ### Why This Persona Is Different
 
-With only 7-10 members, the CC is not a growth market. Civica will never have 50 paying CC Pro subscribers. The value of serving this persona flows in the opposite direction: **CC transparency is enormously valuable to every other persona.**
+With only 7-10 members, the CC is not a growth market. Governada will never have 50 paying CC Pro subscribers. The value of serving this persona flows in the opposite direction: **CC transparency is enormously valuable to every other persona.**
 
 - Citizens want to know: are the constitutional guardians acting in good faith?
 - DReps want to know: will the CC ratify the proposal I'm voting on?
 - SPOs want to know: how does the CC's constitutional interpretation affect protocol parameters?
 - Researchers want to know: how does the CC's voting pattern evolve over time?
 
-The CC persona is primarily an **accountability surface** -- a public transparency layer that serves the entire ecosystem. Secondarily, Civica can offer CC members lightweight governance tooling if they choose to use it.
+The CC persona is primarily an **accountability surface** -- a public transparency layer that serves the entire ecosystem. Secondarily, Governada can offer CC members lightweight governance tooling if they choose to use it.
 
 ---
 
@@ -60,9 +60,9 @@ The CC persona is primarily an **accountability surface** -- a public transparen
 
 ### Philosophy
 
-The CC member experience on Civica is **80% public accountability surface, 20% lightweight governance tooling.** The primary audience for CC features is not the CC members themselves -- it's everyone else who needs to understand and trust what the CC is doing.
+The CC member experience on Governada is **80% public accountability surface, 20% lightweight governance tooling.** The primary audience for CC features is not the CC members themselves -- it's everyone else who needs to understand and trust what the CC is doing.
 
-If CC members choose to use Civica for their governance workflow, the same vote-casting and rationale tools available to DReps and SPOs are available to them. But the product doesn't depend on CC member adoption to deliver value. The accountability surface works regardless, built from on-chain data.
+If CC members choose to use Governada for their governance workflow, the same vote-casting and rationale tools available to DReps and SPOs are available to them. But the product doesn't depend on CC member adoption to deliver value. The accountability surface works regardless, built from on-chain data.
 
 ### The Public Accountability Surface
 
@@ -93,7 +93,7 @@ The CC's relationship to the other governance bodies is a key intelligence surfa
 
 - **CC vs. DRep alignment:** On which proposals do they agree? Where do they diverge? When the CC rejects something DReps overwhelmingly supported, what was the constitutional reasoning?
 - **CC vs. SPO alignment:** Same analysis for the SPO governance body
-- **CC vs. Citizen sentiment:** How do CC decisions align with what Civica's citizen engagement layer reveals about community preferences?
+- **CC vs. Citizen sentiment:** How do CC decisions align with what Governada's citizen engagement layer reveals about community preferences?
 - **Constitutional friction points:** Proposals where the CC's constitutional interpretation diverged from community consensus -- these are the governance moments that matter most and deserve the most visibility
 
 #### Historical Record
@@ -107,14 +107,14 @@ Because CC members serve terms and rotate, the historical record is uniquely imp
 
 ### Lightweight Governance Tooling (Optional)
 
-If CC members choose to use Civica, they get the same core governance tools as DReps and SPOs:
+If CC members choose to use Governada, they get the same core governance tools as DReps and SPOs:
 
 - **Vote casting** via MeshJS (CIP-95) -- same integrated flow
 - **Rationale authoring** with CIP-100 compliance -- particularly valuable for CC because constitutional reasoning benefits from structured, well-documented rationales
 - **Proposal workspace** with the full analysis layer -- AI summary, treasury impact, citizen sentiment, inter-body context, plus constitutional alignment analysis tailored to CC concerns
 - **Constitutional reference:** Quick access to the ratified constitution with AI-assisted search for relevant provisions per proposal
 
-The incentive for CC members to use Civica: their rationales appear on their profile automatically, improving their Transparency Index score. If the tool makes constitutional reasoning easier to publish, CC members who use it will appear more transparent and accountable.
+The incentive for CC members to use Governada: their rationales appear on their profile automatically, improving their Transparency Index score. If the tool makes constitutional reasoning easier to publish, CC members who use it will appear more transparent and accountable.
 
 ### Citizen Engagement with CC
 
@@ -142,7 +142,7 @@ A composite accountability score for CC members, designed to be simple, fair, an
 ### Design Principles
 
 - The index measures process, not outcomes. A CC member who votes against community sentiment but provides thorough constitutional reasoning scores well. A CC member who votes with the crowd but never explains why scores poorly.
-- All components are derived from on-chain data and Civica's engagement layer. No subjective editorial judgment.
+- All components are derived from on-chain data and Governada's engagement layer. No subjective editorial judgment.
 - The methodology is published and transparent. CC members know exactly how they're being evaluated.
 
 ---
@@ -177,19 +177,19 @@ The value of CC transparency flows to other personas: citizens trust the system,
 
 ## Metrics That Matter
 
-| Metric                             | What It Measures                                           | Target                                                           |
-| ---------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------- |
-| **CC page views**                  | Is the accountability surface valuable?                    | Consistent traffic, spikes around controversial decisions        |
-| **CC member profile views**        | Are people checking individual accountability?             | Each member's profile viewed regularly                           |
-| **CC rationale submission rate**   | If CC members use Civica, are they providing rationales?   | Higher rationale rate than through other tools                   |
-| **Citizen questions to CC**        | Is the engagement layer working?                           | Meaningful question volume on significant governance actions     |
-| **Inter-body analysis engagement** | Do DReps/SPOs use CC data for decision-making?             | CC alignment data referenced in DRep/SPO rationales              |
-| **Trust correlation**              | Does CC transparency affect citizen governance confidence? | Citizen engagement metrics correlate with CC transparency levels |
+| Metric                             | What It Measures                                            | Target                                                           |
+| ---------------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------- |
+| **CC page views**                  | Is the accountability surface valuable?                     | Consistent traffic, spikes around controversial decisions        |
+| **CC member profile views**        | Are people checking individual accountability?              | Each member's profile viewed regularly                           |
+| **CC rationale submission rate**   | If CC members use Governada, are they providing rationales? | Higher rationale rate than through other tools                   |
+| **Citizen questions to CC**        | Is the engagement layer working?                            | Meaningful question volume on significant governance actions     |
+| **Inter-body analysis engagement** | Do DReps/SPOs use CC data for decision-making?              | CC alignment data referenced in DRep/SPO rationales              |
+| **Trust correlation**              | Does CC transparency affect citizen governance confidence?  | Citizen engagement metrics correlate with CC transparency levels |
 
 ---
 
 ## The One-Line Vision
 
-**Civica makes the Constitutional Committee the most transparent governance body in any blockchain -- not by requiring their participation, but by building the accountability surface the ecosystem needs to trust them.**
+**Governada makes the Constitutional Committee the most transparent governance body in any blockchain -- not by requiring their participation, but by building the accountability surface the ecosystem needs to trust them.**
 
-The CC page isn't for the CC. It's for the 700 DReps, 3,000 SPOs, and millions of ADA holders who need to trust that their constitutional guardians are doing their job. If CC members choose to use Civica's governance tools, they become more transparent. If they don't, the on-chain record still speaks.
+The CC page isn't for the CC. It's for the 700 DReps, 3,000 SPOs, and millions of ADA holders who need to trust that their constitutional guardians are doing their job. If CC members choose to use Governada's governance tools, they become more transparent. If they don't, the on-chain record still speaks.

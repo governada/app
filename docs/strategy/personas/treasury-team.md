@@ -33,7 +33,7 @@ The treasury funding process today is broken on both sides:
 - There's no structured way to verify if funded projects actually ship
 - Bad actors can get funded and disappear without consequence to their reputation
 
-Both sides need Civica. The key insight: **accountability and advantage are the same thing for teams that deliver.**
+Both sides need Governada. The key insight: **accountability and advantage are the same thing for teams that deliver.**
 
 ---
 
@@ -57,7 +57,7 @@ Both sides need Civica. The key insight: **accountability and advantage are the 
 
 - Testing a proposal concept with citizens and DReps before writing the full proposal -- and getting signal that it's wanted
 - Walking into their fourth proposal with a track record that speaks for itself: "3 of 3 delivered, 88% citizen impact score"
-- Shipping a product and seeing citizens tag it as "essential" on their Civica project page
+- Shipping a product and seeing citizens tag it as "essential" on their Governada project page
 - AI-powered proposal guidance: "proposals like yours with quarterly milestones have 80% approval rates"
 - Their funded project becoming discoverable to citizens who would actually use it
 
@@ -67,16 +67,16 @@ Both sides need Civica. The key insight: **accountability and advantage are the 
 
 ### Philosophy
 
-Civica doesn't impose accountability on treasury teams. **It rewards accountability by making it a competitive advantage.** Teams that engage transparently build reputation. Reputation gets them funded. Getting funded grows their work. Their work generates citizen impact. Impact builds more reputation.
+Governada doesn't impose accountability on treasury teams. **It rewards accountability by making it a competitive advantage.** Teams that engage transparently build reputation. Reputation gets them funded. Getting funded grows their work. Their work generates citizen impact. Impact builds more reputation.
 
-The teams that deliver WANT accountability because it separates them from teams that don't. Civica makes that separation visible and valuable.
+The teams that deliver WANT accountability because it separates them from teams that don't. Governada makes that separation visible and valuable.
 
 ### The Trust Ladder
 
-The relationship between treasury teams and Civica is a voluntary progression. Each step provides tangible benefit:
+The relationship between treasury teams and Governada is a voluntary progression. Each step provides tangible benefit:
 
-1. **Anonymous team:** On-chain proposal, no Civica presence. DReps and citizens evaluate blind. Lowest trust signal.
-2. **Registered team:** Claimed their project page on Civica, added team info and description. Basic trust signal established.
+1. **Anonymous team:** On-chain proposal, no Governada presence. DReps and citizens evaluate blind. Lowest trust signal.
+2. **Registered team:** Claimed their project page on Governada, added team info and description. Basic trust signal established.
 3. **Active team:** Posting progress updates, tracking milestones, engaging with citizen feedback. Growing reputation.
 4. **Verified team:** Identity verified, full accountability tools active, spending transparency published. Maximum trust signal.
 5. **Established team:** Multiple delivered proposals, strong citizen impact scores, proven track record. Their next proposal is nearly pre-approved on reputation alone.
@@ -85,7 +85,7 @@ No step is mandatory. Every step is advantageous. Teams climb the ladder because
 
 ### Pre-Proposal: Validation and Intelligence
 
-Before spending weeks on a formal proposal, teams can use Civica to validate their concept and optimize their approach.
+Before spending weeks on a formal proposal, teams can use Governada to validate their concept and optimize their approach.
 
 #### Concept Testing
 
@@ -97,18 +97,18 @@ Before spending weeks on a formal proposal, teams can use Civica to validate the
 
 #### Proposal Drafting Intelligence
 
-Civica has unique data about what makes proposals succeed:
+Governada has unique data about what makes proposals succeed:
 
 - Historical voting patterns: what types of proposals do DReps support? At what budget levels? With what milestone structures?
 - Citizen priority alignment: does this concept match what the community says it wants?
 - Similar proposals: what's been funded before in this space? What delivered and what didn't?
 - AI-powered guidance: "Proposals in the developer tooling category with budgets under 5M ADA and quarterly milestones have an 80% approval rate. Similar proposals that included user adoption metrics scored higher on citizen impact."
 
-This turns Civica into a strategic advisor for proposal teams.
+This turns Governada into a strategic advisor for proposal teams.
 
 ### During Funding: The Project Page
 
-Every funded proposal gets a project page on Civica -- the canonical home for the project's lifecycle.
+Every funded proposal gets a project page on Governada -- the canonical home for the project's lifecycle.
 
 #### Project Identity
 
@@ -120,7 +120,7 @@ Every funded proposal gets a project page on Civica -- the canonical home for th
 
 #### Milestone Management
 
-- Teams declare milestones when funded (or Civica extracts them from the proposal)
+- Teams declare milestones when funded (or Governada extracts them from the proposal)
 - As they deliver, they mark milestones complete with evidence: links, demos, documentation, screenshots
 - Public progress display: "Milestone 3 of 5 complete"
 - Citizen verification: community members who expressed interest confirm they can see or use the deliverable
@@ -162,7 +162,7 @@ After a project delivers, the accountability story shifts to impact measurement.
 
 #### Impact Amplification
 
-- When a funded project ships, Civica surfaces it to the citizen community
+- When a funded project ships, Governada surfaces it to the citizen community
 - "This project was funded by Cardano governance. Here's the team, here's the product, try it."
 - Project page becomes a living showcase, not a forgotten proposal
 - DReps and SPOs who voted for it can reference the outcome: "I voted Yes, and it delivered"
@@ -191,7 +191,7 @@ The aggregate view that helps the entire ecosystem:
 
 ### Cross-Project Intelligence
 
-Civica's proposal analysis creates a collaboration and landscape layer:
+Governada's proposal analysis creates a collaboration and landscape layer:
 
 - **Similar project discovery:** "3 other teams are working on developer tooling -- here's how your projects compare and complement each other"
 - **Duplication detection:** Before a team submits, they can see what's already funded in their space
@@ -202,7 +202,7 @@ Civica's proposal analysis creates a collaboration and landscape layer:
 
 ## The Proposer Profile
 
-Each team (or individual) who has submitted treasury proposals accumulates a proposer profile on Civica:
+Each team (or individual) who has submitted treasury proposals accumulates a proposer profile on Governada:
 
 - **Proposal history:** Every proposal submitted, with outcomes (approved, rejected, withdrawn)
 - **Delivery track record:** Milestone completion rates, timeliness, citizen impact scores across all projects
@@ -263,10 +263,10 @@ The ROI is straightforward: better trust signals = better chance of getting fund
 
 The self-reinforcing loop that improves treasury spending quality over time:
 
-1. Team submits a proposal with concept validation from Civica
+1. Team submits a proposal with concept validation from Governada
 2. DReps evaluate using the team's proposer profile and delivery track record
 3. Proposal is funded
-4. Team posts structured progress updates on their Civica project page
+4. Team posts structured progress updates on their Governada project page
 5. Citizens follow progress and provide feedback during development
 6. Team delivers and citizens tag impact: "I use this, it's essential"
 7. Delivery score and citizen impact score are recorded on the proposer profile
@@ -280,21 +280,21 @@ Bad actors are naturally filtered: a team that takes funding and disappears has 
 
 ## Metrics That Matter
 
-| Metric                              | What It Measures                              | Target                                                                             |
-| ----------------------------------- | --------------------------------------------- | ---------------------------------------------------------------------------------- |
-| **Teams with Civica project pages** | Platform adoption among proposers             | >50% of funded proposals have claimed pages                                        |
-| **Pre-proposal concept tests**      | Is validation valuable?                       | Growing usage, measurable correlation between validation scores and approval rates |
-| **Progress update frequency**       | Are teams engaging?                           | Average of at least 1 update per quarter for active projects                       |
-| **Citizen impact tag volume**       | Is the feedback loop working?                 | >30% of delivered projects have citizen impact ratings                             |
-| **Verified Project conversions**    | Monetization                                  | Steady growth toward $200-500/mo                                                   |
-| **Delivery score distribution**     | Is accountability improving treasury quality? | Upward trend in average delivery scores over time                                  |
-| **DRep reference rate**             | Do DReps use proposer profiles when voting?   | DReps cite track records in their rationales                                       |
-| **Repeat proposer success rate**    | Does reputation compound?                     | Teams with strong track records see higher approval rates on subsequent proposals  |
+| Metric                                 | What It Measures                              | Target                                                                             |
+| -------------------------------------- | --------------------------------------------- | ---------------------------------------------------------------------------------- |
+| **Teams with Governada project pages** | Platform adoption among proposers             | >50% of funded proposals have claimed pages                                        |
+| **Pre-proposal concept tests**         | Is validation valuable?                       | Growing usage, measurable correlation between validation scores and approval rates |
+| **Progress update frequency**          | Are teams engaging?                           | Average of at least 1 update per quarter for active projects                       |
+| **Citizen impact tag volume**          | Is the feedback loop working?                 | >30% of delivered projects have citizen impact ratings                             |
+| **Verified Project conversions**       | Monetization                                  | Steady growth toward $200-500/mo                                                   |
+| **Delivery score distribution**        | Is accountability improving treasury quality? | Upward trend in average delivery scores over time                                  |
+| **DRep reference rate**                | Do DReps use proposer profiles when voting?   | DReps cite track records in their rationales                                       |
+| **Repeat proposer success rate**       | Does reputation compound?                     | Teams with strong track records see higher approval rates on subsequent proposals  |
 
 ---
 
 ## The One-Line Vision
 
-**Civica turns treasury accountability from a burden into a competitive advantage -- teams that deliver build reputation that gets them funded again, while the entire ecosystem gains visibility into where its collective ADA goes.**
+**Governada turns treasury accountability from a burden into a competitive advantage -- teams that deliver build reputation that gets them funded again, while the entire ecosystem gains visibility into where its collective ADA goes.**
 
 Accountability isn't surveillance. It's the mechanism that rewards quality, filters bad actors, and gives every Cardano citizen confidence that their treasury is being spent well. The teams that engage benefit the most, because their track record becomes the strongest argument for their next proposal.

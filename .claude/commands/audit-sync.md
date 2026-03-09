@@ -2,7 +2,7 @@ Audit the sync pipeline for performance, reliability, and hardening gaps.
 
 ## Purpose
 
-Evaluate the health and resilience of the Koios → Supabase sync pipeline. This is the plumbing that makes Civica's data trustworthy. If syncs fail silently or produce stale data, every surface in the product degrades.
+Evaluate the health and resilience of the Koios → Supabase sync pipeline. This is the plumbing that makes Governada's data trustworthy. If syncs fail silently or produce stale data, every surface in the product degrades.
 
 ## Scope
 

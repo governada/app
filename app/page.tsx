@@ -8,18 +8,18 @@ import { CivicaHomePage } from '@/components/civica/CivicaHomePage';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Civica — Cardano Governance Intelligence',
+  title: 'Governada — Cardano Governance Intelligence',
   description:
     'Cardano has a government. Know who represents you. Find your DRep, track governance proposals, and participate in on-chain democracy.',
   openGraph: {
-    title: 'Civica — Cardano Governance Intelligence',
+    title: 'Governada — Cardano Governance Intelligence',
     description:
       'Know who represents your ADA in Cardano governance. Discover DReps, track proposals, and take action.',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Civica — Cardano Governance Intelligence',
+    title: 'Governada — Cardano Governance Intelligence',
     description: 'Cardano has a government. Know who represents you.',
   },
 };

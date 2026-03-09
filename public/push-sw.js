@@ -1,5 +1,5 @@
 /**
- * DRepScore Service Worker
+ * Governada Service Worker
  * Handles push notifications, notification click routing, and offline fallback.
  */
 
@@ -39,10 +39,10 @@ self.addEventListener('push', (event) => {
   try {
     payload = event.data.json();
   } catch {
-    payload = { title: 'DRepScore', body: event.data.text() };
+    payload = { title: 'Governada', body: event.data.text() };
   }
 
-  const { title = 'DRepScore', body = '', url = '/', icon = '/favicon.ico', badge = '/favicon.ico' } = payload;
+  const { title = 'Governada', body = '', url = '/', icon = '/favicon.ico', badge = '/favicon.ico' } = payload;
 
   event.waitUntil(
     self.registration.showNotification(title, {

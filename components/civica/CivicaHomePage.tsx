@@ -24,7 +24,7 @@ interface CivicaHomePageProps {
 }
 
 /**
- * Civica home page dispatcher — selects the correct variant based on
+ * Governada home page dispatcher — selects the correct variant based on
  * detected user segment. Renders anonymously until segment is resolved.
  */
 export function CivicaHomePage({

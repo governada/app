@@ -1,8 +1,8 @@
-# Civica
+# Governada
 
-**The Civic Hub for the Cardano Nation**
+**Governance Intelligence for Cardano**
 
-Civica (formerly DRepScore) is the governance intelligence and civic engagement platform for Cardano. It serves every participant in the ecosystem — citizens (ADA holders), DReps, SPOs, Constitutional Committee, treasury proposal teams, and governance researchers — through one interconnected data engine.
+Governada (formerly DRepScore) is the governance intelligence platform for Cardano. It serves every participant in the ecosystem — citizens (ADA holders), DReps, SPOs, Constitutional Committee, treasury proposal teams, and governance researchers — through one interconnected data engine.
 
 ## What It Does
 

@@ -1,6 +1,6 @@
 # Observability Setup Guide
 
-Dashboard and external service configurations for the Civica observability stack. These cannot be automated via code and must be set up manually.
+Dashboard and external service configurations for the Governada observability stack. These cannot be automated via code and must be set up manually.
 
 ---
 
@@ -131,7 +131,7 @@ Sign up at [betterstack.com](https://betterstack.com) (free tier: 5 monitors, 3-
 
 | Monitor     | URL                                    | Method | Interval | Expected                                  |
 | ----------- | -------------------------------------- | ------ | -------- | ----------------------------------------- |
-| Deep Health | `https://drepscore.io/api/health/deep` | GET    | 3 min    | status 200, body contains `"status":"ok"` |
+| Deep Health | `https://governada.io/api/health/deep` | GET    | 3 min    | status 200, body contains `"status":"ok"` |
 
 ### Heartbeat URLs
 

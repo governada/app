@@ -140,7 +140,7 @@ export function VoteExplanationEditor({
                   </TooltipTrigger>
                   <TooltipContent className="max-w-[280px]">
                     <p className="text-xs">
-                      This explanation is stored on DRepScore and visible to your delegators. It
+                      This explanation is stored on Governada and visible to your delegators. It
                       does not affect your on-chain rationale score.
                     </p>
                   </TooltipContent>

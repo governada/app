@@ -58,7 +58,7 @@ export function EpochReviewCard() {
     const score = s.yourDRepScore ?? 0;
     const votes = s.drepVotesCast;
     const polls = s.yourPollsTaken;
-    const text = `My Epoch ${data.epoch} Review on @DRepScore: ${drepName} scored ${score}, ${votes} votes cast, ${polls} polls taken. #CardanoGovernance`;
+    const text = `My Epoch ${data.epoch} Review on @GovernadaIO: ${drepName} scored ${score}, ${votes} votes cast, ${polls} polls taken. #CardanoGovernance`;
     navigator.clipboard.writeText(text).then(() => {
       setShared(true);
       setTimeout(() => setShared(false), 2000);

@@ -9,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ['/api/', '/admin/', '/my-gov/', '/claim/'],
       },
     ],
-    sitemap: 'https://drepscore.io/sitemap.xml',
+    sitemap: 'https://governada.io/sitemap.xml',
   };
 }

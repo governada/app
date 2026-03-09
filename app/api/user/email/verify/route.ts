@@ -33,6 +33,6 @@ export async function GET(request: NextRequest) {
 
   captureServerEvent('email_verified', {}, parsed.userId);
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://drepscore.io';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://governada.io';
   return NextResponse.redirect(`${baseUrl}/profile?email_verified=true`);
 }

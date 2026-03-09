@@ -1,5 +1,5 @@
 export default {
-  title: 'DRepScore Analytics',
+  title: 'Governada Analytics',
   root: 'src',
   theme: ['dashboard', 'near-midnight'],
   head: `<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>

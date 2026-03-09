@@ -32,7 +32,7 @@ export async function generateMetadata({
   const { entityType, entityId, period } = await params;
   const label = entityLabel(entityType, entityId);
   const title = `${label}'s Governance Wrapped — ${period}`;
-  const description = `See ${label}'s governance activity for ${period} on Civica.`;
+  const description = `See ${label}'s governance activity for ${period} on Governada.`;
   const ogImageUrl = `${BASE_URL}/api/og/wrapped/${entityType}/${encodeURIComponent(entityId)}?period=${period}`;
 
   return {
@@ -265,7 +265,7 @@ export default async function PublicWrappedPage({ params }: { params: Promise<Pa
               participation.
             </p>
             <Button asChild className="w-full">
-              <Link href="/">Get started on Civica</Link>
+              <Link href="/">Get started on Governada</Link>
             </Button>
           </CardContent>
         </Card>

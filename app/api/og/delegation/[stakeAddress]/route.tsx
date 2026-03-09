@@ -69,7 +69,7 @@ export async function GET(
             >
               Delegation data syncing…
             </div>
-            <OGFooter left="$drepscore" right="drepscore.io" />
+            <OGFooter left="$governada" right="governada.io" />
           </div>
         </OGBackground>,
         {
@@ -204,7 +204,7 @@ export async function GET(
             ))}
           </div>
 
-          <OGFooter left="$drepscore" right="drepscore.io" />
+          <OGFooter left="$governada" right="governada.io" />
         </div>
       </OGBackground>,
       {

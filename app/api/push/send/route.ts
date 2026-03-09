@@ -74,7 +74,7 @@ export const POST = withRouteHandler(
         payload = {
           eventType: 'platform-announcement',
           fallback: {
-            title: 'Civica Test Notification',
+            title: 'Governada Test Notification',
             body: 'Push notifications are working!',
             url: '/',
           },

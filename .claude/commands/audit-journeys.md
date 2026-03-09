@@ -2,7 +2,7 @@ Audit user journeys end-to-end for task completion, friction, edge cases, and re
 
 ## Purpose
 
-Verify that each persona can complete their critical tasks through Civica with world-class efficiency and resilience. Unlike `/audit-ux` (which evaluates surfaces, intelligence leverage, and design), this audit tests **actual user flows** — clicking through the product as each persona would, measuring friction, catching broken paths, and establishing a regression baseline.
+Verify that each persona can complete their critical tasks through Governada with world-class efficiency and resilience. Unlike `/audit-ux` (which evaluates surfaces, intelligence leverage, and design), this audit tests **actual user flows** — clicking through the product as each persona would, measuring friction, catching broken paths, and establishing a regression baseline.
 
 This audit answers: **Can every persona accomplish what they came here to do, and does the experience get better, not worse, over time?**
 
@@ -33,7 +33,7 @@ The anchor persona (80%+ of users). Source spec: `docs/strategy/personas/citizen
 
 ### J-C1: First Visit → Understanding Value (The "Front Door")
 
-**Task:** An anonymous visitor arrives at drepscore.io. Within 60 seconds, they understand what Cardano governance is, why it matters to them, and what they can do about it.
+**Task:** An anonymous visitor arrives at governada.io. Within 60 seconds, they understand what Cardano governance is, why it matters to them, and what they can do about it.
 
 Walk the actual flow:
 
@@ -85,7 +85,7 @@ Walk the actual flow:
 
 ### J-C3: Returning Citizen → Epoch Briefing → Informed
 
-**Task:** A returning authenticated citizen opens Civica at an epoch boundary and leaves feeling informed about governance within 30 seconds.
+**Task:** A returning authenticated citizen opens Governada at an epoch boundary and leaves feeling informed about governance within 30 seconds.
 
 Walk the actual flow:
 
@@ -213,7 +213,7 @@ Source spec: `docs/strategy/personas/drep.md`
 
 ### J-D1: DRep → Inbox → "What Should I Do Right Now?"
 
-**Task:** A DRep opens Civica and within 5 seconds knows what needs their attention, prioritized by urgency and impact.
+**Task:** A DRep opens Governada and within 5 seconds knows what needs their attention, prioritized by urgency and impact.
 
 Walk the actual flow:
 

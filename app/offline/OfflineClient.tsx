@@ -9,8 +9,8 @@ export function OfflineClient() {
         </div>
         <h1 className="text-2xl font-bold tracking-tight">You&apos;re offline</h1>
         <p className="text-muted-foreground leading-relaxed">
-          Civica needs an internet connection for live governance data. Please check your connection
-          and refresh.
+          Governada needs an internet connection for live governance data. Please check your
+          connection and refresh.
         </p>
         <button
           onClick={() => window.location.reload()}

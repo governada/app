@@ -64,7 +64,7 @@
 - [x] Admin dashboard | `app/admin/`
 - [x] Quick Match flow | `app/match/`
 - [x] Delegation ceremony | `DelegationCeremony.tsx`
-- verify: production site loads at https://drepscore.io
+- verify: production site loads at https://governada.io
 
 ## Step 4: Citizen Experience [FOUNDATIONS SHIPPED]
 

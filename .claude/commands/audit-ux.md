@@ -2,7 +2,7 @@ Audit the user experience against the standard: "best governance UX in crypto, c
 
 ## Purpose
 
-Evaluate whether Civica's UX is fully leveraging the intelligence engine to deliver persona-appropriate, retention-driving, emotionally resonant experiences. The engine is the moat — but the UX is what users see, feel, and come back for. A world-class backend behind a mediocre frontend is an invisible advantage.
+Evaluate whether Governada's UX is fully leveraging the intelligence engine to deliver persona-appropriate, retention-driving, emotionally resonant experiences. The engine is the moat — but the UX is what users see, feel, and come back for. A world-class backend behind a mediocre frontend is an invisible advantage.
 
 This audit answers: **Is every surface earning the right to be called "best in industry"?**
 
@@ -22,7 +22,7 @@ Read `.claude/rules/product-vision.md` for design principles and UX rules. Every
 
 1. **The 30-second test.** Can each persona accomplish their primary task in 30 seconds? (Citizen: understand governance health. DRep: see what needs attention. SPO: check governance reputation.)
 2. **The "why should I come back?" test.** For each persona, is there a compelling reason to return at the epoch boundary? Not "there's new data" — but "this data changes my understanding or requires my action."
-3. **The "could this be any app?" test.** If you screenshot a page and remove the logo, would anyone know this is Civica? Every surface should be unmistakably a governance civic hub, not a generic dashboard.
+3. **The "could this be any app?" test.** If you screenshot a page and remove the logo, would anyone know this is Governada? Every surface should be unmistakably a governance civic hub, not a generic dashboard.
 4. **The storytelling test.** Does every number tell a story? Does every insight connect to an action? Does every status create an emotional response (pride, concern, curiosity)?
 
 ## Phase 1: Intelligence Leverage Audit
@@ -333,7 +333,7 @@ Dark mode is not just "invert the colors." Evaluate against the Vercel/Linear st
 
 ### 6.5 Data Visualization Craft
 
-Governance data is Civica's core differentiator. Visualizations must be exceptional:
+Governance data is Governada's core differentiator. Visualizations must be exceptional:
 
 - **Custom vs library:** What % of charts are custom D3/SVG vs Recharts/chart library defaults?
 - **Governance-specific:** Do visualizations communicate governance concepts that generic charts can't? (e.g., constellation for alignment, score ring for multi-pillar assessment, GHI gauge for health)
@@ -346,9 +346,9 @@ Governance data is Civica's core differentiator. Visualizations must be exceptio
 
 The ultimate design test — screenshot each major page and evaluate:
 
-- **Remove the logo.** Would anyone know this is Civica? What visual elements make it unmistakable?
+- **Remove the logo.** Would anyone know this is Governada? What visual elements make it unmistakable?
 - **Compare to shadcn templates.** How many components could exist unchanged in a generic shadcn/Next.js starter?
-- **Compare to competitors.** Screenshot GovTool, Tally, Snapshot side-by-side. Where does Civica look clearly more polished? Where does it look generic by comparison?
+- **Compare to competitors.** Screenshot GovTool, Tally, Snapshot side-by-side. Where does Governada look clearly more polished? Where does it look generic by comparison?
 - **The "pitch deck" test.** Would you put this screenshot in a presentation to investors/partners? If not, what's holding it back?
 
 Score the product overall: if 10 screenshots were shared on X with no context, would the reaction be "this looks incredible" or "this looks like another crypto dashboard"?
@@ -445,12 +445,12 @@ For each transition, rate: COMPELLING / ADEQUATE / WEAK / MISSING.
 
 ### U6: Visual Design Craft (10 pts)
 
-| Score | Anchor                                                                                                                                                                                                                                                                                                                                        |
-| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1-3   | Stock shadcn components throughout, no visual identity, dark mode is just inverted colors, generic charts                                                                                                                                                                                                                                     |
-| 4-6   | Some custom components (hero sections, score ring), basic color system, dark mode functional but not polished, mix of custom and stock visualizations                                                                                                                                                                                         |
-| 7-8   | Coherent visual identity system (color, type, spacing, iconography), hero sections set a bar the app matches, dark mode is a first-class experience with depth and vibrancy, data visualizations are custom and governance-specific, most screenshots pass the "pitch deck" test, clear visual differentiation from competitors               |
-| 9-10  | Every component feels purpose-built, visual identity is instantly recognizable (remove logo and you still know it's Civica), dark mode rivals Vercel/Linear, visualizations are category-defining, design system documented and maintained, screenshots consistently provoke "this looks incredible" reactions, brand design could win awards |
+| Score | Anchor                                                                                                                                                                                                                                                                                                                                           |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1-3   | Stock shadcn components throughout, no visual identity, dark mode is just inverted colors, generic charts                                                                                                                                                                                                                                        |
+| 4-6   | Some custom components (hero sections, score ring), basic color system, dark mode functional but not polished, mix of custom and stock visualizations                                                                                                                                                                                            |
+| 7-8   | Coherent visual identity system (color, type, spacing, iconography), hero sections set a bar the app matches, dark mode is a first-class experience with depth and vibrancy, data visualizations are custom and governance-specific, most screenshots pass the "pitch deck" test, clear visual differentiation from competitors                  |
+| 9-10  | Every component feels purpose-built, visual identity is instantly recognizable (remove logo and you still know it's Governada), dark mode rivals Vercel/Linear, visualizations are category-defining, design system documented and maintained, screenshots consistently provoke "this looks incredible" reactions, brand design could win awards |
 
 ## Phase 9: Work Plan
 

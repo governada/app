@@ -69,7 +69,7 @@ export function EmbedDRepCard({ drep, theme }: EmbedDRepCardProps) {
 
       <div className="mt-3 flex items-center justify-between">
         <a
-          href={`https://drepscore.io/drep/${encodeURIComponent(drep.drepId)}`}
+          href={`https://governada.io/drep/${encodeURIComponent(drep.drepId)}`}
           target="_blank"
           rel="noopener noreferrer"
           className="text-[10px] font-medium hover:underline"
@@ -78,7 +78,7 @@ export function EmbedDRepCard({ drep, theme }: EmbedDRepCardProps) {
           View full profile →
         </a>
         <span className="text-[9px]" style={{ color: isDark ? '#374151' : '#d1d5db' }}>
-          drepscore.io
+          governada.io
         </span>
       </div>
     </div>

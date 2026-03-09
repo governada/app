@@ -156,7 +156,7 @@ function validateMainnet(rewardAddress: string): void {
     throw new DelegationError(
       'wrong_network',
       'Wallet is not on Cardano mainnet.',
-      'Switch your wallet to mainnet to delegate on DRepScore.',
+      'Switch your wallet to mainnet to delegate on Governada.',
     );
   }
 }

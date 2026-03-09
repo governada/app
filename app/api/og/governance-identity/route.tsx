@@ -119,7 +119,7 @@ export async function GET(request: NextRequest) {
             marginTop: 'auto',
           }}
         >
-          drepscore.io — Governance Intelligence for Cardano
+          governada.io — Governance Intelligence for Cardano
         </span>
       </div>,
       {

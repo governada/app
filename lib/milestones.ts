@@ -20,7 +20,7 @@ export const MILESTONES: MilestoneDefinition[] = [
   {
     key: 'claimed-profile',
     label: 'Profile Claimed',
-    description: 'Claimed your DRepScore profile',
+    description: 'Claimed your Governada profile',
     icon: 'Shield',
     category: 'profile',
   },

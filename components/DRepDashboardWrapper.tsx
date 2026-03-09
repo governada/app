@@ -22,8 +22,8 @@ export function DRepDashboardWrapper({ drepId, drepName, isClaimed }: DRepDashbo
 
   const handleShare = async () => {
     const shareData = {
-      title: `${drepName} — DRepScore`,
-      text: `Check out ${drepName}'s DRep scorecard on DRepScore`,
+      title: `${drepName} — Governada`,
+      text: `Check out ${drepName}'s DRep scorecard on Governada`,
       url: profileUrl,
     };
 

@@ -122,7 +122,7 @@
   --popover: oklch(0.11 0.015 260);
   --popover-foreground: oklch(0.96 0.005 260);
 
-  /* Primary: Electric Cyan — the Civica brand accent */
+  /* Primary: Electric Cyan — the Governada brand accent */
   --primary: oklch(0.72 0.14 200);
   --primary-foreground: oklch(0.07 0.015 260);
 
@@ -219,7 +219,7 @@
 }
 
 /* ============================================================
-   Motion tokens — consistent animation timing across Civica
+   Motion tokens — consistent animation timing across Governada
    ============================================================ */
 
 :root {
@@ -235,7 +235,7 @@
 }
 
 /* ============================================================
-   Civica font variables — set by CivicaShell layout
+   Governada font variables — set by CivicaShell layout
    ============================================================ */
 
 :root {

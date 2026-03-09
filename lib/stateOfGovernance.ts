@@ -205,7 +205,7 @@ export async function generateReportNarrative(data: ReportData): Promise<string 
   const gainersSummary = data.movers.gainers.map((m) => `${m.name} (+${m.delta})`).join(', ');
   const losersSummary = data.movers.losers.map((m) => `${m.name} (${m.delta})`).join(', ');
 
-  const prompt = `You are the editorial voice of DRepScore, writing the "State of Governance" report for Cardano Epoch ${data.epoch}. Write an engaging 600-800 word editorial narrative.
+  const prompt = `You are the editorial voice of Governada, writing the "State of Governance" report for Cardano Epoch ${data.epoch}. Write an engaging 600-800 word editorial narrative.
 
 Tone: authoritative yet accessible. Like a Bloomberg governance correspondent who genuinely cares about decentralization. Use specific numbers from the data. Do NOT fabricate any statistics.
 

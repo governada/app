@@ -24,7 +24,7 @@ export const POST = withRouteHandler(
     const verifyUrl = generateVerificationUrl(wallet!, email);
     const sent = await sendEmail(
       email,
-      'Verify your email — Civica',
+      'Verify your email — Governada',
       React.createElement(EmailVerificationEmail, { verifyUrl }),
     );
 

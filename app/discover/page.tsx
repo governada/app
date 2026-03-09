@@ -5,18 +5,18 @@ import { CivicaDiscover } from '@/components/civica/discover/CivicaDiscover';
 import { createClient } from '@/lib/supabase';
 
 export const metadata: Metadata = {
-  title: 'Civica — Discover',
+  title: 'Governada — Discover',
   description:
     'Find and compare Cardano DReps, governance-active stake pools, and Constitutional Committee members. Filter by score, tier, and alignment.',
   openGraph: {
-    title: 'Civica — Discover Governance',
+    title: 'Governada — Discover Governance',
     description:
       'Browse every DRep, stake pool, and Constitutional Committee member participating in Cardano governance.',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Civica — Discover Governance',
+    title: 'Governada — Discover Governance',
     description: 'Find the representative that matches your governance values.',
   },
 };

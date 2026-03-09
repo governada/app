@@ -22,7 +22,7 @@ import Link from 'next/link';
 const QUICK_START_CODE = {
   javascript: `// Get the top 5 DReps by score
 const response = await fetch(
-  "https://drepscore.io/api/v1/dreps?limit=5&sort=score"
+  "https://governada.io/api/v1/dreps?limit=5&sort=score"
 );
 const { data, meta } = await response.json();
 
@@ -33,7 +33,7 @@ data.forEach(drep => {
 
 # Get the top 5 DReps by score
 response = requests.get(
-    "https://drepscore.io/api/v1/dreps",
+    "https://governada.io/api/v1/dreps",
     params={"limit": 5, "sort": "score"}
 )
 data = response.json()
@@ -41,13 +41,13 @@ data = response.json()
 for drep in data["data"]:
     print(f'{drep["name"]}: {drep["score"]}/100')`,
   curl: `# Get the top 5 DReps by score
-curl "https://drepscore.io/api/v1/dreps?limit=5&sort=score"`,
+curl "https://governada.io/api/v1/dreps?limit=5&sort=score"`,
 };
 
 const EMBED_CODE = {
   html: `<!-- Embed a DRep score card -->
 <iframe
-  src="https://drepscore.io/embed/drep/DREP_ID?theme=dark"
+  src="https://governada.io/embed/drep/DREP_ID?theme=dark"
   width="320"
   height="200"
   frameBorder="0"
@@ -56,7 +56,7 @@ const EMBED_CODE = {
   javascript: `<!-- Or use the script loader -->
 <div id="drepscore-widget"></div>
 <script
-  src="https://drepscore.io/embed.js"
+  src="https://governada.io/embed.js"
   data-type="drep"
   data-id="DREP_ID"
   data-theme="dark"
@@ -217,7 +217,7 @@ export function DeveloperPage() {
                 <CodeExample
                   code={{
                     html: `<iframe
-  src="https://drepscore.io/embed/ghi?theme=dark"
+  src="https://governada.io/embed/ghi?theme=dark"
   width="280"
   height="160"
   frameBorder="0"
@@ -303,15 +303,15 @@ export function DeveloperPage() {
 
           <CodeExample
             code={{
-              curl: `curl "https://drepscore.io/api/v1/dreps?limit=5" \\
+              curl: `curl "https://governada.io/api/v1/dreps?limit=5" \\
   -H "Authorization: Bearer ds_live_YOUR_API_KEY"`,
-              javascript: `const response = await fetch("https://drepscore.io/api/v1/dreps?limit=5", {
+              javascript: `const response = await fetch("https://governada.io/api/v1/dreps?limit=5", {
   headers: {
     "Authorization": "Bearer ds_live_YOUR_API_KEY"
   }
 });`,
               python: `response = requests.get(
-    "https://drepscore.io/api/v1/dreps",
+    "https://governada.io/api/v1/dreps",
     headers={"Authorization": "Bearer ds_live_YOUR_API_KEY"},
     params={"limit": 5}
 )`,

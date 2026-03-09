@@ -51,7 +51,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!poolRow) {
     const short = poolId.slice(0, 12);
     return {
-      title: `SPO ${short}\u2026 Governance Profile \u2014 Civica`,
+      title: `SPO ${short}\u2026 Governance Profile \u2014 Governada`,
       description: `Governance participation and voting record for stake pool ${short}\u2026 on Cardano.`,
     };
   }
@@ -60,8 +60,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const tier = score != null ? computeTier(score) : null;
   const title =
     score != null && tier
-      ? `${name} \u2014 SPO Governance Score: ${score} (${tier}) \u2014 Civica`
-      : `${name} \u2014 SPO Governance Profile \u2014 Civica`;
+      ? `${name} \u2014 SPO Governance Score: ${score} (${tier}) \u2014 Governada`
+      : `${name} \u2014 SPO Governance Profile \u2014 Governada`;
   return {
     title,
     description: `SPO governance score, voting record, and alignment data for ${name} on Cardano.`,
@@ -757,7 +757,7 @@ export default async function PoolProfilePage({ params }: PageProps) {
           entityName={displayName}
           enabled
           ogImageUrl={`/api/og/staking/${encodeURIComponent(poolId)}`}
-          shareUrl={`https://drepscore.io/pool/${encodeURIComponent(poolId)}`}
+          shareUrl={`https://governada.io/pool/${encodeURIComponent(poolId)}`}
         />
 
         <Link href="/discover">

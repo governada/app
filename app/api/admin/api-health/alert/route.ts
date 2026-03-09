@@ -202,7 +202,7 @@ export const GET = withRouteHandler(async (request) => {
         eventType: 'api-health-alert',
         title: alertTitle,
         body: lines.join('\n'),
-        url: 'https://analytics.drepscore.io/api-analytics',
+        url: 'https://analytics.governada.io/api-analytics',
       }),
       criticalFailures.length > 0 ? alertEmail(alertTitle, lines.join('\n')) : Promise.resolve(),
     ]);
