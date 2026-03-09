@@ -72,11 +72,19 @@ export function DRepTreasuryStance({ drepId, compact = false }: Props) {
       <CardHeader className="pb-2">
         <CardTitle className="text-sm flex items-center gap-2">
           <Landmark className="h-4 w-4 text-primary" />
-          Treasury Track Record
+          Treasury Voting Record
           <Badge variant="secondary" className={`text-xs ${stanceColor}`}>
             {stance}
           </Badge>
         </CardTitle>
+        <p className="text-xs text-muted-foreground mt-1">
+          How this DRep votes on proposals that spend from the Cardano treasury.{' '}
+          {stance === 'Growth'
+            ? 'Tends to approve spending proposals.'
+            : stance === 'Conservative'
+              ? 'Tends to oppose spending proposals.'
+              : 'Votes without a strong lean either way.'}
+        </p>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="grid grid-cols-3 gap-4 text-center">
@@ -111,9 +119,9 @@ export function DRepTreasuryStance({ drepId, compact = false }: Props) {
           <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/30">
             <Award className="h-4 w-4 text-primary" />
             <div className="flex-1">
-              <div className="text-xs text-muted-foreground">Treasury Judgment Score</div>
+              <div className="text-xs text-muted-foreground">Outcome Accuracy</div>
               <div className="text-sm font-semibold">
-                {record.judgmentScore}% of approved spending delivered
+                {record.judgmentScore}% of spending they approved was enacted
               </div>
             </div>
           </div>

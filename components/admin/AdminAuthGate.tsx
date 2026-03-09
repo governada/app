@@ -55,7 +55,7 @@ export function AdminAuthGate({ children }: AdminAuthGateProps) {
       });
 
     return () => controller.abort();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, adminAddress]);
 
   if (state === 'checking') {
     return (

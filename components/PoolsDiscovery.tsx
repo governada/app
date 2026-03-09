@@ -85,39 +85,46 @@ export function PoolsDiscovery() {
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
                   {pool.ticker ? (
-                    <span className="font-semibold text-sm">{pool.ticker}</span>
+                    <span className="font-bold text-base">{pool.ticker}</span>
                   ) : (
                     <span className="font-mono text-sm truncate">
                       {pool.poolId.slice(0, 16)}&hellip;
                     </span>
                   )}
                   {pool.poolName && pool.ticker && (
-                    <p className="text-xs text-muted-foreground truncate">{pool.poolName}</p>
+                    <p className="text-sm text-muted-foreground truncate">{pool.poolName}</p>
                   )}
                 </div>
                 {pool.governanceScore !== null ? (
                   <Badge
                     variant="outline"
-                    className={`tabular-nums shrink-0 ${scoreColor(pool.governanceScore)}`}
+                    className={`tabular-nums text-sm px-2.5 py-0.5 shrink-0 ${scoreColor(pool.governanceScore)}`}
                   >
                     {pool.governanceScore}
                   </Badge>
                 ) : (
-                  <Badge variant="outline" className="text-cyan-500 border-cyan-500/40 shrink-0">
+                  <Badge
+                    variant="outline"
+                    className="text-cyan-500 border-cyan-500/40 text-sm px-2.5 py-0.5 shrink-0"
+                  >
                     {pool.voteCount} votes
                   </Badge>
                 )}
               </div>
 
-              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                <span>{pool.voteCount} votes</span>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                <span className="tabular-nums">{pool.voteCount} votes</span>
                 {pool.participationPct !== null && (
-                  <span>{pool.participationPct}% participation</span>
+                  <span className="tabular-nums">{pool.participationPct}% participation</span>
                 )}
                 {pool.delegatorCount > 0 && (
-                  <span>{pool.delegatorCount.toLocaleString()} delegators</span>
+                  <span className="tabular-nums">
+                    {pool.delegatorCount.toLocaleString()} delegators
+                  </span>
                 )}
-                {pool.liveStakeAda > 0 && <span>{formatAda(pool.liveStakeAda)} ADA</span>}
+                {pool.liveStakeAda > 0 && (
+                  <span className="tabular-nums">{formatAda(pool.liveStakeAda)} ADA</span>
+                )}
               </div>
             </CardContent>
           </Card>

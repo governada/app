@@ -61,6 +61,11 @@ export function ScoreSimulator({ drepId, pendingCount }: { drepId: string; pendi
           <Calculator className="h-4 w-4" />
           Score Simulator
         </CardTitle>
+        <p className="text-xs text-muted-foreground mt-1">
+          See how voting on pending proposals would affect this DRep&apos;s score. Scores weight
+          engagement quality (35%), participation (25%), reliability (25%), and governance identity
+          (15%).
+        </p>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Presets */}

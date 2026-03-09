@@ -187,13 +187,25 @@ export function ScoreDeepDive(props: ScoreDeepDiveProps) {
                           <p className="tabular-nums">
                             Deliberation factor: {props.deliberationModifier}x
                           </p>
+                          <p className="text-primary/80 mt-1">
+                            {props.rationaleRate < 50
+                              ? 'To improve: add written rationales when voting — even brief reasoning boosts this pillar significantly.'
+                              : 'Strong rationale rate. Maintaining detailed explanations keeps this pillar high.'}
+                          </p>
                         </>
                       )}
                       {pillar.key === 'participation' && (
-                        <p className="tabular-nums">
-                          Importance-weighted voting — raw: {raw ?? '—'}, percentile:{' '}
-                          {pct !== null ? `${Math.round(pct)}%` : '—'}
-                        </p>
+                        <>
+                          <p className="tabular-nums">
+                            Importance-weighted voting — raw: {raw ?? '—'}, percentile:{' '}
+                            {pct !== null ? `${Math.round(pct)}%` : '—'}
+                          </p>
+                          <p className="text-primary/80 mt-1">
+                            {(pct ?? 0) < 50
+                              ? 'To improve: vote on more proposals, especially high-importance ones like treasury withdrawals and parameter changes.'
+                              : 'Strong participation. Continue voting consistently to maintain this standing.'}
+                          </p>
+                        </>
                       )}
                       {pillar.key === 'reliability' && (
                         <>
@@ -203,6 +215,11 @@ export function ScoreDeepDive(props: ScoreDeepDiveProps) {
                             Longest gap: {props.reliabilityLongestGap} epochs
                           </p>
                           <p className="tabular-nums">Tenure: {props.reliabilityTenure} epochs</p>
+                          <p className="text-primary/80 mt-1">
+                            {props.reliabilityStreak < 3
+                              ? 'To improve: vote every epoch without gaps — consistency matters more than volume here.'
+                              : 'Solid streak. Keep voting each epoch to maintain reliability.'}
+                          </p>
                         </>
                       )}
                       {pillar.key === 'identity' && (
@@ -211,6 +228,11 @@ export function ScoreDeepDive(props: ScoreDeepDiveProps) {
                             Profile completeness: {props.profileCompleteness}%
                           </p>
                           <p className="tabular-nums">Delegators: {props.delegatorCount}</p>
+                          <p className="text-primary/80 mt-1">
+                            {props.profileCompleteness < 70
+                              ? 'To improve: complete your DRep profile — add a bio, references, and motivation statement.'
+                              : 'Profile is well-filled. Growing your delegator base further strengthens this pillar.'}
+                          </p>
                         </>
                       )}
                     </div>

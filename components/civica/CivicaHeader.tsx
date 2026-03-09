@@ -71,9 +71,9 @@ const SEGMENT_ICONS: Record<UserSegment, typeof User> = {
 
 export function CivicaHeader() {
   const pathname = usePathname();
-  const { connected, disconnect } = useWallet();
+  const { connected, disconnect, logout, isAuthenticated } = useWallet();
   const { segment, realSegment, stakeAddress, delegatedDrep, setOverride } = useSegment();
-  const { data: adminData } = useAdminCheck(connected);
+  const { data: adminData } = useAdminCheck(isAuthenticated || connected);
   const isAdmin = adminData?.isAdmin === true;
   const hasOverride = segment !== realSegment;
   const unreadCount = useUnreadNotifications(stakeAddress ?? null);
@@ -260,6 +260,7 @@ export function CivicaHeader() {
                 <DropdownMenuItem
                   variant="destructive"
                   onClick={() => {
+                    logout();
                     disconnect();
                     sessionStorage.removeItem('civica_segment');
                   }}

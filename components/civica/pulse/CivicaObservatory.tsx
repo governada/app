@@ -401,6 +401,14 @@ export function CivicaObservatory() {
 
   return (
     <div className="space-y-6">
+      {/* Observatory intro */}
+      <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+        <p className="text-sm text-foreground/90">
+          The Observatory tracks Cardano&apos;s governance health in real time — how decentralized
+          power is, how engaged representatives are, and how Cardano compares to other chains.
+        </p>
+      </div>
+
       {/* EDI hero */}
       <div>
         <div className="flex items-center gap-2 mb-1">
