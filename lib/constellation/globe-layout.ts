@@ -180,7 +180,7 @@ function computeSpherePosition(input: LayoutInput): [number, number] {
 function computeGlobeEdges(
   allNodes: ConstellationNode3D[],
   spoNodes: ConstellationNode3D[],
-  ccNodes: ConstellationNode3D[],
+  _ccNodes: ConstellationNode3D[],
 ): ConstellationEdge3D[] {
   const edges: ConstellationEdge3D[] = [];
   const drepNodes = allNodes.filter((n) => n.nodeType === 'drep');
