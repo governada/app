@@ -181,16 +181,26 @@ export async function getAllDReps(): Promise<{
 
     const supabase = createClient();
 
-    // Query all DReps ordered by score
-    const { data: rows, error: supabaseError } = await supabase
+    // Query all DReps ordered by score (paginate to bypass PostgREST 1000-row default)
+    const { data: page1, error: supabaseError } = await supabase
       .from('dreps')
       .select('*')
       .order('score', { ascending: false })
-      .range(0, 9999);
+      .range(0, 999);
 
     if (supabaseError) {
       logger.error('[Data] Supabase query failed', { error: supabaseError.message });
       throw new Error('Supabase unavailable');
+    }
+
+    let rows = page1 || [];
+    if (rows.length === 1000) {
+      const { data: page2 } = await supabase
+        .from('dreps')
+        .select('*')
+        .order('score', { ascending: false })
+        .range(1000, 1999);
+      if (page2?.length) rows = [...rows, ...page2];
     }
 
     // Check if we have data

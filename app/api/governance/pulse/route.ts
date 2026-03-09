@@ -11,29 +11,34 @@ export const GET = withRouteHandler(async () => {
   const currentEpoch = blockTimeToEpoch(Math.floor(Date.now() / 1000));
   const oneWeekAgoBlockTime = Math.floor(Date.now() / 1000) - 604800;
 
-  const [drepsResult, proposalsResult, votesThisWeekResult, claimedResult, pollsResult] =
-    await Promise.all([
-      supabase
-        .from('dreps')
-        .select(
-          'score, participation_rate, rationale_rate, effective_participation, info, size_tier',
-        )
-        .range(0, 9999),
-      supabase
-        .from('proposals')
-        .select(
-          'tx_hash, proposal_index, proposal_type, title, ratified_epoch, enacted_epoch, dropped_epoch, expired_epoch, created_at',
-        ),
-      supabase
-        .from('drep_votes')
-        .select('id', { count: 'exact', head: true })
-        .gt('block_time', oneWeekAgoBlockTime),
-      supabase
-        .from('users')
-        .select('wallet_address', { count: 'exact', head: true })
-        .not('claimed_drep_id', 'is', null),
-      supabase.from('poll_responses').select('proposal_tx_hash, proposal_index, vote').limit(5000),
-    ]);
+  const [
+    drepsResult,
+    drepsCountResult,
+    proposalsResult,
+    votesThisWeekResult,
+    claimedResult,
+    pollsResult,
+  ] = await Promise.all([
+    supabase
+      .from('dreps')
+      .select('score, participation_rate, rationale_rate, effective_participation, info, size_tier')
+      .range(0, 9999),
+    supabase.from('dreps').select('id', { count: 'exact', head: true }),
+    supabase
+      .from('proposals')
+      .select(
+        'tx_hash, proposal_index, proposal_type, title, ratified_epoch, enacted_epoch, dropped_epoch, expired_epoch, created_at',
+      ),
+    supabase
+      .from('drep_votes')
+      .select('id', { count: 'exact', head: true })
+      .gt('block_time', oneWeekAgoBlockTime),
+    supabase
+      .from('users')
+      .select('wallet_address', { count: 'exact', head: true })
+      .not('claimed_drep_id', 'is', null),
+    supabase.from('poll_responses').select('proposal_tx_hash, proposal_index, vote').limit(5000),
+  ]);
 
   const dreps = drepsResult.data || [];
   const proposals = proposalsResult.data || [];
@@ -154,7 +159,7 @@ export const GET = withRouteHandler(async () => {
       criticalProposals: criticalCount,
       avgParticipationRate: avgParticipation,
       avgRationaleRate: avgRationale,
-      totalDReps: dreps.length,
+      totalDReps: drepsCountResult.count ?? dreps.length,
       activeDReps: activeDReps.length,
       votesThisWeek: votesThisWeekResult.count || 0,
       claimedDReps: claimedResult.count || 0,
