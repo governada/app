@@ -17,11 +17,9 @@ vi.mock('framer-motion', () => ({
 }));
 
 vi.mock('@/components/GovernanceRadar', () => ({
-  GovernanceRadar: () => <div data-testid="governance-radar" />,
-}));
-
-vi.mock('@/components/HexScore', () => ({
-  HexScore: ({ score }: { score: number }) => <div data-testid="hex-score">{score}</div>,
+  GovernanceRadar: ({ centerScore }: { centerScore?: number }) => (
+    <div data-testid="governance-radar">{centerScore}</div>
+  ),
 }));
 
 vi.mock('@/components/AccentProvider', () => ({
@@ -50,9 +48,8 @@ describe('DRepProfileHero', () => {
   it('renders with valid props', () => {
     const { container } = render(<DRepProfileHero {...defaultProps} />);
     expect(container.textContent).toContain('TestDRep');
-    const hexScores = screen.getAllByTestId('hex-score');
-    expect(hexScores.length).toBe(2);
-    expect(hexScores[0].textContent).toBe('85');
+    const radar = screen.getByTestId('governance-radar');
+    expect(radar.textContent).toBe('85');
   });
 
   it('renders with match score', () => {
