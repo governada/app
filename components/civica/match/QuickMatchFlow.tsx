@@ -160,9 +160,9 @@ export function QuickMatchFlow() {
   const [step, setStep] = useState<Step>('intro');
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [selected, setSelected] = useState<string | null>(null);
-  const [results, setResults] = useState<QuickMatchResponse | null>(null);
+  const [drepResults, setDrepResults] = useState<QuickMatchResponse | null>(null);
+  const [spoResults, setSpoResults] = useState<QuickMatchResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [matchType, setMatchType] = useState<MatchType>('drep');
   const [storedProfile, setStoredProfile] = useState<StoredMatchProfile | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const posthog = usePostHog();
@@ -172,57 +172,58 @@ export function QuickMatchFlow() {
     setStoredProfile(loadMatchProfile());
   }, []);
 
-  const fetchMatches = useCallback(
-    async (finalAnswers: Record<string, string>, type: MatchType) => {
-      abortRef.current?.abort();
-      const controller = new AbortController();
-      abortRef.current = controller;
+  const fetchBothMatches = useCallback(async (finalAnswers: Record<string, string>) => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
 
-      try {
-        const res = await fetch('/api/governance/quick-match', {
+    const fetchOne = async (type: MatchType) => {
+      const res = await fetch('/api/governance/quick-match', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          treasury: finalAnswers.treasury,
+          protocol: finalAnswers.protocol,
+          transparency: finalAnswers.transparency,
+          match_type: type,
+        }),
+        signal: controller.signal,
+      });
+      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+      return res.json() as Promise<QuickMatchResponse>;
+    };
+
+    try {
+      const [drepData, spoData] = await Promise.all([fetchOne('drep'), fetchOne('spo')]);
+      setDrepResults(drepData);
+      setSpoResults(spoData);
+      setStep('results');
+
+      // Mark quick match as completed for authenticated users
+      const token = getStoredSession();
+      if (token) {
+        fetch('/api/governance/quick-match/mark-completed', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            treasury: finalAnswers.treasury,
-            protocol: finalAnswers.protocol,
-            transparency: finalAnswers.transparency,
-            match_type: type,
-          }),
-          signal: controller.signal,
-        });
-
-        if (!res.ok) throw new Error(`Server error: ${res.status}`);
-        const data: QuickMatchResponse = await res.json();
-        setResults(data);
-        setStep('results');
-
-        // Mark quick match as completed for authenticated users
-        const token = getStoredSession();
-        if (token) {
-          fetch('/api/governance/quick-match/mark-completed', {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}` },
-          }).catch(() => {});
-        }
-
-        // Persist match profile
-        saveMatchProfile({
-          userAlignments: data.userAlignments,
-          personalityLabel: data.personalityLabel,
-          identityColor: data.identityColor,
-          matchType: type,
-          answers: finalAnswers,
-          timestamp: Date.now(),
-        });
-        setStoredProfile(null); // Clear "previous match" since we just did a new one
-      } catch (err: unknown) {
-        if (err instanceof Error && err.name === 'AbortError') return;
-        setError(err instanceof Error ? err.message : 'Something went wrong');
-        setStep('error');
+          headers: { Authorization: `Bearer ${token}` },
+        }).catch(() => {});
       }
-    },
-    [],
-  );
+
+      // Persist match profile (use DRep data for user alignments — same for both)
+      saveMatchProfile({
+        userAlignments: drepData.userAlignments,
+        personalityLabel: drepData.personalityLabel,
+        identityColor: drepData.identityColor,
+        matchType: 'drep',
+        answers: finalAnswers,
+        timestamp: Date.now(),
+      });
+      setStoredProfile(null);
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'AbortError') return;
+      setError(err instanceof Error ? err.message : 'Something went wrong');
+      setStep('error');
+    }
+  }, []);
 
   const handleAnswer = useCallback(
     (questionId: string, value: string) => {
@@ -237,20 +238,21 @@ export function QuickMatchFlow() {
         if (currentQ < 2) {
           setStep((currentQ + 1) as 0 | 1 | 2);
         } else {
-          // All questions answered — fetch matches
+          // All questions answered — fetch both DRep and SPO matches
           setStep('loading');
-          fetchMatches(newAnswers, matchType);
+          fetchBothMatches(newAnswers);
         }
       }, 350);
     },
-    [answers, step, fetchMatches, matchType],
+    [answers, step, fetchBothMatches],
   );
 
   const restart = useCallback(() => {
     setStep('intro');
     setAnswers({});
     setSelected(null);
-    setResults(null);
+    setDrepResults(null);
+    setSpoResults(null);
     setError(null);
   }, []);
 
@@ -308,18 +310,15 @@ export function QuickMatchFlow() {
         {step === 'intro' && (
           <IntroScreen
             onStart={() => {
-              posthog?.capture('quick_match_started', { match_type: matchType });
+              posthog?.capture('quick_match_started');
               setStep(0);
             }}
-            matchType={matchType}
-            onMatchTypeChange={setMatchType}
             storedProfile={storedProfile}
             onViewPrevious={() => {
               if (storedProfile) {
-                setMatchType(storedProfile.matchType);
                 setAnswers(storedProfile.answers);
                 setStep('loading');
-                fetchMatches(storedProfile.answers, storedProfile.matchType);
+                fetchBothMatches(storedProfile.answers);
               }
             }}
           />
@@ -332,8 +331,8 @@ export function QuickMatchFlow() {
           />
         )}
         {step === 'loading' && <LoadingScreen />}
-        {step === 'results' && results && (
-          <ResultsScreen results={results} onRestart={restart} matchType={matchType} />
+        {step === 'results' && drepResults && spoResults && (
+          <ResultsScreen drepResults={drepResults} spoResults={spoResults} onRestart={restart} />
         )}
         {step === 'error' && <ErrorScreen message={error} onRetry={restart} />}
       </div>
@@ -345,14 +344,10 @@ export function QuickMatchFlow() {
 
 function IntroScreen({
   onStart,
-  matchType,
-  onMatchTypeChange,
   storedProfile,
   onViewPrevious,
 }: {
   onStart: () => void;
-  matchType: MatchType;
-  onMatchTypeChange: (type: MatchType) => void;
   storedProfile: StoredMatchProfile | null;
   onViewPrevious: () => void;
 }) {
@@ -363,59 +358,16 @@ function IntroScreen({
       </div>
       <div className="space-y-2">
         <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight">
-          {matchType === 'spo' ? 'Find Your SPO' : 'Find Your DRep'}
+          Find Your Governance Match
         </h1>
         <p className="text-muted-foreground text-base sm:text-lg leading-relaxed">
-          These questions help match you with{' '}
-          {matchType === 'spo'
-            ? 'a stake pool operator who shares your governance values'
-            : 'a representative (DRep) who shares your governance values'}
-          . 3 questions, under 60 seconds.
+          Answer 3 questions about your governance values and we&apos;ll match you with DReps and
+          SPOs who share your vision. Under 60 seconds.
         </p>
-        {matchType === 'drep' && (
-          <p className="text-xs text-muted-foreground/80 max-w-md mx-auto">
-            When you delegate to a DRep, they vote on governance proposals on your behalf. Your
-            funds stay in your wallet.
-          </p>
-        )}
-      </div>
-
-      {/* Match type toggle */}
-      <div
-        className="inline-flex rounded-lg border border-border p-0.5 bg-muted/30"
-        role="radiogroup"
-        aria-label="Match type"
-      >
-        <button
-          onClick={() => onMatchTypeChange('drep')}
-          role="radio"
-          aria-checked={matchType === 'drep'}
-          className={cn(
-            'px-4 py-1.5 rounded-md text-sm font-medium transition-all',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
-            matchType === 'drep'
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground',
-          )}
-        >
-          <Users className="h-3.5 w-3.5 inline mr-1.5" aria-hidden="true" />
-          DReps
-        </button>
-        <button
-          onClick={() => onMatchTypeChange('spo')}
-          role="radio"
-          aria-checked={matchType === 'spo'}
-          className={cn(
-            'px-4 py-1.5 rounded-md text-sm font-medium transition-all',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
-            matchType === 'spo'
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground',
-          )}
-        >
-          <Server className="h-3.5 w-3.5 inline mr-1.5" aria-hidden="true" />
-          SPOs
-        </button>
+        <p className="text-xs text-muted-foreground/80 max-w-md mx-auto">
+          DReps vote on governance proposals on your behalf. SPOs secure the network and vote on
+          protocol changes. Your funds stay in your wallet.
+        </p>
       </div>
 
       <Button size="lg" className="text-base px-8 py-6 rounded-xl font-semibold" onClick={onStart}>
@@ -430,7 +382,7 @@ function IntroScreen({
           className="flex items-center gap-2 mx-auto text-sm text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
         >
           <History className="h-4 w-4" />
-          View your previous {storedProfile.matchType === 'spo' ? 'SPO' : 'DRep'} match results
+          View your previous match results
         </button>
       )}
 
@@ -520,7 +472,7 @@ function LoadingScreen() {
       </div>
       <div className="space-y-1">
         <p className="font-display text-lg font-semibold">Analyzing your governance values...</p>
-        <p className="text-sm text-muted-foreground">Matching against {'>'}400 active DReps</p>
+        <p className="text-sm text-muted-foreground">Matching against DReps and SPOs</p>
       </div>
     </div>
   );
@@ -540,15 +492,17 @@ function ErrorScreen({ message, onRetry }: { message: string | null; onRetry: ()
 }
 
 function ResultsScreen({
-  results,
+  drepResults,
+  spoResults,
   onRestart,
-  matchType,
 }: {
-  results: QuickMatchResponse;
+  drepResults: QuickMatchResponse;
+  spoResults: QuickMatchResponse;
   onRestart: () => void;
-  matchType: MatchType;
 }) {
-  const isSPO = matchType === 'spo';
+  const [activeTab, setActiveTab] = useState<MatchType>('drep');
+  const activeResults = activeTab === 'drep' ? drepResults : spoResults;
+  const hasMatches = activeResults.matches.length > 0;
 
   return (
     <div className="w-full max-w-3xl space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-500">
@@ -557,57 +511,135 @@ function ResultsScreen({
         <h2 className="font-display text-2xl sm:text-3xl font-bold">Your Governance Profile</h2>
 
         <div className="flex justify-center">
-          <GovernanceRadar alignments={results.userAlignments} size="full" />
+          <GovernanceRadar alignments={drepResults.userAlignments} size="full" />
         </div>
 
         <div className="space-y-1">
           <Badge
             className="text-sm px-3 py-1"
             style={{
-              backgroundColor: results.identityColor + '20',
-              color: results.identityColor,
-              borderColor: results.identityColor + '40',
+              backgroundColor: drepResults.identityColor + '20',
+              color: drepResults.identityColor,
+              borderColor: drepResults.identityColor + '40',
             }}
           >
-            {results.personalityLabel}
+            {drepResults.personalityLabel}
           </Badge>
           <p className="text-sm text-muted-foreground">Based on your governance values</p>
         </div>
       </div>
 
-      {/* Matches */}
-      <div className="space-y-4">
-        <h3 className="font-display text-lg font-semibold text-center">
-          Your Top {isSPO ? 'SPO' : 'DRep'} Matches
-        </h3>
-        <p className="text-xs text-muted-foreground text-center max-w-md mx-auto">
-          Match score shows how aligned this {isSPO ? 'SPO' : 'DRep'}&apos;s voting record is with
-          your preferences. Higher is better.
-        </p>
-
-        <div className="grid gap-3">
-          {results.matches.map((match, i) => (
-            <QuickMatchResultCard
-              key={match.drepId}
-              rank={i + 1}
-              match={match}
-              userAlignments={results.userAlignments}
-              matchType={matchType}
-            />
-          ))}
+      {/* Tab toggle */}
+      <div className="flex justify-center">
+        <div
+          className="inline-flex rounded-lg border border-border p-0.5 bg-muted/30"
+          role="tablist"
+          aria-label="Match results"
+        >
+          <button
+            onClick={() => setActiveTab('drep')}
+            role="tab"
+            aria-selected={activeTab === 'drep'}
+            className={cn(
+              'px-4 py-1.5 rounded-md text-sm font-medium transition-all',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+              activeTab === 'drep'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            <Users className="h-3.5 w-3.5 inline mr-1.5" aria-hidden="true" />
+            DReps
+            {drepResults.matches.length > 0 && (
+              <span className="ml-1.5 text-xs text-muted-foreground">
+                ({drepResults.matches.length})
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('spo')}
+            role="tab"
+            aria-selected={activeTab === 'spo'}
+            className={cn(
+              'px-4 py-1.5 rounded-md text-sm font-medium transition-all',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+              activeTab === 'spo'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            <Server className="h-3.5 w-3.5 inline mr-1.5" aria-hidden="true" />
+            SPOs
+            {spoResults.matches.length > 0 && (
+              <span className="ml-1.5 text-xs text-muted-foreground">
+                ({spoResults.matches.length})
+              </span>
+            )}
+          </button>
         </div>
       </div>
 
+      {/* Matches */}
+      <div
+        className="space-y-4"
+        role="tabpanel"
+        aria-label={`${activeTab === 'drep' ? 'DRep' : 'SPO'} matches`}
+      >
+        <p className="text-xs text-muted-foreground text-center max-w-md mx-auto">
+          {hasMatches
+            ? `Match score shows how aligned this ${activeTab === 'spo' ? 'SPO' : 'DRep'}'s voting record is with your preferences. Higher is better.`
+            : null}
+        </p>
+
+        {hasMatches ? (
+          <div className="grid gap-3">
+            {activeResults.matches.map((match, i) => (
+              <QuickMatchResultCard
+                key={match.drepId}
+                rank={i + 1}
+                match={match}
+                userAlignments={drepResults.userAlignments}
+                matchType={activeTab}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-10 space-y-3">
+            <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+              {activeTab === 'spo' ? (
+                <Server className="h-6 w-6 text-muted-foreground" />
+              ) : (
+                <Users className="h-6 w-6 text-muted-foreground" />
+              )}
+            </div>
+            <p className="font-medium text-sm">
+              No {activeTab === 'spo' ? 'SPO' : 'DRep'} matches found
+            </p>
+            <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+              Not enough {activeTab === 'spo' ? 'SPOs' : 'DReps'} have governance alignment data
+              yet. Browse all {activeTab === 'spo' ? 'SPOs' : 'DReps'} to find one manually, or
+              check back as more participate in governance.
+            </p>
+            <Button asChild variant="outline" size="sm">
+              <Link href={activeTab === 'spo' ? '/discover?tab=spos' : '/discover'}>
+                Browse All {activeTab === 'spo' ? 'SPOs' : 'DReps'}
+                <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+              </Link>
+            </Button>
+          </div>
+        )}
+      </div>
+
       {/* Confidence breakdown + improvement CTAs */}
-      {results.confidenceBreakdown && (
-        <MatchConfidenceCTA breakdown={results.confidenceBreakdown} variant="full" />
+      {drepResults.confidenceBreakdown && (
+        <MatchConfidenceCTA breakdown={drepResults.confidenceBreakdown} variant="full" />
       )}
 
       {/* CTAs */}
       <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2 pb-8">
         <Button asChild size="lg">
-          <Link href={isSPO ? '/discover?tab=spos' : '/discover?sort=match'}>
-            Browse All {isSPO ? 'SPOs' : 'DReps'}
+          <Link href={activeTab === 'spo' ? '/discover?tab=spos' : '/discover?sort=match'}>
+            Browse All {activeTab === 'spo' ? 'SPOs' : 'DReps'}
             <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
         </Button>
@@ -673,7 +705,7 @@ function QuickMatchResultCard({
                     {displayName}
                   </Link>
                   <span className="text-xs text-muted-foreground">
-                    {isSPO ? 'Gov Score' : 'Civica Score'}: {match.drepScore}
+                    {isSPO ? 'Gov Score' : 'Governada Score'}: {match.drepScore}
                   </span>
                 </div>
               </div>
