@@ -101,6 +101,10 @@ export default async function StateOfGovernancePage({ params }: Props) {
         </div>
 
         <h1 className="text-4xl sm:text-5xl font-bold tracking-tight">State of Governance</h1>
+        <p className="text-muted-foreground max-w-xl mx-auto">
+          A snapshot of Cardano&apos;s governance health this epoch — how engaged representatives
+          are, what passed, and where the system is heading.
+        </p>
 
         <div className="flex items-center justify-center gap-4 mt-6">
           <div className="text-center">
@@ -138,7 +142,7 @@ export default async function StateOfGovernancePage({ params }: Props) {
           </div>
           <div className="text-center">
             <div className="text-lg font-bold tabular-nums">{data.stats.totalVotes}</div>
-            <div className="text-muted-foreground">Votes</div>
+            <div className="text-muted-foreground">Votes Cast</div>
           </div>
           <div className="text-center">
             <div className="text-lg font-bold tabular-nums">{data.stats.totalAdaGoverned}</div>

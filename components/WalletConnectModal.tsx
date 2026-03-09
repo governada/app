@@ -92,10 +92,10 @@ export function WalletConnectModal({
     }
   }, [connected, address, error, step]);
 
-  const handleTryAgain = () => {
+  const handleTryAgain = async () => {
     clearError();
     if (selectedWallet) {
-      connect(selectedWallet);
+      await connect(selectedWallet);
     }
   };
 

@@ -370,13 +370,20 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const nonceResponse = await fetch('/api/auth/nonce');
+      const nonceController = new AbortController();
+      const nonceTimer = setTimeout(() => nonceController.abort(), 15000);
+      const nonceResponse = await fetch('/api/auth/nonce', {
+        signal: nonceController.signal,
+      });
+      clearTimeout(nonceTimer);
       if (!nonceResponse.ok) throw new Error('Network error fetching nonce');
       const { nonce, signature: nonceSignature } = await nonceResponse.json();
 
       const signResult = await signMessage(nonce);
       if (!signResult) return false;
 
+      const authController = new AbortController();
+      const authTimer = setTimeout(() => authController.abort(), 15000);
       const authResponse = await fetch('/api/auth/wallet', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -387,7 +394,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           signature: signResult.signature,
           key: signResult.key,
         }),
+        signal: authController.signal,
       });
+      clearTimeout(authTimer);
 
       if (!authResponse.ok) {
         const data = await authResponse.json();

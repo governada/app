@@ -26,16 +26,16 @@ export function EngageClient({ epoch }: EngageClientProps) {
       <PageViewTracker event="engage_page_viewed" properties={{ epoch }} />
 
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Civic Engagement</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Have Your Say</h1>
         <p className="text-muted-foreground mt-1">
-          Shape what Cardano governance focuses on. Your signals directly inform DReps and treasury
-          teams.
+          Vote on priorities, flag concerns, and signal what matters to you. DReps and treasury
+          teams use these signals to make better governance decisions.
         </p>
       </div>
 
       <FirstVisitBanner
         pageKey="engage"
-        message="Your input here directly influences the governance intelligence engine. Every signal you send — sentiment, priority, concern — helps DReps make better decisions."
+        message="This is your direct line to Cardano governance. Rank your priorities, react to proposals, and join citizen assemblies. Your signals are credibility-weighted so genuine participation is rewarded."
       />
 
       {/* Credibility Tier Banner */}

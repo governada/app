@@ -178,7 +178,7 @@ export function ConcernFlags({ txHash, proposalIndex, isOpen }: ConcernFlagsProp
               variant="outline"
               className="gap-1.5"
               onClick={() => {
-                const event = new CustomEvent('open-wallet-modal');
+                const event = new CustomEvent('openWalletConnect');
                 window.dispatchEvent(event);
               }}
             >

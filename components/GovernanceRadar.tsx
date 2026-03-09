@@ -20,6 +20,7 @@ interface GovernanceRadarProps {
   size?: RadarSize;
   className?: string;
   animate?: boolean;
+  centerScore?: number | null;
 }
 
 const SIZE_MAP: Record<RadarSize, number> = { full: 220, medium: 80, mini: 32 };
@@ -124,6 +125,7 @@ export function GovernanceRadar({
   size = 'full',
   className,
   animate = true,
+  centerScore,
 }: GovernanceRadarProps) {
   const ref = useRef<SVGSVGElement>(null);
   const isInView = useInView(ref, { once: true, margin: '-40px' });
@@ -346,6 +348,38 @@ export function GovernanceRadar({
               />
             );
           })}
+
+        {/* Center score — full size only */}
+        {size === 'full' && centerScore != null && (
+          <g>
+            <text
+              x={cx}
+              y={cy - 4}
+              textAnchor="middle"
+              dominantBaseline="auto"
+              fill="white"
+              fontSize={28}
+              fontWeight={800}
+              fontFamily="var(--font-geist-mono)"
+              style={{ textShadow: `0 0 12px ${identityColor.hex}80` }}
+            >
+              {centerScore}
+            </text>
+            <text
+              x={cx}
+              y={cy + 12}
+              textAnchor="middle"
+              dominantBaseline="hanging"
+              fill="white"
+              fontSize={9}
+              fontWeight={500}
+              fontFamily="var(--font-geist-sans)"
+              opacity={0.5}
+            >
+              / 100
+            </text>
+          </g>
+        )}
 
         {/* Dimension labels — full size only */}
         {size === 'full' &&

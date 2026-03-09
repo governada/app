@@ -55,8 +55,8 @@ async function getGovernancePulse() {
       .from('users')
       .select('wallet_address', { count: 'exact', head: true })
       .not('claimed_drep_id', 'is', null),
-    supabase.from('spo_votes').select('pool_id').limit(1000),
-    supabase.from('committee_members').select('cc_hot_id, status'),
+    supabase.from('pools').select('pool_id', { count: 'exact', head: true }).gt('vote_count', 0),
+    supabase.from('cc_members').select('cc_hot_id, status'),
   ]);
 
   const dreps = drepsResult.data || [];
@@ -80,18 +80,9 @@ async function getGovernancePulse() {
     (p) => !p.ratified_epoch && !p.enacted_epoch && !p.dropped_epoch && !p.expired_epoch,
   );
 
-  const spoPoolIds = new Set((spoResult.data || []).map((v) => v.pool_id));
-  let ccMemberCount = (ccResult.data || []).filter(
-    (m) => !m.status || m.status.toLowerCase() === 'active',
-  ).length;
-
-  // Fallback: if committee_members table is empty, count distinct voters from cc_votes
-  if (ccMemberCount === 0) {
-    const { data: ccVoters } = await supabase.from('cc_votes').select('cc_hot_id').limit(1000);
-    if (ccVoters && ccVoters.length > 0) {
-      ccMemberCount = new Set(ccVoters.map((v) => v.cc_hot_id)).size;
-    }
-  }
+  const ccMemberRows = (ccResult.data || []).filter(
+    (m) => m.status?.toLowerCase() === 'authorized',
+  );
 
   return {
     totalAdaGoverned: formattedAda,
@@ -100,8 +91,8 @@ async function getGovernancePulse() {
     totalDReps: drepsCountResult.count ?? dreps.length,
     votesThisWeek: votesResult.count || 0,
     claimedDReps: claimedResult.count || 0,
-    activeSpOs: spoPoolIds.size,
-    ccMembers: ccMemberCount,
+    activeSpOs: spoResult.count ?? 0,
+    ccMembers: ccMemberRows.length,
   };
 }
 

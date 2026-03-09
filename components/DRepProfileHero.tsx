@@ -3,7 +3,6 @@
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useRef } from 'react';
 import { GovernanceRadar } from '@/components/GovernanceRadar';
-import { HexScore } from '@/components/HexScore';
 import { AccentProvider } from '@/components/AccentProvider';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -131,16 +130,10 @@ export function DRepProfileHero({
 
           {/* Right: Signature visuals */}
           <motion.div
-            className="flex items-center gap-6 lg:gap-4 justify-center lg:justify-end"
+            className="flex items-center justify-center lg:justify-end"
             variants={fadeInUp}
           >
-            <GovernanceRadar alignments={alignments} size="full" />
-            <div className="hidden sm:block">
-              <HexScore score={score} alignments={alignments} size="hero" />
-            </div>
-            <div className="block sm:hidden">
-              <HexScore score={score} alignments={alignments} size="card" />
-            </div>
+            <GovernanceRadar alignments={alignments} size="full" centerScore={score} />
           </motion.div>
         </motion.div>
       </div>

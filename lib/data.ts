@@ -1303,14 +1303,14 @@ export async function getDRepDelegationTrend(
   try {
     const supabase = createClient();
     const { data } = await supabase
-      .from('drep_power_snapshots')
-      .select('epoch_no, amount_lovelace, delegator_count')
+      .from('delegation_snapshots')
+      .select('epoch, total_power_lovelace, delegator_count')
       .eq('drep_id', drepId)
-      .order('epoch_no', { ascending: true })
+      .order('epoch', { ascending: true })
       .limit(30);
     return (data ?? []).map((s) => ({
-      epoch: s.epoch_no,
-      votingPowerAda: Math.round(Number(s.amount_lovelace) / 1_000_000),
+      epoch: s.epoch,
+      votingPowerAda: Math.round(Number(s.total_power_lovelace) / 1_000_000),
       delegatorCount: s.delegator_count ?? 0,
     }));
   } catch (err) {
