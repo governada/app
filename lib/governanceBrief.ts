@@ -316,7 +316,7 @@ function generateHolderBriefTemplate(ctx: HolderBriefContext): GeneratedBrief {
   }
 
   return {
-    greeting: "Here's your weekly governance roundup from DRepScore.",
+    greeting: "Here's your weekly governance roundup from Governada.",
     sections,
     ctaText: 'Explore DReps',
     ctaUrl: '/discover',

@@ -310,7 +310,7 @@ export async function executeProposalsSync(): Promise<Record<string, unknown>> {
 
         if (critical.length > 0) {
           const newest = critical[0];
-          const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://drepscore.io';
+          const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://governada.io';
           const { broadcastEvent, broadcastDiscord } = await import('@/lib/notifications');
           const event = {
             eventType: 'critical-proposal-open' as const,

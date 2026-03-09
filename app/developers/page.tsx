@@ -4,11 +4,11 @@ import { DeveloperPage } from '@/components/DeveloperPage';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Developers — Civica API',
+  title: 'Developers — Governada API',
   description:
-    'Build on governance intelligence. Interactive API explorer, embeddable widgets, and documentation for the Civica v1 API.',
+    'Build on governance intelligence. Interactive API explorer, embeddable widgets, and documentation for the Governada v1 API.',
   openGraph: {
-    title: 'Civica Developer Platform',
+    title: 'Governada Developer Platform',
     description:
       'Build on governance intelligence. API explorer, embeddable widgets, and documentation.',
   },

@@ -218,7 +218,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ pool
             </div>
           )}
 
-          <OGFooter left="$drepscore" right="drepscore.io" />
+          <OGFooter left="$governada" right="governada.io" />
         </div>
       </OGBackground>,
       {

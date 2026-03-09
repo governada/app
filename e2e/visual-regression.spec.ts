@@ -1,19 +1,19 @@
 import { test, expect } from '@playwright/test';
 
 /**
- * Visual regression tests for key Civica pages.
+ * Visual regression tests for key Governada pages.
  *
  * Usage:
  *   npx playwright test e2e/visual-regression.spec.ts
  *   npx playwright test e2e/visual-regression.spec.ts --update-snapshots  # to update baselines
  *
  * Snapshots are stored in e2e/__snapshots__/ and should be committed to git.
- * Run against production (PLAYWRIGHT_BASE_URL=https://drepscore.io) for stable baselines.
+ * Run against production (PLAYWRIGHT_BASE_URL=https://governada.io) for stable baselines.
  */
 
-const PRODUCTION_URL = 'https://drepscore.io';
+const PRODUCTION_URL = 'https://governada.io';
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? PRODUCTION_URL;
-const isProduction = baseURL.includes('drepscore.io');
+const isProduction = baseURL.includes('governada.io');
 
 test.describe('Visual Regression - Key Pages', () => {
   test.skip(!isProduction, 'Visual regression runs against production only');

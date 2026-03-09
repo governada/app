@@ -104,7 +104,7 @@ Same pattern as `/build-step` Phase 4. Launch chunk agents in worktrees.
 Each fix agent receives:
 
 ```
-You are fixing audit gaps for Civica. This is a TARGETED FIX — not a feature build.
+You are fixing audit gaps for Governada. This is a TARGETED FIX — not a feature build.
 
 ## Gaps to Fix
 [List of gap IDs, descriptions, and affected files from the approved plan]

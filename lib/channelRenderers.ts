@@ -124,7 +124,7 @@ export function renderDiscord(payload: NotificationPayload): DiscordContent {
         description: content.body,
         color,
         url: content.url,
-        footer: { text: 'Civica' },
+        footer: { text: 'Governada' },
         timestamp: new Date().toISOString(),
       },
     ],
@@ -134,7 +134,7 @@ export function renderDiscord(payload: NotificationPayload): DiscordContent {
 export function renderTelegram(payload: NotificationPayload): TelegramContent {
   const content = resolveContent(payload);
   let text = `*${escapeMarkdown(content.title)}*\n${escapeMarkdown(content.body)}`;
-  if (content.url) text += `\n[View on Civica](${content.url})`;
+  if (content.url) text += `\n[View on Governada](${content.url})`;
   return { text, parseMode: 'MarkdownV2' };
 }
 

@@ -110,7 +110,7 @@ export function EmbedCrossChain({ theme }: EmbedCrossChainProps) {
 
       <div className="mt-3 flex items-center justify-between">
         <a
-          href="https://drepscore.io/pulse"
+          href="https://governada.io/pulse"
           target="_blank"
           rel="noopener noreferrer"
           className="text-[10px] font-medium hover:underline"
@@ -119,7 +119,7 @@ export function EmbedCrossChain({ theme }: EmbedCrossChainProps) {
           View full Observatory →
         </a>
         <span className="text-[9px]" style={{ color: isDark ? '#374151' : '#d1d5db' }}>
-          drepscore.io
+          governada.io
         </span>
       </div>
     </div>

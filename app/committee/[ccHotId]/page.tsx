@@ -37,7 +37,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const name = member?.author_name ?? `CC Member ${ccHotId.slice(0, 12)}...`;
   return {
-    title: `${name} — CC Transparency Index — Civica`,
+    title: `${name} — CC Transparency Index — Governada`,
     description: `Constitutional Committee member transparency score, voting record, and accountability metrics.`,
   };
 }

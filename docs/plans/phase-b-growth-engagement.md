@@ -25,7 +25,7 @@
 
 - Clean-sheet redesign plan in `docs/plans/civica-frontend-redesign.md`
 - 4-destination navigation, segment detection, action feed, celebration/sharing system, tier visual identity
-- The Civica frontend plan creates the **surfaces** Phase B fills with content
+- The Governada frontend plan creates the **surfaces** Phase B fills with content
 
 ---
 
@@ -94,8 +94,8 @@ Extend OG image infrastructure:
   - `/api/og/wrapped/spo/[poolId]/[period]`
   - `/api/og/wrapped/stat/[statId]` — individual stat cards
 - Each route renders a purpose-built visual card (not a screenshot)
-- Cards branded with Civica identity + tier colors
-- Include CTA: "Find your governance story at civica.app"
+- Cards branded with Governada identity + tier colors
+- Include CTA: "Find your governance story at governada.io"
 
 **B1.3 — "Your Staking Governance" Card**
 
@@ -377,12 +377,12 @@ CREATE INDEX idx_notif_analytics_type ON notification_analytics (notification_ty
 
 Rich HTML email:
 
-- Civica branded header
+- Governada branded header
 - Personalized greeting with segment acknowledgment
 - Score/tier update section
 - Proposal highlights
 - Alignment status
-- "Open Civica" CTA buttons linking to deep-linked actions
+- "Open Governada" CTA buttons linking to deep-linked actions
 - Unsubscribe link
 
 **B3.7 — Push Notification Handling**
@@ -410,12 +410,12 @@ Service worker updates:
 | B-1   | B1             | Wrapped data aggregation engine + OG card generation                   | Epoch summary data (A), score snapshots      |
 | B-2   | B2             | Position statements + questions backend (API, data model)              | DRep profiles (A)                            |
 | B-3   | B3             | Weekly digest + epoch recap + deep-link resolution                     | Notification triggers (A), channel renderers |
-| B-4   | B1             | Wrapped frontend: story flow, share enhancement, public Wrapped page   | B-1, Civica frontend (A7)                    |
-| B-5   | B2             | Communication frontend: statement editor, feed integration, questions  | B-2, Civica frontend (A7)                    |
-| B-6   | B3             | Digest email template, push handling, in-app indicators, rate limiting | B-3, Civica frontend (A7)                    |
+| B-4   | B1             | Wrapped frontend: story flow, share enhancement, public Wrapped page   | B-1, Governada frontend (A7)                 |
+| B-5   | B2             | Communication frontend: statement editor, feed integration, questions  | B-2, Governada frontend (A7)                 |
+| B-6   | B3             | Digest email template, push handling, in-app indicators, rate limiting | B-3, Governada frontend (A7)                 |
 | B-7   | All            | Notification analytics, A/B testing hooks, polish                      | B-4, B-5, B-6                                |
 
-**Note:** Batches B-1, B-2, B-3 are backend-only and can proceed in parallel. Batches B-4, B-5, B-6 require the Civica frontend (Phase A7) to be at least partially shipped. B-7 is integration and polish.
+**Note:** Batches B-1, B-2, B-3 are backend-only and can proceed in parallel. Batches B-4, B-5, B-6 require the Governada frontend (Phase A7) to be at least partially shipped. B-7 is integration and polish.
 
 ---
 

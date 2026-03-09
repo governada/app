@@ -23,7 +23,7 @@ export async function createNonce(): Promise<{
   });
 
   // Human-readable message shown in wallet signing popup
-  const nonce = `Sign in to DRepScore\nTime: ${timeStr}\nSession: ${sessionId}`;
+  const nonce = `Sign in to Governada\nTime: ${timeStr}\nSession: ${sessionId}`;
 
   const signature = await new jose.SignJWT({ nonce, timestamp })
     .setProtectedHeader({ alg: 'HS256' })

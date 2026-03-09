@@ -50,8 +50,8 @@ export function DelegatorGovernanceCard() {
 
   const shareUrl = `${BASE_URL}/governance`;
   const shareText = identity.drepName
-    ? `I've been an active governance citizen for ${epochsActive ?? '?'} epochs, delegating to ${identity.drepName} (score: ${identity.drepScore ?? '?'}/100) on @drepscore.`
-    : `I'm participating in Cardano governance on @drepscore.`;
+    ? `I've been an active governance citizen for ${epochsActive ?? '?'} epochs, delegating to ${identity.drepName} (score: ${identity.drepScore ?? '?'}/100) on @GovernadaIO.`
+    : `I'm participating in Cardano governance on @GovernadaIO.`;
 
   return (
     <motion.div variants={fadeInUp} initial="hidden" animate="visible">

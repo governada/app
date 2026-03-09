@@ -151,4 +151,4 @@ When running `/audit`, agents should:
 2. Update "Last checked" dates
 3. Note any new features, design changes, or competitive moves
 4. Add insights to the "Key Competitive Insights" section
-5. Flag any competitor moves that threaten Civica's advantages
+5. Flag any competitor moves that threaten Governada's advantages

@@ -1,6 +1,6 @@
-# Civica (formerly DRepScore)
+# Governada (formerly DRepScore)
 
-The civic hub for the Cardano Nation -- governance intelligence and civic engagement for Cardano.
+Governance intelligence for the Cardano Nation.
 
 ## Autonomous Deployment Pipeline
 
@@ -14,8 +14,8 @@ Implementation is NOT complete until deployed and validated in production. Use `
 6. Merge: `gh api repos/drepscore/drepscore-app/pulls/<N>/merge -X PUT -f merge_method=squash`
 7. Apply migrations via Supabase MCP -> `npm run gen:types` if needed
 8. Monitor Railway (`railway logs`, poll ~5 min)
-9. PUT `https://drepscore.io/api/inngest` if Inngest functions changed
-10. Verify endpoints on `drepscore.io`, run `npm run smoke-test`
+9. PUT `https://governada.io/api/inngest` if Inngest functions changed
+10. Verify endpoints on `governada.io`, run `npm run smoke-test`
 11. Clean up worktree if applicable
 
 ## Hard Constraints
@@ -78,7 +78,7 @@ C:\Users\dalto\drepscore\
 
 ## Environment
 
-- **Production**: `https://drepscore.io` (NOT .com)
+- **Production**: `https://governada.io` (NOT .com)
 - **Supabase**: project `pbfprhbaayvcrxokgicr`
 - **CI**: lint/format/type-check/test (parallel) -> build. E2E post-merge only
 - **Release gating**: Hotfixes direct to main. Features/migrations/API changes via PR

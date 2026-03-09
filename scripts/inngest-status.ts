@@ -17,7 +17,7 @@ config({ path: '.env.local' });
 
 const INNGEST_API = 'https://api.inngest.com/v1';
 const SIGNING_KEY = process.env.INNGEST_SIGNING_KEY;
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://drepscore.io';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://governada.io';
 
 if (!SIGNING_KEY) {
   console.error('INNGEST_SIGNING_KEY is not set');

@@ -86,7 +86,7 @@ export function DelegationCeremony({
 
   const shareUrl = buildDRepUrl(drepId);
   const personalityText = personality ? ` — a ${personality} representative` : '';
-  const shareText = `I just delegated to ${drepName}${personalityText} on @drepscore. My voice in Cardano governance is now active! Who's your DRep?`;
+  const shareText = `I just delegated to ${drepName}${personalityText} on @GovernadaIO. My voice in Cardano governance is now active! Who's your DRep?`;
   const imageUrl = `/api/og/wrapped/delegator?drepId=${encodeURIComponent(drepId)}`;
 
   return (
@@ -133,7 +133,7 @@ export function DelegationCeremony({
           ) : (
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground uppercase tracking-wider">
-                Their DRepScore
+                Their Governada Score
               </p>
               <span className="text-7xl font-bold tabular-nums text-foreground">{score}</span>
               <p className="text-sm text-muted-foreground">/100</p>

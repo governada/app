@@ -52,7 +52,7 @@
 
 ## Integration Partner -- wallets, exchanges, pool tools (B2B)
 
-**Experience:** Governance intelligence via API + embeddable widgets. Every integration extends Civica's reach.
+**Experience:** Governance intelligence via API + embeddable widgets. Every integration extends Governada's reach.
 **Monetization:** API tiers ($50-200/mo). Custom widget integrations.
 **Priority:** Eternl -> Lace -> PoolTool -> Vespr -> CardanoScan -> ADApools -> Exchanges.
 **Key components:** Embed routes (`/embed/*`), `/api/v1/`
@@ -62,4 +62,4 @@
 
 ## Segment Fluidity
 
-Users span multiple personas. Civica treats segments as additive facets of one identity (via `user_wallets` + segment detection). A DRep sees citizen experience PLUS governance workspace. Nobody loses the citizen layer.
+Users span multiple personas. Governada treats segments as additive facets of one identity (via `user_wallets` + segment detection). A DRep sees citizen experience PLUS governance workspace. Nobody loses the citizen layer.

@@ -199,7 +199,7 @@ display(
         html`<span class="score-pill ${d >= 60 ? 'good' : d >= 30 ? 'warn' : 'bad'}">${d}</span>`,
       Name: (d, i) =>
         html`<a
-          href="https://drepscore.io/drep/${qualityTable[i].ID}"
+          href="https://governada.io/drep/${qualityTable[i].ID}"
           target="_blank"
           style="color:var(--accent)"
           >${d}</a

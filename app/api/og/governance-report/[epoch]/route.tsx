@@ -181,7 +181,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ epo
             </div>
           </div>
 
-          <OGFooter left="$drepscore" right={`drepscore.io/pulse/report/${epochNo}`} />
+          <OGFooter left="$governada" right={`governada.io/pulse/report/${epochNo}`} />
         </div>
       </OGBackground>,
       {

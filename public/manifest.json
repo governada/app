@@ -1,6 +1,6 @@
 {
-  "name": "Civica — Cardano Governance Intelligence",
-  "short_name": "Civica",
+  "name": "Governada — Cardano Governance Intelligence",
+  "short_name": "Governada",
   "description": "The civic hub for the Cardano Nation. Find your DRep, track governance proposals, and participate in on-chain democracy.",
   "start_url": "/",
   "display": "standalone",

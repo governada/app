@@ -152,7 +152,7 @@ export function ApiExplorer() {
   const [loading, setLoading] = useState(false);
 
   const endpoint = ENDPOINTS.find((e) => e.id === selected) ?? ENDPOINTS[0];
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://drepscore.io';
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://governada.io';
   const codeExamples = generateCodeExamples(endpoint, baseUrl);
 
   const tryEndpoint = useCallback(async () => {

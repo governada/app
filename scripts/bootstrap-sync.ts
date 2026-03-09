@@ -111,7 +111,7 @@ async function batchUpsert(
 async function main() {
   const startTime = Date.now();
   console.log('╔══════════════════════════════════════════════╗');
-  console.log('║       DRepScore Bootstrap Sync               ║');
+  console.log('║       Governada Bootstrap Sync               ║');
   console.log('╚══════════════════════════════════════════════╝\n');
 
   const supabase = getSupabaseAdmin();

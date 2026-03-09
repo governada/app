@@ -92,7 +92,7 @@ export function CivicaHeader() {
             href="/"
             className="font-display text-lg font-bold tracking-tight mr-6 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
           >
-            Civica
+            Governada
           </Link>
 
           <nav className="flex items-center gap-1" aria-label="Main navigation">

@@ -19,9 +19,9 @@ They span several sub-segments:
 
 ### What Makes This Persona Different
 
-Researchers are the only persona that doesn't directly interact with the governance system through Civica. They don't vote, delegate, submit proposals, or manage reputation. They observe, analyze, and publish. Their relationship with the platform is extractive in the best sense: they take data out and return credibility and insight.
+Researchers are the only persona that doesn't directly interact with the governance system through Governada. They don't vote, delegate, submit proposals, or manage reputation. They observe, analyze, and publish. Their relationship with the platform is extractive in the best sense: they take data out and return credibility and insight.
 
-When an academic paper cites Civica's DRep scoring methodology or a governance report uses Civica's historical alignment data, it legitimizes the entire platform. That credibility flows to every other persona -- citizens trust the scores because researchers validated them, DReps respect the methodology because it withstands academic scrutiny.
+When an academic paper cites Governada's DRep scoring methodology or a governance report uses Governada's historical alignment data, it legitimizes the entire platform. That credibility flows to every other persona -- citizens trust the scores because researchers validated them, DReps respect the methodology because it withstands academic scrutiny.
 
 ---
 
@@ -88,7 +88,7 @@ The consumer surfaces (DRep profiles, proposal pages, Pulse) serve as visual ref
 
 ### API Surface
 
-The research API exposes the full depth of Civica's intelligence engine:
+The research API exposes the full depth of Governada's intelligence engine:
 
 **Entity data:**
 
@@ -158,7 +158,7 @@ Researchers generate intelligence that flows back to other personas:
 - Cross-chain governance comparisons (using EDI data) attract attention from outside Cardano
 - Identified anomalies or governance risks surface as intelligence for the platform
 
-Civica can amplify this: feature notable research on the Pulse page, cite academic papers in methodology documentation, reference published findings in AI-generated narratives.
+Governada can amplify this: feature notable research on the Pulse page, cite academic papers in methodology documentation, reference published findings in AI-generated narratives.
 
 ---
 
@@ -181,7 +181,7 @@ Civica can amplify this: feature notable research on the Pulse page, cite academ
 | ------------------------------- | --------------------------- | ------------------------------------------------------------ |
 | **API registrations**           | Interest in governance data | Growing developer/researcher signups                         |
 | **Paid research subscriptions** | Monetization                | 5-10 paying subscribers at $50-200/mo                        |
-| **Academic citations**          | Credibility impact          | Civica data cited in governance research papers              |
+| **Academic citations**          | Credibility impact          | Governada data cited in governance research papers           |
 | **API usage patterns**          | What data is valuable?      | Identifies which datasets to expand or prioritize            |
 | **Export downloads**            | Bulk data demand            | Steady usage of export endpoints                             |
 | **Research feedback**           | Methodology improvement     | Researcher reports that lead to scoring or data improvements |
@@ -190,6 +190,6 @@ Civica can amplify this: feature notable research on the Pulse page, cite academ
 
 ## The One-Line Vision
 
-**Civica provides the most comprehensive, well-documented governance dataset in blockchain -- the canonical source for anyone studying how decentralized governance works.**
+**Governada provides the most comprehensive, well-documented governance dataset in blockchain -- the canonical source for anyone studying how decentralized governance works.**
 
-Researchers don't need a pretty interface. They need deep data, transparent methodology, and reliable access. Every paper published using Civica's data validates the platform for every other persona. The data moat that compounds daily is the same moat that makes this dataset irreplaceable for research.
+Researchers don't need a pretty interface. They need deep data, transparent methodology, and reliable access. Every paper published using Governada's data validates the platform for every other persona. The data moat that compounds daily is the same moat that makes this dataset irreplaceable for research.

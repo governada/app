@@ -4,7 +4,7 @@
  * Exit 0 = all pass, non-zero = failure details printed.
  */
 
-const BASE_URL = process.argv[2] || process.env.SMOKE_TEST_URL || 'https://drepscore.io';
+const BASE_URL = process.argv[2] || process.env.SMOKE_TEST_URL || 'https://governada.io';
 
 interface Check {
   name: string;
@@ -121,7 +121,7 @@ async function runCheck(check: Check): Promise<{ pass: boolean; name: string; de
   try {
     const res = await fetch(url, {
       method: check.method || 'GET',
-      headers: { 'User-Agent': 'DRepScore-SmokeTest/1.0' },
+      headers: { 'User-Agent': 'Governada-SmokeTest/1.0' },
       signal: AbortSignal.timeout(15_000),
     });
 

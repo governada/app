@@ -154,7 +154,7 @@ export async function GET() {
         )}
 
         <span style={{ fontSize: '14px', color: '#4b5563', marginTop: '24px' }}>
-          drepscore.io — Governance Intelligence for Crypto
+          governada.io — Governance Intelligence for Crypto
         </span>
       </div>,
       {

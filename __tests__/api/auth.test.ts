@@ -3,7 +3,7 @@ import { createRequest, parseJson } from '../helpers';
 
 vi.mock('@/lib/nonce', () => ({
   createNonce: vi.fn().mockResolvedValue({
-    nonce: 'Sign in to DRepScore\nTime: Jan 1, 2025\nSession: abc123',
+    nonce: 'Sign in to Governada\nTime: Jan 1, 2025\nSession: abc123',
     signature: 'signed.jwt.token',
     expiresAt: Date.now() + 300_000,
   }),
@@ -57,7 +57,7 @@ describe('GET /api/auth/nonce', () => {
     const body = (await parseJson(res)) as any;
 
     expect(res.status).toBe(200);
-    expect(body.nonce).toContain('DRepScore');
+    expect(body.nonce).toContain('Governada');
     expect(body.signature).toBeTruthy();
     expect(body.expiresAt).toBeGreaterThan(Date.now());
   });
@@ -66,7 +66,7 @@ describe('GET /api/auth/nonce', () => {
 describe('POST /api/auth/wallet', () => {
   const validBody = {
     address: 'addr_test1qz...',
-    nonce: 'Sign in to DRepScore\nTime: Jan 1, 2025\nSession: abc123',
+    nonce: 'Sign in to Governada\nTime: Jan 1, 2025\nSession: abc123',
     nonceSignature: 'signed.jwt.token',
     signature: 'wallet_sig_hex',
     key: 'wallet_key_hex',

@@ -1,5 +1,5 @@
 /**
- * Cube.js Client Configuration for Civica Analytics
+ * Cube.js Client Configuration for Governada Analytics
  *
  * Provides the Cube API client for querying the semantic layer.
  * Used by both server components (via direct API calls) and

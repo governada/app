@@ -17,7 +17,7 @@ interface DigestData {
 
 export function renderGovernanceDigestEmail(
   data: DigestData,
-  baseUrl = 'https://drepscore.app',
+  baseUrl = 'https://governada.io',
 ): string {
   const {
     recipientName,
@@ -35,7 +35,7 @@ export function renderGovernanceDigestEmail(
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Your Governance Digest — DRepScore</title>
+  <title>Your Governance Digest — Governada</title>
   <style>
     body { font-family: -apple-system, sans-serif; background: #0c1222; color: #e2e8f0; margin: 0; padding: 20px; }
     .container { max-width: 600px; margin: 0 auto; }
@@ -57,7 +57,7 @@ export function renderGovernanceDigestEmail(
 <body>
   <div class="container">
     <div class="header">
-      <h1>DRepScore</h1>
+      <h1>Governada</h1>
       <p style="color: #64748b; margin: 8px 0 0;">Your Governance Digest</p>
     </div>
 
@@ -109,10 +109,10 @@ export function renderGovernanceDigestEmail(
       <p style="margin: 0; color: #94a3b8;">${insight}</p>
     </div>
 
-    <a href="${baseUrl}/my-gov" class="cta-button">Open Civica</a>
+    <a href="${baseUrl}/my-gov" class="cta-button">Open Governada</a>
 
     <div class="footer">
-      <p>DRepScore · Cardano Governance Intelligence</p>
+      <p>Governada · Cardano Governance Intelligence</p>
       <p><a href="${baseUrl}/my-gov/profile#notifications" class="unsubscribe">Manage notifications</a></p>
     </div>
   </div>

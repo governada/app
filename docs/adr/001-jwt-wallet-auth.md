@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-DRepScore authenticates users via Cardano wallet signatures (CIP-30). Supabase Auth supports email/password, OAuth, and magic links but has no native wallet signature flow.
+Governada authenticates users via Cardano wallet signatures (CIP-30). Supabase Auth supports email/password, OAuth, and magic links but has no native wallet signature flow.
 
 ## Decision
 

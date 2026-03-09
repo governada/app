@@ -453,7 +453,7 @@ export function NotificationPreferences() {
               <div>
                 <p className="text-sm font-medium">Telegram</p>
                 <p className="text-[10px] text-muted-foreground">
-                  {channels.telegram.connected ? 'Connected' : 'Message @DRepScoreBot to connect'}
+                  {channels.telegram.connected ? 'Connected' : 'Message @GovernadaBot to connect'}
                 </p>
               </div>
             </div>
@@ -473,7 +473,7 @@ export function NotificationPreferences() {
               </div>
             ) : (
               <Button variant="outline" size="sm" className="gap-1" asChild>
-                <a href="https://t.me/DRepScoreBot" target="_blank" rel="noopener noreferrer">
+                <a href="https://t.me/GovernadaBot" target="_blank" rel="noopener noreferrer">
                   Connect <ExternalLink className="h-3 w-3" />
                 </a>
               </Button>

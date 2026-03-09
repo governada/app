@@ -1,4 +1,4 @@
-Perform a structured product audit of Civica against the vision and quality standards.
+Perform a structured product audit of Governada against the vision and quality standards.
 
 ## Scope
 
@@ -40,7 +40,7 @@ Use WebSearch to check the current state of competitors listed in `docs/strategy
 2. Note any new features, UX changes, or competitive moves since the last check
 3. Update the competitive-landscape.md file with findings and timestamps
 4. Search for latest best practices in key tech areas (Next.js patterns, React 19 features, Tailwind v4, D3 visualization trends)
-5. Flag any competitor moves that threaten or validate Civica's approach
+5. Flag any competitor moves that threaten or validate Governada's approach
 
 ## Phase 3: Scoring
 

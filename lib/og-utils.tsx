@@ -208,10 +208,10 @@ export function OGFooter({ left, right }: { left?: string; right?: string }) {
       }}
     >
       <div style={{ display: 'flex', fontSize: '24px', fontWeight: 700, color: OG.brand }}>
-        {left || '$drepscore'}
+        {left || '$governada'}
       </div>
       <div style={{ display: 'flex', fontSize: '18px', color: OG.textDim }}>
-        {right || 'drepscore.io'}
+        {right || 'governada.io'}
       </div>
     </div>
   );
@@ -231,7 +231,7 @@ export function OGFallback({ message }: { message: string }) {
         }}
       >
         <div style={{ display: 'flex', fontSize: '48px', fontWeight: 700, color: OG.brand }}>
-          $drepscore
+          $governada
         </div>
         <div style={{ display: 'flex', fontSize: '24px', color: OG.textMuted, marginTop: '16px' }}>
           {message}

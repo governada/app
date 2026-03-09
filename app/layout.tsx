@@ -30,9 +30,9 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: 'Civica — Cardano Governance Intelligence',
+  title: 'Governada — Cardano Governance Intelligence',
   description:
-    'The civic hub for the Cardano Nation. Find your DRep, track governance proposals, and participate in on-chain democracy.',
+    'Governance intelligence for Cardano. Find your DRep, track governance proposals, and participate in on-chain democracy.',
   keywords: [
     'Cardano',
     'DRep',
@@ -41,13 +41,13 @@ export const metadata: Metadata = {
     'ADA',
     'Blockchain',
     'Voting',
-    'Civica',
+    'Governada',
     'SPO',
   ],
   openGraph: {
-    title: 'Civica — Cardano Governance Intelligence',
+    title: 'Governada — Cardano Governance Intelligence',
     description:
-      'The civic hub for Cardano. Find your DRep, track proposals, and take action in governance.',
+      'Governance intelligence for Cardano. Find your DRep, track proposals, and take action in governance.',
     type: 'website',
   },
   manifest: '/manifest.json',
@@ -55,7 +55,7 @@ export const metadata: Metadata = {
     'mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-status-bar-style': 'default',
-    'apple-mobile-web-app-title': 'Civica',
+    'apple-mobile-web-app-title': 'Governada',
   },
 };
 

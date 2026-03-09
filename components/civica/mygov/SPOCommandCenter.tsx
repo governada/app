@@ -842,8 +842,8 @@ export function SPOCommandCenter({ poolId }: { poolId: string }) {
         open={shareOpen}
         onClose={() => setShareOpen(false)}
         ogImageUrl={`/api/og/wrapped/spo/${encodeURIComponent(poolId)}`}
-        shareText={`My pool's governance score on @CivicaGov \u2014 check it out!`}
-        shareUrl={`${typeof window !== 'undefined' ? window.location.origin : 'https://drepscore.io'}/pool/${encodeURIComponent(poolId)}`}
+        shareText={`My pool's governance score on @GovernadaIO \u2014 check it out!`}
+        shareUrl={`${typeof window !== 'undefined' ? window.location.origin : 'https://governada.io'}/pool/${encodeURIComponent(poolId)}`}
         title="Share your pool profile"
       />
     </div>

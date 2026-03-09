@@ -6,7 +6,7 @@ Accepted — **V3 (current, Mar 2026)**. Supersedes earlier V1/V2 models.
 
 ## Context
 
-Civica needs a single 0-100 score per DRep that measures governance accountability. The score must be objective, transparent, and resistant to gaming.
+Governada needs a single 0-100 score per DRep that measures governance accountability. The score must be objective, transparent, and resistant to gaming.
 
 ## Decision (V3 — 4-Pillar Model)
 

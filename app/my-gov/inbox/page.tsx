@@ -4,7 +4,7 @@ import type { Metadata } from 'next';
 import { CivicaInbox } from '@/components/civica/mygov/CivicaInbox';
 
 export const metadata: Metadata = {
-  title: 'Civica — Inbox',
+  title: 'Governada — Inbox',
   description: 'Your governance notifications and action items.',
 };
 

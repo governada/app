@@ -110,12 +110,12 @@ export async function GET(
               <div
                 style={{ display: 'flex', fontSize: '16px', color: OG.textMuted, marginTop: '4px' }}
               >
-                Civica Score: {drep.drepScore}/100
+                Governada Score: {drep.drepScore}/100
               </div>
             </div>
           </div>
 
-          <OGFooter left="$drepscore" right="drepscore.io" />
+          <OGFooter left="$governada" right="governada.io" />
         </div>
       </OGBackground>,
       {

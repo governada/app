@@ -29,7 +29,7 @@ North star: `docs/strategy/ultimate-vision.md` (V2). All feature decisions align
 
 ## Vision
 
-Civica is the civic hub for the Cardano nation -- the one place where every ADA holder goes to understand what their stake is doing in governance, and where every governance participant goes to do their work.
+Governada is the civic hub for the Cardano nation -- the one place where every ADA holder goes to understand what their stake is doing in governance, and where every governance participant goes to do their work.
 
 ## Principles (Non-Negotiable)
 
@@ -37,7 +37,7 @@ Civica is the civic hub for the Cardano nation -- the one place where every ADA 
 2. **Free core, paid power tools** -- Never gate: discovery, basic scores, delegation, Quick Match, basic alerts, essential governance operations (voting, rationale submission). Monetize competitive advantage and growth analytics.
 3. **Data is the product** -- Open methodology builds trust. Historical data builds revenue. Citizen engagement data builds the moat no competitor can cross.
 4. **Persona-appropriate depth** -- Citizens get summary intelligence. DReps get a workspace. SPOs get an identity platform. Different personas need different products, not different depths of the same product.
-5. **Intelligence demands action** -- Every insight connects to something the user can do. Civica is where governance HAPPENS, not just where it is observed.
+5. **Intelligence demands action** -- Every insight connects to something the user can do. Governada is where governance HAPPENS, not just where it is observed.
 6. **Accountability is advantage** -- Transparency is rewarded, not imposed. DReps who provide rationales score higher. SPOs who participate get discovered. Treasury teams who deliver build reputation.
 7. **Structured signal over open discourse** -- Civic engagement generates analyzable data, not noise. No forums, no threads, no moderation burden.
 8. **DReps, SPOs, and Integration Partners are the sales force** -- Every shared score, every embedded widget is marketing.

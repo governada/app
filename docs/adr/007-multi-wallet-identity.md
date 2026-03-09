@@ -6,7 +6,7 @@
 
 ## Context
 
-Civica's identity was wallet-address-centric: `users.wallet_address` was the PK, and every user-scoped table used it as the FK. This creates problems for engaged Cardano governance participants who routinely operate multiple wallets:
+Governada's identity was wallet-address-centric: `users.wallet_address` was the PK, and every user-scoped table used it as the FK. This creates problems for engaged Cardano governance participants who routinely operate multiple wallets:
 
 - A DRep with a separate cold storage wallet
 - An SPO who also has a personal delegation wallet

@@ -32,12 +32,12 @@ export function BadgeEmbed({ drepId, drepName }: BadgeEmbedProps) {
     posthog.capture('badge_embed_viewed', { drep_id: drepId });
   }, [drepId]);
 
-  const badgeUrl = `https://drepscore.io/api/badge/${encodeURIComponent(drepId)}?format=${format}`;
-  const profileUrl = `https://drepscore.io/drep/${encodeURIComponent(drepId)}`;
+  const badgeUrl = `https://governada.io/api/badge/${encodeURIComponent(drepId)}?format=${format}`;
+  const profileUrl = `https://governada.io/drep/${encodeURIComponent(drepId)}`;
 
   const embedSnippets = {
-    markdown: `[![DRepScore](${badgeUrl})](${profileUrl})`,
-    html: `<a href="${profileUrl}"><img src="${badgeUrl}" alt="${drepName} DRepScore" /></a>`,
+    markdown: `[![Governada](${badgeUrl})](${profileUrl})`,
+    html: `<a href="${profileUrl}"><img src="${badgeUrl}" alt="${drepName} Governada Score" /></a>`,
     bbcode: `[url=${profileUrl}][img]${badgeUrl}[/img][/url]`,
   };
 
@@ -61,7 +61,7 @@ export function BadgeEmbed({ drepId, drepName }: BadgeEmbedProps) {
           Embeddable Badge
         </CardTitle>
         <p className="text-xs text-muted-foreground">
-          Add your DRepScore badge to your website, forum signature, or X bio.
+          Add your Governada badge to your website, forum signature, or X bio.
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -91,7 +91,7 @@ export function BadgeEmbed({ drepId, drepName }: BadgeEmbedProps) {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={`/api/badge/${encodeURIComponent(drepId)}?format=${format}`}
-            alt={`${drepName} DRepScore badge`}
+            alt={`${drepName} Governada badge`}
             width={FORMAT_META[format].width}
             height={FORMAT_META[format].height}
             className="max-w-full"

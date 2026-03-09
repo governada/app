@@ -150,8 +150,8 @@ export function DelegatorShareCard() {
   if (!data) return null;
 
   const ogImageUrl = `/api/og/delegator?wallet=${address}`;
-  const shareUrl = typeof window !== 'undefined' ? window.location.origin : 'https://drepscore.io';
-  const shareText = `I'm delegated to ${data.drepName} (Score: ${data.drepScore}/100) on Cardano. Who's your DRep? Find out at DRepScore!`;
+  const shareUrl = typeof window !== 'undefined' ? window.location.origin : 'https://governada.io';
+  const shareText = `I'm delegated to ${data.drepName} (Score: ${data.drepScore}/100) on Cardano. Who's your DRep? Find out at Governada!`;
 
   return (
     <Card className="overflow-hidden">

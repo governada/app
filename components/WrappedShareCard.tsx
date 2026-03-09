@@ -44,8 +44,8 @@ export function WrappedShareCard({
 
   const shareText =
     variant === 'drep'
-      ? `My DRepScore: ${score}/100! ${rank ? `Ranked #${rank}. ` : ''}${delegators ? `${delegators} delegators trust my governance. ` : ''}Check your DRep's score on @drepscore:`
-      : `I'm delegated to ${drepName} on @drepscore — they scored ${score}/100 with ${participation || 0}% participation. Who's your DRep?`;
+      ? `My Governada Score: ${score}/100! ${rank ? `Ranked #${rank}. ` : ''}${delegators ? `${delegators} delegators trust my governance. ` : ''}Check your DRep's score on @GovernadaIO:`
+      : `I'm delegated to ${drepName} on @GovernadaIO — they scored ${score}/100 with ${participation || 0}% participation. Who's your DRep?`;
 
   const tierColor =
     score >= 80
@@ -67,7 +67,7 @@ export function WrappedShareCard({
         <div className="rounded-lg bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-transparent p-4">
           <div className="text-center space-y-2">
             <p className="text-xs text-muted-foreground">
-              {variant === 'drep' ? 'My DRepScore' : `I'm delegated to`}
+              {variant === 'drep' ? 'My Governada Score' : `I'm delegated to`}
             </p>
             {variant === 'delegator' && <p className="text-sm font-semibold">{drepName}</p>}
             <p className={`text-3xl font-bold tabular-nums ${tierColor}`}>

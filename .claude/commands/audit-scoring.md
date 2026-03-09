@@ -2,7 +2,7 @@ Audit scoring methodology, calibration quality, and real-world impact.
 
 ## Purpose
 
-Evaluate whether Civica's scoring systems (DRep Score V3, SPO Score V3, GHI, CC Transparency Index, PCA alignment, matching engine) are achieving their intended goals:
+Evaluate whether Governada's scoring systems (DRep Score V3, SPO Score V3, GHI, CC Transparency Index, PCA alignment, matching engine) are achieving their intended goals:
 
 1. **Differentiation**: Do scores meaningfully separate good governance behavior from bad?
 2. **Defensibility**: Can the methodology withstand public scrutiny from the Cardano community?

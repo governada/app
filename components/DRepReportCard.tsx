@@ -30,7 +30,7 @@ export function DRepReportCard({
 }: DRepReportCardProps) {
   const url = buildDRepUrl(drepId);
   const ogImageUrl = `/api/og/drep/${encodeURIComponent(drepId)}`;
-  const shareText = `My DRepScore: ${score}/100\n\nParticipation: ${participation}%\nRationale: ${rationale}%\nReliability: ${reliability}%\n${rank ? `Ranked #${rank}` : ''}\n\n${delegators} delegators trust my governance.\n\nCheck your DRep's score:`;
+  const shareText = `My Governada Score: ${score}/100\n\nParticipation: ${participation}%\nRationale: ${rationale}%\nReliability: ${reliability}%\n${rank ? `Ranked #${rank}` : ''}\n\n${delegators} delegators trust my governance.\n\nCheck your DRep's score:`;
 
   return (
     <Card>
@@ -44,7 +44,7 @@ export function DRepReportCard({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={ogImageUrl}
-          alt={`${name} DRepScore Card`}
+          alt={`${name} Governada Card`}
           className="w-full rounded-lg border"
           loading="lazy"
         />

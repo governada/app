@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'CC Transparency Index — Civica',
+  title: 'CC Transparency Index — Governada',
   description:
     'Constitutional Committee Transparency Index: accountability scores, voting records, and rationale analysis for Cardano governance.',
 };

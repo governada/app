@@ -2,7 +2,7 @@ Audit security posture for pre-launch readiness and ongoing hardening.
 
 ## Purpose
 
-Verify that Civica is secure enough for public launch and ongoing operation. This is not a generic OWASP checklist — it's a Civica-specific audit that tests the actual authentication, authorization, data protection, API security, and infrastructure hardening patterns in this codebase.
+Verify that Governada is secure enough for public launch and ongoing operation. This is not a generic OWASP checklist — it's a Governada-specific audit that tests the actual authentication, authorization, data protection, API security, and infrastructure hardening patterns in this codebase.
 
 A governance intelligence platform handling wallet connections, on-chain transactions, and civic engagement data has a unique threat profile. A breach doesn't just leak data — it destroys the trust that makes the entire product viable. Cardano community trust is the product's foundation; security is existential, not optional.
 
@@ -431,7 +431,7 @@ npm audit
 
 ## Phase 7: Engagement Anti-Gaming
 
-Civica's engagement mechanisms are a unique attack surface. If sentiment, endorsements, or concern flags can be gamed, the intelligence engine is poisoned.
+Governada's engagement mechanisms are a unique attack surface. If sentiment, endorsements, or concern flags can be gamed, the intelligence engine is poisoned.
 
 ### 7.1 Anti-Spam Measures
 

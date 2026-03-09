@@ -129,7 +129,7 @@ export async function GET(request: NextRequest) {
             Who&apos;s your DRep?
           </div>
 
-          <OGFooter left="$drepscore" right="drepscore.io" />
+          <OGFooter left="$governada" right="governada.io" />
         </div>
       </OGBackground>,
       {

@@ -53,7 +53,7 @@ If the answer is no, the recommendation is LOW PRIORITY at best. It should not b
 
 ## Competitor Benchmark
 
-Don't compare against an imaginary ideal. Compare against what actually exists in the Cardano governance ecosystem and adjacent Web3 tools. If Civica is already ahead of every competitor on a dimension, that dimension needs maintenance, not improvement.
+Don't compare against an imaginary ideal. Compare against what actually exists in the Cardano governance ecosystem and adjacent Web3 tools. If Governada is already ahead of every competitor on a dimension, that dimension needs maintenance, not improvement.
 
 Reference `docs/strategy/context/competitive-landscape.md` for the current landscape.
 

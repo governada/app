@@ -22,13 +22,13 @@ function buildShieldSvg(score: number, tier: string, color: string): string {
   const totalWidth = labelWidth + scoreWidth;
   const height = 28;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${totalWidth}" height="${height}">
-  <title>Civica ${score}/100 (${tier})</title>
+  <title>Governada ${score}/100 (${tier})</title>
   <rect width="${totalWidth}" height="${height}" rx="4" fill="#1e293b"/>
   <clipPath id="r"><rect width="${totalWidth}" height="${height}" rx="4"/></clipPath>
   <g clip-path="url(#r)">
     <rect x="${labelWidth}" width="${scoreWidth}" height="${height}" fill="${color}22"/>
   </g>
-  <text x="8" y="18" font-family="Verdana,Geneva,sans-serif" font-size="11" fill="#e2e8f0" font-weight="600">Civica</text>
+  <text x="8" y="18" font-family="Verdana,Geneva,sans-serif" font-size="11" fill="#e2e8f0" font-weight="600">Governada</text>
   <text x="${labelWidth + 8}" y="18" font-family="Verdana,Geneva,sans-serif" font-size="11" fill="${color}" font-weight="700">${score}/100</text>
   <text x="${labelWidth + 56}" y="18" font-family="Verdana,Geneva,sans-serif" font-size="9" fill="${color}cc">${tier}</text>
 </svg>`;
@@ -52,7 +52,7 @@ function buildCardSvg(
   const circ = 2 * Math.PI * ringR;
   const offset = circ * (1 - score / 100);
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
-  <title>${name} — Civica ${score}/100</title>
+  <title>${name} — Governada ${score}/100</title>
   <rect width="${w}" height="${h}" rx="8" fill="#0c1222"/>
   <rect x="1" y="1" width="${w - 2}" height="${h - 2}" rx="7" fill="none" stroke="${color}33" stroke-width="1"/>
   <circle cx="${cx}" cy="${cy}" r="${ringR}" fill="none" stroke="#1e293b" stroke-width="${sw}"/>
@@ -61,7 +61,7 @@ function buildCardSvg(
   <text x="${cx}" y="${cy + 1}" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="18" fill="${color}" font-weight="700">${score}</text>
   <text x="84" y="30" font-family="sans-serif" font-size="14" fill="#e2e8f0" font-weight="600">${displayName}</text>
   <text x="84" y="50" font-family="sans-serif" font-size="11" fill="#94a3b8">${tier} · ${topPillar}: ${topPillarValue}%</text>
-  <text x="84" y="80" font-family="sans-serif" font-size="10" fill="#64748b">drepscore.io</text>
+  <text x="84" y="80" font-family="sans-serif" font-size="10" fill="#64748b">governada.io</text>
 </svg>`;
 }
 
@@ -97,7 +97,7 @@ function buildFullSvg(
     .join('\n');
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
-  <title>${name} — Civica ${score}/100</title>
+  <title>${name} — Governada ${score}/100</title>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#0c1222"/>
@@ -114,8 +114,8 @@ function buildFullSvg(
   <text x="160" y="28" font-family="sans-serif" font-size="16" fill="#e2e8f0" font-weight="700">${displayName}</text>
   <text x="160" y="44" font-family="monospace" font-size="9" fill="#64748b">${shortId}</text>
   ${pillarBars}
-  <text x="8" y="${h - 10}" font-family="sans-serif" font-size="11" fill="#475569" font-weight="600">Civica</text>
-  <text x="${w - 8}" y="${h - 10}" text-anchor="end" font-family="sans-serif" font-size="9" fill="#475569">drepscore.io</text>
+  <text x="8" y="${h - 10}" font-family="sans-serif" font-size="11" fill="#475569" font-weight="600">Governada</text>
+  <text x="${w - 8}" y="${h - 10}" text-anchor="end" font-family="sans-serif" font-size="9" fill="#475569">governada.io</text>
 </svg>`;
 }
 

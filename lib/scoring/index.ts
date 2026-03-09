@@ -1,5 +1,5 @@
 /**
- * Civica Scoring Engine — barrel export.
+ * Governada Scoring Engine — barrel export.
  * DRep Score V3 + SPO Score V3.
  */
 

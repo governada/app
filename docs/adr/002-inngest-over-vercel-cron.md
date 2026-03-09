@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-DRepScore needs 20+ background jobs: data sync (Koios), score calculation, notifications, report generation. Options: Vercel Cron (simple, limited), Inngest (durable, step functions, retries), BullMQ (self-hosted Redis queues).
+Governada needs 20+ background jobs: data sync (Koios), score calculation, notifications, report generation. Options: Vercel Cron (simple, limited), Inngest (durable, step functions, retries), BullMQ (self-hosted Redis queues).
 
 ## Decision
 

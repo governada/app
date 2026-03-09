@@ -16,7 +16,7 @@ Launch all three simultaneously using the Agent tool. These are READ-ONLY resear
 ### 1A. Vision Analyst
 
 ```
-You are analyzing a Civica vision step to produce a comprehensive build specification. READ-ONLY — do not modify files.
+You are analyzing a Governada vision step to produce a comprehensive build specification. READ-ONLY — do not modify files.
 
 Instructions:
 1. Read `docs/strategy/ultimate-vision.md` — find the Step [N] section. Extract EVERY requirement, feature, success criteria, and cross-step dependency.
@@ -51,7 +51,7 @@ VISION_AMBIGUITY:
 ### 1B. Codebase Scout
 
 ```
-You are exploring the Civica codebase to map the technical landscape for building Step [N]. READ-ONLY — do not modify files.
+You are exploring the Governada codebase to map the technical landscape for building Step [N]. READ-ONLY — do not modify files.
 
 Instructions:
 1. Read `docs/strategy/context/build-manifest.md` to understand what Step [N] requires.
@@ -90,7 +90,7 @@ TECHNICAL_RISKS:
 ### 1C. Audit Pre-Screen
 
 ```
-You are pre-screening a Civica vision step against all audit dimensions to define quality targets BEFORE building. READ-ONLY — do not modify files.
+You are pre-screening a Governada vision step against all audit dimensions to define quality targets BEFORE building. READ-ONLY — do not modify files.
 
 Instructions:
 1. Read `docs/strategy/context/build-manifest.md` to understand what Step [N] requires.
@@ -217,7 +217,7 @@ Launch chunk agents in worktrees. Use `isolation: "worktree"` for each.
 Each chunk agent receives a prompt containing:
 
 ```
-You are building Chunk [N]: [Name] for Civica Step [S].
+You are building Chunk [N]: [Name] for Governada Step [S].
 
 ## Your Scope
 [Chunk description from the approved plan]
@@ -295,7 +295,7 @@ Process PR groups in the order determined in Phase 2.5. For each group:
 3. **Merge**: `gh api repos/drepscore/drepscore-app/pulls/<N>/merge -X PUT -f merge_method=squash`
 4. **Migrations**: If the chunk included database migrations, apply via Supabase MCP `apply_migration`, then `npm run gen:types`.
 5. **Deploy wait**: Poll Railway for ~5 minutes until the new commit is deployed.
-6. **Inngest sync**: If Inngest functions were added/modified, PUT `https://drepscore.io/api/inngest`.
+6. **Inngest sync**: If Inngest functions were added/modified, PUT `https://governada.io/api/inngest`.
 7. **Smoke test**: `npm run smoke-test` + hit any new/changed endpoints on production.
 8. **Verification gate**:
    - If smoke test PASSES: log success, proceed to next group.

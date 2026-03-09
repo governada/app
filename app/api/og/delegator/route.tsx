@@ -142,7 +142,7 @@ export async function GET(request: Request) {
             <div style={{ display: 'flex', fontSize: '32px', fontWeight: 700, color: OG.brand }}>
               Who&apos;s your DRep?
             </div>
-            <div style={{ display: 'flex', fontSize: '18px', color: OG.textDim }}>drepscore.io</div>
+            <div style={{ display: 'flex', fontSize: '18px', color: OG.textDim }}>governada.io</div>
           </div>
         </div>
       </OGBackground>,

@@ -198,7 +198,7 @@ function buildDRepSlides(data: DRepWrappedData, entityId: string, period: string
       label: 'Share your Governance Wrapped',
       isFinal: true,
       ogImageUrl: `${BASE}/api/og/wrapped/drep/${encodeURIComponent(entityId)}?period=${period}`,
-      shareText: `My Governance Wrapped ${period} — score ${data.score_end ?? '—'}/100, voted on ${data.votes_cast ?? 0} proposals. Check yours on Civica!`,
+      shareText: `My Governance Wrapped ${period} — score ${data.score_end ?? '—'}/100, voted on ${data.votes_cast ?? 0} proposals. Check yours on Governada!`,
     },
   ];
 }
@@ -235,7 +235,7 @@ function buildSPOSlides(data: SPOWrappedData, entityId: string, period: string):
       label: 'Share your Governance Wrapped',
       isFinal: true,
       ogImageUrl: `${BASE}/api/og/wrapped/spo/${encodeURIComponent(entityId)}?period=${period}`,
-      shareText: `My SPO Governance Wrapped ${period} — score ${data.score_end ?? '—'}/100. Check yours on Civica!`,
+      shareText: `My SPO Governance Wrapped ${period} — score ${data.score_end ?? '—'}/100. Check yours on Governada!`,
     },
   ];
 }
@@ -267,7 +267,7 @@ function buildCitizenSlides(data: CitizenWrappedData, entityId: string, period: 
       label: 'Share your governance story',
       isFinal: true,
       ogImageUrl: `${BASE}/api/og/wrapped/drep/${encodeURIComponent(data.delegated_drep_id ?? entityId)}?period=${period}`,
-      shareText: `My Governance Story ${period}. Check yours on Civica!`,
+      shareText: `My Governance Story ${period}. Check yours on Governada!`,
     },
   ];
 }
@@ -689,7 +689,7 @@ export default function WrappedPage() {
           open={shareOpen}
           onClose={() => setShareOpen(false)}
           ogImageUrl={currentSlide.ogImageUrl}
-          shareText={currentSlide.shareText ?? `My Governance Wrapped ${period} — Civica`}
+          shareText={currentSlide.shareText ?? `My Governance Wrapped ${period} — Governada`}
           shareUrl={`${process.env.NEXT_PUBLIC_APP_URL ?? ''}/wrapped/${entityType}/${encodeURIComponent(resolvedEntityId ?? '')}/${period}`}
           title="Share your Governance Wrapped"
         />

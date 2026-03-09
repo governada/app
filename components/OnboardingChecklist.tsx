@@ -40,7 +40,7 @@ const ITEMS = [
   {
     key: 'share',
     label: 'Share your score',
-    desc: 'Let delegators know you are active on DRepScore',
+    desc: 'Let delegators know you are active on Governada',
     icon: Share2,
     href: null,
   },

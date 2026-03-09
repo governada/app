@@ -1,16 +1,16 @@
-# Civica Monetization, Growth & Ecosystem Strategy
+# Governada Monetization, Growth & Ecosystem Strategy
 
 > **Status:** Foundational business model document. For the overarching product vision and build sequence, see **[ultimate-vision.md](ultimate-vision.md)** which is the definitive north star.
 > **Created:** February 2026
-> **Last updated:** March 2026 (Civica rebrand)
+> **Last updated:** March 2026 (Governada rebrand)
 
 ## 1. Your Biggest Moat (Defend These Relentlessly)
 
-**Historical Data Monopoly** — Every day Civica runs, you accumulate governance data no competitor can replicate. Score snapshots, alignment shifts, voting pattern evolution across DReps AND SPOs. This compounds daily and becomes exponentially harder to catch up to. _Action: Never stop collecting, even before monetizing._
+**Historical Data Monopoly** — Every day Governada runs, you accumulate governance data no competitor can replicate. Score snapshots, alignment shifts, voting pattern evolution across DReps AND SPOs. This compounds daily and becomes exponentially harder to catch up to. _Action: Never stop collecting, even before monetizing._
 
 **Representative Reputation Lock-in** — Once a DRep or SPO builds score history on the platform, their "governance credit score" lives here. Switching costs are enormous. Think credit bureaus — nobody competes with Equifax by starting fresh. _Action: Make score history a central feature representatives reference publicly._
 
-**Integration Network Effects** — Every wallet, exchange, or Cardano tool that integrates your scoring API makes you harder to displace. If Lace shows "Civica Score: 82" in their delegation UI, you've won. _Action: Prioritize API/embed strategy._
+**Integration Network Effects** — Every wallet, exchange, or Cardano tool that integrates your scoring API makes you harder to displace. If Lace shows "Governada Score: 82" in their delegation UI, you've won. _Action: Prioritize API/embed strategy._
 
 **Mission Alignment as Brand Moat** — You deliberately excluded voting power from scoring because it conflicted with decentralization values. That kind of principled design builds trust that mercenary competitors can't replicate. _Action: Be vocal about methodology choices and why._
 
@@ -65,9 +65,9 @@ This might be the biggest revenue stream long-term:
 **Priority: Build userbase, prove value, secure non-revenue funding**
 
 - Keep everything free. Acquisition is the game right now.
-- **Apply for Catalyst Fund 16 funding** — Civica is exactly what Catalyst funds. A civic governance hub? That's a slam dunk proposal. Target $75-150K in ADA.
+- **Apply for Catalyst Fund 16 funding** — Governada is exactly what Catalyst funds. A civic governance hub? That's a slam dunk proposal. Target $75-150K in ADA.
 - **Cardano Foundation partnership exploration** — They have grants and partnership programs for governance tooling.
-- **IOG outreach** — Civica directly supports their governance vision. Potential for sponsored development.
+- **IOG outreach** — Governada directly supports their governance vision. Potential for sponsored development.
 - Ship DRep + SPO "Claim Your Profile" flows — Start building representative engagement even before charging.
 - **Ecosystem project sponsorships** — Tasteful "Powered by" or "Supported by" from Cardano ecosystem projects who want visibility among governance participants. $200-500/mo per sponsor.
 
@@ -93,7 +93,7 @@ Apply the same accountability framework to Project Catalyst:
 - Funded project completion tracking (did they deliver?)
 - Fund allocation analytics and ROI tracking
 - Catalyst distributes **tens of millions in ADA per fund** — the need for accountability tooling is enormous
-- Shared infrastructure with Civica (scoring engine, AI, UI patterns)
+- Shared infrastructure with Governada (scoring engine, AI, UI patterns)
 - _Revenue: Same Pro/API model, plus Catalyst funding itself_
 
 ### Play 2: Midnight Privacy Tools
@@ -125,7 +125,7 @@ Assuming target of ~$10-12K/month:
 
 - Catalyst grant: $75-150K (spread over delivery milestones)
 - Build to 500+ monthly active citizens, 50+ DReps + SPOs claiming profiles
-- Ship Civica clean-sheet frontend (Phase A of vision)
+- Ship Governada clean-sheet frontend (Phase A of vision)
 
 **Phase 2 (Months 6-12): First Revenue — $2-5K/mo**
 
@@ -163,7 +163,7 @@ Assuming target of ~$10-12K/month:
 
 ## 8. Risks and Mitigations
 
-- **Cardano governance participation declines** — Mitigate by making governance more accessible and engaging (Civica literally solves this)
+- **Cardano governance participation declines** — Mitigate by making governance more accessible and engaging (Governada literally solves this)
 - **Free competitors** — Mitigate with data moat, integrations, and brand trust. Open-source the scoring methodology to commoditize what you're not selling.
 - **Catalyst funding rejection** — Mitigate by applying to multiple funds and having sponsor revenue as backup
 - **Representative willingness to pay** — Mitigate by proving value with free tier first, then converting. Start with the top 50 most active DReps + SPOs as design partners.

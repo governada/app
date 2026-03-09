@@ -101,7 +101,7 @@ export async function GET() {
             ))}
           </div>
 
-          <OGFooter left="$drepscore" right="drepscore.io/pulse" />
+          <OGFooter left="$governada" right="governada.io/pulse" />
         </div>
       </OGBackground>,
       {
@@ -130,7 +130,7 @@ export async function GET() {
           <div
             style={{ display: 'flex', fontSize: '24px', color: OG.textMuted, marginTop: '16px' }}
           >
-            drepscore.io/pulse
+            governada.io/pulse
           </div>
         </div>
       </OGBackground>,

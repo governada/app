@@ -227,8 +227,8 @@ export function GovernanceDNAReveal({ result, onRetake }: GovernanceDNARevealPro
                 {result.topMatches[0].matchScore}%)
               </p>
               <ShareActions
-                url="https://drepscore.io/discover"
-                text={`I took the Governance DNA Quiz on @drepscore! My top match: ${result.topMatches[0].name} (${result.topMatches[0].matchScore}%). Find your ideal DRep:`}
+                url="https://governada.io/discover"
+                text={`I took the Governance DNA Quiz on @GovernadaIO! My top match: ${result.topMatches[0].name} (${result.topMatches[0].matchScore}%). Find your ideal DRep:`}
                 imageUrl={`/api/og/governance-dna?votes=${result.votesCount}${result.topMatches
                   .slice(0, 3)
                   .map(

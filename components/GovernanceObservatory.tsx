@@ -126,7 +126,7 @@ export function GovernanceObservatory({
           </CardTitle>
           <ShareActions
             url={`${BASE_URL}/pulse`}
-            text="How does governance compare across Cardano, Ethereum, and Polkadot? Check the Observatory on @drepscore:"
+            text="How does governance compare across Cardano, Ethereum, and Polkadot? Check the Observatory on @GovernadaIO:"
             imageUrl={`${BASE_URL}/api/og/cross-chain`}
             imageFilename="cross-chain-governance.png"
             surface="cross_chain_observatory"

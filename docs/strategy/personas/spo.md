@@ -57,9 +57,9 @@ Competition for delegation is fierce. Most pools look identical on existing tool
 
 ### Philosophy
 
-Civica helps SPOs build a **complete identity that makes delegators choose them.** Governance participation is the differentiating layer -- the new competitive dimension that no pool comparison tool touches. But the identity extends beyond governance into who they are, what they stand for, and how they communicate with their community.
+Governada helps SPOs build a **complete identity that makes delegators choose them.** Governance participation is the differentiating layer -- the new competitive dimension that no pool comparison tool touches. But the identity extends beyond governance into who they are, what they stand for, and how they communicate with their community.
 
-**Civica is NOT a second PoolTool.** It does not monitor infrastructure, track block production, calculate ROI projections, or manage pool configuration. PoolTool handles operations. Civica handles identity, reputation, governance, communication, and growth.
+**Governada is NOT a second PoolTool.** It does not monitor infrastructure, track block production, calculate ROI projections, or manage pool configuration. PoolTool handles operations. Governada handles identity, reputation, governance, communication, and growth.
 
 The citizen experience runs underneath. The SPO layer adds professional governance tooling, pool identity management, and delegator relations.
 
@@ -71,7 +71,7 @@ Like DReps, SPOs see what needs their governance attention:
 
 - **Proposals requiring SPO votes:** Not all proposals involve SPOs. The inbox filters to governance actions where SPO votes carry weight (protocol parameters, hard forks), while surfacing other proposals for optional participation.
 - **Urgency indicators:** What's expiring soon, what's new, what they've already voted on.
-- **Citizen context:** How their staking delegators feel about active proposals (from Civica's citizen engagement layer).
+- **Citizen context:** How their staking delegators feel about active proposals (from Governada's citizen engagement layer).
 
 **Design principle:** Governance should feel like a 10-minute weekly task, not a second job. The inbox makes that possible by surfacing exactly what matters and nothing else.
 
@@ -79,11 +79,11 @@ Like DReps, SPOs see what needs their governance attention:
 
 The same integrated flow as DReps, adapted for SPOs:
 
-- **Vote casting** directly from Civica via MeshJS (CIP-95). SPOs connect their pool governance key, review the proposal workspace, and vote.
+- **Vote casting** directly from Governada via MeshJS (CIP-95). SPOs connect their pool governance key, review the proposal workspace, and vote.
 - **Rationale authoring** with AI assistance. Even more valuable for SPOs than DReps because SPO governance rationales are extremely rare today. The friction of CIP-100 compliance is too high when governance is your secondary function.
-- **Governance statement** setup: A guided, one-time flow for SPOs to publish their governance philosophy. "Tell your delegators what you stand for in governance." Very few SPOs have one because the tooling doesn't exist. Civica makes it a 5-minute setup.
+- **Governance statement** setup: A guided, one-time flow for SPOs to publish their governance philosophy. "Tell your delegators what you stand for in governance." Very few SPOs have one because the tooling doesn't exist. Governada makes it a 5-minute setup.
 
-**Why this matters for SPOs specifically:** SPO governance participation rates are lower than DRep participation because governance feels like an extra burden on top of infrastructure work. If Civica reduces the entire governance workflow to 10 minutes per epoch, participation rates rise. Every SPO who starts voting through Civica improves Cardano's overall governance health.
+**Why this matters for SPOs specifically:** SPO governance participation rates are lower than DRep participation because governance feels like an extra burden on top of infrastructure work. If Governada reduces the entire governance workflow to 10 minutes per epoch, participation rates rise. Every SPO who starts voting through Governada improves Cardano's overall governance health.
 
 #### Proposal Workspace
 
@@ -93,13 +93,13 @@ The same analysis environment as DReps, with SPO-relevant context:
 - Treasury impact analysis
 - SPO-specific relevance: does this proposal affect protocol parameters, staking mechanics, or pool operations?
 - Inter-body context: how are DReps and CC voting on this?
-- Citizen sentiment from Civica's engagement layer
+- Citizen sentiment from Governada's engagement layer
 - Constitutional alignment analysis
 - Vote + rationale submission integrated at the bottom
 
 ### Pool Identity (The Rich Profile)
 
-This is where Civica goes beyond governance into the broader SPO identity. The pool profile on Civica should be the richest SPO presence on the internet -- the page SPOs share everywhere as their home page.
+This is where Governada goes beyond governance into the broader SPO identity. The pool profile on Governada should be the richest SPO presence on the internet -- the page SPOs share everywhere as their home page.
 
 #### Who They Are
 
@@ -130,13 +130,13 @@ This is where Civica goes beyond governance into the broader SPO identity. The p
 - Domain-specific trust: "Endorsed for governance" / "Endorsed for community contribution"
 - Delegation trend: growing, stable, or declining
 
-**The positioning:** PoolTool answers "is this pool technically reliable?" Civica answers "who are these people and do they share my values?"
+**The positioning:** PoolTool answers "is this pool technically reliable?" Governada answers "who are these people and do they share my values?"
 
 ### Delegator Communication Hub
 
 SPOs currently have no native way to reach their staking delegators. If they need to announce maintenance, share a governance vote, or engage their community, they post on Twitter and hope someone sees it.
 
-Civica solves this because citizens are already checking in every epoch:
+Governada solves this because citizens are already checking in every epoch:
 
 #### Pool Updates
 
@@ -159,13 +159,13 @@ Civica solves this because citizens are already checking in every epoch:
 
 ### Delegation Growth Intelligence
 
-This is where Civica directly addresses the SPO's #1 need: growing their pool.
+This is where Governada directly addresses the SPO's #1 need: growing their pool.
 
 #### The Governance-Growth Connection
 
 - Empirical data: "Pools that participate in governance attract X% more delegation than pools that don't"
 - Personal insight: "Your pool is ranked 145th by delegation but 23rd by governance score -- your governance reputation is an underutilized growth lever"
-- Retention data: "Delegators who found your pool through Civica's governance-based discovery retained at 2x the rate"
+- Retention data: "Delegators who found your pool through Governada's governance-based discovery retained at 2x the rate"
 
 #### Competitive Position
 
@@ -192,8 +192,8 @@ This is where Civica directly addresses the SPO's #1 need: growing their pool.
 
 The self-reinforcing loop that benefits SPOs, citizens, and Cardano governance:
 
-1. SPO participates in governance (votes through Civica)
-2. They score higher on Civica's SPO governance score
+1. SPO participates in governance (votes through Governada)
+2. They score higher on Governada's SPO governance score
 3. They rank better in governance-based pool discovery
 4. Governance-conscious delegators find and stake with them
 5. Their delegation grows
@@ -205,7 +205,7 @@ The self-reinforcing loop that benefits SPOs, citizens, and Cardano governance:
 11. More citizens choose pools through governance-based discovery
 12. Return to step 4
 
-Civica doesn't just serve SPOs -- it creates market pressure for governance participation across the entire SPO ecosystem.
+Governada doesn't just serve SPOs -- it creates market pressure for governance participation across the entire SPO ecosystem.
 
 ---
 
@@ -215,7 +215,7 @@ Civica doesn't just serve SPOs -- it creates market pressure for governance part
 
 Everything an SPO needs to participate in governance and establish their identity:
 
-- **Vote casting** from within Civica
+- **Vote casting** from within Governada
 - **Rationale submission** (editor, CIP-100 formatting, hosting, bundled submission)
 - **Governance statement** setup (guided flow, one-time)
 - **Proposal workspace** (full analysis for proposals relevant to SPOs)
@@ -243,9 +243,9 @@ Tools for SPOs who want to actively grow their delegation and build their brand:
 
 The free tier is generous because SPO adoption drives the flywheel:
 
-- Every SPO voting through Civica generates governance data that enriches the intelligence engine
+- Every SPO voting through Governada generates governance data that enriches the intelligence engine
 - Every governance statement published improves citizen pool discovery
-- Every pool profile created makes Civica's SPO discovery more comprehensive
+- Every pool profile created makes Governada's SPO discovery more comprehensive
 - The more SPOs participate, the more valuable governance-based pool discovery becomes for citizens
 
 Pro monetizes the growth and competitive layer. SPOs who want to actively grow their delegation -- attract more stakers, outperform peers, build their brand -- will pay for the edge. The free tier makes them governance-active. Pro makes them strategically competitive.
@@ -254,13 +254,13 @@ Pro monetizes the growth and competitive layer. SPOs who want to actively grow t
 
 ## The Staking-Governance Bridge
 
-SPOs occupy a unique position in the Civica ecosystem: they're the bridge between the familiar world of staking and the unfamiliar world of governance.
+SPOs occupy a unique position in the Governada ecosystem: they're the bridge between the familiar world of staking and the unfamiliar world of governance.
 
-**For citizens:** SPO discovery is the comfortable entry point. "Find a stake pool" is something ADA holders already understand. Civica's twist -- "find a pool that represents your values in governance" -- reframes staking from a purely financial decision to a civic one. The SPO relationship becomes the gateway to governance engagement.
+**For citizens:** SPO discovery is the comfortable entry point. "Find a stake pool" is something ADA holders already understand. Governada's twist -- "find a pool that represents your values in governance" -- reframes staking from a purely financial decision to a civic one. The SPO relationship becomes the gateway to governance engagement.
 
 **For the ecosystem:** SPOs who communicate governance through their delegator channel become an organic onboarding funnel for DRep delegation. A staking delegator who sees their pool operator's governance updates thinks: "I should probably delegate my governance too." The SPO-citizen relationship seeds governance participation across the network.
 
-**For Cardano's governance health:** SPO governance participation strengthens the inter-body balance. When SPOs vote actively, the three-body governance system (DReps + SPOs + CC) functions as designed. Civica's incentive to drive SPO participation through discovery and growth tools directly serves Cardano's constitutional design.
+**For Cardano's governance health:** SPO governance participation strengthens the inter-body balance. When SPOs vote actively, the three-body governance system (DReps + SPOs + CC) functions as designed. Governada's incentive to drive SPO participation through discovery and growth tools directly serves Cardano's constitutional design.
 
 ---
 
@@ -278,7 +278,7 @@ SPOs occupy a unique position in the Civica ecosystem: they're the bridge betwee
 
 ## Scope Boundaries
 
-**In scope (Civica's SPO offering):**
+**In scope (Governada's SPO offering):**
 
 - Governance participation (voting, rationales, governance statements)
 - Pool identity and reputation (profile, story, governance values)
@@ -295,27 +295,27 @@ SPOs occupy a unique position in the Civica ecosystem: they're the bridge betwee
 - Node setup and maintenance guides
 - Detailed financial analytics beyond basic delegation metrics
 
-**The line:** Civica helps SPOs with identity, reputation, governance, communication, and growth. Not with operations. SPOs use PoolTool for infrastructure monitoring and Civica for everything people-facing.
+**The line:** Governada helps SPOs with identity, reputation, governance, communication, and growth. Not with operations. SPOs use PoolTool for infrastructure monitoring and Governada for everything people-facing.
 
 ---
 
 ## Metrics That Matter
 
-| Metric                                     | What It Measures                 | Target                                                                           |
-| ------------------------------------------ | -------------------------------- | -------------------------------------------------------------------------------- |
-| **SPOs voting through Civica**             | Governance workspace adoption    | >15% of governance-active SPOs within 6 months                                   |
-| **SPO governance participation rate**      | Is Civica driving participation? | Measurable increase in overall SPO vote rates                                    |
-| **Governance statements published**        | Identity adoption                | >200 SPOs with published governance statements                                   |
-| **Pool profiles created**                  | Platform as home page            | >500 SPOs with complete Civica profiles                                          |
-| **SPO Pro conversion**                     | Monetization                     | 50-100 paying SPOs at $15-25/mo                                                  |
-| **Delegator-SPO communication engagement** | Is the channel valuable?         | >40% of staking delegators view their SPO's updates                              |
-| **Governance-based discovery conversions** | Is the differentiator working?   | Measurable delegation flow from Civica discovery to pools                        |
-| **Staking delegator -> DRep delegation**   | Is the bridge working?           | SPO delegators who also delegate to a DRep at higher rates than non-Civica users |
+| Metric                                     | What It Measures                    | Target                                                                              |
+| ------------------------------------------ | ----------------------------------- | ----------------------------------------------------------------------------------- |
+| **SPOs voting through Governada**          | Governance workspace adoption       | >15% of governance-active SPOs within 6 months                                      |
+| **SPO governance participation rate**      | Is Governada driving participation? | Measurable increase in overall SPO vote rates                                       |
+| **Governance statements published**        | Identity adoption                   | >200 SPOs with published governance statements                                      |
+| **Pool profiles created**                  | Platform as home page               | >500 SPOs with complete Governada profiles                                          |
+| **SPO Pro conversion**                     | Monetization                        | 50-100 paying SPOs at $15-25/mo                                                     |
+| **Delegator-SPO communication engagement** | Is the channel valuable?            | >40% of staking delegators view their SPO's updates                                 |
+| **Governance-based discovery conversions** | Is the differentiator working?      | Measurable delegation flow from Governada discovery to pools                        |
+| **Staking delegator -> DRep delegation**   | Is the bridge working?              | SPO delegators who also delegate to a DRep at higher rates than non-Governada users |
 
 ---
 
 ## The One-Line Vision
 
-**Civica is where SPOs build their governance reputation, communicate with their delegators, and grow their pool through the one competitive dimension nobody else measures.**
+**Governada is where SPOs build their governance reputation, communicate with their delegators, and grow their pool through the one competitive dimension nobody else measures.**
 
-PoolTool tells delegators a pool is reliable. Civica tells them the pool operator shares their values. In a market where 500 pools have identical financial metrics, governance reputation becomes the differentiator -- and Civica is the only place it exists.
+PoolTool tells delegators a pool is reliable. Governada tells them the pool operator shares their values. In a market where 500 pools have identical financial metrics, governance reputation becomes the differentiator -- and Governada is the only place it exists.

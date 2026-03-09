@@ -46,8 +46,8 @@ export function ScoreChangeMoment({ drepId, drepName, currentScore }: ScoreChang
   const shareUrl = buildDRepUrl(drepId);
   const imageUrl = `/api/og/moment/score-change/${encodeURIComponent(drepId)}?prev=${change.previousScore}`;
   const shareText = isGain
-    ? `My DRepScore went up ${change.delta} points to ${currentScore}/100! Improving my governance game on @drepscore.`
-    : `My DRepScore changed by ${change.delta} points to ${currentScore}/100. Governance accountability in action on @drepscore.`;
+    ? `My Governada Score went up ${change.delta} points to ${currentScore}/100! Improving my governance game on @GovernadaIO.`
+    : `My Governada Score changed by ${change.delta} points to ${currentScore}/100. Governance accountability in action on @GovernadaIO.`;
 
   return (
     <Card className={`border ${isGain ? 'border-green-500/20' : 'border-red-500/20'}`}>

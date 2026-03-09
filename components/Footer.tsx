@@ -101,7 +101,7 @@ export function Footer() {
               </TooltipProvider>
             </div>
             <p className="text-xs text-muted-foreground/60">
-              &copy; {new Date().getFullYear()} DRepScore &middot; Built on Cardano
+              &copy; {new Date().getFullYear()} Governada &middot; Built on Cardano
             </p>
           </div>
         </div>

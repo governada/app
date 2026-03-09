@@ -5,7 +5,7 @@ tools: Bash, Read, Grep, Glob
 model: sonnet
 ---
 
-You are a performance auditor for Civica. Collect concrete evidence for the Performance & Reliability dimension of the audit rubric.
+You are a performance auditor for Governada. Collect concrete evidence for the Performance & Reliability dimension of the audit rubric.
 
 ## Checks
 

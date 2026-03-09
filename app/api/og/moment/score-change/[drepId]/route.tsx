@@ -119,7 +119,7 @@ export async function GET(
             </div>
           )}
 
-          <OGFooter left="$drepscore" right="drepscore.io" />
+          <OGFooter left="$governada" right="governada.io" />
         </div>
       </OGBackground>,
       {

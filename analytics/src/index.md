@@ -174,7 +174,7 @@ const totalPolls = govEvents?.pollActivity?.reduce((s, d) => s + d.votes, 0) ?? 
   <div class="kpi">
     <span class="kpi-label">Avg Rationale Rate</span>
     <span class="kpi-value" style="color: ${scoreColor(avgRationale)}">${Math.round(avgRationale)}%</span>
-    <span class="kpi-sub">weighted at 35% of DRepScore — biggest lever</span>
+    <span class="kpi-sub">weighted at 35% of Governada Score — biggest lever</span>
     <div class="kpi-bar" style="background: ${scoreColor(avgRationale)}"></div>
   </div>
   <div class="kpi">
@@ -324,7 +324,7 @@ atRiskDreps.length > 0
       format: {
         Name: (d, i) =>
           html`<a
-            href="https://drepscore.io/drep/${atRiskDreps[i]._drepId}"
+            href="https://governada.io/drep/${atRiskDreps[i]._drepId}"
             target="_blank"
             style="color:var(--accent)"
             >${d}</a

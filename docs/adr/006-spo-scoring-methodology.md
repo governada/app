@@ -6,7 +6,7 @@ Accepted — **V2 (current, Mar 2026)**. Supersedes V1 3-pillar model.
 
 ## Context
 
-Civica needs a single 0-100 governance score per SPO that measures governance participation quality. The score exists so citizens can evaluate their stake pool's governance engagement — it is not for SPO vanity. The score must be objective, transparent, resistant to gaming, and structurally parallel to the DRep Score V3 (ADR-005) to enable fair cross-body comparison.
+Governada needs a single 0-100 governance score per SPO that measures governance participation quality. The score exists so citizens can evaluate their stake pool's governance engagement — it is not for SPO vanity. The score must be objective, transparent, resistant to gaming, and structurally parallel to the DRep Score V3 (ADR-005) to enable fair cross-body comparison.
 
 V1 used three pillars (Participation 45%, Consistency 30%, Reliability 25%). V2 adds a fourth pillar — Governance Identity — to incentivize SPOs to publicly communicate their governance stance and to create structural parity with DRep scoring.
 
@@ -65,7 +65,7 @@ Two sub-components:
 **Key fairness properties:**
 
 - Unclaimed pools score a baseline from on-chain metadata alone (ticker + name + hash = 25/100).
-- Claiming a profile on Civica unlocks up to 75 additional points via governance statement, description, social links, and homepage.
+- Claiming a profile on Governada unlocks up to 75 additional points via governance statement, description, social links, and homepage.
 - Pool size (live stake) is intentionally excluded — mirrors DRep Score's exclusion of voting power.
 
 ### Momentum

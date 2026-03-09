@@ -5,17 +5,17 @@ import { CivicaPulseOverview } from '@/components/civica/pulse/CivicaPulseOvervi
 import { Skeleton } from '@/components/ui/skeleton';
 
 export const metadata: Metadata = {
-  title: 'Civica — Pulse',
+  title: 'Governada — Pulse',
   description:
     "Real-time state of Cardano's on-chain governance — active proposals, treasury activity, DRep participation, and governance health.",
   openGraph: {
-    title: 'Civica — Governance Pulse',
+    title: 'Governada — Governance Pulse',
     description: "Real-time health of Cardano's on-chain governance.",
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Civica — Governance Pulse',
+    title: 'Governada — Governance Pulse',
     description: "Track the real-time state of Cardano's governance.",
   },
 };

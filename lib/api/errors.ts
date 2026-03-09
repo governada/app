@@ -3,7 +3,7 @@
  * Every public API error has a stable code, human message, actionable hint, and docs link.
  */
 
-const DOCS_BASE = 'https://drepscore.io/developers/errors';
+const DOCS_BASE = 'https://governada.io/developers/errors';
 
 export interface ApiErrorDef {
   code: string;
@@ -33,7 +33,7 @@ const ERROR_REGISTRY: Record<string, Omit<ApiErrorDef, 'code'>> = {
   revoked_api_key: {
     status: 401,
     message: 'This API key has been revoked.',
-    hint: 'Generate a new key at drepscore.io/developers.',
+    hint: 'Generate a new key at governada.io/developers.',
   },
 
   // Rate limiting (429)
@@ -83,7 +83,7 @@ const ERROR_REGISTRY: Record<string, Omit<ApiErrorDef, 'code'>> = {
     status: 403,
     message:
       "This endpoint requires '{required_tier}' tier or above. Your key is '{current_tier}'.",
-    hint: 'Upgrade at drepscore.io/developers/upgrade.',
+    hint: 'Upgrade at governada.io/developers/upgrade.',
   },
 
   // Server (500)

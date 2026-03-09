@@ -102,7 +102,7 @@ export async function GET(
             <StatCard emoji="🏅" value={`${milestones}`} label="Milestones" />
           </div>
 
-          <OGFooter left="Civica" right="drepscore.io" />
+          <OGFooter left="Governada" right="governada.io" />
         </div>
       </OGBackground>,
       {

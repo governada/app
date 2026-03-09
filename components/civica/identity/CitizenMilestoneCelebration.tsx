@@ -80,8 +80,8 @@ export function CitizenMilestoneCelebration({
   const milestone = CITIZEN_MILESTONES.find((m) => m.key === celebrating);
   if (!milestone) return null;
 
-  const shareUrl = 'https://drepscore.io/my-gov/identity';
-  const shareText = `${milestone.shareText} @CivicaGov`;
+  const shareUrl = 'https://governada.io/my-gov/identity';
+  const shareText = `${milestone.shareText} @GovernadaIO`;
   const imageUrl = stakeAddress ? `/api/og/civic-identity/${encodeURIComponent(stakeAddress)}` : '';
 
   return (

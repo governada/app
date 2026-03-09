@@ -19,9 +19,9 @@ Poll CI on main every 60s until `success`. CI green does NOT mean deployed — b
 
 ## Post-Deploy Validation (ALL mandatory)
 
-1. Health check: `curl -s https://drepscore.io/api/health` — expect 200
-2. Inngest sync: `curl -X PUT https://drepscore.io/api/inngest`
+1. Health check: `curl -s https://governada.io/api/health` — expect 200
+2. Inngest sync: `curl -X PUT https://governada.io/api/inngest`
 3. Smoke tests: `npm run smoke-test`
-4. Feature-specific: hit the changed page/endpoint on `drepscore.io`
+4. Feature-specific: hit the changed page/endpoint on `governada.io`
 
 If ANY check fails: investigate, fix, push follow-up commit. Never report "done" until all 4 pass.

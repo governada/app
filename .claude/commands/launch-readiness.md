@@ -24,7 +24,7 @@ Launch all of the following simultaneously using the Agent tool.
 ### 1A. Security Launch Blockers
 
 ```
-You are checking Civica's security posture for launch readiness. READ-ONLY — do not modify files.
+You are checking Governada's security posture for launch readiness. READ-ONLY — do not modify files.
 
 Instructions:
 1. Read `.claude/commands/audit-security.md` — focus on the Pre-Launch Checklist section
@@ -52,7 +52,7 @@ SUMMARY: [1-2 sentence overall assessment]
 ### 1B. Critical Journey Regression
 
 ```
-You are running the Civica regression baseline to verify all critical user journeys work. READ-ONLY — do not modify files.
+You are running the Governada regression baseline to verify all critical user journeys work. READ-ONLY — do not modify files.
 
 Instructions:
 1. Read `.claude/commands/audit-journeys.md` — focus on the Regression Baseline section
@@ -79,7 +79,7 @@ SUMMARY: [1-2 sentence overall assessment]
 ### 1C. Performance Baseline
 
 ```
-You are assessing Civica's performance readiness for launch. READ-ONLY — do not modify files.
+You are assessing Governada's performance readiness for launch. READ-ONLY — do not modify files.
 
 Instructions:
 1. Check `next.config.ts` for image optimization, compression, caching headers
@@ -112,7 +112,7 @@ SUMMARY: [1-2 sentence overall assessment]
 ### 1D. Data & Sync Health
 
 ```
-You are verifying Civica's data layer is healthy and ready for public traffic. READ-ONLY — do not modify files.
+You are verifying Governada's data layer is healthy and ready for public traffic. READ-ONLY — do not modify files.
 
 Instructions:
 1. Check sync pipeline health: read `lib/sync/` and `inngest/functions/` for all sync types
@@ -149,13 +149,13 @@ Launch all of the following simultaneously. These check non-code aspects that ar
 ### 2A. Brand & Identity Audit
 
 ```
-You are auditing Civica's brand presence and visual identity for launch readiness. READ-ONLY — do not modify files.
+You are auditing Governada's brand presence and visual identity for launch readiness. READ-ONLY — do not modify files.
 
 Instructions:
 1. Check `app/layout.tsx` for site title, description, metadata, OG defaults
 2. Check `public/` for logo files, favicon (all sizes), apple-touch-icon, OG images
 3. Check `app/api/og/` for dynamic OG image generation — are all entity types covered?
-4. Verify brand consistency: is it "Civica" everywhere or does "DRepScore" still appear in user-facing text?
+4. Verify brand consistency: is it "Governada" everywhere or does "DRepScore" still appear in user-facing text?
 5. Check footer component for social links, branding, copyright
 6. Check for a custom 404 page and error pages
 7. Search for any placeholder text ("Lorem ipsum", "TODO", "Coming soon", "TBD") in user-facing components
@@ -168,7 +168,7 @@ IDENTITY:
 - Meta description: [what it says]
 - Favicon: [present/missing, all sizes?]
 - OG images: [default + dynamic coverage]
-- Brand name consistency: [Civica everywhere? / lingering "DRepScore" references]
+- Brand name consistency: [Governada everywhere? / lingering "DRepScore" references]
 
 POLISH:
 - Custom 404: [yes/no]
@@ -186,7 +186,7 @@ SUMMARY: [1-2 sentence assessment]
 ### 2B. Legal & Compliance Check
 
 ```
-You are checking Civica's legal and compliance readiness for public launch. READ-ONLY — do not modify files.
+You are checking Governada's legal and compliance readiness for public launch. READ-ONLY — do not modify files.
 
 Instructions:
 1. Search `app/` for privacy policy, terms of service, cookie policy pages
@@ -224,7 +224,7 @@ SUMMARY: [1-2 sentence assessment]
 ### 2C. Monetization & Growth Infrastructure
 
 ```
-You are assessing Civica's monetization and growth infrastructure readiness. READ-ONLY — do not modify files.
+You are assessing Governada's monetization and growth infrastructure readiness. READ-ONLY — do not modify files.
 
 Instructions:
 1. Check for any payment/subscription infrastructure: Stripe, payment pages, pricing page
@@ -268,7 +268,7 @@ SUMMARY: [1-2 sentence assessment with recommendations for post-launch priority]
 ### 2D. Community & Communication Readiness
 
 ```
-You are assessing Civica's community and external communication readiness for launch. READ-ONLY — do not modify files.
+You are assessing Governada's community and external communication readiness for launch. READ-ONLY — do not modify files.
 
 Instructions:
 1. Check for social media links in the app (footer, about page, etc.)
@@ -312,7 +312,7 @@ SUMMARY: [1-2 sentence assessment]
 ### 2E. SEO & Discoverability
 
 ```
-You are assessing Civica's SEO and web discoverability for launch. READ-ONLY — do not modify files.
+You are assessing Governada's SEO and web discoverability for launch. READ-ONLY — do not modify files.
 
 Instructions:
 1. Check `public/robots.txt` — does it exist? What does it allow/disallow?
@@ -422,7 +422,7 @@ If NO-GO or CONDITIONAL GO, produce an action plan:
 ```
 ## Founder Action Items (non-code)
 
-- [ ] **Social accounts**: Create/verify Twitter, Discord, Telegram for Civica
+- [ ] **Social accounts**: Create/verify Twitter, Discord, Telegram for Governada
 - [ ] **Legal review**: Have privacy policy and ToS reviewed by legal counsel
 - [ ] **Announcement**: Draft launch announcement for Cardano community channels
 - [ ] **Monitoring**: Set up Sentry alerts, Railway notifications, Cloudflare alerts

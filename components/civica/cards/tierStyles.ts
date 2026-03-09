@@ -1,5 +1,5 @@
 /**
- * Shared tier-color tokens for Civica card components.
+ * Shared tier-color tokens for Governada card components.
  * Single source of truth — import everywhere.
  * Each token provides light + dark mode classes.
  */
