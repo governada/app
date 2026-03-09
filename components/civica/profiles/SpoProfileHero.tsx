@@ -15,7 +15,7 @@ import {
 } from '@/lib/drepIdentity';
 import { fadeInUp, staggerContainer } from '@/lib/animations';
 import { cn } from '@/lib/utils';
-import { Users, TrendingUp, Award, Server, Clock } from 'lucide-react';
+import { Users, TrendingUp, Award, Server, Clock, Archive, ShieldCheck } from 'lucide-react';
 import { tierKey, TIER_BADGE_BG, TIER_SCORE_COLOR } from '@/components/civica/cards/tierStyles';
 import type { TierName } from '@/lib/scoring/tiers';
 
@@ -33,6 +33,9 @@ interface SpoProfileHeroProps {
   narrative: string | null;
   scoreMomentum: number | null;
   lastVotedText: string | null;
+  isRetired?: boolean;
+  isRetiring?: boolean;
+  isClaimed?: boolean;
   children?: React.ReactNode;
 }
 
@@ -55,6 +58,9 @@ export function SpoProfileHero({
   narrative,
   scoreMomentum,
   lastVotedText,
+  isRetired,
+  isRetiring,
+  isClaimed,
   children,
 }: SpoProfileHeroProps) {
   const hasAlignment =
@@ -112,6 +118,27 @@ export function SpoProfileHero({
               >
                 {tier}
               </span>
+              {isRetired && (
+                <Badge
+                  variant="outline"
+                  className="text-muted-foreground border-muted-foreground/40 gap-1"
+                >
+                  <Archive className="h-3 w-3" />
+                  Retired
+                </Badge>
+              )}
+              {isRetiring && (
+                <Badge variant="outline" className="text-amber-500 border-amber-500/40 gap-1">
+                  <Archive className="h-3 w-3" />
+                  Retiring
+                </Badge>
+              )}
+              {isClaimed && (
+                <Badge variant="outline" className="text-primary border-primary/40 gap-1">
+                  <ShieldCheck className="h-3 w-3" />
+                  Claimed
+                </Badge>
+              )}
             </div>
 
             {personality && (

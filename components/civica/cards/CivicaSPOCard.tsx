@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ShieldCheck, ChevronRight, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, ChevronRight, AlertTriangle, Archive } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { computeTier } from '@/lib/scoring/tiers';
 import { TIER_SCORE_COLOR, TIER_BORDER, TIER_BG, TIER_GLOW, tierKey } from './tierStyles';
@@ -24,6 +24,7 @@ export interface CivicaSPOData {
   liveStakeAda: number;
   claimedBy?: string | null;
   governanceStatement?: string | null;
+  poolStatus?: string | null;
 }
 
 function formatAda(ada: number): string {
@@ -43,6 +44,8 @@ export function CivicaSPOCard({ pool, rank }: CivicaSPOCardProps) {
   const tier = tierKey(computeTier(score));
   const isClaimed = !!pool.claimedBy;
   const isProvisional = pool.confidence != null && pool.confidence < 60;
+  const isRetired = pool.poolStatus === 'retired';
+  const isRetiring = pool.poolStatus === 'retiring';
 
   const pillars: { label: string; value: number | null | undefined; weight: string }[] = [
     { label: 'Participation', value: pool.participationPct, weight: '35%' },
@@ -93,6 +96,16 @@ export function CivicaSPOCard({ pool, rank }: CivicaSPOCardProps) {
             )}
           </h3>
           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+            {isRetired && (
+              <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground font-medium">
+                <Archive className="h-3 w-3" /> Retired
+              </span>
+            )}
+            {isRetiring && (
+              <span className="flex items-center gap-0.5 text-[10px] text-amber-500 font-medium">
+                <AlertTriangle className="h-3 w-3" /> Retiring
+              </span>
+            )}
             {isClaimed && (
               <span className="flex items-center gap-0.5 text-[10px] text-primary font-medium">
                 <ShieldCheck className="h-3 w-3" /> Claimed
