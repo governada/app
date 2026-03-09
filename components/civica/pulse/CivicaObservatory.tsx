@@ -30,7 +30,11 @@ interface GHIComponent {
 }
 
 interface GHIRecord {
-  edi?: { nakamotoCoefficient?: number; giniCoefficient?: number };
+  edi?: {
+    breakdown?: { nakamotoCoefficient?: number; gini?: number };
+    nakamotoCoefficient?: number;
+    giniCoefficient?: number;
+  };
   components?: GHIComponent[];
   current?: unknown;
   [key: string]: unknown;
@@ -69,7 +73,7 @@ function buildEDIMetrics(
     {
       key: 'voting-power',
       label: 'Voting Power Distribution',
-      value: edi?.nakamotoCoefficient ?? powerDist?.value ?? null,
+      value: edi?.breakdown?.nakamotoCoefficient ?? powerDist?.value ?? null,
       description:
         'Nakamoto coefficient for DRep voting power — minimum DReps needed to control majority',
     },
@@ -83,8 +87,8 @@ function buildEDIMetrics(
       key: 'delegation-concentration',
       label: 'Delegation Concentration',
       value:
-        edi?.giniCoefficient != null
-          ? edi.giniCoefficient.toFixed(2)
+        edi?.breakdown?.gini != null
+          ? edi.breakdown.gini.toFixed(2)
           : decentralization?.giniCoefficient != null
             ? decentralization.giniCoefficient.toFixed(2)
             : null,

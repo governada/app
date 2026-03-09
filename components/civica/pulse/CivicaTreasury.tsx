@@ -193,7 +193,7 @@ export function CivicaTreasury() {
                 )}
               >
                 {(treasury?.runwayMonths ?? 0) >= 999
-                  ? '\u221E'
+                  ? '10+ years'
                   : treasury?.runwayMonths != null
                     ? `${treasury.runwayMonths}mo`
                     : '\u2014'}

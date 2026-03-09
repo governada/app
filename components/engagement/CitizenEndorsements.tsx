@@ -261,7 +261,7 @@ export function CitizenEndorsements({ entityType, entityId }: CitizenEndorsement
                 variant="outline"
                 className="gap-1.5 h-7 text-xs"
                 onClick={() => {
-                  const event = new CustomEvent('open-wallet-modal');
+                  const event = new CustomEvent('openWalletConnect');
                   window.dispatchEvent(event);
                 }}
               >
