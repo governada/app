@@ -17,7 +17,8 @@ export const GET = withRouteHandler(async () => {
         .from('dreps')
         .select(
           'score, participation_rate, rationale_rate, effective_participation, info, size_tier',
-        ),
+        )
+        .range(0, 9999),
       supabase
         .from('proposals')
         .select(
