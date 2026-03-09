@@ -157,7 +157,7 @@ type Step = 'intro' | 0 | 1 | 2 | 'loading' | 'results' | 'error';
 type MatchType = 'drep' | 'spo';
 
 export function QuickMatchFlow() {
-  const [step, setStep] = useState<Step>(0);
+  const [step, setStep] = useState<Step>('intro');
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [selected, setSelected] = useState<string | null>(null);
   const [drepResults, setDrepResults] = useState<QuickMatchResponse | null>(null);
@@ -491,6 +491,65 @@ function ErrorScreen({ message, onRetry }: { message: string | null; onRetry: ()
   );
 }
 
+/* ─── Narrative helpers ─────────────────────────────────── */
+
+function getValuesNarrative(alignments: AlignmentScores): string {
+  const parts: string[] = [];
+
+  // Treasury stance
+  if ((alignments.treasuryConservative ?? 50) > 70) {
+    parts.push('protecting the treasury from reckless spending');
+  } else if ((alignments.treasuryGrowth ?? 50) > 70) {
+    parts.push('investing boldly to grow the ecosystem');
+  } else {
+    parts.push('evaluating treasury proposals on their individual merits');
+  }
+
+  // Protocol stance
+  if ((alignments.security ?? 50) > 70) {
+    parts.push('prioritizing stability and security over rapid change');
+  } else if ((alignments.innovation ?? 50) > 70) {
+    parts.push('embracing innovation to keep Cardano competitive');
+  } else {
+    parts.push('weighing each protocol change on its specific risks and benefits');
+  }
+
+  // Transparency stance
+  if ((alignments.transparency ?? 50) > 70) {
+    parts.push('demanding that representatives explain every vote');
+  } else if ((alignments.transparency ?? 50) < 40) {
+    parts.push('judging representatives by results, not explanations');
+  } else {
+    parts.push('appreciating transparency while valuing practical results');
+  }
+
+  return `You believe in ${parts[0]}, ${parts[1]}, and ${parts[2]}.`;
+}
+
+function getPersonalityDescription(label: string): string {
+  const descriptions: Record<string, string> = {
+    'The Guardian': 'You protect what matters — treasury discipline and institutional stability.',
+    'The Fiscal Hawk': 'You hold every ADA accountable. The treasury exists to be guarded.',
+    'The Prudent Steward': 'You balance caution with responsibility. Thoughtful governance.',
+    'The Builder': 'You invest in growth. The ecosystem thrives when we fund boldly.',
+    'The Growth Champion': 'You push for expansion. Nothing ventured, nothing gained.',
+    'The Catalyst': 'You spark change. Strategic investment fuels the future.',
+    'The Federalist': 'You champion distributed governance. Power to the community.',
+    'The Power Distributor': 'You distribute power. No single entity should dominate.',
+    'The Decentralizer': 'You keep decisions close to the people they affect.',
+    'The Sentinel': 'You guard the protocol. Security and stability come first.',
+    'The Cautious Architect': 'You stand watch over system integrity. Careful, deliberate.',
+    'The Shield': 'You smooth out volatility. Steady progress over disruption.',
+    'The Pioneer': 'You explore the frontier. Innovation is non-negotiable.',
+    'The Changemaker': "You push boundaries. Cardano leads by building what's next.",
+    'The Innovator': "You think in decades. Today's experiments are tomorrow's standards.",
+    'The Beacon': 'You demand accountability. Every vote explained, every decision justified.',
+    'The Transparent Champion': 'You make governance visible. Sunlight is the best disinfectant.',
+    'The Open Book': "You hold feet to fire. Transparency isn't optional.",
+  };
+  return descriptions[label] || "Your unique governance values shape how you see Cardano's future.";
+}
+
 function ResultsScreen({
   drepResults,
   spoResults,
@@ -514,7 +573,7 @@ function ResultsScreen({
           <GovernanceRadar alignments={drepResults.userAlignments} size="full" />
         </div>
 
-        <div className="space-y-1">
+        <div className="space-y-2">
           <Badge
             className="text-sm px-3 py-1"
             style={{
@@ -525,7 +584,16 @@ function ResultsScreen({
           >
             {drepResults.personalityLabel}
           </Badge>
-          <p className="text-sm text-muted-foreground">Based on your governance values</p>
+          <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+            {getPersonalityDescription(drepResults.personalityLabel)}
+          </p>
+        </div>
+
+        {/* Values narrative */}
+        <div className="text-center max-w-md mx-auto">
+          <p className="text-sm text-foreground/90 leading-relaxed">
+            {getValuesNarrative(drepResults.userAlignments)}
+          </p>
         </div>
       </div>
 

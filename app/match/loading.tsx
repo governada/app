@@ -12,7 +12,7 @@ export default function MatchLoading() {
       <div className="rounded-xl border bg-card p-8 space-y-6">
         <Skeleton className="h-6 w-3/4 mx-auto" />
         <div className="space-y-3">
-          {Array.from({ length: 4 }).map((_, i) => (
+          {Array.from({ length: 3 }).map((_, i) => (
             <Skeleton key={i} className="h-12 w-full rounded-lg" />
           ))}
         </div>
