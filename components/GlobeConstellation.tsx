@@ -654,7 +654,7 @@ const EDGE_STYLES = {
   proximity: { color: '#4488aa', opacity: 0.12, dimOpacity: 0.03 },
   infrastructure: { color: '#7c6cc4', opacity: 0.15, dimOpacity: 0.04 },
   lastmile: { color: '#1a3a4a', opacity: 0.06, dimOpacity: 0.015 },
-  orbital: { color: '#fbbf24', opacity: 0.3, dimOpacity: 0.08 },
+  orbital: { color: '#fbbf24', opacity: 0.3, dimOpacity: 0.08 }, // kept for type compat
 } as const;
 
 function EdgeLayer({
@@ -714,7 +714,6 @@ function ConstellationEdges({ edges, dimmed }: { edges: ConstellationEdge3D[]; d
     <>
       <EdgeLayer edges={layers.proximity} dimmed={dimmed} edgeType="proximity" />
       <EdgeLayer edges={layers.lastmile} dimmed={dimmed} edgeType="lastmile" />
-      <EdgeLayer edges={layers.orbital} dimmed={dimmed} edgeType="orbital" />
     </>
   );
 }
@@ -847,14 +846,10 @@ const PULSE_COLORS: Record<string, [number, number, number]> = {
 function NetworkPulses({ edges, dimmed }: { edges: ConstellationEdge3D[]; dimmed: boolean }) {
   const pulseEdges = useMemo(() => {
     if (edges.length === 0) return [];
-    // Prioritize orbital and infrastructure edges (the ones without static lines)
-    const orbital = edges.filter((e) => e.edgeType === 'orbital');
     const infra = edges.filter((e) => e.edgeType === 'infrastructure');
     const prox = edges.filter((e) => e.edgeType === 'proximity');
 
     const selected: ConstellationEdge3D[] = [];
-    // All orbital edges get pulses (CC ring + tethers, ~15 edges)
-    selected.push(...orbital);
     // Spread across infrastructure edges
     const infraStep = Math.max(1, Math.floor(infra.length / 30));
     for (let i = 0; i < infra.length && selected.length < 50; i += infraStep) {

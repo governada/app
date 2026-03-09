@@ -239,33 +239,6 @@ function computeGlobeEdges(
     }
   }
 
-  // Layer 4: CC committee ring — connect CC members to each other above the surface
-  for (let i = 0; i < ccNodes.length; i++) {
-    const next = ccNodes[(i + 1) % ccNodes.length];
-    // Great-circle arc between adjacent CC members at orbital altitude
-    const arcPoints = greatCircleArc(ccNodes[i].position, next.position, CC_RADIUS, 8);
-    for (let k = 0; k < arcPoints.length - 1; k++) {
-      edges.push({ from: arcPoints[k], to: arcPoints[k + 1], edgeType: 'orbital' });
-    }
-  }
-
-  // Layer 5: Orbital tethers — each CC member to nearest surface node
-  const surfaceNodes = [...drepNodes, ...spoNodes];
-  for (const cc of ccNodes) {
-    if (surfaceNodes.length === 0) break;
-    const nearest = surfaceNodes
-      .map((n) => ({ node: n, dist: dist3D(cc.position, n.position) }))
-      .sort((a, b) => a.dist - b.dist)[0];
-
-    if (nearest) {
-      edges.push({
-        from: cc.position,
-        to: nearest.node.position,
-        edgeType: 'orbital',
-      });
-    }
-  }
-
   return edges;
 }
 
