@@ -8,7 +8,7 @@ import { logger } from '@/lib/logger';
 
 const KOIOS_BASE = process.env.NEXT_PUBLIC_KOIOS_BASE_URL || 'https://api.koios.rest/api/v1';
 
-export type UserSegment = 'anonymous' | 'citizen' | 'spo' | 'drep';
+export type UserSegment = 'anonymous' | 'citizen' | 'spo' | 'drep' | 'cc';
 
 export interface SegmentDetectionResult {
   segment: UserSegment;

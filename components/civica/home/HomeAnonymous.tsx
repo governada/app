@@ -70,7 +70,7 @@ export function HomeAnonymous({ pulseData }: HomeAnonymousProps) {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span className="tabular-nums hover:text-white/90 transition-colors duration-200 cursor-default">
-                    <strong className="text-emerald-400 font-bold">{pulseData.activeDReps}</strong>{' '}
+                    <strong className="text-teal-400 font-bold">{pulseData.activeDReps}</strong>{' '}
                     DReps
                   </span>
                 </TooltipTrigger>
@@ -79,8 +79,8 @@ export function HomeAnonymous({ pulseData }: HomeAnonymousProps) {
                   className="bg-black/90 border-white/10 backdrop-blur-md max-w-[220px]"
                 >
                   <p className="text-xs text-white/90 leading-relaxed">
-                    <strong className="text-emerald-400">Delegated Representatives</strong> who vote
-                    on governance proposals on behalf of ADA holders
+                    <strong className="text-teal-400">Delegated Representatives</strong> who vote on
+                    governance proposals on behalf of ADA holders
                   </p>
                 </TooltipContent>
               </Tooltip>
@@ -88,7 +88,8 @@ export function HomeAnonymous({ pulseData }: HomeAnonymousProps) {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span className="tabular-nums hover:text-white/90 transition-colors duration-200 cursor-default">
-                    <strong className="text-sky-400 font-bold">{pulseData.activeSpOs}</strong> SPOs
+                    <strong className="text-violet-400 font-bold">{pulseData.activeSpOs}</strong>{' '}
+                    SPOs
                   </span>
                 </TooltipTrigger>
                 <TooltipContent
@@ -96,7 +97,7 @@ export function HomeAnonymous({ pulseData }: HomeAnonymousProps) {
                   className="bg-black/90 border-white/10 backdrop-blur-md max-w-[220px]"
                 >
                   <p className="text-xs text-white/90 leading-relaxed">
-                    <strong className="text-sky-400">Stake Pool Operators</strong> who run the
+                    <strong className="text-violet-400">Stake Pool Operators</strong> who run the
                     network and vote on protocol changes
                   </p>
                 </TooltipContent>

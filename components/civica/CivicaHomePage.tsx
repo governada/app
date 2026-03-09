@@ -47,6 +47,7 @@ export function CivicaHomePage({
       return <HomeSPO />;
 
     case 'citizen':
+    case 'cc':
       return (
         <HomeCitizen
           pulseData={pulseData}

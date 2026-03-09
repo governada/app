@@ -20,6 +20,7 @@ import {
   Eye,
   Shield,
   ShieldCheck,
+  Scale,
 } from 'lucide-react';
 import { AdminViewAsPicker } from './AdminViewAsPicker';
 import { useTheme } from 'next-themes';
@@ -60,6 +61,7 @@ const SEGMENT_LABELS: Record<UserSegment, string> = {
   citizen: 'Citizen',
   drep: 'DRep',
   spo: 'SPO',
+  cc: 'CC Member',
 };
 
 const SEGMENT_ICONS: Record<UserSegment, typeof User> = {
@@ -67,6 +69,7 @@ const SEGMENT_ICONS: Record<UserSegment, typeof User> = {
   citizen: User,
   drep: Users,
   spo: ShieldCheck,
+  cc: Scale,
 };
 
 export function CivicaHeader() {

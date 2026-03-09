@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import { useWallet } from '@/utils/wallet-context';
 
-export type UserSegment = 'anonymous' | 'citizen' | 'spo' | 'drep';
+export type UserSegment = 'anonymous' | 'citizen' | 'spo' | 'drep' | 'cc';
 
 export interface SegmentOverride {
   segment: UserSegment;
