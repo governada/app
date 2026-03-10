@@ -6,7 +6,6 @@
 
 import { notFound } from 'next/navigation';
 import { cookies } from 'next/headers';
-import Link from 'next/link';
 import nextDynamic from 'next/dynamic';
 import type { Metadata } from 'next';
 
@@ -34,9 +33,9 @@ const ScoreSimulator = nextDynamic(
   { loading: () => <div className="h-32 animate-pulse bg-muted rounded-lg" /> },
 );
 import { ScoreCard } from '@/components/ScoreCard';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { ShieldCheck, ShieldAlert } from 'lucide-react';
+import { Breadcrumb } from '@/components/shared/Breadcrumb';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DetailPageSkeleton } from '@/components/LoadingSkeleton';
 import { DRepDashboardWrapper } from '@/components/DRepDashboardWrapper';
@@ -499,12 +498,13 @@ export default async function DRepDetailPage({ params, searchParams }: DRepDetai
         shareUrl={`https://governada.io/drep/${encodeURIComponent(drep.drepId)}`}
       />
 
-      <Link href="/">
-        <Button variant="ghost" className="gap-2 -ml-2">
-          <ArrowLeft className="h-4 w-4" />
-          Back to DReps
-        </Button>
-      </Link>
+      <Breadcrumb
+        items={[
+          { label: 'Governance', href: '/' },
+          { label: 'Representatives', href: '/' },
+          { label: drepName },
+        ]}
+      />
 
       {/* ════════════════════════════════════════════
           VP1 — "The Story" (above fold)
