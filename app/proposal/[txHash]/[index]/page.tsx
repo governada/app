@@ -1,15 +1,13 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
 import { getProposalByKey, getVotesByProposal } from '@/lib/data';
 import { blockTimeToEpoch } from '@/lib/koios';
 import { getTreasuryBalance } from '@/lib/treasury';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ProposalDescription } from '@/components/ProposalDescription';
 import { ProposalAiSummary } from '@/components/ProposalAiSummary';
 import { ThresholdMeter } from '@/components/ThresholdMeter';
-import { ArrowLeft } from 'lucide-react';
+import { Breadcrumb } from '@/components/shared/Breadcrumb';
 import { getProposalStatus } from '@/utils/proposalPriority';
 import { ProposalOutcomeSection } from '@/components/ProposalOutcomeSection';
 import { ProposalVoterTabs } from '@/components/ProposalVoterTabs';
@@ -106,12 +104,13 @@ export default async function ProposalDetailPage({ params }: PageProps) {
         properties={{ tx_hash: txHash, index: proposalIndex }}
       />
 
-      <Link href="/discover">
-        <Button variant="ghost" className="gap-2 -ml-2">
-          <ArrowLeft className="h-4 w-4" />
-          All Proposals
-        </Button>
-      </Link>
+      <Breadcrumb
+        items={[
+          { label: 'Governance', href: '/' },
+          { label: 'Proposals', href: '/discover' },
+          { label: title },
+        ]}
+      />
 
       {/* 1. Hero */}
       <ProposalHeroV1

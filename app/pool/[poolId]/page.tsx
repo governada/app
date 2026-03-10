@@ -3,11 +3,11 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { PageViewTracker } from '@/components/PageViewTracker';
 import { PoolProfileClient } from '@/components/PoolProfileClient';
 import { GovernanceRadar } from '@/components/GovernanceRadar';
-import { ArrowLeft, BarChart3, MessageSquare, ExternalLink } from 'lucide-react';
+import { BarChart3, MessageSquare, ExternalLink } from 'lucide-react';
+import { Breadcrumb } from '@/components/shared/Breadcrumb';
 import type { AlignmentScores } from '@/lib/drepIdentity';
 import nextDynamic from 'next/dynamic';
 import { TierThemeProvider } from '@/components/providers/TierThemeProvider';
@@ -298,12 +298,13 @@ export default async function PoolProfilePage({ params }: PageProps) {
       <div className="container mx-auto px-4 py-8 space-y-8">
         <PageViewTracker event="pool_profile_viewed" properties={{ pool_id: poolId }} />
 
-        <Link href="/discover">
-          <Button variant="ghost" className="gap-2 -ml-2">
-            <ArrowLeft className="h-4 w-4" />
-            Back to Discover
-          </Button>
-        </Link>
+        <Breadcrumb
+          items={[
+            { label: 'Governance', href: '/' },
+            { label: 'Pools', href: '/discover' },
+            { label: poolId.slice(0, 16) + '\u2026' },
+          ]}
+        />
 
         <div className="space-y-2">
           <h1 className="text-2xl font-bold tracking-tight">SPO Governance Profile</h1>
@@ -786,12 +787,13 @@ export default async function PoolProfilePage({ params }: PageProps) {
           shareUrl={`https://governada.io/pool/${encodeURIComponent(poolId)}`}
         />
 
-        <Link href="/discover">
-          <Button variant="ghost" className="gap-2 -ml-2">
-            <ArrowLeft className="h-4 w-4" />
-            Back to Discover
-          </Button>
-        </Link>
+        <Breadcrumb
+          items={[
+            { label: 'Governance', href: '/' },
+            { label: 'Pools', href: '/discover' },
+            { label: ticker ? `${displayName} [${ticker}]` : displayName },
+          ]}
+        />
 
         {/* VP1: The Story */}
         <SpoProfileHero

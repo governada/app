@@ -5,11 +5,9 @@ import { createClient } from '@/lib/supabase';
 import { getCCTransparencyHistory, getCCMembersTransparency } from '@/lib/data';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { PageViewTracker } from '@/components/PageViewTracker';
 import { CCTransparencyTrend } from '@/components/cc/CCTransparencyTrend';
 import {
-  ArrowLeft,
   Scale,
   BookOpen,
   Sparkles,
@@ -19,6 +17,7 @@ import {
   Vote,
   MessageCircle,
 } from 'lucide-react';
+import { Breadcrumb } from '@/components/shared/Breadcrumb';
 
 export const dynamic = 'force-dynamic';
 
@@ -197,12 +196,13 @@ export default async function CCMemberProfilePage({ params }: PageProps) {
     <div className="container mx-auto px-4 py-8 space-y-6">
       <PageViewTracker event="cc_member_profile_viewed" properties={{ cc_hot_id: decodedId }} />
 
-      <Link href="/discover/committee">
-        <Button variant="ghost" className="gap-2 -ml-2">
-          <ArrowLeft className="h-4 w-4" />
-          All Committee Members
-        </Button>
-      </Link>
+      <Breadcrumb
+        items={[
+          { label: 'Governance', href: '/' },
+          { label: 'Committee', href: '/discover/committee' },
+          { label: authorName ?? `CC ${decodedId.slice(0, 12)}\u2026` },
+        ]}
+      />
 
       {/* Hero */}
       <div className="space-y-4">
