@@ -61,6 +61,7 @@ interface MatchResult {
 
 interface QuickMatchResponse {
   matches: MatchResult[];
+  nearMisses?: MatchResult[];
   userAlignments: AlignmentScores;
   personalityLabel: string;
   identityColor: string;
@@ -858,31 +859,12 @@ function ResultsScreen({
             ))}
           </div>
         ) : (
-          <div className="text-center py-10 space-y-3">
-            <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-              {activeTab === 'spo' ? (
-                <Server className="h-6 w-6 text-muted-foreground" />
-              ) : (
-                <Users className="h-6 w-6 text-muted-foreground" />
-              )}
-            </div>
-            <p className="font-medium text-sm">
-              No {activeTab === 'spo' ? 'SPO' : 'DRep'} matches found
-            </p>
-            <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-              No {activeTab === 'spo' ? 'SPOs' : 'DReps'} currently meet our quality threshold for
-              your preferences. As {activeTab === 'spo' ? 'SPOs' : 'DReps'} improve their governance
-              participation, more matches will appear.
-            </p>
-            <Button asChild variant="outline" size="sm">
-              <Link
-                href={activeTab === 'spo' ? '/governance/pools' : '/governance/representatives'}
-              >
-                Browse all active {activeTab === 'spo' ? 'SPOs' : 'DReps'}
-                <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-              </Link>
-            </Button>
-          </div>
+          <EmptyMatchState
+            activeTab={activeTab}
+            nearMisses={activeResults.nearMisses ?? []}
+            userAlignments={drepResults.userAlignments}
+            onRetake={onRestart}
+          />
         )}
       </div>
 
@@ -908,6 +890,96 @@ function ResultsScreen({
   );
 }
 
+/* ─── Empty match state ────────────────────────────────── */
+
+function EmptyMatchState({
+  activeTab,
+  nearMisses,
+  userAlignments,
+  onRetake,
+}: {
+  activeTab: MatchType;
+  nearMisses: MatchResult[];
+  userAlignments: AlignmentScores;
+  onRetake: () => void;
+}) {
+  const entityLabelPlural = activeTab === 'spo' ? 'SPOs' : 'DReps';
+  const browsePath = activeTab === 'spo' ? '/governance/pools' : '/governance/representatives';
+  const hasNearMisses = nearMisses.length > 0;
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-300">
+      {/* Explanation */}
+      <div className="text-center py-6 space-y-3">
+        <div className="mx-auto w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center">
+          {activeTab === 'spo' ? (
+            <Server className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+          ) : (
+            <Users className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+          )}
+        </div>
+        <p className="font-medium text-sm">Your governance values are quite specific</p>
+        <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
+          {hasNearMisses
+            ? `No ${entityLabelPlural} closely align with your full set of preferences right now, but we found some partial matches below. As more ${entityLabelPlural} participate in governance, stronger matches will appear.`
+            : `No ${entityLabelPlural} currently have enough governance activity to match against your preferences. As ${entityLabelPlural} improve their governance participation, matches will appear.`}
+        </p>
+      </div>
+
+      {/* Near-miss results */}
+      {hasNearMisses && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 justify-center">
+            <div className="h-px flex-1 bg-border/50" />
+            <p className="text-xs font-medium text-amber-600 dark:text-amber-400 tracking-wide uppercase shrink-0">
+              Closest Matches — Lower Alignment
+            </p>
+            <div className="h-px flex-1 bg-border/50" />
+          </div>
+          <p className="text-[11px] text-muted-foreground text-center max-w-sm mx-auto">
+            These {entityLabelPlural} are the closest to your values but fall below our confidence
+            threshold. Review their profiles to decide for yourself.
+          </p>
+          <div className="space-y-3 opacity-90">
+            {nearMisses.map((match, i) => (
+              <div
+                key={match.drepId}
+                className="animate-in fade-in slide-in-from-bottom-3"
+                style={{
+                  animationDelay: `${i * 150}ms`,
+                  animationFillMode: 'backwards',
+                }}
+              >
+                <QuickMatchResultCard
+                  rank={i + 1}
+                  match={match}
+                  userAlignments={userAlignments}
+                  matchType={activeTab}
+                  isNearMiss
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="flex flex-col items-center gap-2 pt-2">
+        <Button variant="outline" size="sm" onClick={onRetake} className="gap-2">
+          <RotateCcw className="h-3.5 w-3.5" />
+          Try Different Answers
+        </Button>
+        <Button asChild variant="ghost" size="sm">
+          <Link href={browsePath}>
+            Browse all active {entityLabelPlural}
+            <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+          </Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Result card ───────────────────────────────────────── */
 
 function QuickMatchResultCard({
@@ -915,11 +987,13 @@ function QuickMatchResultCard({
   match,
   userAlignments,
   matchType = 'drep',
+  isNearMiss = false,
 }: {
   rank: number;
   match: MatchResult;
   userAlignments: AlignmentScores;
   matchType?: MatchType;
+  isNearMiss?: boolean;
 }) {
   const displayName = match.drepName || match.drepId.slice(0, 16) + '...';
   const isSPO = matchType === 'spo';
@@ -929,8 +1003,13 @@ function QuickMatchResultCard({
 
   return (
     <Card
-      className="overflow-hidden hover:border-primary/30 transition-colors"
-      aria-label={`Rank ${rank}: ${displayName}, ${match.matchScore}% match`}
+      className={cn(
+        'overflow-hidden transition-colors',
+        isNearMiss
+          ? 'border-amber-500/20 hover:border-amber-500/40 bg-amber-500/[0.02]'
+          : 'hover:border-primary/30',
+      )}
+      aria-label={`${isNearMiss ? 'Near miss ' : ''}Rank ${rank}: ${displayName}, ${match.matchScore}% match`}
     >
       <CardContent className="p-4">
         <div className="flex gap-4">
@@ -980,10 +1059,20 @@ function QuickMatchResultCard({
               </Badge>
             </div>
 
-            {/* Personality */}
-            <Badge variant="secondary" className="text-[10px]">
-              {match.personalityLabel}
-            </Badge>
+            {/* Personality + near-miss indicator */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <Badge variant="secondary" className="text-[10px]">
+                {match.personalityLabel}
+              </Badge>
+              {isNearMiss && (
+                <Badge
+                  variant="outline"
+                  className="text-[10px] text-amber-600 dark:text-amber-400 border-amber-500/30 bg-amber-500/5"
+                >
+                  Lower alignment
+                </Badge>
+              )}
+            </div>
 
             {/* Match narrative */}
             {(match.agreeDimensions.length > 0 || match.differDimensions.length > 0) && (
@@ -993,7 +1082,7 @@ function QuickMatchResultCard({
             )}
 
             <div className="flex gap-2 mt-1">
-              {!isSPO && (
+              {!isSPO && !isNearMiss && (
                 <DelegateButton
                   drepId={match.drepId}
                   drepName={displayName}

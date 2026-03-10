@@ -1356,6 +1356,51 @@ export async function getSocialLinkChecks(drepId: string): Promise<SocialLinkChe
 }
 
 // ============================================================================
+// ENDORSEMENT COUNTS
+// ============================================================================
+
+/**
+ * Fetch the total endorsement count for a DRep or SPO.
+ * Checks precomputed aggregations first, falls back to direct count.
+ */
+export async function getEndorsementCount(
+  entityType: 'drep' | 'spo',
+  entityId: string,
+): Promise<number> {
+  try {
+    const supabase = createClient();
+
+    // Try precomputed aggregation first
+    const { data: aggRow } = await supabase
+      .from('engagement_signal_aggregations')
+      .select('data')
+      .eq('entity_type', entityType)
+      .eq('entity_id', entityId)
+      .eq('signal_type', 'endorsements')
+      .order('epoch', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (aggRow?.data) {
+      const data = aggRow.data as { total?: number };
+      if (typeof data.total === 'number') return data.total;
+    }
+
+    // Fallback: direct count
+    const { count } = await supabase
+      .from('citizen_endorsements')
+      .select('id', { count: 'exact', head: true })
+      .eq('entity_type', entityType)
+      .eq('entity_id', entityId);
+
+    return count ?? 0;
+  } catch (err) {
+    logger.error('[Data] getEndorsementCount error', { error: err });
+    return 0;
+  }
+}
+
+// ============================================================================
 // CLAIM STATUS
 // ============================================================================
 

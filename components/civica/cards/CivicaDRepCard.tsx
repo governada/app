@@ -1,7 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { TrendingUp, TrendingDown, Minus, CheckCircle2, XCircle, ChevronRight } from 'lucide-react';
+import {
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  CheckCircle2,
+  XCircle,
+  ChevronRight,
+  Heart,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { computeTier } from '@/lib/scoring/tiers';
 import { getScoreNarrative } from '@/lib/scoring/scoreNarratives';
@@ -34,9 +42,10 @@ interface CivicaDRepCardProps {
   drep: EnrichedDRep;
   rank?: number;
   matchScore?: number | null;
+  endorsementCount?: number;
 }
 
-export function CivicaDRepCard({ drep, rank, matchScore }: CivicaDRepCardProps) {
+export function CivicaDRepCard({ drep, rank, matchScore, endorsementCount }: CivicaDRepCardProps) {
   const score = drep.drepScore ?? 0;
   const tier = tierKey(computeTier(score));
   const momentum = drep.scoreMomentum ?? null;
@@ -90,6 +99,12 @@ export function CivicaDRepCard({ drep, rank, matchScore }: CivicaDRepCardProps) 
             {drep.delegatorCount > 0 && (
               <span className="text-[10px] text-muted-foreground">
                 · {drep.delegatorCount.toLocaleString()} delegators
+              </span>
+            )}
+            {endorsementCount != null && endorsementCount > 0 && (
+              <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                · <Heart className="h-2.5 w-2.5" aria-hidden="true" />
+                <span className="tabular-nums">{endorsementCount}</span>
               </span>
             )}
             {recency && (

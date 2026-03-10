@@ -211,6 +211,29 @@ export function useEndorsements(entityType: string, entityId: string) {
   });
 }
 
+// -- Batch Endorsement Counts --
+
+export interface BatchEndorsementCounts {
+  counts: Record<string, number>;
+}
+
+/**
+ * Fetch endorsement counts for multiple entities in a single request.
+ * Returns a map of entityId -> total endorsement count (only entries with count > 0).
+ */
+export function useBatchEndorsementCounts(entityType: string, entityIds: string[]) {
+  const key = entityIds.length > 0 ? entityIds.slice().sort().join(',') : '';
+  return useQuery<BatchEndorsementCounts>({
+    queryKey: ['endorsement-counts', entityType, key],
+    queryFn: () =>
+      fetchJsonWithAuth(
+        `/api/engagement/endorsements/batch?entityType=${encodeURIComponent(entityType)}&entityIds=${encodeURIComponent(entityIds.join(','))}`,
+      ),
+    staleTime: STALE_60S,
+    enabled: entityIds.length > 0,
+  });
+}
+
 // -- Citizen Credibility --
 
 export type { CredibilityResult as CitizenCredibility } from '@/lib/citizenCredibility';

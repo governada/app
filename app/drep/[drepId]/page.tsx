@@ -58,6 +58,7 @@ const SimilarDReps = nextDynamic(
 import { ActivityHeatmap } from '@/components/ActivityHeatmap';
 import { DRepTreasuryStance } from '@/components/DRepTreasuryStance';
 import { DRepProfileHero } from '@/components/DRepProfileHero';
+import { DRepDetailedAnalysis } from '@/components/drep/DRepDetailedAnalysis';
 import { DRepCitizenSignals } from '@/components/DRepCitizenSignals';
 const CitizenEndorsements = nextDynamic(
   () => import('@/components/engagement/CitizenEndorsements').then((m) => m.CitizenEndorsements),
@@ -111,6 +112,7 @@ import {
   getSocialLinkChecks,
   isDRepClaimed,
   getOpenProposalsForDRep,
+  getEndorsementCount,
 } from '@/lib/data';
 import { createClient } from '@/lib/supabase';
 import { BASE_URL } from '@/lib/constants';
@@ -390,25 +392,41 @@ export default async function DRepDetailPage({ params, searchParams }: DRepDetai
 
   const matchScore = match ? parseInt(match, 10) : null;
 
-  const [
-    scoreHistory,
-    percentile,
-    rank,
-    delegationTrend,
-    linkChecks,
-    isClaimed,
-    spoAlignPct,
-    openProposals,
-  ] = await Promise.all([
-    getScoreHistory(drep.drepId),
-    getDRepPercentile(drep.drepScore),
-    getDRepRank(drep.drepId),
-    getDRepDelegationTrend(drep.drepId),
-    getSocialLinkChecks(drep.drepId),
-    isDRepClaimed(drep.drepId),
-    getSpoAlignment(drep.votes),
-    getOpenProposalsForDRep(drep.drepId),
-  ]);
+  let scoreHistory: Awaited<ReturnType<typeof getScoreHistory>> = [];
+  let percentile = 0;
+  let rank: number | null = 0;
+  let delegationTrend: Awaited<ReturnType<typeof getDRepDelegationTrend>> = [];
+  let linkChecks: Awaited<ReturnType<typeof getSocialLinkChecks>> = [];
+  let isClaimed = false;
+  let spoAlignPct: number | null = null;
+  let openProposals: Awaited<ReturnType<typeof getOpenProposalsForDRep>> = [];
+  let endorsementCount = 0;
+
+  try {
+    [
+      scoreHistory,
+      percentile,
+      rank,
+      delegationTrend,
+      linkChecks,
+      isClaimed,
+      spoAlignPct,
+      openProposals,
+      endorsementCount,
+    ] = await Promise.all([
+      getScoreHistory(drep.drepId),
+      getDRepPercentile(drep.drepScore),
+      getDRepRank(drep.drepId),
+      getDRepDelegationTrend(drep.drepId),
+      getSocialLinkChecks(drep.drepId),
+      isDRepClaimed(drep.drepId),
+      getSpoAlignment(drep.votes),
+      getOpenProposalsForDRep(drep.drepId),
+      getEndorsementCount('drep', drep.drepId),
+    ]);
+  } catch (err) {
+    console.error('[DRepProfile] Secondary data fetch failed, using defaults:', err);
+  }
 
   const pendingProposalCount = openProposals.length;
 
@@ -616,6 +634,13 @@ export default async function DRepDetailPage({ params, searchParams }: DRepDetai
             tooltip="How often this DRep votes the same way as the SPO majority"
           />
         )}
+        {endorsementCount > 0 && (
+          <KeyFact
+            label="Citizen Endorsements"
+            value={endorsementCount.toLocaleString()}
+            tooltip="Number of citizens who have endorsed this DRep across governance competencies like treasury oversight, technical expertise, and communication"
+          />
+        )}
         {drep.totalVotes > 0 && (
           <div className="flex flex-col items-center text-center min-w-[100px]">
             <span className="text-xs text-muted-foreground">Voting Pattern</span>
@@ -705,58 +730,10 @@ export default async function DRepDetailPage({ params, searchParams }: DRepDetai
         <SocialProofBadge drepId={drep.drepId} variant="views" />
       </div>
 
-      {/* 5. Delegation Power Trend */}
-      {delegationTrend.length >= 2 ? (
-        <div className="rounded-xl border border-border bg-card px-5 py-4 space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Delegation Trend
-            </span>
-            <span className="text-xs text-muted-foreground">{delegationTrend.length} epochs</span>
-          </div>
-          <div className="flex items-end gap-[2px] h-10">
-            {(() => {
-              const counts = delegationTrend.map((d) => d.delegatorCount);
-              const maxCount = Math.max(...counts, 1);
-              return delegationTrend.map((d) => (
-                <div
-                  key={d.epoch}
-                  className="flex-1 bg-primary/60 rounded-t-sm min-w-[3px]"
-                  style={{ height: `${Math.max(4, (d.delegatorCount / maxCount) * 100)}%` }}
-                  title={`Epoch ${d.epoch}: ${d.delegatorCount.toLocaleString()} delegators, ${d.votingPowerAda.toLocaleString()} ADA`}
-                />
-              ));
-            })()}
-          </div>
-          <div className="flex justify-between text-[10px] text-muted-foreground tabular-nums">
-            <span>E{delegationTrend[0].epoch}</span>
-            <span>
-              {delegationTrend[delegationTrend.length - 1].delegatorCount.toLocaleString()}{' '}
-              delegators &middot;{' '}
-              {(delegationTrend[delegationTrend.length - 1].votingPowerAda / 1_000_000).toFixed(1)}M
-              ADA
-            </span>
-            <span>E{delegationTrend[delegationTrend.length - 1].epoch}</span>
-          </div>
-        </div>
-      ) : (
-        <div className="rounded-xl border border-border bg-card px-5 py-4">
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
-            Delegation Trend
-          </span>
-          <p className="text-xs text-muted-foreground">
-            Delegation trend data will appear after 2+ epochs of delegation activity.
-          </p>
-        </div>
-      )}
-
-      {/* 6. Treasury Stance (compact in VP1) */}
+      {/* 5. Treasury Stance (compact in VP1) */}
       <DRepTreasuryStance drepId={drep.drepId} compact />
 
-      {/* 7. Activity feed */}
-      <ActivitySideWidget drepId={drep.drepId} limit={5} />
-
-      {/* 8. About & Community (folded from former Community tab into Overview) */}
+      {/* 6. About & Governance Statements */}
       <AboutSection
         description={drep.description}
         bio={drep.metadata?.bio}
@@ -768,100 +745,157 @@ export default async function DRepDetailPage({ params, searchParams }: DRepDetai
         <DRepDashboardWrapper drepId={drep.drepId} drepName={drepName} isClaimed={isClaimed} />
       </Suspense>
 
-      {/* 9. Similar DReps */}
-      <SimilarDReps drepId={drep.drepId} />
-
       {/* ════════════════════════════════════════════
-          VP2 — "The Record" (below fold, tabbed)
+          Detailed Analysis — gated for citizens/anonymous.
+          DReps, SPOs, and CC members see everything expanded.
+          Citizens see a "Show detailed analysis" toggle.
           ════════════════════════════════════════════ */}
-
-      <DRepProfileTabsV2
-        drepId={drep.drepId}
-        statementsContent={statementsContent}
-        votingRecordContent={
-          <div className="space-y-6">
-            <DRepOutcomeSummary drepId={drep.drepId} />
-            <Suspense fallback={<DetailPageSkeleton />}>
-              <VotingHistoryWithPrefs votes={drep.votes} />
-            </Suspense>
-          </div>
-        }
-        scoreAnalysisContent={
-          <ScoreAnalysisGate
-            drepId={drep.drepId}
-            isClaimed={isClaimed}
-            ownerContent={
-              <>
-                {tierProgress.recommendedAction && (
-                  <div className="rounded-xl border border-primary/20 bg-primary/5 px-5 py-4 flex items-start gap-3">
-                    <div className="flex-1">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-                        Recommended Action
-                      </p>
-                      <p className="text-sm font-medium">{tierProgress.recommendedAction}</p>
-                    </div>
-                    {tierProgress.pointsToNext != null && (
-                      <div className="shrink-0 text-right">
-                        <p className="text-xl font-bold font-display tabular-nums text-primary">
-                          +{tierProgress.pointsToNext}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                          pts to {tierProgress.nextTier}
-                        </p>
-                      </div>
-                    )}
-                  </div>
+      <DRepDetailedAnalysis>
+        {/* Delegation Power Trend */}
+        {delegationTrend.length >= 2 ? (
+          <div className="rounded-xl border border-border bg-card px-5 py-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Delegation Trend
+              </span>
+              <span className="text-xs text-muted-foreground">{delegationTrend.length} epochs</span>
+            </div>
+            <div className="flex items-end gap-[2px] h-10">
+              {(() => {
+                const counts = delegationTrend.map((d) => d.delegatorCount);
+                const maxCount = Math.max(...counts, 1);
+                return delegationTrend.map((d) => (
+                  <div
+                    key={d.epoch}
+                    className="flex-1 bg-primary/60 rounded-t-sm min-w-[3px]"
+                    style={{ height: `${Math.max(4, (d.delegatorCount / maxCount) * 100)}%` }}
+                    title={`Epoch ${d.epoch}: ${d.delegatorCount.toLocaleString()} delegators, ${d.votingPowerAda.toLocaleString()} ADA`}
+                  />
+                ));
+              })()}
+            </div>
+            <div className="flex justify-between text-[10px] text-muted-foreground tabular-nums">
+              <span>E{delegationTrend[0].epoch}</span>
+              <span>
+                {delegationTrend[delegationTrend.length - 1].delegatorCount.toLocaleString()}{' '}
+                delegators &middot;{' '}
+                {(delegationTrend[delegationTrend.length - 1].votingPowerAda / 1_000_000).toFixed(
+                  1,
                 )}
-                <ScoreSimulator drepId={drep.drepId} pendingCount={pendingProposalCount} />
-                <ScoreDeepDive
-                  score={drep.drepScore}
-                  engagementQuality={drep.engagementQuality}
-                  engagementQualityRaw={drep.engagementQualityRaw}
-                  effectiveParticipation={drep.effectiveParticipationV3}
-                  effectiveParticipationRaw={drep.effectiveParticipationV3Raw}
-                  reliability={drep.reliabilityV3}
-                  reliabilityRaw={drep.reliabilityV3Raw}
-                  governanceIdentity={drep.governanceIdentity}
-                  governanceIdentityRaw={drep.governanceIdentityRaw}
-                  scoreMomentum={drep.scoreMomentum}
-                  rationaleRate={drep.rationaleRate}
-                  deliberationModifier={drep.deliberationModifier}
-                  reliabilityStreak={drep.reliabilityStreak}
-                  reliabilityRecency={drep.reliabilityRecency}
-                  reliabilityLongestGap={drep.reliabilityLongestGap}
-                  reliabilityTenure={drep.reliabilityTenure}
-                  profileCompleteness={drep.profileCompleteness}
-                  delegatorCount={drep.delegatorCount}
-                />
-                <ScoreCard
-                  drep={drep}
-                  adjustedRationale={adjustedRationale}
-                  pillars={pillars}
-                  pillarStatuses={pillarStatuses}
-                  quickWin={quickWin}
-                  percentile={percentile}
-                  participationHint={participationHint}
-                  rationaleHint={rationaleHint}
-                  reliabilityHint={reliabilityHint}
-                  profileHint={profileHint}
-                />
-                <MilestoneBadges drepId={drep.drepId} compact />
-              </>
-            }
-            publicContent={
-              <>
-                <ScoreHistoryChart history={scoreHistory} />
-                <ActivityHeatmap drepId={drep.drepId} />
-              </>
-            }
-          />
-        }
-        trajectoryContent={
-          <div className="space-y-6">
-            <AlignmentTrajectory drepId={drep.drepId} />
+                M ADA
+              </span>
+              <span>E{delegationTrend[delegationTrend.length - 1].epoch}</span>
+            </div>
           </div>
-        }
-      />
+        ) : (
+          <div className="rounded-xl border border-border bg-card px-5 py-4">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
+              Delegation Trend
+            </span>
+            <p className="text-xs text-muted-foreground">
+              Delegation trend data will appear after 2+ epochs of delegation activity.
+            </p>
+          </div>
+        )}
+
+        {/* Activity feed */}
+        <ActivitySideWidget drepId={drep.drepId} limit={5} />
+
+        {/* Similar DReps */}
+        <SimilarDReps drepId={drep.drepId} />
+
+        {/* ════════════════════════════════════════════
+            VP2 — "The Record" (below fold, tabbed)
+            ════════════════════════════════════════════ */}
+
+        <DRepProfileTabsV2
+          drepId={drep.drepId}
+          statementsContent={statementsContent}
+          votingRecordContent={
+            <div className="space-y-6">
+              <DRepOutcomeSummary drepId={drep.drepId} />
+              <Suspense fallback={<DetailPageSkeleton />}>
+                <VotingHistoryWithPrefs votes={drep.votes} />
+              </Suspense>
+            </div>
+          }
+          scoreAnalysisContent={
+            <ScoreAnalysisGate
+              drepId={drep.drepId}
+              isClaimed={isClaimed}
+              ownerContent={
+                <>
+                  {tierProgress.recommendedAction && (
+                    <div className="rounded-xl border border-primary/20 bg-primary/5 px-5 py-4 flex items-start gap-3">
+                      <div className="flex-1">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                          Recommended Action
+                        </p>
+                        <p className="text-sm font-medium">{tierProgress.recommendedAction}</p>
+                      </div>
+                      {tierProgress.pointsToNext != null && (
+                        <div className="shrink-0 text-right">
+                          <p className="text-xl font-bold font-display tabular-nums text-primary">
+                            +{tierProgress.pointsToNext}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                            pts to {tierProgress.nextTier}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <ScoreSimulator drepId={drep.drepId} pendingCount={pendingProposalCount} />
+                  <ScoreDeepDive
+                    score={drep.drepScore}
+                    engagementQuality={drep.engagementQuality}
+                    engagementQualityRaw={drep.engagementQualityRaw}
+                    effectiveParticipation={drep.effectiveParticipationV3}
+                    effectiveParticipationRaw={drep.effectiveParticipationV3Raw}
+                    reliability={drep.reliabilityV3}
+                    reliabilityRaw={drep.reliabilityV3Raw}
+                    governanceIdentity={drep.governanceIdentity}
+                    governanceIdentityRaw={drep.governanceIdentityRaw}
+                    scoreMomentum={drep.scoreMomentum}
+                    rationaleRate={drep.rationaleRate}
+                    deliberationModifier={drep.deliberationModifier}
+                    reliabilityStreak={drep.reliabilityStreak}
+                    reliabilityRecency={drep.reliabilityRecency}
+                    reliabilityLongestGap={drep.reliabilityLongestGap}
+                    reliabilityTenure={drep.reliabilityTenure}
+                    profileCompleteness={drep.profileCompleteness}
+                    delegatorCount={drep.delegatorCount}
+                  />
+                  <ScoreCard
+                    drep={drep}
+                    adjustedRationale={adjustedRationale}
+                    pillars={pillars}
+                    pillarStatuses={pillarStatuses}
+                    quickWin={quickWin}
+                    percentile={percentile}
+                    participationHint={participationHint}
+                    rationaleHint={rationaleHint}
+                    reliabilityHint={reliabilityHint}
+                    profileHint={profileHint}
+                  />
+                  <MilestoneBadges drepId={drep.drepId} compact />
+                </>
+              }
+              publicContent={
+                <>
+                  <ScoreHistoryChart history={scoreHistory} />
+                  <ActivityHeatmap drepId={drep.drepId} />
+                </>
+              }
+            />
+          }
+          trajectoryContent={
+            <div className="space-y-6">
+              <AlignmentTrajectory drepId={drep.drepId} />
+            </div>
+          }
+        />
+      </DRepDetailedAnalysis>
     </div>
   );
 
