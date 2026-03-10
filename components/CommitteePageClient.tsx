@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { FeatureGate } from '@/components/FeatureGate';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ChevronDown, ChevronRight } from 'lucide-react';
@@ -110,13 +109,11 @@ function MemberRow({ member, votes }: { member: MemberAgg; votes: Vote[] }) {
 
 export function CommitteePageClient({ members, votes }: CommitteePageClientProps) {
   return (
-    <FeatureGate flag="cc_page">
-      <div className="space-y-3">
-        <h2 className="text-lg font-semibold">Members</h2>
-        {members.map((member) => (
-          <MemberRow key={member.ccHotId} member={member} votes={votes} />
-        ))}
-      </div>
-    </FeatureGate>
+    <div className="space-y-3">
+      <h2 className="text-lg font-semibold">Members</h2>
+      {members.map((member) => (
+        <MemberRow key={member.ccHotId} member={member} votes={votes} />
+      ))}
+    </div>
   );
 }

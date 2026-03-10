@@ -24,7 +24,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useWallet } from '@/utils/wallet';
 import { useSegment } from '@/components/providers/SegmentProvider';
 import { useVote, type VotePhase } from '@/hooks/useVote';
-import { useFeatureFlag } from '@/components/FeatureGate';
 import type { VoteChoice, VoterRole } from '@/lib/voting';
 
 interface VoteRationaleFlowProps {
@@ -223,8 +222,6 @@ export function VoteRationaleFlow({
   const { connected, ownDRepId } = useWallet();
   const { segment, poolId } = useSegment();
   const { phase, startVote, confirmVote, reset, isProcessing, canVote } = useVote();
-  const voteCastingEnabled = useFeatureFlag('governance_vote_casting');
-
   const [flowStep, setFlowStep] = useState<FlowStep>('select');
   const [selectedVote, setSelectedVote] = useState<VoteChoice | null>(null);
   const [rationaleText, setRationaleText] = useState('');
@@ -243,9 +240,6 @@ export function VoteRationaleFlow({
       setFlowStep('success');
     }
   }, [phase.status, flowStep]);
-
-  // Gated behind feature flag
-  if (voteCastingEnabled === null || !voteCastingEnabled) return null;
 
   // Proposal is closed — show informational message
   if (!isOpen) {
@@ -588,7 +582,6 @@ export function VoteRationaleFlow({
                 placeholder="Explain your vote. This will be published as a CIP-100 document anchored to your on-chain vote — making your reasoning transparent to delegators."
                 className="w-full min-h-[160px] p-3 text-sm border rounded-lg bg-background resize-y focus:outline-none focus:ring-2 focus:ring-primary/30"
                 maxLength={10000}
-                // eslint-disable-next-line jsx-a11y/no-autofocus -- intentional: user just entered rationale step
                 autoFocus
               />
               <div className="flex items-center justify-between">
@@ -899,7 +892,6 @@ function PostVoteRationale({
         placeholder="Explain your vote. This will re-submit your vote with a CIP-100 rationale anchor attached."
         className="w-full min-h-[120px] p-3 text-sm border rounded-lg bg-background resize-y focus:outline-none focus:ring-2 focus:ring-primary/30"
         maxLength={10000}
-        // eslint-disable-next-line jsx-a11y/no-autofocus -- intentional: user is adding rationale
         autoFocus
       />
       <div className="flex items-center justify-between">

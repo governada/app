@@ -2,17 +2,8 @@
 
 import { forwardRef } from 'react';
 import dynamic from 'next/dynamic';
-import { useFeatureFlag } from '@/components/FeatureGate';
 import type { ConstellationRef } from '@/components/GovernanceConstellation';
 import type { ConstellationNode3D } from '@/lib/constellation/types';
-
-const GovernanceConstellation = dynamic(
-  () =>
-    import('@/components/GovernanceConstellation').then((m) => ({
-      default: m.GovernanceConstellation,
-    })),
-  { ssr: false },
-);
 
 const GlobeConstellation = dynamic(
   () =>
@@ -31,17 +22,10 @@ interface ConstellationSceneProps {
 }
 
 /**
- * Flag-gated constellation wrapper. Renders the globe variant when
- * `globe_constellation` is enabled, otherwise the flat constellation.
+ * Constellation wrapper. Always renders the globe variant.
  */
 export const ConstellationScene = forwardRef<ConstellationRef, ConstellationSceneProps>(
   function ConstellationScene(props, ref) {
-    const globeFlag = useFeatureFlag('globe_constellation');
-    const useGlobe = globeFlag === true;
-
-    if (useGlobe) {
-      return <GlobeConstellation ref={ref} {...props} />;
-    }
-    return <GovernanceConstellation ref={ref} {...props} />;
+    return <GlobeConstellation ref={ref} {...props} />;
   },
 );

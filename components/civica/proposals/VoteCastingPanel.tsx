@@ -17,7 +17,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useWallet } from '@/utils/wallet';
 import { useSegment } from '@/components/providers/SegmentProvider';
 import { useVote, type VotePhase } from '@/hooks/useVote';
-import { useFeatureFlag } from '@/components/FeatureGate';
 import type { VoteChoice, VoterRole } from '@/lib/voting';
 
 interface VoteCastingPanelProps {
@@ -146,8 +145,6 @@ export function VoteCastingPanel({
   const [showRationale, setShowRationale] = useState(true);
   const [isDrafting, setIsDrafting] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
-  const voteCastingEnabled = useFeatureFlag('governance_vote_casting');
-
   // Determine voter role and credential from segment
   const voterRole: VoterRole = segment === 'spo' ? 'spo' : 'drep';
   const voterId = segment === 'spo' ? poolId : ownDRepId;
@@ -158,9 +155,6 @@ export function VoteCastingPanel({
 
   // Don't show if not a DRep or SPO
   if (!connected || !voterId) return null;
-
-  // Gated behind feature flag
-  if (voteCastingEnabled === null || !voteCastingEnabled) return null;
 
   const isConfirming = phase.status === 'confirming';
   const isDone = phase.status === 'success';
