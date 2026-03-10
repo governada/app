@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { ChevronDown } from 'lucide-react';
 import { useWallet } from '@/utils/wallet';
 import { useGovernanceHolder } from '@/hooks/queries';
-import { useFeatureFlag } from '@/components/FeatureGate';
 import { posthog } from '@/lib/posthog';
 import { ActivityTicker } from '@/components/ActivityTicker';
 import { PersonalizedStatsStrip } from '@/components/PersonalizedStatsStrip';
@@ -56,8 +55,7 @@ export function ConstellationHero({
   const [hasHovered, setHasHovered] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
 
-  const interactiveFlag = useFeatureFlag('interactive_constellation');
-  const isInteractive = interactiveFlag === true;
+  const isInteractive = false;
   const [selectedNode, setSelectedNode] = useState<ConstellationNode3D | null>(null);
 
   useEffect(() => {

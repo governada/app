@@ -84,7 +84,6 @@ import {
   getRationaleNarrative,
   getGovernanceStyleNarrative,
 } from '@/lib/scoring/scoreNarratives';
-import { getFeatureFlag } from '@/lib/featureFlags';
 import { TierThemeProvider } from '@/components/providers/TierThemeProvider';
 import { DRepProfileTabsV2 } from '@/components/civica/profiles/DRepProfileTabsV2';
 const DRepStatementsTab = nextDynamic(
@@ -464,7 +463,6 @@ export default async function DRepDetailPage({ params, searchParams }: DRepDetai
     linkChecks,
     isClaimed,
     spoAlignPct,
-    drepCommunicationEnabled,
     openProposals,
   ] = await Promise.all([
     getScoreHistory(drep.drepId),
@@ -474,7 +472,6 @@ export default async function DRepDetailPage({ params, searchParams }: DRepDetai
     getSocialLinkChecks(drep.drepId),
     isDRepClaimed(drep.drepId),
     getSpoAlignment(drep.votes),
-    getFeatureFlag('drep_communication', true),
     getOpenProposalsForDRep(drep.drepId),
   ]);
 
@@ -551,9 +548,7 @@ export default async function DRepDetailPage({ params, searchParams }: DRepDetai
 
   // Phase B: Statements tab — shows vote explanations, positions, epoch updates, and Q&A
   // For DRep owners, also shows a "Write Statement" button
-  const statementsContent = drepCommunicationEnabled ? (
-    <DRepStatementsTab drepId={drep.drepId} />
-  ) : undefined;
+  const statementsContent = <DRepStatementsTab drepId={drep.drepId} />;
 
   const profileContent = (
     <div className="container mx-auto px-4 py-8 space-y-6">
