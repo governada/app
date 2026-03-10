@@ -110,13 +110,14 @@ export const POST = withRouteHandler(async (request) => {
     if (!pools?.length) {
       return NextResponse.json({
         matches: [],
+        nearMisses: [],
         userAlignments,
         personalityLabel: null,
         matchType: 'spo',
       });
     }
 
-    const ranked = pools
+    const allRankedSPO = pools
       .map((p) => {
         const spoAlignments = extractAlignments(p);
         const distance = euclideanDistance(userAlignments, spoAlignments);
@@ -132,9 +133,15 @@ export const POST = withRouteHandler(async (request) => {
           differDimensions: dimAgreement.differDimensions,
         };
       })
-      .sort((a, b) => b.matchScore - a.matchScore || b.entityScore - a.entityScore)
+      .sort((a, b) => b.matchScore - a.matchScore || b.entityScore - a.entityScore);
+
+    const ranked = allRankedSPO
       .filter((r) => r.matchScore >= MIN_MATCH_SCORE && r.entityScore >= MIN_ENTITY_SCORE)
       .slice(0, 5);
+
+    // Near-misses: top results that didn't meet thresholds (for empty state guidance)
+    const spoNearMisses =
+      ranked.length === 0 ? allRankedSPO.filter((r) => !ranked.includes(r)).slice(0, 3) : [];
 
     const personalityLabel = getPersonalityLabel(userAlignments);
     const dominant = getDominantDimension(userAlignments);
@@ -159,18 +166,21 @@ export const POST = withRouteHandler(async (request) => {
       matches_count: ranked.length,
     });
 
+    const formatMatch = (r: (typeof allRankedSPO)[number]) => ({
+      drepId: r.entityId,
+      drepName: r.entityName,
+      drepScore: r.entityScore,
+      matchScore: r.matchScore,
+      alignments: r.alignments,
+      identityColor: getIdentityColor(r.dominantDimension).hex,
+      personalityLabel: getPersonalityLabel(r.alignments),
+      agreeDimensions: r.agreeDimensions,
+      differDimensions: r.differDimensions,
+    });
+
     return NextResponse.json({
-      matches: ranked.map((r) => ({
-        drepId: r.entityId,
-        drepName: r.entityName,
-        drepScore: r.entityScore,
-        matchScore: r.matchScore,
-        alignments: r.alignments,
-        identityColor: getIdentityColor(r.dominantDimension).hex,
-        personalityLabel: getPersonalityLabel(r.alignments),
-        agreeDimensions: r.agreeDimensions,
-        differDimensions: r.differDimensions,
-      })),
+      matches: ranked.map(formatMatch),
+      nearMisses: spoNearMisses.map(formatMatch),
       userAlignments,
       personalityLabel,
       identityColor: identityColor.hex,
@@ -190,13 +200,14 @@ export const POST = withRouteHandler(async (request) => {
   if (!dreps?.length) {
     return NextResponse.json({
       matches: [],
+      nearMisses: [],
       userAlignments,
       personalityLabel: null,
       matchType: 'drep',
     });
   }
 
-  const ranked = dreps
+  const allRanked = dreps
     .map((d) => {
       const drepAlignments = extractAlignments(d);
       const distance = euclideanDistance(userAlignments, drepAlignments);
@@ -215,12 +226,19 @@ export const POST = withRouteHandler(async (request) => {
     .sort((a, b) => b.matchScore - a.matchScore || b.drepScore - a.drepScore);
 
   // Apply quality thresholds before selecting top results
-  const qualified = ranked.filter(
+  const qualified = allRanked.filter(
     (r) => r.matchScore >= MIN_MATCH_SCORE && r.drepScore >= MIN_ENTITY_SCORE,
   );
   // Prefer named DReps in results; fall back to unnamed if fewer than 3 named
   const namedRanked = qualified.filter((r) => r.drepName);
   const topRanked = (namedRanked.length >= 3 ? namedRanked : qualified).slice(0, 5);
+
+  // Near-misses: top results that didn't meet thresholds (for empty state guidance)
+  const topRankedIds = new Set(topRanked.map((r) => r.drepId));
+  const nearMisses =
+    topRanked.length === 0
+      ? allRanked.filter((r) => !topRankedIds.has(r.drepId) && r.drepName).slice(0, 3)
+      : [];
 
   const personalityLabel = getPersonalityLabel(userAlignments);
   const dominant = getDominantDimension(userAlignments);
@@ -245,18 +263,21 @@ export const POST = withRouteHandler(async (request) => {
     matches_count: topRanked.length,
   });
 
+  const formatDrepMatch = (r: (typeof allRanked)[number]) => ({
+    drepId: r.drepId,
+    drepName: r.drepName,
+    drepScore: r.drepScore,
+    matchScore: r.matchScore,
+    alignments: r.alignments,
+    identityColor: getIdentityColor(r.dominantDimension).hex,
+    personalityLabel: getPersonalityLabel(r.alignments),
+    agreeDimensions: r.agreeDimensions,
+    differDimensions: r.differDimensions,
+  });
+
   return NextResponse.json({
-    matches: topRanked.map((r) => ({
-      drepId: r.drepId,
-      drepName: r.drepName,
-      drepScore: r.drepScore,
-      matchScore: r.matchScore,
-      alignments: r.alignments,
-      identityColor: getIdentityColor(r.dominantDimension).hex,
-      personalityLabel: getPersonalityLabel(r.alignments),
-      agreeDimensions: r.agreeDimensions,
-      differDimensions: r.differDimensions,
-    })),
+    matches: topRanked.map(formatDrepMatch),
+    nearMisses: nearMisses.map(formatDrepMatch),
     userAlignments,
     personalityLabel,
     identityColor: identityColor.hex,

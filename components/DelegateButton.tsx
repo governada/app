@@ -170,6 +170,9 @@ export function DelegateButton({ drepId, drepName, size = 'sm', className }: Del
             Your ADA stays in your wallet.
           </p>
         </div>
+        <p className="text-[10px] text-muted-foreground">
+          You can change your DRep anytime — delegation is never permanent.
+        </p>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" className="flex-1 h-7 text-xs" onClick={reset}>
             Cancel

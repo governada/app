@@ -15,6 +15,7 @@ import {
 import { fadeInUp, staggerContainer } from '@/lib/animations';
 import { cn } from '@/lib/utils';
 import { Users, TrendingUp, Award } from 'lucide-react';
+import { MatchContextBadge } from '@/components/matching/MatchContextBadge';
 
 interface DRepProfileHeroProps {
   name: string;
@@ -79,25 +80,24 @@ export function DRepProfileHero({
               )}
             </div>
 
-            {/* Trait tags */}
-            {traitTags.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {traitTags.map((tag) => (
-                  <Badge
-                    key={tag}
-                    variant="outline"
-                    className={cn('text-xs', 'dark:border-border/60 dark:bg-card/50')}
-                  >
-                    {tag}
-                  </Badge>
-                ))}
-                {!isActive && (
-                  <Badge variant="secondary" className="text-xs">
-                    Inactive
-                  </Badge>
-                )}
-              </div>
-            )}
+            {/* Trait tags + match context */}
+            <div className="flex flex-wrap gap-2">
+              {traitTags.map((tag) => (
+                <Badge
+                  key={tag}
+                  variant="outline"
+                  className={cn('text-xs', 'dark:border-border/60 dark:bg-card/50')}
+                >
+                  {tag}
+                </Badge>
+              ))}
+              {!isActive && (
+                <Badge variant="secondary" className="text-xs">
+                  Inactive
+                </Badge>
+              )}
+              <MatchContextBadge drepAlignments={alignments} existingMatchScore={matchScore} />
+            </div>
 
             {/* Key stats */}
             <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground pt-2">

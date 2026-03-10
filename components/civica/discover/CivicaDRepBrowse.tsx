@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { CivicaDRepCard } from '@/components/civica/cards/CivicaDRepCard';
 import { computeTier } from '@/lib/scoring/tiers';
 import { TIER_SCORE_COLOR, TIER_BADGE_BG, tierKey } from '@/components/civica/cards/tierStyles';
+import { useBatchEndorsementCounts } from '@/hooks/useEngagement';
 import type { EnrichedDRep } from '@/lib/koios';
 import { AnonymousNudge } from '@/components/civica/shared/AnonymousNudge';
 import { DiscoverFilterBar } from './DiscoverFilterBar';
@@ -292,6 +293,11 @@ export function CivicaDRepBrowse({ dreps }: CivicaDRepBrowseProps) {
   const totalPages = Math.ceil(filtered.length / pageSize);
   const pageItems = filtered.slice(page * pageSize, (page + 1) * pageSize);
 
+  // Fetch endorsement counts for visible DReps
+  const pageEntityIds = useMemo(() => pageItems.map((d) => d.drepId), [pageItems]);
+  const { data: endorsementData } = useBatchEndorsementCounts('drep', pageEntityIds);
+  const endorsementCounts = endorsementData?.counts ?? {};
+
   return (
     <div ref={contentRef} className="space-y-4 pt-4">
       <AnonymousNudge variant="representatives" />
@@ -428,6 +434,7 @@ export function CivicaDRepBrowse({ dreps }: CivicaDRepBrowseProps) {
                   drep={drep}
                   rank={sortMode === 'match' ? undefined : page * pageSize + i + 1}
                   matchScore={ms}
+                  endorsementCount={endorsementCounts[drep.drepId]}
                 />
               </div>
             );

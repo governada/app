@@ -32,7 +32,7 @@ export function HubCard({ href, urgency = 'default', className, children, label 
       href={href}
       aria-label={label}
       className={cn(
-        'group block rounded-2xl border p-4 sm:p-5 transition-colors hover:border-primary/40',
+        'group block min-h-[6.5rem] rounded-2xl border p-4 sm:p-5 transition-colors hover:border-primary/40',
         URGENCY_STYLES[urgency],
         className,
       )}
@@ -51,7 +51,7 @@ export function HubCard({ href, urgency = 'default', className, children, label 
 /** Skeleton placeholder for a loading Hub card */
 export function HubCardSkeleton() {
   return (
-    <div className="rounded-2xl border border-border bg-card p-4 sm:p-5 animate-pulse">
+    <div className="min-h-[6.5rem] rounded-2xl border border-border bg-card p-4 sm:p-5 animate-pulse">
       <div className="space-y-3">
         <div className="h-4 w-24 rounded bg-muted" />
         <div className="h-6 w-48 rounded bg-muted" />
