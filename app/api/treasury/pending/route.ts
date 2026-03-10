@@ -12,7 +12,7 @@ export const GET = withRouteHandler(
     }
 
     const pending = await getPendingTreasuryProposals(balance.balanceAda);
-    const totalAda = pending.reduce((s, p) => s + p.withdrawalAda, 0);
+    const totalAda = pending.reduce((s, p) => s + (p.withdrawalAda ?? 0), 0);
 
     return NextResponse.json(
       {

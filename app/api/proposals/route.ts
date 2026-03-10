@@ -91,7 +91,7 @@ export const GET = withRouteHandler(async (request, { requestId }) => {
   }
 
   const proposals = (data || []).map((p) => {
-    let status = 'active';
+    let status = 'Open';
     if (p.enacted_epoch) status = 'enacted';
     else if (p.ratified_epoch) status = 'ratified';
     else if (p.expired_epoch) status = 'expired';

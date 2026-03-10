@@ -26,7 +26,7 @@ export const GET = withRouteHandler(
     const burnRate = calculateBurnRate(snapshots, 10);
     const runwayMonths = calculateRunwayMonths(balance.balanceAda, burnRate);
     const pending = await getPendingTreasuryProposals(balance.balanceAda);
-    const totalPendingAda = pending.reduce((s, p) => s + p.withdrawalAda, 0);
+    const totalPendingAda = pending.reduce((s, p) => s + (p.withdrawalAda ?? 0), 0);
 
     const prevEpoch = snapshots.length >= 2 ? snapshots[snapshots.length - 2] : null;
     const trend = prevEpoch
