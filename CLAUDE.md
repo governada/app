@@ -100,6 +100,7 @@ C:\Users\dalto\governada\
 
 | Need                                      | File                                               | Lines |
 | ----------------------------------------- | -------------------------------------------------- | ----- |
+| Strategic state (CTO memory)              | `docs/strategy/context/strategic-state.md`         | ~80   |
 | Build status / audit checklist            | `docs/strategy/context/build-manifest.md`          | ~250  |
 | Navigation architecture spec              | `docs/strategy/context/navigation-architecture.md` | ~530  |
 | UX constraints (per-page JTBD)            | `docs/strategy/context/ux-constraints.md`          | ~220  |
@@ -120,6 +121,18 @@ C:\Users\dalto\governada\
 | `/audit-security [area]`                         | Auth, RLS, API security, data protection, infra hardening, anti-gaming                                         | Pre-launch full, quarterly, after auth changes |
 | `/audit-all [full\|experiences\|systems\|quick]` | Orchestrator: launches experience + engine + security audits as parallel subagents, synthesizes unified report | Quarterly full, monthly quick                  |
 
+## Strategy Commands
+
+| Command                       | Purpose                                                                                   |
+| ----------------------------- | ----------------------------------------------------------------------------------------- |
+| `/strategy`                   | Open strategic session: state of the world, what to think about, CTO/Head of Product mode |
+| `/strategy review`            | Strategic review: velocity, direction, moat, priorities, what to start/stop               |
+| `/strategy plan [topic]`      | Deep dive: options, trade-offs, recommendation for a specific strategic question          |
+| `/strategy compete`           | Competitive intelligence: landscape changes, positioning, offensive/defensive moves       |
+| `/strategy decide [question]` | Structured decision framework with options matrix and recommendation                      |
+| `/strategy retro`             | Post-build strategic retro: did we build the right thing?                                 |
+| `/strategy hygiene`           | Workspace health: stale branches, outdated docs, accumulated debt                         |
+
 ## Build Commands
 
 | Command                                                        | Purpose                                                                                                                              |
@@ -134,6 +147,7 @@ C:\Users\dalto\governada\
 
 Detailed context loads automatically from `.claude/rules/` when working on:
 
+- `strategy-session.md` -- CTO/Head of Product thinking discipline for `/strategy` sessions
 - `product-strategy.md` -- principles, build sequence, context efficiency
 - `product-vision.md` -- UX execution standards, persona experiences
 - `hygiene.md` -- branch, commit, workspace cleanup rules
