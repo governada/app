@@ -61,42 +61,42 @@ Backend intelligence engine. Do not modify unless fixing bugs or extending.
 
 ---
 
-## Phase 0: Architecture Reset [IN PROGRESS]
+## Phase 0: Architecture Reset [COMPLETE]
 
 ### Route structure
 
-- [ ] Hub page (`/`) — persona-adaptive | `app/page.tsx`
-- [ ] Workspace section (`/workspace`) — DRep/SPO only | `app/workspace/`
-- [ ] Governance section (`/governance`) with sub-pages | `app/governance/`
-- [ ] Delegation page (`/delegation`) | `app/delegation/`
-- [ ] You section (`/you`) with sub-pages | `app/you/`
-- [ ] Help section (`/help`) with sub-pages | `app/help/`
-- [ ] Match page (`/match`) — expanded for DRep + Pool | `app/match/`
+- [x] Hub page (`/`) — persona-adaptive | `app/page.tsx` → `HubHomePage`
+- [x] Workspace section (`/workspace`) — DRep/SPO only | `app/workspace/` (7 sub-pages)
+- [x] Governance section (`/governance`) with sub-pages | `app/governance/` (6 sub-pages)
+- [x] Delegation page (`/delegation`) | `app/delegation/page.tsx`
+- [x] You section (`/you`) with sub-pages | `app/you/` (identity, inbox, public-profile, settings)
+- [x] Help section (`/help`) with sub-pages | `app/help/` (glossary, methodology, support)
+- [x] Match page (`/match`) — expanded for DRep + Pool | `app/match/page.tsx`
 
 ### Navigation shell
 
-- [ ] Desktop sidebar — persona-adaptive, collapsible | `components/shell/Sidebar.tsx`
-- [ ] Mobile bottom bar — 4 items, persona-adaptive | `components/shell/BottomBar.tsx`
-- [ ] Mobile pill bar — section sub-page navigation | `components/shell/PillBar.tsx`
-- [ ] Desktop top bar — search, notifications, user menu | `components/shell/TopBar.tsx`
-- [ ] Route redirects (301s) for old routes | `next.config.ts` + middleware
+- [x] Desktop sidebar — persona-adaptive, collapsible | `components/civica/CivicaSidebar.tsx`
+- [x] Mobile bottom bar — 4 items, persona-adaptive | `components/civica/CivicaBottomNav.tsx`
+- [x] Mobile pill bar — section sub-page navigation | `components/civica/SectionPillBar.tsx`
+- [x] Desktop top bar — search, notifications, user menu | `components/civica/CivicaHeader.tsx`
+- [x] Route redirects (301s) for old routes | `next.config.ts` (15+ redirects) + `middleware.ts`
 
 ### Hub card system
 
-- [ ] HubCardRenderer — persona-aware card composition | `components/hub/HubCardRenderer.tsx`
-- [ ] Action cards (time-sensitive) | `components/hub/cards/ActionCard.tsx`
-- [ ] Status cards (health indicators) | `components/hub/cards/StatusCard.tsx`
-- [ ] Engagement cards (polls/votes) | `components/hub/cards/EngagementCard.tsx`
-- [ ] Discovery cards (suggestions) | `components/hub/cards/DiscoveryCard.tsx`
-- [ ] Representation card (delegation health) | `components/hub/cards/RepresentationCard.tsx`
-- [ ] Governance health card (GHI summary) | `components/hub/cards/GovernanceHealthCard.tsx`
+- [x] HubCardRenderer — persona-aware card composition | `components/hub/HubCardRenderer.tsx`
+- [x] Action cards (time-sensitive) | `components/hub/cards/ActionCard.tsx`
+- [x] Status cards (health indicators) | `components/hub/cards/StatusCard.tsx`
+- [x] Engagement cards (polls/votes) | `components/hub/cards/EngagementCard.tsx`
+- [x] Discovery cards (suggestions) | `components/hub/cards/DiscoveryCard.tsx`
+- [x] Representation card (delegation health) | `components/hub/cards/RepresentationCard.tsx`
+- [x] Governance health card (GHI summary) | `components/hub/cards/GovernanceHealthCard.tsx`
 
 ### MLE per persona
 
-- [ ] Citizen MLE — Hub with 3-4 cards, Delegation page with dual-rep view
-- [ ] DRep MLE — Workspace action queue, vote flow access
-- [ ] SPO MLE — Workspace gov score, pool profile
-- [ ] Anonymous MLE — landing with value prop + two CTAs
+- [x] Citizen MLE — Hub with cards + delegation dual-rep view | `components/civica/home/HomeCitizen.tsx`
+- [x] DRep MLE — Workspace action queue, vote flow | `components/civica/home/HomeDRep.tsx`
+- [x] SPO MLE — Workspace gov score, pool profile | `components/civica/home/HomeSPO.tsx`
+- [x] Anonymous MLE — landing with value prop + two CTAs | `components/civica/home/HomeAnonymous.tsx`
 
 ### Definition of done
 
@@ -106,39 +106,53 @@ Backend intelligence engine. Do not modify unless fixing bugs or extending.
 
 ---
 
-## Phase 1: Recompose & Activate [NOT STARTED]
+## Phase 1: Recompose & Activate [~95% COMPLETE]
 
 ### 1a: Entity profiles in new architecture
 
-- [ ] DRep profiles with breadcrumbs from `/governance/representatives`
-- [ ] SPO profiles with breadcrumbs from `/governance/pools`
-- [ ] CC profiles with breadcrumbs from `/governance/committee`
-- [ ] Proposal pages with breadcrumbs from `/governance/proposals`
-- [ ] Entity page tabs as proper navigation (not query params)
+- [x] DRep profiles with breadcrumbs from `/governance/representatives` | `app/drep/[drepId]/page.tsx`
+- [x] SPO profiles with breadcrumbs from `/governance/pools` | `app/pool/[poolId]/page.tsx`
+- [x] CC profiles with breadcrumbs from `/governance/committee` | `app/governance/committee/page.tsx`
+- [x] Proposal pages with breadcrumbs from `/governance/proposals` | `app/proposal/[txHash]/[index]/page.tsx`
+- [x] Entity page tabs as proper navigation | `DRepProfileTabsV2`, `SpoProfileTabsV1`
 
 ### 1b: Governance section populated
 
-- [ ] `/governance/proposals` — active proposals, status, deadlines
-- [ ] `/governance/representatives` — DRep directory with scores
-- [ ] `/governance/pools` — pool directory with governance scores
-- [ ] `/governance/committee` — CC transparency
-- [ ] `/governance/treasury` — treasury spending transparency
-- [ ] `/governance/health` — GHI + epoch history (absorbs `/pulse`)
-- [ ] Persona-aware default landing per sub-page
+- [x] `/governance/proposals` — active proposals, status, deadlines | `ProposalsBrowse.tsx`
+- [x] `/governance/representatives` — DRep directory with scores | `CivicaDRepBrowse.tsx`
+- [x] `/governance/pools` — pool directory with governance scores | `CivicaSPOBrowse.tsx`
+- [x] `/governance/committee` — CC transparency | `app/governance/committee/page.tsx`
+- [x] `/governance/treasury` — treasury spending transparency | `TreasuryOverview.tsx`
+- [x] `/governance/health` — GHI + epoch history | `app/governance/health/page.tsx`
+- [x] Persona-aware default landing per sub-page | `GovernanceRedirect` routes by segment
 
 ### 1c: Workspace recomposition
 
-- [ ] DRep: action queue with vote casting + CIP-100 flow
+- [x] DRep: action queue with vote casting + CIP-100 flow | `WorkspacePage.tsx` + `VoteCastingPanel.tsx`
 - [x] DRep: voting record, rationales, delegators, performance sub-pages | PR #255
-- [ ] SPO: gov score dashboard, pool profile, delegators, position sub-pages
+- [x] SPO: gov score dashboard, pool profile, delegators, position sub-pages | `app/workspace/pool-profile/`, `app/workspace/position/`
 - [x] DRep+SPO: both sets grouped by role header in sidebar | PR #254
 
-### 1d: Governance Coverage (NEW)
+### 1d: Governance Coverage
 
 - [x] Coverage calculation (DRep + SPO action type coverage per epoch) | PR #255
 - [x] Hub status card: "Your governance coverage: X%" | PR #255
-- [ ] Delegation page: detailed breakdown by action type
+- [x] Delegation page: coverage breakdown with gaps/alerts | `CoverageCard.tsx` + `DelegationPage.tsx`
 - [x] Gap/conflict alerts | PR #255
+
+### 1e: Citizen-Delegated UX Polish
+
+- [x] Hub card dead-end links fixed (engagement, governance health) | PR #257
+- [x] DRep score tier context + narratives on delegation page | PR #257
+- [x] WCAG interactive-inside-interactive fix in inbox | PR #257
+- [x] CLS flash fix on Hub home page | PR #257
+- [x] 5-second test heading on proposals browse | PR #257
+- [x] CDN cache headers on proposals API | PR #257
+
+### Remaining
+
+- [ ] `/you/inbox` notifications — page exists but notification pipeline not wired to real events
+- [ ] Dual-role sidebar expansion — currently shows single role, needs multi-role toggle for DRep+SPO users
 
 ### Flywheels activated: Accountability, Content/Discourse
 
@@ -265,3 +279,9 @@ Tracked in `docs/strategy/world-class-packages.md`. 13 QPs targeting 84->95+ sco
 | Date                       | Engine | Citizen | Workspace | Engagement | Data | UX  | Perf | Testing | API | Completeness | Total  |
 | -------------------------- | ------ | ------- | --------- | ---------- | ---- | --- | ---- | ------- | --- | ------------ | ------ |
 | _Run `/audit` to populate_ | --     | --      | --        | --         | --   | --  | --   | --      | --  | --           | --/100 |
+
+### Experience Audit History
+
+| Date       | Persona-State     | E1 JTBD | E2 Friction | E3 Intel | E4 Emotion | E5 Craft | E6 Vision | Total | PR   |
+| ---------- | ----------------- | ------- | ----------- | -------- | ---------- | -------- | --------- | ----- | ---- |
+| 2026-03-10 | citizen-delegated | 7/10    | 6/10        | 6/10     | 6/10       | 7/10     | 6/10      | 38/60 | #257 |
