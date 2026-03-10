@@ -8,19 +8,26 @@ export default function EngageLoading() {
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-5 w-96" />
       </div>
-      {/* Credibility banner */}
-      <Skeleton className="h-16 w-full rounded-xl" />
-      {/* Priority signals grid */}
-      <div className="space-y-4">
-        <Skeleton className="h-6 w-40" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-32 rounded-xl" />
-          ))}
+      {/* Engagement Hero */}
+      <div className="rounded-xl border border-border p-5 flex items-center gap-5">
+        <Skeleton className="h-[72px] w-[72px] rounded-full shrink-0" />
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-4 w-48" />
+          <Skeleton className="h-3 w-36" />
         </div>
       </div>
-      {/* Assembly section */}
-      <Skeleton className="h-64 w-full rounded-xl" />
+      {/* Epoch Recap */}
+      <Skeleton className="h-32 w-full rounded-xl" />
+      {/* Assembly */}
+      <Skeleton className="h-48 w-full rounded-xl" />
+      {/* Priority signals */}
+      <div className="space-y-4">
+        <Skeleton className="h-6 w-40" />
+        <Skeleton className="h-64 w-full rounded-xl" />
+      </div>
+      {/* Citizen Voice */}
+      <Skeleton className="h-48 w-full rounded-xl" />
     </div>
   );
 }

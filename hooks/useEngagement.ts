@@ -213,8 +213,16 @@ export function useEndorsements(entityType: string, entityId: string) {
 
 export type { CredibilityResult as CitizenCredibility } from '@/lib/citizenCredibility';
 
+export interface CredibilityWithLevel extends CredibilityResult {
+  engagementLevel?: {
+    level: string;
+    nextLevel: string | null;
+    progressToNext: number;
+  };
+}
+
 export function useCitizenCredibility() {
-  return useQuery<CredibilityResult>({
+  return useQuery<CredibilityWithLevel>({
     queryKey: ['citizen-credibility'],
     queryFn: () => fetchJsonWithAuth('/api/engagement/credibility'),
     staleTime: 5 * 60 * 1000,
