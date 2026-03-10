@@ -95,9 +95,12 @@ function VotesList({ votes }: { votes: VoteRecord[] }) {
             {v.proposalTitle || `Proposal ${v.proposalTxHash.slice(0, 8)}...`}
           </span>
           {v.hasRationale ? (
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+            <CheckCircle2
+              className="h-4 w-4 shrink-0 text-emerald-500"
+              aria-label="Rationale provided"
+            />
           ) : (
-            <AlertCircle className="h-4 w-4 shrink-0 text-amber-500" />
+            <AlertCircle className="h-4 w-4 shrink-0 text-amber-500" aria-label="No rationale" />
           )}
         </Link>
       ))}

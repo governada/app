@@ -110,6 +110,34 @@ export function WorkspaceDelegatorsPage() {
             )}
           </div>
 
+          {/* Empty state guidance */}
+          {currentCount === 0 && (
+            <div className="rounded-xl border border-border bg-muted/30 p-5 space-y-3">
+              <p className="text-sm font-medium text-foreground">
+                No delegators yet? Here&apos;s how to grow:
+              </p>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <span className="text-primary font-bold">1.</span>
+                  Complete your governance profile with a clear statement of principles
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary font-bold">2.</span>
+                  Vote consistently and add rationales explaining your reasoning
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary font-bold">3.</span>
+                  Share your DRep profile link on social media and community channels
+                </li>
+              </ul>
+              {isDRep && drepId && (
+                <Button asChild variant="outline" size="sm" className="mt-2">
+                  <Link href={`/drep/${encodeURIComponent(drepId)}`}>View Your Public Profile</Link>
+                </Button>
+              )}
+            </div>
+          )}
+
           {/* Recent changes */}
           {recentChanges.length > 0 && (
             <div className="space-y-2">

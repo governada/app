@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Trophy, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { ArrowLeft, Trophy, TrendingUp, TrendingDown, Minus, Lightbulb } from 'lucide-react';
 import { useSegment } from '@/components/providers/SegmentProvider';
 import { useDRepReportCard, useDashboardCompetitive } from '@/hooks/queries';
-import { computeTier } from '@/lib/scoring/tiers';
+import { computeTierProgress, type PillarBreakdown } from '@/lib/scoring/tiers';
+import { getScoreNarrative } from '@/lib/scoring/scoreNarratives';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -24,7 +25,7 @@ interface ScorePillar {
  * WorkspacePerformancePage — DRep score breakdown + competitive position.
  *
  * JTBD: "How can I improve my score and ranking?"
- * Score with pillar breakdown, competitive context.
+ * Score with pillar breakdown, tier progress, recommended action, competitive context.
  */
 export function WorkspacePerformancePage() {
   const { segment, drepId } = useSegment();
@@ -61,23 +62,35 @@ export function WorkspacePerformancePage() {
   const competitive = compRaw as Record<string, unknown> | undefined;
 
   const score = Math.round((report?.score as number) ?? 0);
-  const tier = (report?.tier as string) ?? computeTier(score);
   const trend = (report?.trend as number) ?? 0;
   const rank = (competitive?.rank as number) ?? 0;
   const totalDReps = (competitive?.totalDReps as number) ?? 0;
   const percentile = Math.round((competitive?.percentile as number) ?? 0);
 
-  // Build pillar breakdown from report card
-  const pillars: ScorePillar[] = [];
+  // Build pillar breakdown with V3 names
   const participation = (report?.participationRate as number) ?? 0;
   const rationaleRate = (report?.rationaleRate as number) ?? 0;
   const reliability = (report?.reliabilityScore as number) ?? (report?.reliability as number) ?? 0;
   const profileCompleteness = (report?.profileCompleteness as number) ?? 0;
 
-  pillars.push({ label: 'Participation', value: Math.round(participation), max: 100 });
-  pillars.push({ label: 'Rationale Rate', value: Math.round(rationaleRate), max: 100 });
-  pillars.push({ label: 'Reliability', value: Math.round(reliability * 100), max: 100 });
-  pillars.push({ label: 'Profile', value: Math.round(profileCompleteness * 100), max: 100 });
+  const pillars: ScorePillar[] = [
+    { label: 'Engagement Quality', value: Math.round(rationaleRate), max: 100 },
+    { label: 'Effective Participation', value: Math.round(participation), max: 100 },
+    { label: 'Reliability', value: Math.round(reliability * 100), max: 100 },
+    { label: 'Governance Identity', value: Math.round(profileCompleteness * 100), max: 100 },
+  ];
+
+  // Compute tier progress + recommended action
+  const pillarBreakdown: PillarBreakdown = {
+    engagementQuality: rationaleRate,
+    effectiveParticipation: participation,
+    reliability: reliability * 100,
+    governanceIdentity: profileCompleteness * 100,
+  };
+  const tierProgress = computeTierProgress(score, pillarBreakdown);
+
+  // Score narrative
+  const narrative = getScoreNarrative({ score, percentile });
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-6 space-y-6">
@@ -98,7 +111,7 @@ export function WorkspacePerformancePage() {
             <div className="flex items-center gap-2">
               <Trophy className="h-4 w-4 text-muted-foreground" />
               <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                {tier} Tier
+                {tierProgress.currentTier} Tier
               </span>
             </div>
             <p className="text-sm text-muted-foreground">
@@ -116,7 +129,39 @@ export function WorkspacePerformancePage() {
             </div>
           </div>
         </div>
+
+        {/* Score narrative */}
+        <p className="text-sm text-muted-foreground">{narrative}</p>
+
+        {/* Tier progress bar */}
+        {tierProgress.nextTier && tierProgress.pointsToNext !== null && (
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>{tierProgress.currentTier}</span>
+              <span>
+                {tierProgress.pointsToNext} pts to {tierProgress.nextTier}
+              </span>
+            </div>
+            <div className="h-2 rounded-full bg-muted overflow-hidden">
+              <div
+                className="h-full rounded-full bg-primary transition-all"
+                style={{ width: `${tierProgress.percentWithinTier}%` }}
+              />
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Recommended action */}
+      {tierProgress.recommendedAction && (
+        <div className="flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
+          <Lightbulb className="h-5 w-5 shrink-0 text-primary mt-0.5" />
+          <div className="space-y-0.5">
+            <p className="text-sm font-medium text-foreground">Recommended Next Step</p>
+            <p className="text-sm text-muted-foreground">{tierProgress.recommendedAction}</p>
+          </div>
+        </div>
+      )}
 
       {/* Pillar breakdown */}
       <div className="space-y-3">

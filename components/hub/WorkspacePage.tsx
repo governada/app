@@ -98,7 +98,9 @@ function DRepWorkspace() {
 
   const urgentData = urgentRaw as Record<string, unknown> | undefined;
   const pendingProposals =
-    (urgentData?.pending as PendingProposal[]) ?? (urgentData?.urgent as PendingProposal[]) ?? [];
+    (urgentData?.pendingProposals as PendingProposal[]) ??
+    (urgentData?.proposals as PendingProposal[]) ??
+    [];
   const unexplainedVotes =
     (urgentData?.unexplainedVotes as { txHash: string; index: number; title: string }[]) ?? [];
 
@@ -160,6 +162,9 @@ function DRepWorkspace() {
 
       {/* Quick links */}
       <div className="flex flex-wrap gap-2">
+        <Button asChild variant="outline" size="sm">
+          <Link href="/governance/proposals">View All Proposals</Link>
+        </Button>
         <Button asChild variant="outline" size="sm">
           <Link href="/workspace/votes">Voting Record</Link>
         </Button>
