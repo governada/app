@@ -1,15 +1,19 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, Shield, Info } from 'lucide-react';
+import { ArrowRight, Info } from 'lucide-react';
+import { useWallet } from '@/utils/wallet';
 import { PrioritySignals } from '@/components/engagement/PrioritySignals';
 import { CitizenAssembly } from '@/components/engagement/CitizenAssembly';
 import { AssemblyHistory } from '@/components/engagement/AssemblyHistory';
+import { EngagementHero } from '@/components/engagement/EngagementHero';
+import { CitizenVoiceSection } from '@/components/engagement/CitizenVoiceSection';
 import { PageViewTracker } from '@/components/PageViewTracker';
 import { FirstVisitBanner } from '@/components/ui/FirstVisitBanner';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { usePriorityRankings, useCitizenCredibility } from '@/hooks/useEngagement';
+import { usePriorityRankings, useCitizenCredibility, useCitizenVoice } from '@/hooks/useEngagement';
+import { PRIORITY_LABEL_MAP } from '@/lib/engagement/labels';
 
 interface EngageClientProps {
   epoch: number;
@@ -17,9 +21,11 @@ interface EngageClientProps {
 
 export function EngageClient({ epoch }: EngageClientProps) {
   const previousEpoch = epoch - 1;
+  const { connected, address } = useWallet();
   const { data: currentRankings } = usePriorityRankings(epoch);
   const { data: previousRankings } = usePriorityRankings(previousEpoch);
   const { data: credibility } = useCitizenCredibility();
+  const { data: citizenVoice } = useCitizenVoice(connected ? address : null);
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
@@ -38,8 +44,8 @@ export function EngageClient({ epoch }: EngageClientProps) {
         message="This is your direct line to Cardano governance. Rank your priorities, react to proposals, and join citizen assemblies. Your signals are credibility-weighted so genuine participation is rewarded."
       />
 
-      {/* Credibility Tier Banner */}
-      {credibility && <CredibilityBanner tier={credibility.tier} weight={credibility.weight} />}
+      {/* Engagement Hero (replaces CredibilityBanner — authenticated only) */}
+      {credibility && <EngagementHero credibility={credibility} epoch={epoch} />}
 
       {/* Last Epoch Recap */}
       {currentRankings && currentRankings.rankings.length > 0 && (
@@ -56,57 +62,17 @@ export function EngageClient({ epoch }: EngageClientProps) {
         <PrioritySignals epoch={epoch} />
       </section>
 
+      {/* Citizen Voice — feedback loop (authenticated + has votes only) */}
+      {citizenVoice && (
+        <section>
+          <CitizenVoiceSection data={citizenVoice} />
+        </section>
+      )}
+
       {/* Past Assemblies */}
       <section>
         <AssemblyHistory />
       </section>
-    </div>
-  );
-}
-
-/* ── Credibility Banner ─────────────────────────────────────────── */
-
-function CredibilityBanner({ tier, weight }: { tier: string; weight: number }) {
-  const tierConfig = {
-    standard: {
-      label: 'Standard weight',
-      color: 'text-muted-foreground',
-      bg: 'bg-muted/50',
-      tip: 'Connect your wallet, delegate, and participate regularly to increase your signal weight.',
-    },
-    enhanced: {
-      label: 'Enhanced weight',
-      color: 'text-amber-600 dark:text-amber-400',
-      bg: 'bg-amber-500/5',
-      tip: 'Keep participating to reach full weight.',
-    },
-    full: {
-      label: 'Full weight',
-      color: 'text-emerald-600 dark:text-emerald-400',
-      bg: 'bg-emerald-500/5',
-      tip: 'Your signals carry maximum weight. Thank you for your sustained participation.',
-    },
-  };
-
-  const config = tierConfig[tier as keyof typeof tierConfig] ?? tierConfig.standard;
-
-  return (
-    <div
-      className={cn('rounded-lg border border-border px-4 py-3 flex items-center gap-3', config.bg)}
-    >
-      <Shield className={cn('h-4 w-4 shrink-0', config.color)} />
-      <div className="flex-1 min-w-0">
-        <p className="text-sm">
-          <span className={cn('font-medium', config.color)}>{config.label}</span>
-          <span className="text-muted-foreground ml-1.5 text-xs">
-            — signals are credibility-weighted to ensure quality
-          </span>
-        </p>
-        <p className="text-xs text-muted-foreground mt-0.5">{config.tip}</p>
-      </div>
-      <Badge variant="outline" className={cn('shrink-0 tabular-nums', config.color)}>
-        {Math.round(weight * 100)}%
-      </Badge>
     </div>
   );
 }
@@ -140,6 +106,11 @@ function EpochRecap({
       }
     }
   }
+
+  // Priority trend narrative
+  const top1 = current.rankings[0];
+  const previousTop1 = previous?.rankings.find((r) => r.rank === 1);
+  const isStreak = top1 && previousTop1 && top1.priority === previousTop1.priority;
 
   return (
     <section className="rounded-xl border border-border bg-card p-5 space-y-3">
@@ -188,6 +159,13 @@ function EpochRecap({
           );
         })}
       </div>
+
+      {isStreak && top1 && (
+        <p className="text-xs text-muted-foreground italic">
+          {PRIORITY_LABEL_MAP[top1.priority] ?? top1.priority.replace(/_/g, ' ')} has held the #1
+          spot for multiple epochs
+        </p>
+      )}
 
       <div className="pt-1">
         <Link
