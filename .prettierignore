@@ -8,3 +8,4 @@ public
 *.min.js
 *.min.css
 package-lock.json
+.claude/worktrees

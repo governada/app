@@ -14,8 +14,8 @@ export type CardType = 'action' | 'status' | 'engagement' | 'discovery';
 
 export type CardId =
   | 'representation'
-  | 'governance-health'
   | 'coverage'
+  | 'governance-health'
   | 'alert'
   | 'engagement'
   | 'drep-action-queue'
@@ -47,19 +47,19 @@ export const CARD_DEFINITIONS: Record<CardId, HubCardDefinition> = {
     conditional: false,
     href: '/delegation',
   },
-  'governance-health': {
-    id: 'governance-health',
-    type: 'status',
-    priority: 2,
-    conditional: false,
-    href: '/pulse',
-  },
   coverage: {
     id: 'coverage',
     type: 'status',
-    priority: 3,
+    priority: 2,
     conditional: false,
     href: '/delegation',
+  },
+  'governance-health': {
+    id: 'governance-health',
+    type: 'status',
+    priority: 3,
+    conditional: false,
+    href: '/pulse',
   },
   alert: {
     id: 'alert',
