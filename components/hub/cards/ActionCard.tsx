@@ -31,7 +31,7 @@ export function ActionCard() {
     return <HubCardError message="Couldn't load pending votes" onRetry={() => refetch()} />;
 
   const urgentData = urgentRaw as Record<string, unknown> | undefined;
-  const urgentProposals = (urgentData?.urgent as UrgentProposal[]) ?? [];
+  const urgentProposals = (urgentData?.proposals as UrgentProposal[]) ?? [];
   const pendingCount = (urgentData?.pendingCount as number) ?? urgentProposals.length;
   const unexplainedVotes = (urgentData?.unexplainedVotes as unknown[]) ?? [];
 
