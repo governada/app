@@ -566,6 +566,37 @@ export function useDRepOutcomeSummary(drepId: string | null | undefined) {
   });
 }
 
+export interface AlignmentDriftData {
+  hasDelegation: boolean;
+  drepId?: string;
+  drift: {
+    score: number;
+    classification: 'low' | 'moderate' | 'high';
+    dimensions: Array<{
+      dimension: string;
+      citizenValue: number;
+      drepValue: number;
+      delta: number;
+    }>;
+    worstDimension: string | null;
+  } | null;
+  alternatives: Array<{
+    drep_id: string;
+    match_score: number;
+    governance_score: number;
+  }>;
+  message?: string;
+}
+
+export function useAlignmentDrift(wallet: string | null | undefined) {
+  return useQuery<AlignmentDriftData>({
+    queryKey: ['alignment-drift', wallet],
+    queryFn: () => fetchJson(`/api/governance/drift?wallet=${encodeURIComponent(wallet!)}`),
+    enabled: !!wallet,
+    staleTime: 5 * 60_000,
+  });
+}
+
 export function useAccountInfo(stakeAddress: string | null | undefined) {
   return useQuery({
     queryKey: ['account-info', stakeAddress],

@@ -15,7 +15,8 @@ import {
   Info,
 } from 'lucide-react';
 import { useSegment } from '@/components/providers/SegmentProvider';
-import { useGovernanceHolder, useSPOSummary } from '@/hooks/queries';
+import { useGovernanceHolder, useSPOSummary, useAlignmentDrift } from '@/hooks/queries';
+import { FeatureGate } from '@/components/FeatureGate';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { computeTier } from '@/lib/scoring/tiers';
@@ -31,9 +32,19 @@ function TrendArrow({ value }: { value: number }) {
   return <Minus className="h-3.5 w-3.5 text-muted-foreground" />;
 }
 
+const DIMENSION_LABELS: Record<string, string> = {
+  treasury_conservative: 'Treasury (conservative)',
+  treasury_growth: 'Treasury (growth)',
+  decentralization: 'Decentralization',
+  security: 'Security',
+  innovation: 'Innovation',
+  transparency: 'Transparency',
+};
+
 function DRepSection() {
   const { stakeAddress, delegatedDrep } = useSegment();
   const { data: holderRaw, isLoading } = useGovernanceHolder(stakeAddress);
+  const { data: driftData } = useAlignmentDrift(delegatedDrep ? stakeAddress : null);
 
   if (isLoading) {
     return (
@@ -151,6 +162,57 @@ function DRepSection() {
           <p className="text-xs text-muted-foreground mt-0.5">Recent Votes</p>
         </div>
       </div>
+
+      {/* Alignment drift indicator */}
+      <FeatureGate flag="alignment_drift">
+        {driftData?.drift && driftData.drift.classification !== 'low' && (
+          <div
+            className={`rounded-xl p-3 space-y-2 ${
+              driftData.drift.classification === 'high'
+                ? 'border border-red-500/30 bg-red-500/5'
+                : 'border border-amber-500/30 bg-amber-500/5'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ShieldAlert
+                  className={`h-4 w-4 ${
+                    driftData.drift.classification === 'high' ? 'text-red-500' : 'text-amber-500'
+                  }`}
+                />
+                <span
+                  className={`text-sm font-medium ${
+                    driftData.drift.classification === 'high'
+                      ? 'text-red-600 dark:text-red-400'
+                      : 'text-amber-600 dark:text-amber-400'
+                  }`}
+                >
+                  {driftData.drift.classification === 'high'
+                    ? 'Values misaligned'
+                    : 'Values drifting'}
+                </span>
+              </div>
+              <span className="text-xs text-muted-foreground tabular-nums">
+                Drift: {driftData.drift.score}
+              </span>
+            </div>
+            {driftData.drift.worstDimension && (
+              <p className="text-xs text-muted-foreground">
+                Biggest gap:{' '}
+                {DIMENSION_LABELS[driftData.drift.worstDimension] ?? driftData.drift.worstDimension}
+              </p>
+            )}
+            {driftData.drift.classification === 'high' && (
+              <Link
+                href="/match"
+                className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+              >
+                Find a better match <ArrowRight className="h-3 w-3" />
+              </Link>
+            )}
+          </div>
+        )}
+      </FeatureGate>
 
       {/* Link to full profile */}
       <Link

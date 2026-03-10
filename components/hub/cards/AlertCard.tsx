@@ -1,8 +1,9 @@
 'use client';
 
-import { Bell, ShieldAlert, TrendingDown } from 'lucide-react';
+import { Bell, ShieldAlert, TrendingDown, GitCompareArrows } from 'lucide-react';
 import { useSegment } from '@/components/providers/SegmentProvider';
-import { useGovernanceHolder } from '@/hooks/queries';
+import { useGovernanceHolder, useAlignmentDrift } from '@/hooks/queries';
+import { useFeatureFlag } from '@/components/FeatureGate';
 import { HubCard, type CardUrgency } from './HubCard';
 
 /**
@@ -21,6 +22,8 @@ import { HubCard, type CardUrgency } from './HubCard';
 export function AlertCard() {
   const { stakeAddress, delegatedDrep } = useSegment();
   const { data: holderRaw } = useGovernanceHolder(stakeAddress);
+  const { data: driftData } = useAlignmentDrift(delegatedDrep ? stakeAddress : null);
+  const driftFlagEnabled = useFeatureFlag('alignment_drift');
 
   // No DRep = no alert (RepresentationCard handles the undelegated state)
   if (!delegatedDrep) return null;
@@ -35,7 +38,7 @@ export function AlertCard() {
   const participationRate = (drep.participationRate as number) ?? 100;
   const scoreChange = (drep.scoreChange as number) ?? 0;
 
-  // Check for alert conditions
+  // Check for alert conditions (priority order: inactive > drift > participation > score drop)
   type AlertInfo = { message: string; detail: string; urgency: CardUrgency; icon: typeof Bell };
 
   let alert: AlertInfo | null = null;
@@ -46,6 +49,14 @@ export function AlertCard() {
       detail: 'Consider finding a new representative to keep your ADA voiced.',
       urgency: 'critical',
       icon: ShieldAlert,
+    };
+  } else if (driftFlagEnabled && driftData?.drift?.classification === 'high') {
+    alert = {
+      message: 'Your values are misaligned with your DRep',
+      detail:
+        'Based on your governance profile, your priorities have diverged. Consider reviewing your delegation.',
+      urgency: 'warning',
+      icon: GitCompareArrows,
     };
   } else if (participationRate < 30) {
     alert = {
