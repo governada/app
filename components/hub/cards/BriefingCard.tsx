@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Newspaper, ChevronDown, ChevronUp } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
-import { HubCard, HubCardSkeleton } from './HubCard';
+import { HubCardSkeleton } from './HubCard';
 
 interface BriefingHeadline {
   title: string;
