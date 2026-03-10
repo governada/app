@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Trophy,
   CheckCircle2,
+  Info,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -134,8 +135,16 @@ export function HomeDRep() {
 
   if (!drepId) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-16 text-center">
-        <p className="text-muted-foreground">Loading your governance profile…</p>
+      <div className="mx-auto max-w-3xl px-4 py-16">
+        <div className="rounded-xl border border-border bg-muted/10 p-6 flex items-start gap-3">
+          <Info className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-foreground">Viewing as an unclaimed DRep</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Connect a wallet with an active DRep registration to see the full dashboard.
+            </p>
+          </div>
+        </div>
       </div>
     );
   }

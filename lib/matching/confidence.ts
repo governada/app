@@ -193,7 +193,7 @@ function getNextAction(
           type: 'vote_proposals',
           label: 'Vote on governance proposals',
           description: `Vote on ${TARGETS.pollVotes - inputs.pollVoteCount} more real proposals to strengthen your governance profile.`,
-          href: '/discover',
+          href: '/discover?tab=proposals',
           potentialGain: gap,
         });
         break;

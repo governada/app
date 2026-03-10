@@ -15,7 +15,7 @@ interface PendingData {
     txHash: string;
     index: number;
     title: string;
-    withdrawalAda: number;
+    withdrawalAda: number | null;
     pctOfBalance: number;
     treasuryTier: string | null;
     proposedEpoch: number;
@@ -95,7 +95,9 @@ export function TreasuryPendingProposals({}: Props) {
                 )}
               </div>
               <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                <span className="font-mono tabular-nums">{formatAda(p.withdrawalAda)} ADA</span>
+                <span className="font-mono tabular-nums">
+                  {p.withdrawalAda != null ? `${formatAda(p.withdrawalAda)} ADA` : 'Amount TBD'}
+                </span>
                 <span>{p.pctOfBalance.toFixed(2)}% of treasury</span>
                 <span>Epoch {p.proposedEpoch}</span>
               </div>

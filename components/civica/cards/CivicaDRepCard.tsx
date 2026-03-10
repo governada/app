@@ -177,7 +177,9 @@ export function CivicaDRepCard({ drep, rank, matchScore }: CivicaDRepCardProps) 
         <span>
           Participation{' '}
           <span className="font-medium text-foreground tabular-nums">
-            {drep.effectiveParticipation ? `${Math.round(drep.effectiveParticipation)}%` : '—'}
+            {drep.effectiveParticipation != null
+              ? `${Math.round(drep.effectiveParticipation)}%`
+              : '—'}
           </span>
         </span>
         <span className="flex items-center gap-0.5">

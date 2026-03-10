@@ -307,7 +307,7 @@ export function CivicaPulseOverview() {
 
       {/* ── Now tab ─────────────────────────────────────────── */}
       {activeTab === 'now' && (
-        <div role="tabpanel" id="pulse-tabpanel-now" aria-label="Now">
+        <div className="space-y-8" role="tabpanel" id="pulse-tabpanel-now" aria-label="Now">
           {/* ── GHI Hero ─────────────────────────────────────────── */}
           <GHIHero />
 

@@ -225,7 +225,7 @@ export interface PendingProposal {
   txHash: string;
   index: number;
   title: string;
-  withdrawalAda: number;
+  withdrawalAda: number | null;
   pctOfBalance: number;
   treasuryTier: string | null;
   proposedEpoch: number;
@@ -250,9 +250,11 @@ export async function getPendingTreasuryProposals(
     txHash: p.tx_hash,
     index: p.proposal_index,
     title: p.title || 'Untitled Treasury Proposal',
-    withdrawalAda: p.withdrawal_amount || 0,
+    withdrawalAda: p.withdrawal_amount ?? null,
     pctOfBalance:
-      currentBalanceAda > 0 ? ((p.withdrawal_amount || 0) / currentBalanceAda) * 100 : 0,
+      currentBalanceAda > 0 && p.withdrawal_amount
+        ? (p.withdrawal_amount / currentBalanceAda) * 100
+        : 0,
     treasuryTier: p.treasury_tier,
     proposedEpoch: p.proposed_epoch,
   }));
