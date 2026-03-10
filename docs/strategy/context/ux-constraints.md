@@ -182,7 +182,7 @@ This is NOT about hiding features behind a paywall. It's about matching informat
 
 ## How Agents Use This Document
 
-### During audits (`/audit-ux`, `/audit-feature`, `/audit-journeys`)
+### During audits (`/audit-experience`, `/audit-feature`)
 
 1. For each page evaluated, check the constraints above
 2. Score violations: if a page shows more than its budget allows, that's a finding

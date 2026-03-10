@@ -1,24 +1,29 @@
-Comprehensive audit of Governada by launching parallel experience audits, engine audit, and security audit. Each subagent gets its own full context window.
+Run a comprehensive audit of Governada by launching parallel subagents for experience audits, engine audit, and security audit.
 
 ## Scope
 
 Argument: `$ARGUMENTS`
 
-- If empty or "full": 3 experience audits (citizen-delegated, drep, spo) + engine + security + synthesis (max coverage)
-- If "experiences": Only experience audits (citizen-delegated, drep, spo)
-- If "systems": Only engine + security
-- If "quick": Abbreviated — 1 experience (citizen-delegated) + engine, no work plan
+- If empty or "full": 3 experience audits (citizen-delegated, drep, spo) + engine + security + synthesis
+- If "experiences": Only the 3 experience audits in parallel
+- If "systems": Only engine + security audits
+- If "quick": 1 experience audit (citizen-delegated) + engine, abbreviated synthesis, no work plan
 
----
+## Architecture
 
-## Phase 1: Launch Subagents
+Each audit runs as an independent subagent (Agent tool). Subagents write structured results to `.claude/audit-results/` files, keeping the orchestrator lean. A final synthesis agent reads all result files with a fresh context window.
 
-Launch ALL subagents simultaneously in a single message using the Agent tool. Do NOT use `isolation: "worktree"` — these are read-only audits.
+## Phase 1: Launch All Subagents
 
-### Subagent Return Format (shared by all)
+Launch ALL subagents simultaneously in a single message. Do NOT use `isolation: "worktree"` — read-only audits.
+
+Each subagent **writes full results to `.claude/audit-results/<name>.md`** and returns ONLY a 3-line summary to the orchestrator: audit name, average score, P0 gap count.
+
+### Result File Format (written by each subagent)
 
 ```
 AUDIT: [Name]
+DATE: [ISO date]
 DIMENSIONS:
 - [ID] [Name]: [score]/10 — [key evidence]
 AVERAGE: [avg]/10
@@ -29,107 +34,58 @@ P1_GAPS:
 TOP_RECOMMENDATIONS:
 1. [most impactful]  2. [second]  3. [third]
 RAW_EVIDENCE: [2-3 sentences of specific findings]
+ALREADY_STRONG:
+- [what's working well and should not change]
 ```
 
 ### Experience Audit Subagents (3 agents)
 
-For each, launch an Agent with the following prompt pattern:
+For each, launch an Agent with: "You are running an experience audit for [persona-state]. Read `.claude/commands/audit-experience.md` for full methodology. Read `docs/strategy/context/audit-rubric.md` for scoring anchors. Execute the full audit with all 5 sub-agents. **Write full results to `.claude/audit-results/experience-[persona].md`**. Return ONLY: audit name, average score, P0 count. Dimensions E1-E6."
 
-> You are running an experience audit for **[persona-state]**. Read `.claude/commands/audit-experience.md` for full methodology. Read `docs/strategy/context/audit-rubric.md` for scoring anchors. Execute the full audit with all 5 sub-agents. Return results in the structured format above. Dimensions are E1-E6.
-
-**1. Citizen Delegated**
-
-- Persona-state: `citizen-delegated`
-- Primary routes: `/`, `/delegation`, `/governance/*`, `/you/*`
-- This is the core persona — the experience most users will have.
-
-**2. DRep**
-
-- Persona-state: `drep`
-- Primary routes: `/workspace`, `/governance/proposals/*`, `/you/*`
-- This is the power user — validates the workspace and action queue experience.
-
-**3. SPO**
-
-- Persona-state: `spo`
-- Primary routes: `/workspace`, `/governance/pools/*`, `/you/*`
-- This validates the SPO layer and governance coverage from the operator perspective.
+1. **Citizen Delegated** — persona: `citizen-delegated`, routes: `/`, `/delegation`, `/governance/*`, `/you/*`
+2. **DRep** — persona: `drep`, routes: `/workspace`, `/governance/proposals/*`, `/you/*`
+3. **SPO** — persona: `spo`, routes: `/workspace`, `/governance/pools/*`, `/you/*`
 
 ### System Audit Subagents (2 agents)
 
-**4. Engine**
+4. **Engine** — command: `audit-engine.md`, key files: `lib/scoring/`, `lib/alignment/`, `lib/sync/`, dimensions N1-N6. **Write to `.claude/audit-results/engine.md`**.
+5. **Security** — command: `audit-security.md`, key files: `lib/nonce.ts`, `middleware.ts`, `lib/api/`, dimensions SEC1-SEC5. **Write to `.claude/audit-results/security.md`**.
 
-```
-Read `.claude/commands/audit-engine.md` for methodology. Execute the full audit. Return results in the structured format above. Dimensions are N1-N6.
-```
+## Phase 2: Synthesis (Separate Subagent)
 
-Key files: `lib/scoring/`, `lib/alignment/`, `lib/sync/`, `lib/ghi/`, `lib/matching/`
-
-**5. Security**
-
-```
-Read `.claude/commands/audit-security.md` for methodology. Execute the full audit. Return results in the structured format above. Dimensions are SEC1-SEC5.
-```
-
-Key files: `lib/nonce.ts`, `middleware.ts`, `lib/api/`, `lib/supabaseAuth.ts`, `lib/adminAuth.ts`
-
----
-
-## Phase 2: Synthesis (After All Subagents Return)
+**Do NOT synthesize in the orchestrator.** Launch a synthesis subagent with fresh context: "Read ALL files in `.claude/audit-results/`. Produce the unified report below. Write final report to `.claude/audit-results/synthesis.md`."
 
 ### 2.1 Unified Experience Dashboard
 
-| Audit             | Dimensions | Scores          | Average |
-| ----------------- | ---------- | --------------- | ------- |
-| Citizen Delegated | E1-E6      | [from subagent] | [avg]   |
-| DRep              | E1-E6      | [from subagent] | [avg]   |
-| SPO               | E1-E6      | [from subagent] | [avg]   |
-| Engine            | N1-N6      | [from subagent] | [avg]   |
-| Security          | SEC1-SEC5  | [from subagent] | [avg]   |
-|                   |            | **COMPOSITE**   | [avg]   |
+| Audit             | Dimensions | Scores        | Average |
+| ----------------- | ---------- | ------------- | ------- |
+| Citizen Delegated | E1-E6      | [scores]      | [avg]   |
+| DRep              | E1-E6      | [scores]      | [avg]   |
+| SPO               | E1-E6      | [scores]      | [avg]   |
+| Engine            | N1-N6      | [scores]      | [avg]   |
+| Security          | SEC1-SEC5  | [scores]      | [avg]   |
+|                   |            | **COMPOSITE** | [avg]   |
 
 ### 2.2 Cross-Experience Analysis
 
-This is the primary value-add of the unified audit. Individual audits can't see patterns across personas and systems — that's what this command uniquely provides.
-
-- **Systemic issues**: Are there problems that appear across 2+ persona experiences? If so, these are systemic — not persona-specific. Elevate priority.
-- **Intelligence leverage gaps**: Does the engine audit reveal capabilities that aren't surfaced in the experience audits? These are missed opportunities where backend intelligence exists but the frontend doesn't expose it.
-- **Root cause tracing**: Do experience friction points trace back to engine/data issues? Map frontend symptoms to backend root causes.
-- **Flywheel health**: Which of the 5 flywheels (Accountability, Engagement, Content/Discourse, Viral/Identity, Integration/Distribution) are being activated by the current experiences? Which are stalled?
+- **Systemic issues**: Problems found across 2+ experience audits
+- **Intelligence leverage gaps**: Engine capabilities not surfaced in experiences
+- **Root cause tracing**: Experience friction → engine/data root cause
+- **Flywheel health**: Which flywheels are active, which are stalled
 
 ### 2.3 Unified Priority Stack
 
-Merge ALL gaps from ALL audits into a single prioritized list:
-
-- **P0 — Blockers**: Security critical + systemic experience failures. Must fix immediately.
-- **P1 — This Sprint**: High-impact gaps reinforced by cross-experience analysis. Items found by 2+ audits get priority boost.
-- **P2 — Next Sprint**: Important improvements that don't block progress but measurably improve quality.
-- **P3 — Backlog**: Polish, deferred features, nice-to-haves.
-
-For each item, note which audit(s) surfaced it.
+P0 (blockers) → P1 (this sprint) → P2 (next sprint) → P3 (backlog). Note source audit(s).
 
 ### 2.4 Work Plan
 
-Read `docs/strategy/context/work-plan-template.md` for the chunk format.
-
-Convert the priority stack into executable chunks:
-
-1. Group related findings into coherent PRs
-2. Identify parallel opportunities — chunks touching different files/domains can run as simultaneous agents
-3. Flag decision points where the user must weigh in
-4. Sequence: infrastructure before consumers, foundation before polish
-
-Present the work plan and ask: **"Which chunks should I start? I can run multiple agents in parallel on independent chunks."**
-
----
+Read `docs/strategy/context/work-plan-template.md`. Convert to executable chunks. Ask: "Which chunks should I start?"
 
 ## Rules
 
-- **Launch all subagents in a SINGLE message** to maximize parallelism. Never launch sequentially.
-- **Each subagent operates at full depth.** The point of subagents is to avoid depth tradeoffs. Never tell a subagent to abbreviate.
-- **Cross-experience analysis is the primary value-add.** Individual audits can't see cross-persona patterns — that's what this command uniquely provides.
-- **For "quick" mode**: Skip DRep and SPO experience audits, skip security, no work plan. Just scorecard + P0s from citizen-delegated + engine.
-- **For "experiences" mode**: Skip engine and security. Full synthesis on experience audits only.
-- **For "systems" mode**: Skip experience audits. Full synthesis on engine + security only.
-- **If a subagent fails or returns incomplete results**, note it in the synthesis and proceed with what you have.
-- **Be brutally honest in the synthesis.** The unified view should surface hard truths that individual audits might soften.
+- Launch all subagents in a SINGLE message for parallelism
+- Subagents write full results to files, return only brief summaries to orchestrator
+- Synthesis runs as a SEPARATE subagent with fresh context — reads result files
+- Cross-experience analysis is the primary value-add
+- For "quick": 1 experience + engine only, no work plan
+- Be brutally honest in synthesis
