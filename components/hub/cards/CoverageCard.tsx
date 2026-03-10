@@ -95,6 +95,9 @@ export function CoverageCard() {
                 Governance Coverage
               </span>
             </div>
+            <p className="text-xs text-muted-foreground">
+              How much of governance your delegates can vote on
+            </p>
             <p className="text-base font-semibold text-foreground">
               <span className={bandColor}>{verdict}</span>
             </p>

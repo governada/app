@@ -17,6 +17,7 @@ export type CardId =
   | 'coverage'
   | 'governance-health'
   | 'alert'
+  | 'briefing'
   | 'engagement'
   | 'drep-action-queue'
   | 'drep-delegators'
@@ -67,6 +68,13 @@ export const CARD_DEFINITIONS: Record<CardId, HubCardDefinition> = {
     priority: 1,
     conditional: true,
     href: '/delegation',
+  },
+  briefing: {
+    id: 'briefing',
+    type: 'status',
+    priority: 4,
+    conditional: true,
+    href: '/governance/briefing',
   },
   engagement: {
     id: 'engagement',
@@ -135,7 +143,7 @@ export const CARD_DEFINITIONS: Record<CardId, HubCardDefinition> = {
 /** Which cards each persona sees, in render order (action > status > engagement > discovery) */
 export const PERSONA_CARDS: Record<UserSegment, CardId[]> = {
   anonymous: ['discovery-match', 'discovery-explore'],
-  citizen: ['alert', 'representation', 'coverage', 'governance-health', 'engagement'],
+  citizen: ['alert', 'representation', 'coverage', 'governance-health', 'briefing', 'engagement'],
   drep: [
     'drep-action-queue',
     'drep-delegators',

@@ -12,7 +12,6 @@ import { CommitteeDiscovery } from '@/components/CommitteeDiscovery';
 import { ProposalsBrowse } from './ProposalsBrowse';
 import { DiscoverHero } from './DiscoverHero';
 import { FirstVisitBanner } from '@/components/ui/FirstVisitBanner';
-import type { EnrichedDRep } from '@/lib/koios';
 
 type TabId = 'dreps' | 'spos' | 'proposals' | 'committee' | 'rankings';
 
@@ -45,7 +44,6 @@ interface Tab {
 }
 
 interface CivicaDiscoverProps {
-  dreps: EnrichedDRep[];
   totalAvailable: number;
   proposalCount: number;
   ccMemberCount?: number;
@@ -53,7 +51,6 @@ interface CivicaDiscoverProps {
 }
 
 export function CivicaDiscover({
-  dreps,
   totalAvailable,
   proposalCount,
   ccMemberCount,
@@ -191,9 +188,7 @@ export function CivicaDiscover({
           id={`tabpanel-${activeTab}`}
           aria-labelledby={`tab-${activeTab}`}
         >
-          {activeTab === 'dreps' && (
-            <CivicaDRepBrowse dreps={dreps} totalAvailable={totalAvailable} />
-          )}
+          {activeTab === 'dreps' && <CivicaDRepBrowse />}
           {activeTab === 'spos' && <CivicaSPOBrowse />}
           {activeTab === 'proposals' && <ProposalsBrowse />}
           {activeTab === 'committee' && (

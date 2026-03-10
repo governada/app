@@ -33,6 +33,7 @@ export function HubCard({ href, urgency = 'default', className, children, label 
       aria-label={label}
       className={cn(
         'group block min-h-[6.5rem] rounded-2xl border p-4 sm:p-5 transition-colors hover:border-primary/40',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
         URGENCY_STYLES[urgency],
         className,
       )}

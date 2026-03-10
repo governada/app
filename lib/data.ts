@@ -186,7 +186,8 @@ export async function getAllDReps(): Promise<{
       .from('dreps')
       .select('*')
       .order('score', { ascending: false })
-      .range(0, 999);
+      .range(0, 999)
+      .abortSignal(AbortSignal.timeout(10_000));
 
     if (supabaseError) {
       logger.error('[Data] Supabase query failed', { error: supabaseError.message });
@@ -199,7 +200,8 @@ export async function getAllDReps(): Promise<{
         .from('dreps')
         .select('*')
         .order('score', { ascending: false })
-        .range(1000, 1999);
+        .range(1000, 1999)
+        .abortSignal(AbortSignal.timeout(10_000));
       if (page2?.length) rows = [...rows, ...page2];
     }
 
@@ -600,7 +602,8 @@ export async function getAllProposalsWithVoteSummary(): Promise<ProposalWithVote
     const { data: proposals, error: pError } = await supabase
       .from('proposals')
       .select('*')
-      .order('block_time', { ascending: false });
+      .order('block_time', { ascending: false })
+      .abortSignal(AbortSignal.timeout(10_000));
 
     if (pError || !proposals) {
       logger.warn('[Data] getAllProposals query failed', { error: pError?.message });

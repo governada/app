@@ -18,16 +18,12 @@ import { useSegment } from '@/components/providers/SegmentProvider';
 import { useGovernanceHolder, useSPOSummary } from '@/hooks/queries';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { computeTier, type TierName } from '@/lib/scoring/tiers';
-
-const TIER_NARRATIVES: Record<TierName, string> = {
-  Emerging: 'Early-stage representative',
-  Bronze: 'Developing governance track record',
-  Silver: 'Solid governance participation',
-  Gold: 'Strong governance track record',
-  Diamond: 'Exceptional governance quality',
-  Legendary: 'Elite governance standard',
-};
+import { computeTier } from '@/lib/scoring/tiers';
+import {
+  getScoreNarrative,
+  getParticipationNarrative,
+  getRationaleNarrative,
+} from '@/lib/scoring/scoreNarratives';
 
 function TrendArrow({ value }: { value: number }) {
   if (value > 0) return <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />;
@@ -121,9 +117,15 @@ function DRepSection() {
               {scoreChange >= 0 ? '+' : ''}
               {scoreChange.toFixed(1)}
             </span>
+            {scoreChange > 0 && (
+              <span className="text-muted-foreground/70">&middot; improving</span>
+            )}
+            {scoreChange < 0 && (
+              <span className="text-muted-foreground/70">&middot; declining</span>
+            )}
           </div>
           <p className="text-xs text-muted-foreground/70 mt-1">
-            {TIER_NARRATIVES[computeTier(drepScore)]}
+            {getScoreNarrative({ score: drepScore, percentile: 50 })}
           </p>
         </div>
       </div>
@@ -133,10 +135,16 @@ function DRepSection() {
         <div className="rounded-xl bg-muted/50 p-3 text-center">
           <p className="text-xl font-bold tabular-nums text-foreground">{participationRate}%</p>
           <p className="text-xs text-muted-foreground mt-0.5">Participation</p>
+          <p className="text-[10px] text-muted-foreground/70 mt-0.5 leading-tight">
+            {getParticipationNarrative(participationRate)}
+          </p>
         </div>
         <div className="rounded-xl bg-muted/50 p-3 text-center">
           <p className="text-xl font-bold tabular-nums text-foreground">{rationaleRate}%</p>
           <p className="text-xs text-muted-foreground mt-0.5">Rationale Rate</p>
+          <p className="text-[10px] text-muted-foreground/70 mt-0.5 leading-tight">
+            {getRationaleNarrative(rationaleRate)}
+          </p>
         </div>
         <div className="rounded-xl bg-muted/50 p-3 text-center">
           <p className="text-xl font-bold tabular-nums text-foreground">{recentVotes}</p>

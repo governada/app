@@ -1,5 +1,4 @@
 import { Metadata } from 'next';
-import { getAllDReps } from '@/lib/data';
 import { PageViewTracker } from '@/components/PageViewTracker';
 import { CivicaDiscover } from '@/components/civica/discover/CivicaDiscover';
 import { createClient } from '@/lib/supabase';
@@ -22,6 +21,16 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = 'force-dynamic';
+
+async function getDRepCount(): Promise<number> {
+  try {
+    const supabase = createClient();
+    const { count } = await supabase.from('dreps').select('*', { count: 'exact', head: true });
+    return count ?? 0;
+  } catch {
+    return 0;
+  }
+}
 
 async function getProposalCount(): Promise<number> {
   try {
@@ -57,8 +66,8 @@ async function getSPOCount(): Promise<number> {
 }
 
 export default async function DiscoverPage() {
-  const [{ allDReps, totalAvailable }, proposalCount, ccMemberCount, spoCount] = await Promise.all([
-    getAllDReps(),
+  const [totalAvailable, proposalCount, ccMemberCount, spoCount] = await Promise.all([
+    getDRepCount(),
     getProposalCount(),
     getCCMemberCount(),
     getSPOCount(),
@@ -68,7 +77,6 @@ export default async function DiscoverPage() {
     <div className="container mx-auto px-4 sm:px-6 py-6">
       <PageViewTracker event="discover_page_viewed" />
       <CivicaDiscover
-        dreps={allDReps}
         totalAvailable={totalAvailable}
         proposalCount={proposalCount}
         ccMemberCount={ccMemberCount}

@@ -3,7 +3,7 @@
 /* eslint-disable react-hooks/set-state-in-effect -- async/external state sync in useEffect is standard React pattern */
 import { useEffect, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { X, Trophy } from 'lucide-react';
 import { ShareActions } from '@/components/ShareActions';
 import { CITIZEN_MILESTONES } from '@/lib/citizenMilestones';
@@ -43,6 +43,7 @@ export function CitizenMilestoneCelebration({
 }: CitizenMilestoneCelebrationProps) {
   const [celebrating, setCelebrating] = useState<string | null>(null);
   const firedRef = useRef(false);
+  const shouldReduceMotion = useReducedMotion();
 
   useEffect(() => {
     const seen = getSeenKeys();
@@ -56,14 +57,16 @@ export function CitizenMilestoneCelebration({
     if (!celebrating || firedRef.current) return;
     firedRef.current = true;
     playMilestoneChime();
-    confetti({
-      particleCount: 80,
-      spread: 70,
-      origin: { x: 0.5, y: 0.6 },
-      colors: ['#22c55e', '#6366f1', '#f59e0b', '#3b82f6'],
-    });
+    if (!shouldReduceMotion) {
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { x: 0.5, y: 0.6 },
+        colors: ['#22c55e', '#6366f1', '#f59e0b', '#3b82f6'],
+      });
+    }
     posthog?.capture('citizen_milestone_celebrated', { milestone_key: celebrating });
-  }, [celebrating]);
+  }, [celebrating, shouldReduceMotion]);
 
   const handleDismiss = () => {
     if (celebrating) markSeen(celebrating);

@@ -17,6 +17,7 @@ import {
   SPODelegatorsCard,
 } from './cards/StatusCard';
 import { CoverageCard } from './cards/CoverageCard';
+import { BriefingCard } from './cards/BriefingCard';
 
 /** Map card IDs to their React components */
 const CARD_COMPONENTS: Record<CardId, React.ComponentType> = {
@@ -30,6 +31,7 @@ const CARD_COMPONENTS: Record<CardId, React.ComponentType> = {
   'drep-score': DRepScoreCard,
   'spo-governance-score': SPOGovernanceScoreCard,
   'spo-delegators': SPODelegatorsCard,
+  briefing: BriefingCard,
   'discovery-match': DiscoveryMatchCard,
   'discovery-explore': DiscoveryExploreCard,
 };

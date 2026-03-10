@@ -1,7 +1,6 @@
 export const dynamic = 'force-dynamic';
 
 import type { Metadata } from 'next';
-import { getAllDReps } from '@/lib/data';
 import { PageViewTracker } from '@/components/PageViewTracker';
 import { CivicaDRepBrowse } from '@/components/civica/discover/CivicaDRepBrowse';
 
@@ -22,13 +21,11 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RepresentativesPage() {
-  const { allDReps, totalAvailable } = await getAllDReps();
-
+export default function RepresentativesPage() {
   return (
     <div className="container mx-auto px-4 sm:px-6 py-6">
       <PageViewTracker event="governance_representatives_viewed" />
-      <CivicaDRepBrowse dreps={allDReps} totalAvailable={totalAvailable} />
+      <CivicaDRepBrowse />
     </div>
   );
 }

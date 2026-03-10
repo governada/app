@@ -5,6 +5,7 @@ import { useSegment } from '@/components/providers/SegmentProvider';
 import { useGovernanceHolder } from '@/hooks/queries';
 import { HubCard, HubCardSkeleton, HubCardError, type CardUrgency } from './HubCard';
 import { computeTier } from '@/lib/scoring/tiers';
+import { getScoreNarrative } from '@/lib/scoring/scoreNarratives';
 
 /**
  * RepresentationCard — THE citizen's primary card.
@@ -93,7 +94,8 @@ export function RepresentationCard() {
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           <span className="flex items-center gap-1">
             <User className="h-3.5 w-3.5" />
-            Score: {Math.round(drepScore)} &middot; {computeTier(drepScore)}
+            Score: {Math.round(drepScore)} &middot; {computeTier(drepScore)} &mdash;{' '}
+            {getScoreNarrative({ score: drepScore, percentile: 50 })}
           </span>
           <span className="text-muted-foreground/60">&middot;</span>
           <span>{delegatedPool ? 'Pool + DRep delegated' : 'Partial coverage'}</span>

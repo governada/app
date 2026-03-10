@@ -4,12 +4,14 @@ import { useState, useMemo, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { RotateCcw, LayoutGrid, TableProperties, ChevronRight, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CivicaDRepCard } from '@/components/civica/cards/CivicaDRepCard';
 import { computeTier } from '@/lib/scoring/tiers';
 import { TIER_SCORE_COLOR, TIER_BADGE_BG, tierKey } from '@/components/civica/cards/tierStyles';
 import { useBatchEndorsementCounts } from '@/hooks/useEngagement';
+import { useDReps } from '@/hooks/queries';
 import type { EnrichedDRep } from '@/lib/koios';
 import { AnonymousNudge } from '@/components/civica/shared/AnonymousNudge';
 import { DiscoverFilterBar } from './DiscoverFilterBar';
@@ -128,10 +130,7 @@ const DEFAULT_FILTERS: FilterState = {
   alignment: 'all',
 };
 
-interface CivicaDRepBrowseProps {
-  dreps: EnrichedDRep[];
-  totalAvailable?: number;
-}
+type CivicaDRepBrowseProps = Record<string, never>;
 
 function DRepTableRow({ drep, rank }: { drep: EnrichedDRep; rank: number }) {
   const score = drep.drepScore ?? 0;
@@ -170,7 +169,11 @@ function DRepTableRow({ drep, rank }: { drep: EnrichedDRep; rank: number }) {
 
 type SortMode = 'score' | 'match';
 
-export function CivicaDRepBrowse({ dreps }: CivicaDRepBrowseProps) {
+export function CivicaDRepBrowse(_props: CivicaDRepBrowseProps) {
+  const { data: rawData, isLoading } = useDReps();
+  const drepsData = rawData as { allDReps?: EnrichedDRep[] } | undefined;
+  const dreps: EnrichedDRep[] = useMemo(() => drepsData?.allDReps ?? [], [drepsData]);
+
   const searchParams = useSearchParams();
   const contentRef = useRef<HTMLDivElement>(null);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
@@ -297,6 +300,16 @@ export function CivicaDRepBrowse({ dreps }: CivicaDRepBrowseProps) {
   const pageEntityIds = useMemo(() => pageItems.map((d) => d.drepId), [pageItems]);
   const { data: endorsementData } = useBatchEndorsementCounts('drep', pageEntityIds);
   const endorsementCounts = endorsementData?.counts ?? {};
+
+  if (isLoading) {
+    return (
+      <div className="space-y-2 pt-4">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <Skeleton key={i} className="h-14 rounded-lg" />
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div ref={contentRef} className="space-y-4 pt-4">

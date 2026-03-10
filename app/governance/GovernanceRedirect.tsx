@@ -16,24 +16,24 @@ import { Skeleton } from '@/components/ui/skeleton';
  * - SPO                  -> /governance/pools       (their peer view)
  * - CC                   -> /governance/proposals  (committee context)
  */
+function getDestination(segment: string, delegatedDrep: string | null): string {
+  if (segment === 'citizen' && !delegatedDrep) return '/governance/representatives';
+  if (segment === 'spo') return '/governance/pools';
+  return '/governance/proposals';
+}
+
 export function GovernanceRedirect() {
   const router = useRouter();
   const { segment, delegatedDrep, isLoading } = useSegment();
 
   useEffect(() => {
     if (isLoading) return;
-
-    let destination = '/governance/proposals';
-
-    if (segment === 'citizen' && !delegatedDrep) {
-      destination = '/governance/representatives';
-    } else if (segment === 'spo') {
-      destination = '/governance/pools';
-    }
-    // anonymous, drep, cc, and delegated citizen all go to /governance/proposals
-
-    router.replace(destination);
+    router.replace(getDestination(segment, delegatedDrep));
   }, [segment, delegatedDrep, isLoading, router]);
+
+  // When segment is already resolved (cached in sessionStorage), isLoading is false
+  // on the first render — skip showing the skeleton to avoid a flash.
+  if (!isLoading) return null;
 
   return (
     <div className="container mx-auto px-4 sm:px-6 py-6">
