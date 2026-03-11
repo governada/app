@@ -173,7 +173,9 @@ export function ProposalCard({
         style={{ animationDelay: `${animationDelay}ms` }}
       >
         {TypeIcon && <TypeIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50" />}
-        <span className="flex-1 text-sm text-muted-foreground/80 truncate min-w-0">{title}</span>
+        <span className="flex-1 text-sm text-muted-foreground/80 group-hover:text-foreground/90 truncate min-w-0 transition-colors duration-200">
+          {title}
+        </span>
         {hasTreasury && (
           <span className="text-[11px] tabular-nums text-muted-foreground/60 shrink-0">
             ₳{fmtAda(p.withdrawalAmount!)}
@@ -207,13 +209,13 @@ export function ProposalCard({
     <Link
       href={href}
       className={cn(
-        'group block rounded-xl border bg-card transition-all duration-200 animate-in fade-in fill-mode-backwards overflow-hidden',
-        'hover:shadow-lg hover:-translate-y-0.5 hover:border-border',
+        'group block rounded-xl border bg-card/80 transition-all duration-200 animate-in fade-in fill-mode-backwards overflow-hidden',
+        'hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/30',
         isUrgent
           ? 'border-amber-500/40 shadow-[0_0_20px_rgba(245,158,11,0.06)]'
           : needsVote
             ? 'border-violet-500/30 shadow-[0_0_16px_rgba(139,92,246,0.05)]'
-            : 'border-border/60',
+            : 'border-border',
       )}
       style={{ animationDelay: `${animationDelay}ms` }}
     >
