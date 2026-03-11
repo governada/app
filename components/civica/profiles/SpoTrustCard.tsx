@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Shield, Clock } from 'lucide-react';
+import { Shield } from 'lucide-react';
 import { useSegment } from '@/components/providers/SegmentProvider';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { VotingPatternBar } from '@/components/civica/shared/VotingPatternBar';
