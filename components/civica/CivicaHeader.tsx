@@ -110,8 +110,10 @@ export function CivicaHeader() {
     <header
       className={cn(
         'sticky top-0 z-50 hidden sm:block transition-[background-color,border-color,backdrop-filter] duration-300',
-        headerTransparent
-          ? 'bg-transparent'
+        isHome
+          ? headerTransparent
+            ? 'bg-transparent'
+            : 'border-b border-border/30 bg-background/30 backdrop-blur-xl'
           : 'border-b border-border/50 bg-background/80 backdrop-blur-xl',
       )}
     >

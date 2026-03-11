@@ -7,10 +7,10 @@ import { cn } from '@/lib/utils';
 export type CardUrgency = 'default' | 'success' | 'warning' | 'critical';
 
 const URGENCY_STYLES: Record<CardUrgency, string> = {
-  default: 'border-border bg-card',
-  success: 'border-emerald-500/30 bg-emerald-500/5',
-  warning: 'border-amber-500/30 bg-amber-500/5',
-  critical: 'border-red-500/30 bg-red-500/5',
+  default: 'border-border/60 bg-card/60 backdrop-blur-sm',
+  success: 'border-emerald-500/30 bg-emerald-500/8 backdrop-blur-sm',
+  warning: 'border-amber-500/30 bg-amber-500/8 backdrop-blur-sm',
+  critical: 'border-red-500/30 bg-red-500/8 backdrop-blur-sm',
 };
 
 interface HubCardProps {
@@ -25,6 +25,7 @@ interface HubCardProps {
 /**
  * Base Hub card wrapper.
  * Every card is a link — no dead-end cards. Conclusion + link, not a dashboard widget.
+ * Glassmorphic style lets the globe background show through.
  */
 export function HubCard({ href, urgency = 'default', className, children, label }: HubCardProps) {
   return (
@@ -32,7 +33,8 @@ export function HubCard({ href, urgency = 'default', className, children, label 
       href={href}
       aria-label={label}
       className={cn(
-        'group block min-h-[6.5rem] rounded-2xl border p-4 sm:p-5 transition-colors hover:border-primary/40',
+        'group block min-h-[6.5rem] rounded-2xl border p-4 sm:p-5',
+        'transition-all duration-200 hover:border-primary/60 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
         URGENCY_STYLES[urgency],
         className,
@@ -41,7 +43,7 @@ export function HubCard({ href, urgency = 'default', className, children, label 
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">{children}</div>
         <ArrowRight
-          className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
+          className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground opacity-40 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0.5"
           aria-hidden
         />
       </div>
@@ -52,7 +54,7 @@ export function HubCard({ href, urgency = 'default', className, children, label 
 /** Skeleton placeholder for a loading Hub card */
 export function HubCardSkeleton() {
   return (
-    <div className="min-h-[6.5rem] rounded-2xl border border-border bg-card p-4 sm:p-5 animate-pulse">
+    <div className="min-h-[6.5rem] rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm p-4 sm:p-5 animate-pulse">
       <div className="space-y-3">
         <div className="h-4 w-24 rounded bg-muted" />
         <div className="h-6 w-48 rounded bg-muted" />
@@ -65,7 +67,7 @@ export function HubCardSkeleton() {
 /** Error state for a Hub card — shows a brief message with retry affordance */
 export function HubCardError({ message, onRetry }: { message?: string; onRetry?: () => void }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
+    <div className="rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm p-4 sm:p-5">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">{message ?? 'Unable to load'}</p>
         {onRetry && (
