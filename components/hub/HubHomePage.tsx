@@ -57,7 +57,7 @@ export function HubHomePage({ pulseData }: HubHomePageProps) {
     return (
       <div className="relative min-h-[calc(100vh-4rem)]">
         {/* Subtle globe behind cards */}
-        <div className="fixed inset-0 top-14 pointer-events-none opacity-15">
+        <div className="fixed inset-0 top-14 pointer-events-none opacity-25">
           <ConstellationScene className="w-full h-full" interactive={false} />
         </div>
         <div className="relative z-10">
@@ -73,9 +73,9 @@ export function HubHomePage({ pulseData }: HubHomePageProps) {
         {/* Ambient aurora gradient */}
         <div className="fixed inset-0 top-14 pointer-events-none overflow-hidden">
           <div className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] animate-[spin_120s_linear_infinite]">
-            <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-primary/8 blur-[120px]" />
-            <div className="absolute top-1/3 right-1/4 w-80 h-80 rounded-full bg-emerald-500/6 blur-[100px]" />
-            <div className="absolute bottom-1/4 left-1/3 w-72 h-72 rounded-full bg-violet-500/5 blur-[100px]" />
+            <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-primary/20 blur-[120px]" />
+            <div className="absolute top-1/3 right-1/4 w-80 h-80 rounded-full bg-emerald-500/15 blur-[100px]" />
+            <div className="absolute bottom-1/4 left-1/3 w-72 h-72 rounded-full bg-violet-500/12 blur-[100px]" />
           </div>
         </div>
         <div className="relative z-10">
