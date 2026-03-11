@@ -1,6 +1,6 @@
 'use client';
 
-import { Shield } from 'lucide-react';
+import { Shield, CheckCircle2, XCircle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useSegment } from '@/components/providers/SegmentProvider';
 import { HubCard, HubCardSkeleton, HubCardError, type CardUrgency } from './HubCard';
@@ -18,10 +18,11 @@ interface CoverageData {
 }
 
 /**
- * CoverageCard — One-liner governance coverage summary for the Hub.
+ * CoverageCard — Governance coverage as a two-item checklist.
  *
  * JTBD: "How complete is my governance representation?"
- * Shows coverage percentage with color-coded bar + one-line gap summary.
+ * Two checkmarks: DRep delegation + Pool delegation.
+ * Much clearer than a percentage (which only has 4 possible values).
  * Links to /delegation for the full breakdown.
  */
 export function CoverageCard() {
@@ -47,78 +48,86 @@ export function CoverageCard() {
   if (isError) return <HubCardError message="Couldn't load coverage" onRetry={() => refetch()} />;
   if (!data) return null;
 
-  const { coveragePct, gaps } = data;
+  const { hasDrep, hasPool, drepIsActive, poolIsGovActive } = data;
 
-  // Determine urgency and verdict
-  let verdict: string;
+  const drepOk = hasDrep && drepIsActive;
+  const poolOk = hasPool && poolIsGovActive;
+  const bothCovered = drepOk && poolOk;
+  const noneCovered = !drepOk && !poolOk;
+
   let urgency: CardUrgency;
-  if (coveragePct === 100) {
+  let verdict: string;
+  if (bothCovered) {
+    urgency = 'default';
     verdict = 'Full coverage';
-    urgency = 'success';
-  } else if (coveragePct >= 50) {
-    verdict = 'Partial coverage';
-    urgency = 'warning';
-  } else {
-    verdict = 'Low coverage';
+  } else if (noneCovered) {
     urgency = 'critical';
+    verdict = 'No coverage';
+  } else {
+    urgency = 'warning';
+    verdict = 'Partial coverage';
   }
-
-  const bandColor =
-    urgency === 'success'
-      ? 'text-emerald-600 dark:text-emerald-400'
-      : urgency === 'warning'
-        ? 'text-amber-600 dark:text-amber-400'
-        : 'text-red-600 dark:text-red-400';
-
-  const barColor =
-    urgency === 'success'
-      ? 'bg-emerald-500'
-      : urgency === 'warning'
-        ? 'bg-amber-500'
-        : 'bg-red-500';
-
-  // Build one-line gap summary
-  const gapSummary = gaps.length > 0 ? `Missing: ${gaps.join(', ').toLowerCase()}` : null;
 
   return (
     <HubCard
       href="/delegation"
-      urgency={urgency === 'success' ? 'default' : urgency}
-      label={`Governance coverage: ${verdict}, ${coveragePct}%`}
+      urgency={urgency === 'default' ? 'default' : urgency}
+      label={`Governance coverage: ${verdict}`}
     >
-      <div className="space-y-2">
-        <div className="flex items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Shield className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                Governance Coverage
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              How much of governance your delegates can vote on
-            </p>
-            <p className="text-base font-semibold text-foreground">
-              <span className={bandColor}>{verdict}</span>
-            </p>
-          </div>
-          <div className="text-right">
-            <span className={`text-2xl font-bold tabular-nums ${bandColor}`}>{coveragePct}</span>
-            <p className="text-xs text-muted-foreground">%</p>
-          </div>
+      <div className="space-y-2.5">
+        <div className="flex items-center gap-2">
+          <Shield className="h-4 w-4 text-muted-foreground" />
+          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Governance Coverage
+          </span>
         </div>
 
-        {/* Mini progress bar */}
-        <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all ${barColor}`}
-            style={{ width: `${coveragePct}%` }}
+        {/* Two-item checklist */}
+        <div className="space-y-1.5">
+          <CoverageCheckItem
+            label="DRep Delegation"
+            sublabel={
+              drepOk
+                ? 'Covers 5 of 7 action types'
+                : 'No active DRep — 5 action types unrepresented'
+            }
+            checked={drepOk}
+          />
+          <CoverageCheckItem
+            label="Pool Delegation"
+            sublabel={
+              poolOk
+                ? 'Covers 2 of 7 action types'
+                : 'No governance-active pool — 2 action types unrepresented'
+            }
+            checked={poolOk}
           />
         </div>
-
-        {/* One-line gap summary */}
-        {gapSummary && <p className="text-xs text-muted-foreground truncate">{gapSummary}</p>}
       </div>
     </HubCard>
+  );
+}
+
+function CoverageCheckItem({
+  label,
+  sublabel,
+  checked,
+}: {
+  label: string;
+  sublabel: string;
+  checked: boolean;
+}) {
+  return (
+    <div className="flex items-start gap-2">
+      {checked ? (
+        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+      ) : (
+        <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500/70" />
+      )}
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-foreground">{label}</p>
+        <p className="text-xs text-muted-foreground truncate">{sublabel}</p>
+      </div>
+    </div>
   );
 }

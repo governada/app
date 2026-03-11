@@ -88,6 +88,11 @@ export function CivicaHeader() {
   const { resolvedTheme, setTheme } = useTheme();
   const [walletModalOpen, setWalletModalOpen] = useState(false);
   const [pickerPreset, setPickerPreset] = useState<SegmentPreset | null>(null);
+  // For dual-role 2-step picker: stash the first pick while the second picker is open
+  const [pendingDualOverride, setPendingDualOverride] = useState<{
+    preset: SegmentPreset;
+    firstId: string;
+  } | null>(null);
 
   const isHome = pathname === '/';
 
@@ -360,7 +365,8 @@ export function CivicaHeader() {
           )}
         </div>
       </div>
-      {isAdmin && pickerPreset?.requiresPicker && (
+      {/* Primary picker (or first step of dual-role picker) */}
+      {isAdmin && pickerPreset?.requiresPicker && !pendingDualOverride && (
         <AdminViewAsPicker
           mode={pickerPreset.requiresPicker}
           open={!!pickerPreset}
@@ -370,6 +376,14 @@ export function CivicaHeader() {
           onSelect={(id) => {
             const p = pickerPreset;
             if (!p) return;
+
+            // If this preset has a secondary picker, stash the first pick and proceed to step 2
+            if (p.secondaryPicker) {
+              setPendingDualOverride({ preset: p, firstId: id });
+              return;
+            }
+
+            // Single-step picker — apply immediately
             if (p.segment === 'citizen' && p.requiresPicker === 'drep') {
               setOverride({ segment: 'citizen', delegatedDrep: id });
             } else if (p.segment === 'drep') {
@@ -382,6 +396,46 @@ export function CivicaHeader() {
           }}
           titleOverride={pickerPreset.pickerTitle}
           descriptionOverride={pickerPreset.pickerDescription}
+        />
+      )}
+      {/* Secondary picker (step 2 of dual-role picker) */}
+      {isAdmin && pendingDualOverride && (
+        <AdminViewAsPicker
+          mode={pendingDualOverride.preset.secondaryPicker!}
+          open={true}
+          onOpenChange={(open) => {
+            if (!open) {
+              // User cancelled step 2 — discard both picks
+              setPendingDualOverride(null);
+              setPickerPreset(null);
+            }
+          }}
+          onSelect={(secondaryId) => {
+            const { preset, firstId } = pendingDualOverride;
+
+            // Build the override with both IDs based on picker types
+            const overridePayload: Parameters<typeof setOverride>[0] = {
+              segment: preset.segment,
+            };
+            // Map first picker result
+            if (preset.requiresPicker === 'drep') {
+              overridePayload.drepId = firstId;
+            } else if (preset.requiresPicker === 'spo') {
+              overridePayload.poolId = firstId;
+            }
+            // Map second picker result
+            if (preset.secondaryPicker === 'spo') {
+              overridePayload.poolId = secondaryId;
+            } else if (preset.secondaryPicker === 'drep') {
+              overridePayload.drepId = secondaryId;
+            }
+
+            setOverride(overridePayload);
+            setPendingDualOverride(null);
+            setPickerPreset(null);
+          }}
+          titleOverride={pendingDualOverride.preset.secondaryPickerTitle}
+          descriptionOverride={pendingDualOverride.preset.secondaryPickerDescription}
         />
       )}
     </header>

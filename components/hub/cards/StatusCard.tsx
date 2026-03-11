@@ -26,13 +26,38 @@ export function DRepDelegatorsCard() {
   const { drepId } = useSegment();
   const { data: trendsRaw, isLoading, isError, refetch } = useDashboardDelegatorTrends(drepId);
 
+  // Unclaimed DRep — no drepId to query
+  if (!drepId) {
+    return (
+      <HubCard href="/workspace" urgency="default" label="Claim your profile to see delegator data">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Delegators
+            </span>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Claim your DRep profile to see who delegates to you
+          </p>
+        </div>
+      </HubCard>
+    );
+  }
+
   if (isLoading) return <HubCardSkeleton />;
   if (isError)
     return <HubCardError message="Couldn't load delegator data" onRetry={() => refetch()} />;
 
   const trends = trendsRaw as Record<string, unknown> | undefined;
-  const currentCount = (trends?.currentCount as number) ?? 0;
-  const change = (trends?.change as number) ?? 0;
+  const snapshots = (trends?.snapshots as { delegatorCount?: number }[]) ?? [];
+  const currentCount =
+    (trends?.currentDelegators as number) ?? snapshots.at(-1)?.delegatorCount ?? 0;
+  // Compute epoch-over-epoch change from the last two snapshots
+  const change =
+    snapshots.length >= 2
+      ? (snapshots.at(-1)?.delegatorCount ?? 0) - (snapshots.at(-2)?.delegatorCount ?? 0)
+      : 0;
 
   return (
     <HubCard
@@ -73,6 +98,25 @@ export function DRepDelegatorsCard() {
 export function DRepScoreCard() {
   const { drepId } = useSegment();
   const { data: reportRaw, isLoading, isError, refetch } = useDRepReportCard(drepId);
+
+  // Unclaimed DRep — no drepId to query
+  if (!drepId) {
+    return (
+      <HubCard href="/workspace" urgency="default" label="Claim your profile to see your score">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <Trophy className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Your Score
+            </span>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Claim your DRep profile to see your governance score
+          </p>
+        </div>
+      </HubCard>
+    );
+  }
 
   if (isLoading) return <HubCardSkeleton />;
   if (isError) return <HubCardError message="Couldn't load your score" onRetry={() => refetch()} />;

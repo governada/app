@@ -32,9 +32,14 @@ export interface SegmentPreset {
   };
   /** If true, opens a picker dialog instead of applying immediately */
   requiresPicker?: 'drep' | 'spo' | 'cc';
+  /** After the first picker completes, open a second picker for this type */
+  secondaryPicker?: 'drep' | 'spo' | 'cc';
   /** Picker title/description overrides */
   pickerTitle?: string;
   pickerDescription?: string;
+  /** Secondary picker title/description overrides */
+  secondaryPickerTitle?: string;
+  secondaryPickerDescription?: string;
 }
 
 export const SEGMENT_PRESETS: SegmentPreset[] = [
@@ -112,13 +117,16 @@ export const SEGMENT_PRESETS: SegmentPreset[] = [
   // -- DRep + SPO (dual role) --
   {
     id: 'drep-spo-dual',
-    label: 'DRep + SPO (dual role)',
+    label: 'DRep + SPO (dual role)...',
     description: 'User is both a DRep and an SPO — shows combined workspace',
     segment: 'drep',
-    overrides: {
-      drepId: 'drep1_placeholder_dual',
-      poolId: 'pool1_placeholder_dual',
-    },
+    overrides: {},
+    requiresPicker: 'drep',
+    secondaryPicker: 'spo',
+    pickerTitle: 'Step 1: Pick a DRep',
+    pickerDescription: 'Select the DRep identity for the dual-role simulation.',
+    secondaryPickerTitle: 'Step 2: Pick a Stake Pool',
+    secondaryPickerDescription: 'Select the SPO identity for the dual-role simulation.',
   },
 
   // -- CC Member --
