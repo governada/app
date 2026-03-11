@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import {
   Search,
@@ -67,7 +67,6 @@ const SEGMENT_ICONS: Record<UserSegment, typeof User> = {
 };
 
 export function CivicaHeader() {
-  const pathname = usePathname();
   const router = useRouter();
   const { connected, disconnect, logout, isAuthenticated } = useWallet();
   const {
@@ -94,8 +93,6 @@ export function CivicaHeader() {
     firstId: string;
   } | null>(null);
 
-  const isHome = pathname === '/';
-
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 32);
@@ -104,17 +101,15 @@ export function CivicaHeader() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const headerTransparent = isHome && !scrolled;
+  const headerTransparent = !scrolled;
 
   return (
     <header
       className={cn(
         'sticky top-0 z-50 hidden sm:block transition-[background-color,border-color,backdrop-filter] duration-300',
-        isHome
-          ? headerTransparent
-            ? 'bg-transparent'
-            : 'border-b border-border/30 bg-background/30 backdrop-blur-xl'
-          : 'border-b border-border/50 bg-background/80 backdrop-blur-xl',
+        headerTransparent
+          ? 'bg-transparent'
+          : 'border-b border-border/30 bg-background/30 backdrop-blur-xl',
       )}
     >
       <div className="mx-auto max-w-7xl flex items-center justify-between h-14 px-6">

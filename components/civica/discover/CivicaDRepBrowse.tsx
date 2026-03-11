@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useMemo, useRef, useCallback, useDeferredValue, useEffect } from 'react';
+import { useState, useMemo, useRef, useCallback, useDeferredValue } from 'react';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -44,11 +43,6 @@ import {
   getIdentityColor,
 } from '@/lib/drepIdentity';
 import type { AlignmentScores } from '@/lib/drepIdentity';
-
-const ConstellationScene = dynamic(
-  () => import('@/components/ConstellationScene').then((m) => ({ default: m.ConstellationScene })),
-  { ssr: false },
-);
 
 const TIER_CHIPS: { value: string; label: string; tooltip?: string }[] = [
   { value: 'All', label: 'All' },
@@ -299,7 +293,6 @@ export function CivicaDRepBrowse(_props: CivicaDRepBrowseProps) {
 
   const searchParams = useSearchParams();
   const contentRef = useRef<HTMLDivElement>(null);
-  const heroRef = useRef<HTMLDivElement>(null);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [page, setPage] = useState(0);
   const [viewMode, setViewMode] = useState<ViewMode>(getInitialViewMode);
@@ -312,23 +305,6 @@ export function CivicaDRepBrowse(_props: CivicaDRepBrowseProps) {
     if (typeof window === 'undefined') return 'score';
     return sortParam === 'match' && loadMatchProfile() ? 'match' : 'score';
   });
-
-  // Globe fade on scroll
-  const [globeOpacity, setGlobeOpacity] = useState(1);
-  useEffect(() => {
-    const hero = heroRef.current;
-    if (!hero) return;
-    const handleScroll = () => {
-      const rect = hero.getBoundingClientRect();
-      const heroBottom = rect.bottom;
-      // Fade out as hero scrolls off screen
-      const opacity = Math.max(0, Math.min(1, heroBottom / (rect.height || 1)));
-      setGlobeOpacity(opacity);
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   const deferredSearch = useDeferredValue(filters.search);
   const pageSize = viewMode === 'table' ? TABLE_PAGE_SIZE : CARD_PAGE_SIZE;
@@ -465,33 +441,17 @@ export function CivicaDRepBrowse(_props: CivicaDRepBrowseProps) {
 
   return (
     <div ref={contentRef} className="space-y-3">
-      {/* ── Hero: header + globe background ──────────────────────── */}
-      <div ref={heroRef} className="relative overflow-hidden -mx-4 sm:-mx-6 px-4 sm:px-6 pt-2 pb-3">
-        {/* Globe background — decorative, non-interactive */}
-        <div
-          className="absolute inset-0 pointer-events-none select-none"
-          style={{ opacity: globeOpacity, transition: 'opacity 150ms ease-out' }}
-          aria-hidden="true"
-        >
-          <div className="absolute inset-0 w-full h-full [&_canvas]:!w-full [&_canvas]:!h-full">
-            <ConstellationScene interactive={false} className="w-full h-full opacity-[0.12]" />
-          </div>
-          {/* Bottom gradient fade */}
-          <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-background to-transparent" />
+      {/* ── Page header ──────────────────────────────────────────── */}
+      <div className="-mx-4 sm:-mx-6 px-4 sm:px-6 pt-2 pb-3">
+        <div className="flex items-baseline justify-between gap-4">
+          <h1 className="text-xl font-bold tracking-tight">Find Your Representative</h1>
+          <span className="text-xs text-muted-foreground shrink-0">
+            {dreps.length > 0 ? `${dreps.length} DReps registered` : ''}
+          </span>
         </div>
-
-        {/* Heading content over globe */}
-        <div className="relative z-10">
-          <div className="flex items-baseline justify-between gap-4">
-            <h1 className="text-xl font-bold tracking-tight">Find Your Representative</h1>
-            <span className="text-xs text-muted-foreground shrink-0">
-              {dreps.length > 0 ? `${dreps.length} DReps registered` : ''}
-            </span>
-          </div>
-          <p className="text-sm text-muted-foreground mt-1 max-w-xl">
-            Every DRep has a unique governance philosophy. Find someone who represents your values.
-          </p>
-        </div>
+        <p className="text-sm text-muted-foreground mt-1 max-w-xl">
+          Every DRep has a unique governance philosophy. Find someone who represents your values.
+        </p>
       </div>
 
       <AnonymousNudge variant="representatives" />
