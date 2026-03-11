@@ -139,15 +139,13 @@ export function ProposalsBrowse() {
   }
 
   return (
-    <div ref={contentRef} className="space-y-4 pt-4">
+    <div ref={contentRef} className="space-y-3">
       {/* Page heading */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">What&apos;s Being Decided</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {delegatedDrepId
-            ? 'Active governance proposals and how your representative voted'
-            : 'Active governance proposals in Cardano'}
-        </p>
+      <div className="flex items-baseline justify-between gap-4">
+        <h1 className="text-xl font-bold tracking-tight">What&apos;s Being Decided</h1>
+        <span className="text-xs text-muted-foreground shrink-0">
+          {delegatedDrepId ? "Your DRep's votes shown" : ''}
+        </span>
       </div>
 
       <AnonymousNudge variant="proposals" />
@@ -162,31 +160,33 @@ export function ProposalsBrowse() {
         </div>
       )}
 
-      <DiscoverFilterBar
-        search={search}
-        onSearchChange={setFilter(setSearch)}
-        searchPlaceholder="Search proposals…"
-        chipGroups={[
-          {
-            label: 'Status',
-            value: statusFilter,
-            options: STATUS_FILTERS.map((s) => ({ value: s, label: s })),
-            onChange: setFilter(setStatusFilter),
-          },
-          {
-            label: 'Type',
-            value: typeFilter,
-            options: TYPE_FILTERS,
-            onChange: setFilter(setTypeFilter),
-          },
-        ]}
-        resultCount={filtered.length}
-        totalCount={proposals.length}
-        entityLabel="proposals"
-        isFiltered={!isDefault}
-        onReset={resetFilters}
-        pageInfo={totalPages > 1 ? `Page ${page + 1} / ${totalPages}` : undefined}
-      />
+      <div className="sticky top-14 lg:top-0 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2 bg-background/90 backdrop-blur-xl border-b border-border/30">
+        <DiscoverFilterBar
+          search={search}
+          onSearchChange={setFilter(setSearch)}
+          searchPlaceholder="Search proposals…"
+          chipGroups={[
+            {
+              label: 'Status',
+              value: statusFilter,
+              options: STATUS_FILTERS.map((s) => ({ value: s, label: s })),
+              onChange: setFilter(setStatusFilter),
+            },
+            {
+              label: 'Type',
+              value: typeFilter,
+              options: TYPE_FILTERS,
+              onChange: setFilter(setTypeFilter),
+            },
+          ]}
+          resultCount={filtered.length}
+          totalCount={proposals.length}
+          entityLabel="proposals"
+          isFiltered={!isDefault}
+          onReset={resetFilters}
+          pageInfo={totalPages > 1 ? `Page ${page + 1} / ${totalPages}` : undefined}
+        />
+      </div>
 
       {/* Needs attention banner */}
       {needsAttentionCount > 0 &&

@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 
 export default function ProposalsPage() {
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-6">
+    <div className="container mx-auto px-4 sm:px-6 py-3 sm:py-4">
       <PageViewTracker event="governance_proposals_viewed" />
       <ProposalsBrowse />
     </div>
