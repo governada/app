@@ -25,7 +25,7 @@ const CitizenEndorsements = nextDynamic(
 const DetailedAnalysisGate = nextDynamic(
   () =>
     import('@/components/civica/shared/DetailedAnalysisGate').then((m) => m.DetailedAnalysisGate),
-  { ssr: false },
+  { loading: () => <div className="h-16 animate-pulse bg-muted rounded-xl" /> },
 );
 const SpoTrustCard = nextDynamic(
   () => import('@/components/civica/profiles/SpoTrustCard').then((m) => m.SpoTrustCard),
@@ -44,7 +44,7 @@ const InterBodyDynamicsCard = nextDynamic(
 );
 const SpoProfileTabsV2 = nextDynamic(
   () => import('@/components/civica/profiles/SpoProfileTabsV2').then((m) => m.SpoProfileTabsV2),
-  { ssr: false },
+  { loading: () => <div className="h-32 animate-pulse bg-muted rounded-xl" /> },
 );
 
 import { SpoProfileHero } from '@/components/civica/profiles/SpoProfileHero';
