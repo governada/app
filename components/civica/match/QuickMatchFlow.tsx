@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   Shield,
   Rocket,
@@ -686,7 +687,10 @@ function ResultsScreen({
   spoResults: QuickMatchResponse;
   onRestart: () => void;
 }) {
-  const [activeTab, setActiveTab] = useState<MatchType>('drep');
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState<MatchType>(() =>
+    searchParams.get('tab') === 'spo' ? 'spo' : 'drep',
+  );
   const activeResults = activeTab === 'drep' ? drepResults : spoResults;
   const hasMatches = activeResults.matches.length > 0;
 

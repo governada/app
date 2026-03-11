@@ -144,21 +144,8 @@ export const CARD_DEFINITIONS: Record<CardId, HubCardDefinition> = {
 export const PERSONA_CARDS: Record<UserSegment, CardId[]> = {
   anonymous: ['discovery-match', 'discovery-explore'],
   citizen: ['alert', 'representation', 'coverage', 'governance-health', 'briefing', 'engagement'],
-  drep: [
-    'drep-action-queue',
-    'drep-delegators',
-    'drep-score',
-    'coverage',
-    'representation',
-    'governance-health',
-  ],
-  spo: [
-    'spo-governance-score',
-    'spo-delegators',
-    'coverage',
-    'representation',
-    'governance-health',
-  ],
+  drep: ['drep-action-queue', 'drep-delegators', 'drep-score', 'governance-health'],
+  spo: ['spo-governance-score', 'spo-delegators', 'governance-health'],
   cc: ['representation', 'coverage', 'governance-health', 'engagement'],
 };
 

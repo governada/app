@@ -1,6 +1,6 @@
 'use client';
 
-import { ShieldCheck, ShieldAlert, ShieldX, User } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, ShieldX, User, Ban, ThumbsDown } from 'lucide-react';
 import { useSegment } from '@/components/providers/SegmentProvider';
 import { useGovernanceHolder } from '@/hooks/queries';
 import { HubCard, HubCardSkeleton, HubCardError, type CardUrgency } from './HubCard';
@@ -13,14 +13,15 @@ import { getScoreNarrative } from '@/lib/scoring/scoreNarratives';
  * Shows at a glance: Do I have a DRep? Are they active? Are they voting?
  * Also shows pool governance status if they have a staking pool.
  *
+ * Handles special delegation states: abstain and no-confidence.
+ *
  * JTBD: "Is my ADA represented in governance?"
  * One conclusion + one link to /delegation for details.
  */
 export function RepresentationCard() {
   const { stakeAddress, delegatedDrep, delegatedPool } = useSegment();
-  const { data: holderRaw, isLoading, isError, refetch } = useGovernanceHolder(stakeAddress);
 
-  // Undelegated citizens don't need holder data — show CTA immediately
+  // Undelegated citizens — show CTA immediately
   if (!delegatedDrep) {
     return (
       <HubCard href="/match" urgency="warning" label="You have no DRep. Find a representative.">
@@ -42,18 +43,82 @@ export function RepresentationCard() {
     );
   }
 
+  // Always-abstain delegation — valid choice, no data fetch needed
+  if (delegatedDrep === 'drep_always_abstain') {
+    return (
+      <HubCard href="/delegation" urgency="default" label="Delegation: Always Abstain">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <Ban className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Always Abstain
+            </span>
+          </div>
+          <p className="text-base font-semibold text-foreground">
+            Your ADA abstains on all governance actions
+          </p>
+          <p className="text-sm text-muted-foreground">
+            You&apos;ve chosen to abstain rather than delegate. Your ADA still counts toward quorum.
+          </p>
+        </div>
+      </HubCard>
+    );
+  }
+
+  // No-confidence delegation — valid choice, no data fetch needed
+  if (delegatedDrep === 'drep_always_no_confidence') {
+    return (
+      <HubCard href="/delegation" urgency="warning" label="Delegation: No Confidence">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <ThumbsDown className="h-4 w-4 text-amber-500" />
+            <span className="text-xs font-medium uppercase tracking-wider text-amber-600 dark:text-amber-400">
+              No Confidence
+            </span>
+          </div>
+          <p className="text-base font-semibold text-foreground">
+            Your ADA signals no confidence in governance
+          </p>
+          <p className="text-sm text-muted-foreground">
+            This is an active signal. Your vote weight counts against all proposals.
+          </p>
+        </div>
+      </HubCard>
+    );
+  }
+
+  // Normal delegation — fetch holder data
+  return (
+    <DelegatedRepresentationCard
+      stakeAddress={stakeAddress}
+      delegatedDrep={delegatedDrep}
+      delegatedPool={delegatedPool}
+    />
+  );
+}
+
+function DelegatedRepresentationCard({
+  stakeAddress,
+
+  delegatedPool,
+}: {
+  stakeAddress: string | null;
+  delegatedDrep: string;
+  delegatedPool: string | null;
+}) {
+  const { data: holderRaw, isLoading, isError, refetch } = useGovernanceHolder(stakeAddress);
+
   if (isLoading) return <HubCardSkeleton />;
   if (isError)
     return <HubCardError message="Couldn't load delegation status" onRetry={() => refetch()} />;
 
-  // Delegated state — build the summary
   const holder = holderRaw as Record<string, unknown> | undefined;
   const drep = holder?.drep as Record<string, unknown> | undefined;
   const drepName = (drep?.name as string) || (drep?.ticker as string) || 'Your DRep';
   const drepScore = (drep?.score as number) ?? 0;
   const isActive = (drep?.isActive as boolean) ?? true;
   const participationRate = (drep?.participationRate as number) ?? 0;
-  // Determine urgency
+
   let urgency: CardUrgency = 'success';
   let statusLabel = 'Represented';
   let statusMessage = `${drepName} is active`;

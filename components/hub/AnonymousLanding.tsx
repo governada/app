@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Users, Server } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ConstellationScene } from '@/components/ConstellationScene';
 
@@ -20,8 +20,8 @@ interface AnonymousLandingProps {
  * Radical simplicity. One value prop, one visual, two CTAs.
  * Passes the 5-second test: "This helps me participate in Cardano governance."
  *
- * No governance jargon. No multi-tab navigation. No data visualizations.
- * Social proof via live stats framed as liveness, not raw metrics.
+ * Two-path entry: Find your DRep OR Find your Stake Pool.
+ * Both go to Quick Match with the appropriate tab pre-selected.
  */
 export function AnonymousLanding({ pulseData }: AnonymousLandingProps) {
   return (
@@ -38,35 +38,36 @@ export function AnonymousLanding({ pulseData }: AnonymousLandingProps) {
         {/* Hero content */}
         <div className="relative z-10 text-center max-w-lg px-6 sm:pt-14">
           <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white leading-tight hero-text-shadow">
-            Cardano has a government.
+            Your ADA gives you
             <br />
-            <span className="text-primary">Know who represents you.</span>
+            <span className="text-primary">a voice.</span>
           </h1>
           <p
-            className="mt-4 text-sm sm:text-base text-white/80 max-w-md mx-auto leading-relaxed"
+            className="mt-4 text-lg sm:text-xl text-white/90 font-medium"
             style={{
               textShadow: '0 2px 12px rgba(0,0,0,0.8), 0 0 40px rgba(0,0,0,0.5)',
             }}
           >
-            Your ADA gives you a voice in how Cardano evolves. Find someone who represents your
-            values, or explore governance yourself.
+            It takes 60 seconds to use it.
           </p>
         </div>
       </section>
 
       {/* CTAs + social proof */}
       <section className="relative z-10 mx-auto w-full max-w-lg px-6 -mt-8 pb-12 space-y-6">
-        {/* Two CTAs */}
+        {/* Two CTAs — DRep and Stake Pool paths */}
         <div className="flex flex-col sm:flex-row gap-3">
           <Button asChild size="lg" className="flex-1 gap-2">
-            <Link href="/match">
+            <Link href="/match?tab=drep">
+              <Users className="h-4 w-4" />
               Find Your Representative
               <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
           <Button asChild variant="outline" size="lg" className="flex-1 gap-2">
-            <Link href="/governance">
-              Explore Governance
+            <Link href="/match?tab=spo">
+              <Server className="h-4 w-4" />
+              Find Your Stake Pool
               <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
