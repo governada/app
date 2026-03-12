@@ -107,7 +107,7 @@ function ConsequenceCard({ proposal }: { proposal: ConsequenceProposal }) {
 
   return (
     <Link
-      href={`/governance/proposals/${proposal.txHash}/${proposal.index}`}
+      href={`/proposal/${proposal.txHash}/${proposal.index}`}
       className="group block rounded-xl border border-white/[0.06] bg-white/[0.03] p-3.5 transition-all hover:border-primary/40 hover:bg-white/[0.05]"
     >
       <div className="flex items-start justify-between gap-2">
@@ -185,7 +185,7 @@ function ActiveProposalCard({ proposal }: { proposal: ConsequenceProposal }) {
 
   return (
     <Link
-      href={`/governance/proposals/${proposal.txHash}/${proposal.index}`}
+      href={`/proposal/${proposal.txHash}/${proposal.index}`}
       className="group block rounded-xl border border-white/[0.06] bg-white/[0.03] p-3.5 transition-all hover:border-primary/40 hover:bg-white/[0.05]"
     >
       <div className="flex items-start justify-between gap-2">

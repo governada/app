@@ -45,13 +45,47 @@ export function WorkspaceDelegatorsPage() {
     );
   }
 
+  // DRep API returns { snapshots: [{epoch, votingPowerAda, delegatorCount}], currentDelegators }
+  // SPO API returns { current: number, history: [{epoch_no, governance_score}] }
   const trends = trendsRaw as Record<string, unknown> | undefined;
-  const currentCount = (trends?.currentCount as number) ?? (trends?.totalDelegators as number) ?? 0;
-  const change = (trends?.change as number) ?? 0;
-  const votingPower = (trends?.votingPower as number) ?? 0;
-  const votingPowerAda = votingPower > 0 ? votingPower / 1_000_000 : 0;
-  const recentChanges =
-    (trends?.recentChanges as { type: string; epoch: number; count: number }[]) ?? [];
+
+  let currentCount = 0;
+  let votingPowerAda = 0;
+  const recentChanges: { type: string; epoch: number; count: number }[] = [];
+
+  if (isDRep && trends) {
+    const snapshots =
+      (trends.snapshots as {
+        epoch: number;
+        votingPowerAda: number;
+        delegatorCount: number | null;
+      }[]) ?? [];
+    // Use currentDelegators from dreps.info, fall back to latest snapshot
+    const latestSnapshot = snapshots[snapshots.length - 1];
+    currentCount = (trends.currentDelegators as number) ?? latestSnapshot?.delegatorCount ?? 0;
+    votingPowerAda = latestSnapshot?.votingPowerAda ?? 0;
+
+    // Compute epoch-over-epoch changes from snapshots (only where both epochs have real data)
+    for (let i = snapshots.length - 1; i >= 1 && recentChanges.length < 5; i--) {
+      const prev = snapshots[i - 1].delegatorCount;
+      const curr = snapshots[i].delegatorCount;
+      // Skip if either epoch lacks delegator data (null or both zero = not populated)
+      if (prev == null || curr == null) continue;
+      if (prev === 0 && curr > 0) continue; // likely backfill boundary, not a real change
+      const diff = curr - prev;
+      if (diff !== 0) {
+        recentChanges.push({
+          type: diff > 0 ? 'gained' : 'lost',
+          epoch: snapshots[i].epoch,
+          count: diff,
+        });
+      }
+    }
+  } else if (isSPO && trends) {
+    currentCount = (trends.current as number) ?? 0;
+  }
+
+  const change = recentChanges.length > 0 ? recentChanges[0].count : 0;
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-6 space-y-6">
