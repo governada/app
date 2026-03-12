@@ -18,13 +18,13 @@ import { DiscoverPagination } from './DiscoverPagination';
 const STATUS_FILTERS = ['All', 'Open', 'Ratified', 'Enacted', 'Expired', 'Dropped'];
 const TYPE_FILTERS = [
   { value: 'All', label: 'All types' },
-  { value: 'ParameterChange', label: 'Param Change' },
-  { value: 'HardForkInitiation', label: 'Hard Fork' },
-  { value: 'TreasuryWithdrawals', label: 'Treasury' },
-  { value: 'NewConstitution', label: 'Constitution' },
-  { value: 'NoConfidence', label: 'No Confidence' },
+  { value: 'ParameterChange', label: 'Rule Change' },
+  { value: 'HardForkInitiation', label: 'Major Upgrade' },
+  { value: 'TreasuryWithdrawals', label: 'Spending' },
+  { value: 'NewConstitution', label: 'Rules Update' },
+  { value: 'NoConfidence', label: 'Leadership Challenge' },
   { value: 'UpdateCommittee', label: 'Committee' },
-  { value: 'InfoAction', label: 'Info' },
+  { value: 'InfoAction', label: 'Statement' },
 ];
 
 const PAGE_SIZE = 25;
@@ -144,7 +144,7 @@ export function ProposalsBrowse() {
       <div className="flex items-baseline justify-between gap-4">
         <h1 className="text-xl font-bold tracking-tight">What&apos;s Being Decided</h1>
         <span className="text-xs text-muted-foreground shrink-0">
-          {delegatedDrepId ? "Your DRep's votes shown" : ''}
+          {delegatedDrepId ? "Your representative's votes shown" : ''}
         </span>
       </div>
 
@@ -195,7 +195,7 @@ export function ProposalsBrowse() {
           <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-lg bg-violet-500/5 border border-violet-500/20">
             <CircleDot className="h-4 w-4 text-violet-400 shrink-0" />
             <span className="text-sm text-muted-foreground">
-              Your DRep hasn&apos;t voted on{' '}
+              Your representative hasn&apos;t voted on{' '}
               <strong className="text-violet-300">{needsAttentionCount}</strong> open proposal
               {needsAttentionCount !== 1 ? 's' : ''}
             </span>

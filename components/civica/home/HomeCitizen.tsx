@@ -43,10 +43,14 @@ function UndelegatedHome({ pulseData }: { pulseData: PulseData }) {
   const { balanceAda } = useWallet();
 
   const stats = [
-    { label: 'ADA Governed', value: `₳${pulseData.totalAdaGoverned}`, sub: 'without your voice' },
-    { label: 'Active DReps', value: pulseData.activeDReps, sub: 'ready to represent you' },
-    { label: 'Open Proposals', value: pulseData.activeProposals, sub: 'being voted on now' },
-    { label: 'Votes This Week', value: pulseData.votesThisWeek, sub: 'and counting' },
+    {
+      label: 'ADA with a Voice',
+      value: `₳${pulseData.totalAdaGoverned}`,
+      sub: 'yours isn\u2019t counted yet',
+    },
+    { label: 'Representatives', value: pulseData.activeDReps, sub: 'ready to vote for you' },
+    { label: 'Open Decisions', value: pulseData.activeProposals, sub: 'being voted on now' },
+    { label: 'Decisions This Week', value: pulseData.votesThisWeek, sub: 'and counting' },
   ];
 
   return (
@@ -63,8 +67,8 @@ function UndelegatedHome({ pulseData }: { pulseData: PulseData }) {
             <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white drop-shadow-lg leading-tight hero-text-shadow">
               {balanceAda != null && balanceAda > 0 ? (
                 <>
-                  Your <span className="text-primary">&#x20B3;{formatAdaShort(balanceAda)}</span> is
-                  sitting silent.
+                  Your <span className="text-primary">&#x20B3;{formatAdaShort(balanceAda)}</span>{' '}
+                  isn&apos;t being used to vote.
                 </>
               ) : (
                 <>
@@ -83,8 +87,8 @@ function UndelegatedHome({ pulseData }: { pulseData: PulseData }) {
                 </>
               ) : (
                 <>
-                  Governance is happening every epoch — delegate to a{' '}
-                  <GovTerm term="drep">DRep</GovTerm> so your ADA has a say.
+                  Decisions are being made every week — choose a{' '}
+                  <GovTerm term="drep">representative</GovTerm> so your ADA has a say.
                 </>
               )}
             </p>
@@ -97,23 +101,23 @@ function UndelegatedHome({ pulseData }: { pulseData: PulseData }) {
         <div className="rounded-2xl border border-primary/30 bg-primary/5 backdrop-blur-sm p-6 space-y-4">
           <div className="space-y-1">
             <h2 className="text-lg font-semibold text-foreground">
-              Find the <GovTerm term="drep">DRep</GovTerm> who thinks like you
+              Find a <GovTerm term="drep">representative</GovTerm> who thinks like you
             </h2>
             <p className="text-sm text-muted-foreground">
-              Answer 3 quick questions and we&apos;ll match you to DReps who share your governance
-              priorities — or browse and compare them yourself.
+              Answer 3 quick questions about what matters to you, and we&apos;ll find
+              representatives who think the same way — or browse them yourself.
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
             <Button asChild size="lg" className="flex-1">
               <Link href="/match">
                 <Zap className="mr-2 h-4 w-4" />
-                Find My DRep — 60 Seconds
+                Find My Representative — 60s
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
             <Button asChild variant="outline" size="lg" className="flex-1">
-              <Link href="/governance/representatives">Browse all DReps</Link>
+              <Link href="/governance/representatives">Browse all representatives</Link>
             </Button>
           </div>
         </div>
@@ -141,24 +145,24 @@ function UndelegatedHome({ pulseData }: { pulseData: PulseData }) {
       <section className="mx-auto w-full max-w-2xl px-4 mt-8 pb-16">
         <div className="rounded-xl border border-border bg-muted/20 p-5 space-y-3">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Once you delegate
+            Once you choose a representative
           </p>
           <div className="grid gap-3 sm:grid-cols-3">
             {[
               {
                 icon: BarChart3,
                 title: 'Live report card',
-                desc: 'Track your DRep\u2019s score, tier, and voting record',
+                desc: 'See how your representative is voting and performing',
               },
               {
                 icon: Vote,
-                title: 'Proposal alerts',
-                desc: 'See what\u2019s being voted on and how your DRep responds',
+                title: 'Decision alerts',
+                desc: 'Know what decisions are being made and how your representative votes',
               },
               {
                 icon: Bell,
-                title: 'Governance updates',
-                desc: 'Epoch briefings and smart alerts when it matters',
+                title: 'Updates that matter',
+                desc: 'Get alerts when important decisions happen',
               },
             ].map(({ icon: Icon, title, desc }) => (
               <div key={title} className="flex gap-3 sm:flex-col sm:gap-1.5">

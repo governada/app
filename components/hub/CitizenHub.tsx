@@ -63,16 +63,28 @@ function formatPowerFraction(fraction: number): string {
   return `${(fraction * 100).toFixed(3)}%`;
 }
 
+/** Convert epoch number to a human-readable date range like "Mar 8 – 13" */
+function epochDateRange(epoch: number): string {
+  const SHELLEY_GENESIS = 1596491091;
+  const EPOCH_LEN = 432000;
+  const BASE_EPOCH = 209;
+  const startUnix = SHELLEY_GENESIS + (epoch - BASE_EPOCH) * EPOCH_LEN;
+  const start = new Date(startUnix * 1000);
+  const end = new Date((startUnix + EPOCH_LEN) * 1000);
+  const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return `${fmt(start)} – ${fmt(end)}`;
+}
+
 const OUTCOME_CONFIG = {
   ratified: {
     icon: CheckCircle2,
-    label: 'Ratified',
+    label: 'Approved',
     color: 'text-emerald-500',
     bg: 'bg-emerald-500/10 border-emerald-500/20',
   },
   dropped: {
     icon: XCircle,
-    label: 'Dropped',
+    label: 'Rejected',
     color: 'text-red-500',
     bg: 'bg-red-500/10 border-red-500/20',
   },
@@ -87,17 +99,17 @@ const OUTCOME_CONFIG = {
 const VOTE_LABELS: Record<string, { label: string; color: string }> = {
   Yes: { label: 'Voted Yes', color: 'text-emerald-400' },
   No: { label: 'Voted No', color: 'text-red-400' },
-  Abstain: { label: 'Abstained', color: 'text-amber-400' },
+  Abstain: { label: 'Sat this one out', color: 'text-amber-400' },
 };
 
 const PROPOSAL_TYPE_LABELS: Record<string, string> = {
-  TreasuryWithdrawals: 'Treasury',
-  ParameterChange: 'Parameter Change',
-  HardForkInitiation: 'Hard Fork',
-  InfoAction: 'Info Action',
-  NoConfidence: 'No Confidence',
-  NewConstitution: 'Constitution',
-  UpdateCommittee: 'Committee Update',
+  TreasuryWithdrawals: 'Spending',
+  ParameterChange: 'Rule Change',
+  HardForkInitiation: 'Major Upgrade',
+  InfoAction: 'Community Statement',
+  NoConfidence: 'Leadership Challenge',
+  NewConstitution: 'Rules Update',
+  UpdateCommittee: 'Committee Change',
 };
 
 /* ── Section wrapper (glassmorphic) ──────────────────────────── */
@@ -166,7 +178,7 @@ function ConsequenceCard({ proposal }: { proposal: ConsequenceProposal }) {
               <span className={cn('font-medium', voteInfo.color)}>{voteInfo.label}</span>
             )}
             {!voteInfo && proposal.drepVote === null && (
-              <span className="text-muted-foreground/60">DRep didn&apos;t vote</span>
+              <span className="text-muted-foreground/60">Your representative didn&apos;t vote</span>
             )}
             {proposal.communitySignal && proposal.communitySignal.total > 0 && (
               <CommunitySignalInline signal={proposal.communitySignal} />
@@ -309,7 +321,9 @@ function ActiveProposalCard({ proposal }: { proposal: ConsequenceProposal }) {
                   DRep {voteInfo.label.toLowerCase()}
                 </span>
               )}
-              {!voteInfo && <span className="text-amber-400/80">DRep hasn&apos;t voted yet</span>}
+              {!voteInfo && (
+                <span className="text-amber-400/80">Your representative hasn&apos;t voted yet</span>
+              )}
               {community.total > 0 && <CommunitySignalInline signal={community} />}
             </div>
           </div>
@@ -490,7 +504,7 @@ function PoolAndCoverage({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Shield className="h-3.5 w-3.5 text-muted-foreground" />
-          <span className="text-xs text-muted-foreground">Governance coverage</span>
+          <span className="text-xs text-muted-foreground">How well you&apos;re represented</span>
         </div>
         <div className="flex items-center gap-2">
           <span className={cn('text-xs font-semibold', coverageColor)}>{coverageLabel}</span>
@@ -549,7 +563,7 @@ function PoolAndCoverage({
       {!delegatedPool && (
         <div className="flex items-center gap-2 text-xs text-muted-foreground/70">
           <Server className="h-3.5 w-3.5" />
-          <span>No stake pool — 2 action types unrepresented</span>
+          <span>Your staking pool can also vote on 2 decision types — not set up yet</span>
         </div>
       )}
     </div>
@@ -600,10 +614,10 @@ export function CitizenHub() {
   // Build headline
   const headlineText =
     adaDecided > 0
-      ? `Your delegation helped decide ${formatAda(adaDecided)} ADA`
+      ? `Your representative helped decide how ${formatAda(adaDecided)} ADA is spent`
       : decidedProposals.length > 0
-        ? `${decidedProposals.length} governance decision${decidedProposals.length !== 1 ? 's' : ''} this epoch`
-        : 'No governance decisions yet this epoch';
+        ? `${decidedProposals.length} decision${decidedProposals.length !== 1 ? 's' : ''} made this period`
+        : 'No decisions yet this period';
 
   return (
     <motion.div
@@ -622,15 +636,16 @@ export function CitizenHub() {
         data-discovery="hub-briefing"
       >
         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          Epoch {epoch}
+          {epoch > 0 ? epochDateRange(epoch) : 'This period'}
+          <span className="ml-1.5 text-muted-foreground/50">Epoch {epoch}</span>
         </p>
         <h1 className="text-xl sm:text-2xl font-bold text-foreground leading-tight">
           {headlineText}
         </h1>
         {votingPowerFraction != null && votingPowerFraction > 0 && (
           <p className="text-sm text-muted-foreground">
-            Your voice represents {formatPowerFraction(votingPowerFraction)} of total voting power
-            {votingPowerAda ? ` (${formatAda(votingPowerAda)} ADA)` : ''}
+            Your {votingPowerAda ? `${formatAda(votingPowerAda)} ADA` : 'ADA'} adds weight to your
+            representative&apos;s votes
           </p>
         )}
       </motion.header>
@@ -699,20 +714,20 @@ export function CitizenHub() {
       {/* ── Governance footprint ───────────────────────────── */}
       <Section>
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-          Your governance footprint
+          Your participation
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          <FootprintStat icon={Vote} value={proposalsInfluenced} label="Proposals Influenced" />
+          <FootprintStat icon={Vote} value={proposalsInfluenced} label="Decisions Made" />
           <FootprintStat
             icon={Coins}
             value={adaGoverned > 0 ? formatAda(adaGoverned) : '--'}
-            label="ADA Governed"
+            label="ADA Represented"
           />
-          <FootprintStat icon={Flame} value={delegationStreak} label="Epoch Streak" />
+          <FootprintStat icon={Flame} value={delegationStreak} label="Active Streak" />
           <FootprintStat
             icon={TrendingUp}
             value={impactScore?.computed ? Math.round(impactScore.score) : '--'}
-            label="Impact Score"
+            label="Participation"
           />
         </div>
       </Section>
@@ -733,7 +748,9 @@ export function CitizenHub() {
                 <ShieldAlert className="h-4 w-4 text-amber-500" />
                 <span className="text-sm font-semibold text-foreground">Unrepresented</span>
               </div>
-              <p className="text-xs text-muted-foreground">Find a DRep who shares your values</p>
+              <p className="text-xs text-muted-foreground">
+                Find a representative who shares your values
+              </p>
             </div>
             <ArrowRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary transition-all group-hover:translate-x-0.5" />
           </Link>
@@ -785,7 +802,8 @@ export function CitizenHub() {
             <div className="space-y-1">
               <p className="text-sm font-semibold text-foreground">Always Abstain</p>
               <p className="text-xs text-muted-foreground">
-                Your ADA abstains on all governance actions but counts toward quorum.
+                Your ADA is registered but won&apos;t vote on any decisions. It still counts as
+                &ldquo;present&rdquo; for minimum participation requirements.
               </p>
             </div>
             <ArrowRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary transition-all group-hover:translate-x-0.5" />
@@ -797,7 +815,8 @@ export function CitizenHub() {
             <div className="space-y-1">
               <p className="text-sm font-semibold text-foreground">No Confidence</p>
               <p className="text-xs text-muted-foreground">
-                Your vote weight counts against all proposals.
+                Your ADA signals that you don&apos;t trust the current governance system. This
+                pushes back against all proposals.
               </p>
             </div>
             <ArrowRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary transition-all group-hover:translate-x-0.5" />
@@ -829,7 +848,7 @@ export function CitizenHub() {
           href="/match"
           className="text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
-          Find a DRep
+          Find a representative
         </Link>
       </motion.div>
     </motion.div>

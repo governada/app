@@ -12,34 +12,34 @@ const GETTING_STARTED = [
   {
     title: 'What is Cardano governance?',
     description:
-      'Cardano uses on-chain governance where ADA holders can vote on protocol changes, treasury spending, and constitutional amendments through elected representatives.',
+      'Cardano lets ADA holders vote on how the network is run \u2014 things like spending community funds, changing rules, and approving upgrades. You participate by choosing a representative who votes for you.',
     icon: Scale,
     color: 'text-violet-400 bg-violet-500/10',
     link: '/governance',
     linkLabel: 'Explore representatives',
   },
   {
-    title: 'How delegation works',
+    title: 'How choosing a representative works',
     description:
-      "You delegate your ADA's voting power to a DRep (Delegated Representative) who votes on your behalf. Your ADA never leaves your wallet — you're lending governance weight, not money.",
+      'You pick someone who votes on Cardano decisions for you. Your ADA never leaves your wallet \u2014 you\u2019re just choosing who speaks on your behalf. You can switch anytime.',
     icon: Users,
     color: 'text-emerald-400 bg-emerald-500/10',
     link: '/match',
-    linkLabel: 'Find your DRep',
+    linkLabel: 'Find your representative',
   },
   {
-    title: 'Understanding proposals',
+    title: 'What decisions are being made?',
     description:
-      'Governance actions include treasury withdrawals, parameter changes, hard forks, and constitutional updates. Each requires approval from DReps, stake pools, and the Constitutional Committee.',
+      'Proposals cover spending community funds, changing network rules, approving major upgrades, and more. Each decision needs approval from representatives, staking pools, and a constitutional committee.',
     icon: Vote,
     color: 'text-sky-400 bg-sky-500/10',
     link: '/governance/proposals',
-    linkLabel: 'Browse proposals',
+    linkLabel: 'Browse decisions',
   },
   {
-    title: 'The three governance bodies',
+    title: 'Who makes the decisions?',
     description:
-      'Cardano governance has three pillars: DReps (citizen representatives), SPOs (stake pool operators), and the Constitutional Committee. Major decisions need approval from multiple bodies.',
+      'Three groups share the power: representatives (who vote on your behalf), staking pool operators (who run the network), and a constitutional committee (who make sure the rules are followed).',
     icon: Shield,
     color: 'text-amber-400 bg-amber-500/10',
     link: '/governance/committee',
@@ -77,7 +77,7 @@ export function LearnClient() {
           <h1 className="text-2xl font-bold tracking-tight">Help</h1>
         </div>
         <p className="text-sm text-muted-foreground">
-          Everything you need to understand Cardano governance — from delegation to treasury.
+          Everything you need to understand how Cardano is governed.
         </p>
       </div>
 

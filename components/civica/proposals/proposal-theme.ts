@@ -29,7 +29,7 @@ export interface ProposalTypeTheme {
 
 export const PROPOSAL_TYPE_THEMES: Record<string, ProposalTypeTheme> = {
   TreasuryWithdrawals: {
-    label: 'Treasury Withdrawal',
+    label: 'Spending Proposal',
     icon: Landmark,
     heroBg: 'linear-gradient(180deg, rgb(69 26 3 / 0.45) 0%, transparent 65%)',
     accent: 'rgb(245 158 11)',
@@ -39,7 +39,7 @@ export const PROPOSAL_TYPE_THEMES: Record<string, ProposalTypeTheme> = {
     rowAccent: 'rgb(245 158 11 / 0.5)',
   },
   ParameterChange: {
-    label: 'Parameter Change',
+    label: 'Rule Change',
     icon: Shield,
     heroBg: 'linear-gradient(180deg, rgb(12 10 62 / 0.5) 0%, transparent 65%)',
     accent: 'rgb(59 130 246)',
@@ -49,7 +49,7 @@ export const PROPOSAL_TYPE_THEMES: Record<string, ProposalTypeTheme> = {
     rowAccent: 'rgb(59 130 246 / 0.5)',
   },
   HardForkInitiation: {
-    label: 'Hard Fork',
+    label: 'Major Upgrade',
     icon: Zap,
     heroBg: 'linear-gradient(180deg, rgb(67 20 7 / 0.55) 0%, transparent 65%)',
     accent: 'rgb(239 68 68)',
@@ -59,7 +59,7 @@ export const PROPOSAL_TYPE_THEMES: Record<string, ProposalTypeTheme> = {
     rowAccent: 'rgb(239 68 68 / 0.5)',
   },
   InfoAction: {
-    label: 'Info Action',
+    label: 'Community Statement',
     icon: Eye,
     heroBg: 'linear-gradient(180deg, rgb(30 41 59 / 0.25) 0%, transparent 65%)',
     accent: 'rgb(148 163 184)',
@@ -69,7 +69,7 @@ export const PROPOSAL_TYPE_THEMES: Record<string, ProposalTypeTheme> = {
     rowAccent: 'rgb(148 163 184 / 0.3)',
   },
   NoConfidence: {
-    label: 'No Confidence',
+    label: 'Leadership Challenge',
     icon: Scale,
     heroBg: 'linear-gradient(180deg, rgb(76 5 25 / 0.45) 0%, transparent 65%)',
     accent: 'rgb(244 63 94)',
@@ -109,7 +109,7 @@ export const PROPOSAL_TYPE_THEMES: Record<string, ProposalTypeTheme> = {
     rowAccent: 'rgb(139 92 246 / 0.5)',
   },
   NewConstitution: {
-    label: 'New Constitution',
+    label: 'Rules Update',
     icon: FileText,
     heroBg: 'linear-gradient(180deg, rgb(30 27 75 / 0.5) 0%, transparent 65%)',
     accent: 'rgb(99 102 241)',
@@ -119,7 +119,7 @@ export const PROPOSAL_TYPE_THEMES: Record<string, ProposalTypeTheme> = {
     rowAccent: 'rgb(99 102 241 / 0.5)',
   },
   UpdateConstitution: {
-    label: 'Constitution Amendment',
+    label: 'Rules Update',
     icon: FileText,
     heroBg: 'linear-gradient(180deg, rgb(30 27 75 / 0.5) 0%, transparent 65%)',
     accent: 'rgb(99 102 241)',
