@@ -246,8 +246,9 @@ export function CivicaProfile() {
               <span
                 className={cn(
                   'text-[11px] font-bold px-2 py-0.5 rounded-full',
-                  TIER_BADGE_BG[tKey],
-                  TIER_SCORE_COLOR[tKey],
+                  segment === 'drep' || segment === 'spo'
+                    ? cn(TIER_BADGE_BG[tKey], TIER_SCORE_COLOR[tKey])
+                    : 'bg-primary/10 text-primary',
                 )}
               >
                 {segmentLabel}

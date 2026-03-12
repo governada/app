@@ -224,14 +224,31 @@ export function ScoreDeepDive(props: ScoreDeepDiveProps) {
                       )}
                       {pillar.key === 'identity' && (
                         <>
+                          <p className="text-xs font-medium text-foreground/80 mb-1">
+                            Profile Quality (60%) + Community Presence (40%)
+                          </p>
                           <p className="tabular-nums">
                             Profile completeness: {props.profileCompleteness}%
                           </p>
                           <p className="tabular-nums">Delegators: {props.delegatorCount}</p>
-                          <p className="text-primary/80 mt-1">
-                            {props.profileCompleteness < 70
-                              ? 'To improve: complete your DRep profile — add a bio, references, and motivation statement.'
-                              : 'Profile is well-filled. Growing your delegator base further strengthens this pillar.'}
+                          <div className="mt-2 space-y-0.5 text-[11px] text-muted-foreground/80">
+                            <p className="font-medium text-muted-foreground mb-0.5">
+                              Profile point breakdown (max 100):
+                            </p>
+                            <p>
+                              Name (15 pts) · Objectives (up to 20 pts) · Motivations (up to 15 pts)
+                            </p>
+                            <p>
+                              Qualifications (up to 10 pts) · Bio (up to 10 pts) · Social links (up
+                              to 30 pts)
+                            </p>
+                          </div>
+                          <p className="text-primary/80 mt-2">
+                            {props.profileCompleteness < 40
+                              ? 'To improve: add objectives (200+ chars for max points), motivations, and 2+ social links — these fields carry the most weight.'
+                              : props.profileCompleteness < 70
+                                ? 'Good start. Add longer objectives/motivations (200+ chars) and a second social link to unlock more points.'
+                                : 'Profile is well-filled. Growing your delegator count (by number, not ADA) strengthens Community Presence.'}
                           </p>
                         </>
                       )}
