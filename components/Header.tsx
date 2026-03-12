@@ -278,6 +278,14 @@ export function Header() {
                     )}
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="flex items-center gap-2 p-2.5 cursor-pointer text-xs text-primary hover:bg-primary/10"
+                    onSelect={() => router.push('/you/inbox')}
+                  >
+                    <Inbox className="h-3.5 w-3.5" />
+                    <span>View all notifications</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   {alerts.length === 0 ? (
                     <DropdownMenuItem className="flex items-center gap-3 p-3 cursor-default text-muted-foreground">
                       <Info className="h-4 w-4" />

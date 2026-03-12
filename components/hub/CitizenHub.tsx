@@ -41,6 +41,7 @@ import { resolveRewardAddress } from '@meshsdk/core';
 import { hapticLight } from '@/lib/haptics';
 import { useSentimentResults } from '@/hooks/useEngagement';
 import { CommunityConsensus } from './CommunityConsensus';
+import { WhatChanged } from '@/components/hub/WhatChanged';
 
 type SentimentChoice = 'support' | 'oppose' | 'unsure';
 
@@ -489,6 +490,9 @@ export function CitizenHub() {
       animate="visible"
       className="mx-auto w-full max-w-2xl space-y-4 px-4 py-6"
     >
+      {/* ── What Changed (return visit summary) ──────────── */}
+      <WhatChanged />
+
       {/* ── Epoch headline ─────────────────────────────────── */}
       <motion.header variants={briefingItem} className="space-y-1 pb-1">
         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
