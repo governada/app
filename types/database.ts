@@ -2424,6 +2424,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      ncl_periods: {
+        Row: {
+          created_at: string;
+          end_epoch: number;
+          id: number;
+          info_action_index: number | null;
+          info_action_tx_hash: string | null;
+          ncl_ada: number;
+          start_epoch: number;
+          status: string;
+        };
+        Insert: {
+          created_at?: string;
+          end_epoch: number;
+          id?: number;
+          info_action_index?: number | null;
+          info_action_tx_hash?: string | null;
+          ncl_ada: number;
+          start_epoch: number;
+          status?: string;
+        };
+        Update: {
+          created_at?: string;
+          end_epoch?: number;
+          id?: number;
+          info_action_index?: number | null;
+          info_action_tx_hash?: string | null;
+          ncl_ada?: number;
+          start_epoch?: number;
+          status?: string;
+        };
+        Relationships: [];
+      };
       notification_log: {
         Row: {
           channel: string;

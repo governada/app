@@ -25,9 +25,17 @@ interface PendingData {
   treasuryBalanceAda: number;
 }
 
+interface NclImpact {
+  utilizationPct: number;
+  remainingAda: number;
+  nclAda: number;
+}
+
 interface Props {
   treasuryBalanceAda: number;
   runwayMonths: number;
+  /** NCL data for per-proposal impact indicators */
+  nclImpact?: NclImpact | null;
 }
 
 const tierColors: Record<string, string> = {
@@ -36,7 +44,7 @@ const tierColors: Record<string, string> = {
   major: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
 };
 
-export function TreasuryPendingProposals({}: Props) {
+export function TreasuryPendingProposals({ nclImpact }: Props) {
   const { data: raw, isLoading: loading } = useTreasuryPending();
   const data = raw as PendingData | undefined;
 
@@ -101,10 +109,34 @@ export function TreasuryPendingProposals({}: Props) {
                 <span>{p.pctOfBalance.toFixed(2)}% of treasury</span>
                 <span>Epoch {p.proposedEpoch}</span>
               </div>
+              {nclImpact && p.withdrawalAda != null && p.withdrawalAda > 0 && (
+                <div className="text-[10px] text-muted-foreground mt-0.5">
+                  If enacted: NCL {Math.round(nclImpact.utilizationPct)}% →{' '}
+                  {Math.round(
+                    ((nclImpact.nclAda - nclImpact.remainingAda + p.withdrawalAda) /
+                      nclImpact.nclAda) *
+                      100,
+                  )}
+                  % · {formatAda(p.withdrawalAda)} of ₳{formatAda(nclImpact.remainingAda)} remaining
+                </div>
+              )}
             </div>
             <ExternalLink className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
           </Link>
         ))}
+
+        {nclImpact && data.totalAda > 0 && (
+          <div className="text-xs text-muted-foreground mt-2 p-2 rounded bg-muted/30">
+            If all {data.proposals.length} pending proposals pass: NCL utilization{' '}
+            {Math.round(nclImpact.utilizationPct)}% →{' '}
+            {Math.round(
+              ((nclImpact.nclAda - nclImpact.remainingAda + data.totalAda) / nclImpact.nclAda) *
+                100,
+            )}
+            % (₳{formatAda(nclImpact.nclAda - nclImpact.remainingAda + data.totalAda)} of ₳
+            {formatAda(nclImpact.nclAda)})
+          </div>
+        )}
 
         {parseFloat(data.pctOfTreasury) > 5 && (
           <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 text-xs mt-2 p-2 rounded bg-amber-50 dark:bg-amber-950/20">

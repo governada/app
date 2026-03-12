@@ -691,4 +691,197 @@ export function getNextCycleEpoch(
   return currentClosesEpoch + ACCOUNTABILITY_CYCLE_INTERVAL;
 }
 
+// ---------------------------------------------------------------------------
+// NCL (Net Change Limit) Utilization
+// ---------------------------------------------------------------------------
+
+export interface NclPeriod {
+  id: number;
+  nclAda: number;
+  startEpoch: number;
+  endEpoch: number;
+  infoActionTxHash: string | null;
+  infoActionIndex: number | null;
+  status: 'active' | 'expired' | 'superseded';
+}
+
+export interface NclUtilization {
+  period: NclPeriod;
+  enactedWithdrawalsAda: number;
+  pendingWithdrawalsAda: number;
+  utilizationPct: number;
+  projectedUtilizationPct: number;
+  remainingAda: number;
+  headroomAfterPendingAda: number;
+  epochsRemaining: number;
+  epochsElapsed: number;
+  periodProgressPct: number;
+  sustainabilityRatio: number;
+  status: 'healthy' | 'elevated' | 'critical';
+}
+
+export async function getActiveNclPeriod(): Promise<NclPeriod | null> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from('ncl_periods')
+    .select('*')
+    .eq('status', 'active')
+    .order('start_epoch', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (!data) return null;
+  return {
+    id: data.id,
+    nclAda: Number(data.ncl_ada),
+    startEpoch: data.start_epoch,
+    endEpoch: data.end_epoch,
+    infoActionTxHash: data.info_action_tx_hash,
+    infoActionIndex: data.info_action_index,
+    status: data.status as NclPeriod['status'],
+  };
+}
+
+export async function getNclUtilization(): Promise<NclUtilization | null> {
+  const period = await getActiveNclPeriod();
+  if (!period) return null;
+
+  const supabase = createClient();
+
+  // Enacted treasury withdrawals within this NCL period
+  const { data: enacted } = await supabase
+    .from('proposals')
+    .select('withdrawal_amount')
+    .eq('proposal_type', 'TreasuryWithdrawals')
+    .not('enacted_epoch', 'is', null)
+    .gte('enacted_epoch', period.startEpoch)
+    .lte('enacted_epoch', period.endEpoch);
+
+  const enactedWithdrawalsAda = (enacted || []).reduce(
+    (sum, p) => sum + (p.withdrawal_amount || 0),
+    0,
+  );
+
+  // Pending proposals (not yet enacted, not expired/dropped)
+  const { data: pending } = await supabase
+    .from('proposals')
+    .select('withdrawal_amount')
+    .eq('proposal_type', 'TreasuryWithdrawals')
+    .is('ratified_epoch', null)
+    .is('enacted_epoch', null)
+    .is('expired_epoch', null)
+    .is('dropped_epoch', null);
+
+  const pendingWithdrawalsAda = (pending || []).reduce(
+    (sum, p) => sum + (p.withdrawal_amount || 0),
+    0,
+  );
+
+  // Current epoch from latest treasury snapshot
+  const balance = await getTreasuryBalance();
+  const currentEpoch = balance?.epoch ?? period.startEpoch;
+
+  // Estimate annualized income for sustainability ratio
+  const snapshots = await getTreasuryTrend(73); // ~1 year of epochs
+  const totalIncome = snapshots.reduce((sum, s) => sum + s.reservesIncomeAda, 0);
+  const epochsCovered = snapshots.length || 1;
+  const annualizedIncome = (totalIncome / epochsCovered) * (365.25 / EPOCH_DAYS);
+
+  const totalEpochs = period.endEpoch - period.startEpoch;
+  const epochsElapsed = Math.max(0, currentEpoch - period.startEpoch);
+  const epochsRemaining = Math.max(0, period.endEpoch - currentEpoch);
+  const utilizationPct = period.nclAda > 0 ? (enactedWithdrawalsAda / period.nclAda) * 100 : 0;
+  const projectedUtilizationPct =
+    period.nclAda > 0 ? ((enactedWithdrawalsAda + pendingWithdrawalsAda) / period.nclAda) * 100 : 0;
+  const remainingAda = Math.max(0, period.nclAda - enactedWithdrawalsAda);
+  const headroomAfterPendingAda = Math.max(
+    0,
+    period.nclAda - enactedWithdrawalsAda - pendingWithdrawalsAda,
+  );
+  const periodProgressPct = totalEpochs > 0 ? (epochsElapsed / totalEpochs) * 100 : 0;
+  const sustainabilityRatio = period.nclAda > 0 ? annualizedIncome / period.nclAda : 1;
+
+  const status: NclUtilization['status'] =
+    utilizationPct >= 80 ? 'critical' : utilizationPct >= 50 ? 'elevated' : 'healthy';
+
+  return {
+    period,
+    enactedWithdrawalsAda,
+    pendingWithdrawalsAda,
+    utilizationPct: Math.round(utilizationPct * 10) / 10,
+    projectedUtilizationPct: Math.round(projectedUtilizationPct * 10) / 10,
+    remainingAda,
+    headroomAfterPendingAda,
+    epochsRemaining,
+    epochsElapsed,
+    periodProgressPct: Math.round(periodProgressPct * 10) / 10,
+    sustainabilityRatio: Math.round(sustainabilityRatio * 100) / 100,
+    status,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Treasury Narrative Generation
+// ---------------------------------------------------------------------------
+
+export interface TreasuryNarrativeData {
+  balanceAda: number;
+  trend: 'growing' | 'shrinking' | 'stable';
+  effectivenessRate: number | null;
+  pendingCount: number;
+  pendingTotalAda: number;
+  runwayMonths: number;
+  ncl: NclUtilization | null;
+}
+
+export function generateTreasuryNarrative(data: TreasuryNarrativeData): string {
+  const { balanceAda, trend, effectivenessRate, pendingCount, pendingTotalAda, runwayMonths, ncl } =
+    data;
+
+  const parts: string[] = [];
+
+  // Balance + trend
+  const trendWord =
+    trend === 'growing' ? 'growing' : trend === 'shrinking' ? 'declining' : 'stable';
+  parts.push(`₳${formatAda(balanceAda)} treasury, ${trendWord}.`);
+
+  // NCL utilization (cornerstone)
+  if (ncl) {
+    const utilizationStr = `${Math.round(ncl.utilizationPct)}% of the ₳${formatAda(ncl.period.nclAda)} budget period limit has been used`;
+    const epochStr = `with ${ncl.epochsRemaining} epochs remaining`;
+
+    if (ncl.status === 'critical') {
+      parts.push(`⚠ ${utilizationStr} ${epochStr}.`);
+    } else {
+      parts.push(`${utilizationStr} ${epochStr}.`);
+    }
+  }
+
+  // Effectiveness
+  if (effectivenessRate !== null) {
+    parts.push(`${effectivenessRate}% of funded projects delivered.`);
+  }
+
+  // Pending proposals
+  if (pendingCount > 0) {
+    const pendingStr =
+      pendingCount === 1
+        ? `1 proposal pending totaling ₳${formatAda(pendingTotalAda)}`
+        : `${pendingCount} proposals pending totaling ₳${formatAda(pendingTotalAda)}`;
+    parts.push(`${pendingStr}.`);
+  } else {
+    parts.push('No proposals currently pending.');
+  }
+
+  // Runway
+  if (runwayMonths < 240) {
+    const years = Math.floor(runwayMonths / 12);
+    parts.push(`Runway: ${years > 0 ? `${years}+ years` : `${runwayMonths} months`}.`);
+  } else {
+    parts.push('Runway: 10+ years.');
+  }
+
+  return parts.join(' ');
+}
+
 export { ACCOUNTABILITY_POLL_DURATION, ACCOUNTABILITY_CYCLE_INTERVAL };
