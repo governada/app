@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { TrendingUp, TrendingDown, Minus, ChevronRight } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, ChevronRight, Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { computeTier } from '@/lib/scoring/tiers';
 import { TIER_SCORE_COLOR, TIER_BORDER, TIER_BG, TIER_GLOW, tierKey } from './tierStyles';
@@ -38,7 +38,7 @@ interface CivicaDRepCardProps {
   endorsementCount?: number;
 }
 
-export function CivicaDRepCard({ drep, rank, matchScore }: CivicaDRepCardProps) {
+export function CivicaDRepCard({ drep, rank, matchScore, endorsementCount }: CivicaDRepCardProps) {
   const score = drep.drepScore ?? 0;
   const tier = tierKey(computeTier(score));
   const momentum = drep.scoreMomentum ?? null;
@@ -166,6 +166,12 @@ export function CivicaDRepCard({ drep, rank, matchScore }: CivicaDRepCardProps) 
             {drep.delegatorCount > 0 && (
               <span className="tabular-nums">
                 {drep.delegatorCount.toLocaleString()} delegators
+              </span>
+            )}
+            {endorsementCount != null && endorsementCount > 0 && (
+              <span className="inline-flex items-center gap-0.5 tabular-nums">
+                <Heart className="h-2.5 w-2.5 text-primary" aria-hidden="true" />
+                {endorsementCount}
               </span>
             )}
             <span className="flex items-center gap-0.5">
