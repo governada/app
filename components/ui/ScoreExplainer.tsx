@@ -9,7 +9,7 @@ type ScoreType = 'drep' | 'spo';
 const EXPLAINERS: Record<ScoreType, { pillars: string; summary: string }> = {
   drep: {
     pillars:
-      'Engagement Quality (35%) · Participation (30%) · Reliability (20%) · Governance Identity (15%)',
+      'Engagement Quality (35%) · Participation (25%) · Reliability (25%) · Governance Identity (15%)',
     summary:
       'Higher scores mean this DRep votes consistently, explains their reasoning, and maintains an active governance presence.',
   },
