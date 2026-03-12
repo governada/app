@@ -1,183 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { Clock, CheckCircle2, AlertTriangle, ArrowRight, Vote, FileText } from 'lucide-react';
 import { useSegment } from '@/components/providers/SegmentProvider';
-import { useDashboardUrgent } from '@/hooks/queries';
 import { useSPOPoolCompetitive, useSPOSummary } from '@/hooks/queries';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-
-interface PendingProposal {
-  txHash: string;
-  index: number;
-  title: string;
-  proposalType: string;
-  epochsRemaining: number;
-  withdrawalAmount?: number;
-}
-
-function formatAda(lovelace: number): string {
-  const ada = lovelace / 1_000_000;
-  if (ada >= 1_000_000) return `${(ada / 1_000_000).toFixed(1)}M ADA`;
-  if (ada >= 1_000) return `${(ada / 1_000).toFixed(0)}K ADA`;
-  return `${Math.round(ada).toLocaleString()} ADA`;
-}
-
-function ProposalItem({ proposal }: { proposal: PendingProposal }) {
-  const epochsRemaining = proposal.epochsRemaining;
-  const isUrgent = epochsRemaining <= 1;
-
-  return (
-    <Link
-      href={`/proposal/${proposal.txHash}/${proposal.index}`}
-      className="group flex items-start gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/40"
-    >
-      <div
-        className={`mt-0.5 rounded-full p-1.5 ${
-          isUrgent ? 'bg-red-100 dark:bg-red-900/30' : 'bg-amber-100 dark:bg-amber-900/30'
-        }`}
-      >
-        {isUrgent ? (
-          <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
-        ) : (
-          <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-        )}
-      </div>
-
-      <div className="flex-1 min-w-0 space-y-1">
-        <p className="text-sm font-medium text-foreground truncate">{proposal.title}</p>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Badge variant="secondary" className="text-xs">
-            {proposal.proposalType}
-          </Badge>
-          {proposal.withdrawalAmount && proposal.withdrawalAmount > 0 && (
-            <span className="text-xs text-muted-foreground">
-              {formatAda(proposal.withdrawalAmount)}
-            </span>
-          )}
-          <span
-            className={`text-xs font-medium ${
-              isUrgent ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400'
-            }`}
-          >
-            {epochsRemaining === 0
-              ? 'Expires this epoch'
-              : `${epochsRemaining} epoch${epochsRemaining !== 1 ? 's' : ''} left`}
-          </span>
-        </div>
-      </div>
-
-      <ArrowRight className="mt-1.5 h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
-    </Link>
-  );
-}
-
-/**
- * DRep Action Queue — the default workspace for DReps.
- *
- * JTBD: "What needs my vote right now?"
- * Like Linear's inbox — here's your queue, get to work.
- * Sorted by deadline urgency.
- */
-function DRepWorkspace() {
-  const { drepId } = useSegment();
-  const { data: urgentRaw, isLoading } = useDashboardUrgent(drepId);
-
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <Skeleton className="h-6 w-40" />
-        {[1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-20 w-full rounded-xl" />
-        ))}
-      </div>
-    );
-  }
-
-  const urgentData = urgentRaw as Record<string, unknown> | undefined;
-  const pendingProposals =
-    (urgentData?.pendingProposals as PendingProposal[]) ??
-    (urgentData?.proposals as PendingProposal[]) ??
-    [];
-  const unexplainedVotes =
-    (urgentData?.unexplainedVotes as { txHash: string; index: number; title: string }[]) ?? [];
-
-  return (
-    <div className="space-y-6">
-      {/* Action Queue */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-            <Vote className="h-5 w-5 text-muted-foreground" />
-            Pending Votes
-          </h2>
-          {pendingProposals.length > 0 && (
-            <Badge variant="secondary">{pendingProposals.length}</Badge>
-          )}
-        </div>
-
-        {pendingProposals.length === 0 ? (
-          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-6 text-center">
-            <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-500 mb-2" />
-            <p className="text-base font-semibold text-foreground">All caught up</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              No proposals need your vote right now.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {pendingProposals
-              .sort((a, b) => a.epochsRemaining - b.epochsRemaining)
-              .map((p) => (
-                <ProposalItem key={`${p.txHash}-${p.index}`} proposal={p} />
-              ))}
-          </div>
-        )}
-      </div>
-
-      {/* Unexplained votes nudge */}
-      {unexplainedVotes.length > 0 && (
-        <div className="space-y-3">
-          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-            <FileText className="h-5 w-5 text-muted-foreground" />
-            Needs Rationale
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {unexplainedVotes.length} recent vote{unexplainedVotes.length !== 1 ? 's' : ''} without
-            a rationale. Adding one builds trust with delegators.
-          </p>
-          {unexplainedVotes.slice(0, 3).map((v) => (
-            <Link
-              key={`${v.txHash}-${v.index}`}
-              href={`/proposal/${v.txHash}/${v.index}`}
-              className="block rounded-lg border border-border bg-card p-3 text-sm text-foreground truncate hover:border-primary/40 transition-colors"
-            >
-              {v.title}
-            </Link>
-          ))}
-        </div>
-      )}
-
-      {/* Quick links */}
-      <div className="flex flex-wrap gap-2">
-        <Button asChild variant="outline" size="sm">
-          <Link href="/governance/proposals">View All Proposals</Link>
-        </Button>
-        <Button asChild variant="outline" size="sm">
-          <Link href="/workspace/votes">Voting Record</Link>
-        </Button>
-        <Button asChild variant="outline" size="sm">
-          <Link href="/workspace/delegators">Delegators</Link>
-        </Button>
-        <Button asChild variant="outline" size="sm">
-          <Link href="/workspace/performance">Performance</Link>
-        </Button>
-      </div>
-    </div>
-  );
-}
+import { DRepCockpit } from '@/components/workspace/DRepCockpit';
 
 /**
  * SPO Workspace — Governance score overview for SPOs.
@@ -280,10 +108,10 @@ function SPOWorkspace() {
 }
 
 /**
- * WorkspacePage — Dispatches to DRep or SPO workspace.
+ * WorkspacePage — Dispatches to DRep Cockpit or SPO workspace.
  *
- * DRep workspace feels like Linear — action queue first.
- * SPO workspace — governance score overview.
+ * DRep: Governance Cockpit — single-page command center.
+ * SPO: Governance score overview.
  */
 export function WorkspacePage() {
   const { segment } = useSegment();
@@ -306,9 +134,9 @@ export function WorkspacePage() {
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-6 space-y-4">
       <h1 className="text-xl font-bold text-foreground">
-        {segment === 'drep' ? 'Action Queue' : 'Governance Overview'}
+        {segment === 'drep' ? 'Governance Cockpit' : 'Governance Overview'}
       </h1>
-      {segment === 'drep' ? <DRepWorkspace /> : <SPOWorkspace />}
+      {segment === 'drep' ? <DRepCockpit /> : <SPOWorkspace />}
     </div>
   );
 }
