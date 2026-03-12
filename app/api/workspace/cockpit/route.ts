@@ -3,6 +3,9 @@
  *
  * Merges data from urgent, competitive, delegator-trends, and score-change
  * into one response to eliminate the waterfall of 4+ client requests.
+ *
+ * Phase 2: adds per-proposal intelligence (AI summary, citizen sentiment,
+ * DRep vote tally) and per-pillar Score Story data.
  */
 
 import { NextResponse } from 'next/server';
@@ -125,10 +128,48 @@ export const GET = withRouteHandler(async (request) => {
     scoreTrendDate = weekAgo.snapshot_date;
   }
 
-  // ── Action Feed: Pending proposals ─────────────────────────────────
+  // ── Citizen sentiment for open proposals (batch) ──────────────────
+  let sentimentMap = new Map<
+    string,
+    { support: number; oppose: number; abstain: number; total: number }
+  >();
+  try {
+    const openTxHashes = pendingProposals.map((p) => p.txHash);
+    if (openTxHashes.length > 0) {
+      const { data: sentiments } = await supabase
+        .from('citizen_sentiment')
+        .select('proposal_tx_hash, proposal_index, sentiment')
+        .in('proposal_tx_hash', openTxHashes);
+
+      if (sentiments) {
+        for (const s of sentiments) {
+          const key = `${s.proposal_tx_hash}-${s.proposal_index}`;
+          const entry = sentimentMap.get(key) ?? {
+            support: 0,
+            oppose: 0,
+            abstain: 0,
+            total: 0,
+          };
+          const val = (s.sentiment ?? '').toLowerCase();
+          if (val === 'support' || val === 'yes') entry.support++;
+          else if (val === 'oppose' || val === 'no') entry.oppose++;
+          else entry.abstain++;
+          entry.total++;
+          sentimentMap.set(key, entry);
+        }
+      }
+    }
+  } catch (err) {
+    logger.error('Cockpit: citizen sentiment fetch failed', { error: err });
+    sentimentMap = new Map();
+  }
+
+  // ── Action Feed: Pending proposals (with intelligence) ────────────
   const pendingList = pendingProposals
     .map((p) => {
       const expiryEpoch = p.expirationEpoch ?? 0;
+      const sentimentKey = `${p.txHash}-${p.proposalIndex}`;
+      const sentiment = sentimentMap.get(sentimentKey) ?? null;
       return {
         txHash: p.txHash,
         index: p.proposalIndex,
@@ -136,6 +177,10 @@ export const GET = withRouteHandler(async (request) => {
         proposalType: p.proposalType || 'Proposal',
         epochsRemaining: expiryEpoch > 0 ? Math.max(0, expiryEpoch - currentEpoch) : null,
         isUrgent: expiryEpoch > 0 && expiryEpoch - currentEpoch <= 2,
+        aiSummary: p.aiSummary ?? null,
+        abstract: p.abstract ?? null,
+        drepVoteTally: { yes: p.yesCount, no: p.noCount, abstain: p.abstainCount },
+        citizenSentiment: sentiment,
       };
     })
     .sort((a, b) => (a.epochsRemaining ?? 999) - (b.epochsRemaining ?? 999));
@@ -226,6 +271,72 @@ export const GET = withRouteHandler(async (request) => {
     }
   }
 
+  // ── Score Story: per-pillar breakdown with specific actions ────────
+  const pillarMeta = [
+    {
+      key: 'engagementQuality' as const,
+      label: 'Engagement Quality',
+      weight: 0.35,
+      action: (v: number) =>
+        v >= 80
+          ? 'Strong — keep explaining your votes'
+          : `Submit rationales with your next ${Math.max(1, Math.ceil((70 - v) / 15))} votes`,
+    },
+    {
+      key: 'effectiveParticipation' as const,
+      label: 'Effective Participation',
+      weight: 0.3,
+      action: (v: number) =>
+        v >= 80
+          ? 'Strong — stay active on new proposals'
+          : `Vote on ${Math.max(1, Math.min(pendingProposals.length, Math.ceil((70 - v) / 10)))} open proposals`,
+    },
+    {
+      key: 'reliability' as const,
+      label: 'Reliability',
+      weight: 0.2,
+      action: (v: number) =>
+        v >= 80
+          ? 'Strong — maintain your voting streak'
+          : `Vote this epoch to ${streak > 0 ? 'extend' : 'start'} your streak`,
+    },
+    {
+      key: 'governanceIdentity' as const,
+      label: 'Governance Identity',
+      weight: 0.15,
+      action: (v: number) =>
+        v >= 80
+          ? 'Strong — profile is well-established'
+          : 'Complete your profile bio and add social links',
+    },
+  ];
+
+  const pillarValues: Record<string, number> = {
+    engagementQuality: drep.rationale_rate ?? 0,
+    effectiveParticipation: drep.effective_participation ?? 0,
+    reliability: drep.reliability_score ?? 0,
+    governanceIdentity: drep.profile_completeness ?? 0,
+  };
+
+  let lowestWeighted = Infinity;
+  let biggestWin = 'engagementQuality';
+  const scoreStoryPillars = pillarMeta.map((m) => {
+    const value = Math.round(pillarValues[m.key] ?? 0);
+    const weighted = value * m.weight;
+    if (weighted < lowestWeighted) {
+      lowestWeighted = weighted;
+      biggestWin = m.key;
+    }
+    return {
+      key: m.key,
+      label: m.label,
+      value,
+      weight: m.weight,
+      scoreImpact: Math.round((100 - value) * m.weight * 0.5),
+      action: m.action(value),
+    };
+  });
+
   // ── Assemble response ──────────────────────────────────────────────
   return NextResponse.json({
     score: {
@@ -267,6 +378,10 @@ export const GET = withRouteHandler(async (request) => {
     activityHeatmap: {
       epochs: activityEpochs,
       streak,
+    },
+    scoreStory: {
+      pillars: scoreStoryPillars,
+      biggestWin,
     },
   });
 });

@@ -686,6 +686,33 @@ export function useAccountInfo(stakeAddress: string | null | undefined) {
 
 // ── Workspace Cockpit (aggregate) ────────────────────────────────────
 
+export interface CockpitProposal {
+  txHash: string;
+  index: number;
+  title: string;
+  proposalType: string;
+  epochsRemaining: number | null;
+  isUrgent: boolean;
+  aiSummary: string | null;
+  abstract: string | null;
+  drepVoteTally: { yes: number; no: number; abstain: number };
+  citizenSentiment: {
+    support: number;
+    oppose: number;
+    abstain: number;
+    total: number;
+  } | null;
+}
+
+export interface ScoreStoryPillar {
+  key: string;
+  label: string;
+  value: number;
+  weight: number;
+  scoreImpact: number;
+  action: string;
+}
+
 export interface CockpitData {
   score: {
     current: number;
@@ -712,14 +739,7 @@ export interface CockpitData {
     };
   };
   actionFeed: {
-    pendingProposals: {
-      txHash: string;
-      index: number;
-      title: string;
-      proposalType: string;
-      epochsRemaining: number | null;
-      isUrgent: boolean;
-    }[];
+    pendingProposals: CockpitProposal[];
     pendingCount: number;
     unexplainedVotes: { txHash: string; index: number; title: string }[];
     unansweredQuestions: number;
@@ -734,6 +754,10 @@ export interface CockpitData {
   activityHeatmap: {
     epochs: { epoch: number; votes: number }[];
     streak: number;
+  };
+  scoreStory: {
+    pillars: ScoreStoryPillar[];
+    biggestWin: string;
   };
 }
 
