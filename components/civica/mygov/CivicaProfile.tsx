@@ -28,6 +28,7 @@ import {
 } from '@/components/civica/cards/tierStyles';
 import { computeTier } from '@/lib/scoring/tiers';
 import { GovernancePhilosophyEditor } from '@/components/GovernancePhilosophyEditor';
+import { EmailOptIn } from '@/components/notifications/EmailOptIn';
 
 // ---------------------------------------------------------------------------
 // Notification preference toggle
@@ -399,6 +400,9 @@ export function CivicaProfile() {
           </div>
         </div>
       </Section>
+
+      {/* Email opt-in for governance briefings */}
+      <EmailOptIn variant="inline" className="border border-border" />
 
       {/* Display preferences */}
       <Section icon={Settings} title="Display">
