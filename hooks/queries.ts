@@ -238,6 +238,14 @@ export function useTreasurySimilar(txHash: string, index: number) {
   });
 }
 
+export function useTreasuryNcl() {
+  return useQuery({
+    queryKey: ['treasury-ncl'],
+    queryFn: () => fetchJson('/api/treasury/ncl'),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function useDashboardUrgent(drepId: string | null | undefined) {
   return useQuery({
     queryKey: ['dashboard-urgent', drepId],
