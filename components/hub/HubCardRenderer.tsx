@@ -18,6 +18,7 @@ import {
 } from './cards/StatusCard';
 import { CoverageCard } from './cards/CoverageCard';
 import { BriefingCard } from './cards/BriefingCard';
+import { CommunityConsensus } from './CommunityConsensus';
 
 /** Map card IDs to their React components */
 const CARD_COMPONENTS: Record<CardId, React.ComponentType> = {
@@ -58,6 +59,7 @@ export function HubCardRenderer({ persona }: HubCardRendererProps) {
         if (!Component) return null;
         return <Component key={id} />;
       })}
+      <CommunityConsensus />
     </div>
   );
 }

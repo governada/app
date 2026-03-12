@@ -18,6 +18,8 @@ import { ProposalLifecycleTimeline } from '@/components/civica/proposals/Proposa
 import { ImpactTags } from '@/components/engagement/ImpactTags';
 import { EngagementSummary } from '@/components/engagement/EngagementSummary';
 import { ConcernFlagBanner } from '@/components/engagement/ConcernFlagBanner';
+import { ProposalSentimentSection } from '@/components/engagement/ProposalSentimentSection';
+import { ConcernFlagsSection } from '@/components/engagement/ConcernFlagsSection';
 import { ProposalHeroV2 } from '@/components/civica/proposals/ProposalHeroV2';
 import { IntelligenceBriefing } from '@/components/civica/proposals/IntelligenceBriefing';
 import { DebateSection } from '@/components/civica/proposals/DebateSection';
@@ -147,6 +149,10 @@ export default async function ProposalDetailPage({ params }: PageProps) {
                   : null
           }
         />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <ProposalSentimentSection txHash={txHash} proposalIndex={proposalIndex} isOpen={isOpen} />
+          <ConcernFlagsSection txHash={txHash} proposalIndex={proposalIndex} isOpen={isOpen} />
+        </div>
         <ProposalDimensionTags relevantPrefs={proposal.relevantPrefs} />
       </div>
 

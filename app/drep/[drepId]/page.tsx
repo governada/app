@@ -656,6 +656,9 @@ export default async function DRepDetailPage({ params, searchParams }: DRepDetai
         />
       </SegmentGate>
 
+      {/* ── Citizen Endorsements — visible to all (social proof) ── */}
+      <CitizenEndorsements entityType="drep" entityId={drep.drepId} />
+
       {/* About — visible to all (helps delegation decisions) */}
       <AboutSection
         description={drep.description}

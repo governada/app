@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
@@ -18,6 +19,8 @@ import {
   HelpCircle,
   ExternalLink,
   TrendingUp,
+  RefreshCw,
+  Wallet,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { briefingContainer, briefingItem } from '@/lib/animations';
@@ -30,6 +33,16 @@ import {
 } from '@/hooks/queries';
 import { computeTier } from '@/lib/scoring/tiers';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { useQueryClient } from '@tanstack/react-query';
+import { useWallet } from '@/utils/wallet';
+import { getStoredSession } from '@/lib/supabaseAuth';
+import { resolveRewardAddress } from '@meshsdk/core';
+import { hapticLight } from '@/lib/haptics';
+import { useSentimentResults } from '@/hooks/useEngagement';
+import { CommunityConsensus } from './CommunityConsensus';
+
+type SentimentChoice = 'support' | 'oppose' | 'unsure';
 
 /* ── Helpers ─────────────────────────────────────────────────── */
 
@@ -179,68 +192,197 @@ function CommunitySignalInline({
   );
 }
 
-/* ── Active proposal card with signal buttons ────────────────── */
+/* ── Active proposal card with inline sentiment voting ────────── */
 
 function ActiveProposalCard({ proposal }: { proposal: ConsequenceProposal }) {
   const voteInfo = proposal.drepVote ? VOTE_LABELS[proposal.drepVote] : null;
   const typeLabel = PROPOSAL_TYPE_LABELS[proposal.proposalType] ?? proposal.proposalType;
+  const { connected, isAuthenticated, address, delegatedDrepId, authenticate } = useWallet();
+  const queryClient = useQueryClient();
+  const [voting, setVoting] = useState(false);
+  const [voteError, setVoteError] = useState<string | null>(null);
+
+  // Fetch real-time sentiment for inline display
+  const { data: sentimentData } = useSentimentResults(proposal.txHash, proposal.index);
+  const hasVoted = sentimentData?.hasVoted ?? !!proposal.userSignal;
+  const userSentiment =
+    sentimentData?.userSentiment ?? (proposal.userSignal as SentimentChoice | null);
+  const community = sentimentData?.community ??
+    proposal.communitySignal ?? { support: 0, oppose: 0, unsure: 0, total: 0 };
+
+  const castVote = async (sentiment: SentimentChoice) => {
+    hapticLight();
+    if (!isAuthenticated) {
+      const ok = await authenticate();
+      if (!ok) return;
+    }
+
+    setVoting(true);
+    setVoteError(null);
+
+    try {
+      const token = getStoredSession();
+      if (!token) throw new Error('Not authenticated');
+
+      let stakeAddress: string | undefined;
+      if (address) {
+        try {
+          stakeAddress = resolveRewardAddress(address);
+        } catch {
+          /* script addresses won't resolve */
+        }
+      }
+
+      const res = await fetch('/api/engagement/sentiment/vote', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          proposalTxHash: proposal.txHash,
+          proposalIndex: proposal.index,
+          sentiment,
+          stakeAddress,
+          delegatedDrepId,
+        }),
+      });
+
+      if (res.status === 429) throw new Error('Vote limit reached.');
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Vote failed');
+      }
+
+      await queryClient.invalidateQueries({
+        queryKey: ['citizen-sentiment', proposal.txHash, proposal.index],
+      });
+
+      import('@/lib/posthog')
+        .then(({ posthog }) => {
+          posthog.capture('citizen_sentiment_voted_hub', {
+            proposal_tx_hash: proposal.txHash,
+            proposal_index: proposal.index,
+            sentiment,
+            source: 'citizen_hub',
+          });
+        })
+        .catch(() => {});
+    } catch (err) {
+      setVoteError(err instanceof Error ? err.message : 'Vote failed');
+    } finally {
+      setVoting(false);
+    }
+  };
 
   return (
-    <Link
-      href={`/proposal/${proposal.txHash}/${proposal.index}`}
-      className="group block rounded-xl border border-white/[0.06] bg-white/[0.03] p-3.5 transition-all hover:border-primary/40 hover:bg-white/[0.05]"
-    >
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0 space-y-1.5">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 rounded-full border border-blue-500/20 bg-blue-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-blue-400">
-              <Vote className="h-3 w-3" />
-              Active
-            </span>
-            <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-              {typeLabel}
-            </span>
+    <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3.5 space-y-2">
+      <Link href={`/proposal/${proposal.txHash}/${proposal.index}`} className="group block">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0 space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1 rounded-full border border-blue-500/20 bg-blue-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-blue-400">
+                <Vote className="h-3 w-3" />
+                Active
+              </span>
+              <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                {typeLabel}
+              </span>
+            </div>
+
+            <p className="text-sm font-medium text-foreground line-clamp-2 leading-snug group-hover:text-primary transition-colors">
+              {proposal.title ?? 'Untitled Proposal'}
+            </p>
+
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              {voteInfo && (
+                <span className={cn('font-medium', voteInfo.color)}>
+                  DRep {voteInfo.label.toLowerCase()}
+                </span>
+              )}
+              {!voteInfo && <span className="text-amber-400/80">DRep hasn&apos;t voted yet</span>}
+              {community.total > 0 && <CommunitySignalInline signal={community} />}
+            </div>
           </div>
 
-          <p className="text-sm font-medium text-foreground line-clamp-2 leading-snug">
-            {proposal.title ?? 'Untitled Proposal'}
-          </p>
-
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            {voteInfo && (
-              <span className={cn('font-medium', voteInfo.color)}>
-                DRep {voteInfo.label.toLowerCase()}
-              </span>
-            )}
-            {!voteInfo && <span className="text-amber-400/80">DRep hasn&apos;t voted yet</span>}
-            {proposal.communitySignal && proposal.communitySignal.total > 0 && (
-              <CommunitySignalInline signal={proposal.communitySignal} />
-            )}
-            {proposal.userSignal && (
-              <span className="flex items-center gap-1">
-                {proposal.userSignal === 'support' && (
-                  <ThumbsUp className="h-3 w-3 text-emerald-400" />
-                )}
-                {proposal.userSignal === 'oppose' && (
-                  <ThumbsDown className="h-3 w-3 text-red-400" />
-                )}
-                {proposal.userSignal === 'unsure' && (
-                  <HelpCircle className="h-3 w-3 text-amber-400" />
-                )}
-                <span className="text-[10px]">You: {proposal.userSignal}</span>
-              </span>
-            )}
-            {!proposal.userSignal && (
-              <span className="text-primary/70 text-[10px] font-medium">
-                Share your opinion &rarr;
-              </span>
-            )}
-          </div>
+          <ArrowRight className="mt-1 h-3.5 w-3.5 shrink-0 text-muted-foreground/40 transition-all group-hover:text-primary group-hover:translate-x-0.5" />
         </div>
+      </Link>
 
-        <ArrowRight className="mt-1 h-3.5 w-3.5 shrink-0 text-muted-foreground/40 transition-all group-hover:text-primary group-hover:translate-x-0.5" />
-      </div>
-    </Link>
+      {/* Already voted */}
+      {hasVoted && userSentiment && (
+        <div className="flex items-center gap-2 text-xs pt-1">
+          <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+          <span>
+            You: <strong className="capitalize">{userSentiment}</strong>
+          </span>
+        </div>
+      )}
+
+      {/* Inline sentiment buttons for connected users who haven't voted */}
+      {!hasVoted && connected && (
+        <div className="flex gap-1.5 pt-1" role="radiogroup" aria-label="Share your sentiment">
+          {[
+            {
+              vote: 'support' as SentimentChoice,
+              label: 'Support',
+              icon: ThumbsUp,
+              cls: 'hover:border-green-500/50 hover:bg-green-500/5',
+            },
+            {
+              vote: 'oppose' as SentimentChoice,
+              label: 'Oppose',
+              icon: ThumbsDown,
+              cls: 'hover:border-red-500/50 hover:bg-red-500/5',
+            },
+            {
+              vote: 'unsure' as SentimentChoice,
+              label: 'Unsure',
+              icon: HelpCircle,
+              cls: 'hover:border-amber-500/50 hover:bg-amber-500/5',
+            },
+          ].map(({ vote, label, icon: Icon, cls }) => (
+            <button
+              key={vote}
+              onClick={() => castVote(vote)}
+              disabled={voting}
+              role="radio"
+              aria-checked={false}
+              className={cn(
+                'flex-1 inline-flex items-center justify-center gap-1 rounded-lg border border-border/50 px-2 py-1.5 text-[10px] font-medium',
+                'transition-all duration-150 motion-safe:hover:scale-[1.02] motion-safe:active:scale-[0.98]',
+                cls,
+              )}
+            >
+              {voting ? (
+                <RefreshCw className="h-3 w-3 animate-spin" />
+              ) : (
+                <Icon className="h-3 w-3" />
+              )}
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Connect CTA for unconnected users */}
+      {!hasVoted && !connected && (
+        <Button
+          size="sm"
+          variant="outline"
+          className="w-full gap-1.5 text-[10px] h-7"
+          onClick={() => {
+            const event = new CustomEvent('openWalletConnect');
+            window.dispatchEvent(event);
+          }}
+        >
+          <Wallet className="h-3 w-3" />
+          Connect to share your opinion
+        </Button>
+      )}
+
+      {voteError && <p className="text-[10px] text-destructive">{voteError}</p>}
+    </div>
   );
 }
 
@@ -444,6 +586,9 @@ export function CitizenHub() {
           />
         </div>
       </Section>
+
+      {/* ── Community Consensus (feature-flagged) ────────── */}
+      <CommunityConsensus />
 
       {/* ── Representation quality ─────────────────────────── */}
       <Section>
