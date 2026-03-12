@@ -62,7 +62,7 @@ export function AnonymousLanding({ pulseData }: AnonymousLandingProps) {
               textShadow: '0 2px 12px rgba(0,0,0,0.8), 0 0 40px rgba(0,0,0,0.5)',
             }}
           >
-            Build your governance team in 60 seconds.
+            Choose who votes for you. It takes 60 seconds.
           </p>
         </div>
       </section>
@@ -79,7 +79,7 @@ export function AnonymousLanding({ pulseData }: AnonymousLandingProps) {
           >
             <Link href="/match">
               <Users className="h-5 w-5" />
-              Build Your Governance Team
+              Choose Your Representative
               <ArrowRight className="h-5 w-5" />
             </Link>
           </Button>
@@ -94,7 +94,7 @@ export function AnonymousLanding({ pulseData }: AnonymousLandingProps) {
           >
             <Link href="/governance">
               <Compass className="h-4 w-4" />
-              Explore Governance
+              See What&apos;s Happening
               <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
@@ -107,17 +107,17 @@ export function AnonymousLanding({ pulseData }: AnonymousLandingProps) {
               <SocialProofStat
                 icon={Users}
                 value={pulseData.activeDReps}
-                label="active DReps representing you"
+                label="representatives ready to vote for you"
               />
               <SocialProofStat
                 icon={Vote}
                 value={pulseData.activeProposals}
-                label="proposals being decided"
+                label="decisions being made right now"
               />
               <SocialProofStat
                 icon={Activity}
                 value={pulseData.totalDelegators}
-                label="citizens participating"
+                label="ADA holders participating"
               />
             </div>
           </div>
@@ -130,7 +130,7 @@ export function AnonymousLanding({ pulseData }: AnonymousLandingProps) {
             className="text-muted-foreground/70 hover:text-primary transition-colors"
             onClick={() => trackFunnel(FUNNEL_EVENTS.EXPLORE_CLICKED, { source: 'landing_health' })}
           >
-            Is governance healthy? &rarr;
+            How is Cardano being managed? &rarr;
           </Link>
           <span className="text-border">|</span>
           <Link
@@ -140,7 +140,7 @@ export function AnonymousLanding({ pulseData }: AnonymousLandingProps) {
               trackFunnel(FUNNEL_EVENTS.EXPLORE_CLICKED, { source: 'landing_proposals' })
             }
           >
-            What&apos;s being voted on? &rarr;
+            What decisions are being made? &rarr;
           </Link>
         </div>
       </section>

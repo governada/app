@@ -62,22 +62,22 @@ const CHECKLIST_ITEMS: ChecklistItem[] = [
   },
   {
     id: 'exploredGovernance',
-    label: 'Explore your governance options',
-    description: 'Browse active proposals and DRep representatives',
+    label: 'See what\u2019s being decided',
+    description: 'Browse decisions and representatives',
     icon: Compass,
     href: '/governance',
   },
   {
     id: 'firstSentimentVote',
-    label: 'Cast your first sentiment vote',
-    description: 'Share your perspective on an active proposal',
+    label: 'Share your opinion on a decision',
+    description: 'Quick poll \u2014 no wallet transaction needed',
     icon: MessageSquare,
     href: '/governance/proposals',
   },
   {
     id: 'delegatedDRep',
-    label: 'Delegate to a DRep',
-    description: 'Choose who votes on your behalf',
+    label: 'Choose your representative',
+    description: 'Pick who votes on your behalf \u2014 takes 60 seconds',
     icon: Vote,
     href: '/match',
   },
@@ -134,7 +134,7 @@ export function OnboardingChecklist() {
               <Sparkles className="h-5 w-5 text-emerald-500 shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
-                  You are all set! You are now an active participant in Cardano governance.
+                  You&apos;re all set! You now have a voice in how Cardano is run.
                 </p>
               </div>
               <Button variant="ghost" size="sm" onClick={handleDismiss} className="shrink-0">
