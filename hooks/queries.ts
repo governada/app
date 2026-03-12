@@ -645,3 +645,66 @@ export function useAccountInfo(stakeAddress: string | null | undefined) {
     staleTime: 120_000,
   });
 }
+
+// ── Workspace Cockpit (aggregate) ────────────────────────────────────
+
+export interface CockpitData {
+  score: {
+    current: number;
+    trend: number;
+    trendSince: string | null;
+    tier: string;
+    tierProgress: {
+      currentTier: string;
+      score: number;
+      pointsToNext: number | null;
+      percentWithinTier: number;
+      nextTier: string | null;
+      recommendedAction: string | null;
+    };
+    narrative: string;
+    percentile: number;
+    rank: number | null;
+    totalDReps: number;
+    pillars: {
+      engagementQuality: number;
+      effectiveParticipation: number;
+      reliability: number;
+      governanceIdentity: number;
+    };
+  };
+  actionFeed: {
+    pendingProposals: {
+      txHash: string;
+      index: number;
+      title: string;
+      proposalType: string;
+      epochsRemaining: number | null;
+      isUrgent: boolean;
+    }[];
+    pendingCount: number;
+    unexplainedVotes: { txHash: string; index: number; title: string }[];
+    unansweredQuestions: number;
+    delegatorAlerts: { change: number; currentCount: number | null };
+    scoreAlerts: { delta: number; recommendation: string | null };
+  };
+  delegation: {
+    currentDelegators: number | null;
+    delegatorDelta: number;
+    snapshots: { epoch: number; votingPowerAda: number; delegatorCount: number }[];
+  };
+  activityHeatmap: {
+    epochs: { epoch: number; votes: number }[];
+    streak: number;
+  };
+}
+
+export function useWorkspaceCockpit(drepId: string | null | undefined) {
+  return useQuery<CockpitData>({
+    queryKey: ['workspace-cockpit', drepId],
+    queryFn: () =>
+      fetchJson<CockpitData>(`/api/workspace/cockpit?drepId=${encodeURIComponent(drepId!)}`),
+    enabled: !!drepId,
+    staleTime: 30_000,
+  });
+}

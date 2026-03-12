@@ -85,11 +85,9 @@ export interface BottomBarConfig {
 // ---------------------------------------------------------------------------
 
 export const WORKSPACE_DREP_ITEMS: NavItem[] = [
-  { href: '/workspace', label: 'Action Queue', icon: Vote },
+  { href: '/workspace', label: 'Cockpit', icon: Vote },
   { href: '/workspace/votes', label: 'Voting Record', icon: ScrollText },
-  { href: '/workspace/rationales', label: 'Rationales', icon: FileText },
   { href: '/workspace/delegators', label: 'Delegators', icon: Users },
-  { href: '/workspace/performance', label: 'Performance', icon: BarChart3 },
 ];
 
 export const WORKSPACE_SPO_ITEMS: NavItem[] = [
