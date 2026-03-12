@@ -40,7 +40,7 @@ export function DRepCockpit() {
   return (
     <div className="space-y-4 animate-in fade-in-0 duration-300">
       {/* Score Hero */}
-      <CockpitScoreHero score={data.score} />
+      <CockpitScoreHero score={data.score} scoreStory={data.scoreStory} />
 
       {/* Governance Readiness */}
       <GovernanceReadiness data={data} />

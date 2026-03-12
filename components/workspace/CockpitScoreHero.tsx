@@ -1,8 +1,9 @@
 'use client';
 
-import { TrendingUp, TrendingDown, Minus, Trophy } from 'lucide-react';
+import { useState } from 'react';
+import { TrendingUp, TrendingDown, Minus, Trophy, ChevronDown, ChevronUp, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { CockpitData } from '@/hooks/queries';
+import type { CockpitData, ScoreStoryPillar } from '@/hooks/queries';
 
 const TIER_ACCENT: Record<string, string> = {
   Emerging: 'text-zinc-400',
@@ -22,11 +23,52 @@ const TIER_BG: Record<string, string> = {
   Legendary: 'bg-purple-400/10',
 };
 
-interface CockpitScoreHeroProps {
-  score: CockpitData['score'];
+// ── Score Story Pillar Row ──────────────────────────────────────────
+
+function PillarRow({ pillar, isBiggestWin }: { pillar: ScoreStoryPillar; isBiggestWin: boolean }) {
+  const barColor =
+    pillar.value >= 70 ? 'bg-emerald-500' : pillar.value >= 40 ? 'bg-amber-500' : 'bg-rose-500';
+
+  return (
+    <div
+      className={cn(
+        'rounded-lg p-2.5 space-y-1.5 transition-colors',
+        isBiggestWin ? 'bg-primary/5 ring-1 ring-primary/20' : 'bg-muted/30',
+      )}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          {isBiggestWin && <Zap className="h-3 w-3 text-primary" />}
+          <span className="text-xs font-medium text-foreground">{pillar.label}</span>
+        </div>
+        <span className="text-xs font-bold tabular-nums text-foreground">{pillar.value}</span>
+      </div>
+      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+        <div
+          className={cn('h-full rounded-full transition-all duration-500', barColor)}
+          style={{ width: `${Math.min(100, pillar.value)}%` }}
+        />
+      </div>
+      <p className="text-[10px] text-muted-foreground leading-tight">
+        {isBiggestWin && <span className="text-primary font-medium">Biggest win: </span>}
+        {pillar.action}
+        {pillar.scoreImpact > 0 && (
+          <span className="text-muted-foreground/70"> (+{pillar.scoreImpact} pts potential)</span>
+        )}
+      </p>
+    </div>
+  );
 }
 
-export function CockpitScoreHero({ score }: CockpitScoreHeroProps) {
+// ── Main Component ──────────────────────────────────────────────────
+
+interface CockpitScoreHeroProps {
+  score: CockpitData['score'];
+  scoreStory?: CockpitData['scoreStory'];
+}
+
+export function CockpitScoreHero({ score, scoreStory }: CockpitScoreHeroProps) {
+  const [storyOpen, setStoryOpen] = useState(false);
   const trend = score.trend;
   const TrendIcon = trend > 0 ? TrendingUp : trend < 0 ? TrendingDown : Minus;
   const trendColor =
@@ -80,7 +122,7 @@ export function CockpitScoreHero({ score }: CockpitScoreHeroProps) {
         </div>
       </div>
 
-      {/* 4-Pillar Mini Bars */}
+      {/* 4-Pillar Mini Bars (always visible) */}
       <div className="grid grid-cols-4 gap-2">
         {pillars.map((p) => (
           <div key={p.key} className="space-y-1">
@@ -116,6 +158,36 @@ export function CockpitScoreHero({ score }: CockpitScoreHeroProps) {
             {score.tierProgress.pointsToNext} pts to {score.tierProgress.nextTier}
           </span>
         </div>
+      )}
+
+      {/* Score Story toggle */}
+      {scoreStory && (
+        <>
+          <button
+            onClick={() => setStoryOpen(!storyOpen)}
+            className="w-full flex items-center justify-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors pt-1"
+          >
+            {storyOpen ? (
+              <>
+                Hide score breakdown
+                <ChevronUp className="h-3.5 w-3.5" />
+              </>
+            ) : (
+              <>
+                What&apos;s driving your score?
+                <ChevronDown className="h-3.5 w-3.5" />
+              </>
+            )}
+          </button>
+
+          {storyOpen && (
+            <div className="space-y-2 animate-in fade-in-0 slide-in-from-top-1 duration-200">
+              {scoreStory.pillars.map((p) => (
+                <PillarRow key={p.key} pillar={p} isBiggestWin={p.key === scoreStory.biggestWin} />
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
