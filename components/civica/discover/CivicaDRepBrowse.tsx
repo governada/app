@@ -14,6 +14,8 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CivicaDRepCard } from '@/components/civica/cards/CivicaDRepCard';
@@ -28,6 +30,10 @@ import { useBatchEndorsementCounts } from '@/hooks/useEngagement';
 import { useDReps } from '@/hooks/queries';
 import type { EnrichedDRep } from '@/lib/koios';
 import { AnonymousNudge } from '@/components/civica/shared/AnonymousNudge';
+import { useDepthConfig } from '@/hooks/useDepthConfig';
+import { useGovernanceDepth } from '@/hooks/useGovernanceDepth';
+import { DepthGate } from '@/components/providers/DepthGate';
+import { useWallet } from '@/utils/wallet-context';
 import { DiscoverFilterBar } from './DiscoverFilterBar';
 import { DiscoverPagination } from './DiscoverPagination';
 import {
@@ -284,12 +290,69 @@ function DRepTableRow({ drep, rank }: { drep: EnrichedDRep; rank: number }) {
   );
 }
 
+/* ── Hands-Off: single focused DRep card ──────────────────────────────────── */
+function YourDRepSummary({ dreps }: { dreps: EnrichedDRep[] }) {
+  const { delegatedDrepId } = useWallet();
+  const yourDrep = delegatedDrepId ? dreps.find((d) => d.drepId === delegatedDrepId) : null;
+  const displayName = yourDrep
+    ? yourDrep.name || yourDrep.ticker || yourDrep.handle || `${yourDrep.drepId.slice(0, 16)}\u2026`
+    : null;
+
+  return (
+    <div className="space-y-3" data-discovery="gov-representatives">
+      <h1 className="text-xl font-bold tracking-tight">Your Representative</h1>
+      {yourDrep ? (
+        <Link
+          href={`/drep/${yourDrep.drepId}`}
+          className="group flex items-center gap-4 p-4 rounded-xl border border-border/50 bg-card/70 backdrop-blur-md hover:bg-muted/40 hover:border-border/70 transition-all"
+        >
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-base font-semibold truncate">{displayName}</span>
+              {yourDrep.isActive ? (
+                <span className="inline-flex items-center gap-1 text-xs text-emerald-400">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Active
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-xs text-rose-400">
+                  <XCircle className="h-3.5 w-3.5" /> Inactive
+                </span>
+              )}
+            </div>
+            <span className="text-xs text-muted-foreground">
+              Score: {yourDrep.drepScore ?? 0} &middot;{' '}
+              {yourDrep.delegatorCount?.toLocaleString() ?? 0} delegators
+            </span>
+          </div>
+          <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0" />
+        </Link>
+      ) : (
+        <div className="rounded-xl border border-border/50 bg-card/70 backdrop-blur-md p-4 space-y-2">
+          <p className="text-sm text-muted-foreground">
+            {delegatedDrepId
+              ? 'Your representative is not yet registered on-chain.'
+              : "You haven't delegated to a representative yet."}
+          </p>
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/match">Find a representative &rarr;</Link>
+          </Button>
+        </div>
+      )}
+      <p className="text-xs text-muted-foreground/60">
+        {dreps.length > 0 ? `${dreps.length} DReps registered` : ''}
+      </p>
+    </div>
+  );
+}
+
 type SortMode = 'score' | 'match';
 
 export function CivicaDRepBrowse(_props: CivicaDRepBrowseProps) {
   const { data: rawData, isLoading } = useDReps();
   const drepsData = rawData as { allDReps?: EnrichedDRep[] } | undefined;
   const dreps: EnrichedDRep[] = useMemo(() => drepsData?.allDReps ?? [], [drepsData]);
+  const depthConfig = useDepthConfig('governance');
+  const { isAtLeast } = useGovernanceDepth();
 
   const searchParams = useSearchParams();
   const contentRef = useRef<HTMLDivElement>(null);
@@ -439,117 +502,148 @@ export function CivicaDRepBrowse(_props: CivicaDRepBrowseProps) {
     );
   }
 
+  // ── Hands-Off: focused single-DRep card ────────────────────────────────
+  if (!isAtLeast('informed')) {
+    return <YourDRepSummary dreps={dreps} />;
+  }
+
+  // ── Informed: top DReps by activity + your DRep highlighted ─────────────
+  const isInformedOnly = !isAtLeast('engaged');
+
   return (
     <div ref={contentRef} className="space-y-3" data-discovery="gov-representatives">
       {/* ── Page header ──────────────────────────────────────────── */}
       <div className="-mx-4 sm:-mx-6 px-4 sm:px-6 pt-2 pb-3">
         <div className="flex items-baseline justify-between gap-4">
-          <h1 className="text-xl font-bold tracking-tight">Find Your Representative</h1>
+          <h1 className="text-xl font-bold tracking-tight">
+            {isInformedOnly ? 'Top Representatives' : 'Find Your Representative'}
+          </h1>
           <span className="text-xs text-muted-foreground shrink-0">
             {dreps.length > 0 ? `${dreps.length} DReps registered` : ''}
           </span>
         </div>
-        <p className="text-sm text-muted-foreground mt-1 max-w-xl">
-          Every DRep has a unique governance philosophy. Find someone who represents your values.
-        </p>
+        {!isInformedOnly && (
+          <p className="text-sm text-muted-foreground mt-1 max-w-xl">
+            Every DRep has a unique governance philosophy. Find someone who represents your values.
+          </p>
+        )}
       </div>
 
       <AnonymousNudge variant="representatives" />
 
-      {/* ── Sticky filter bar ────────────────────────────────────── */}
-      <div className="sticky top-14 lg:top-0 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2 bg-card/60 backdrop-blur-xl border-b border-border/30">
-        <DiscoverFilterBar
-          search={filters.search}
-          onSearchChange={(v) => setFilter('search', v)}
-          searchPlaceholder="Search by name, ticker, or ID\u2026"
-          chipGroups={[
-            {
-              label: 'Tier',
-              value: filters.tier,
-              options: TIER_CHIPS,
-              onChange: (v) => setFilter('tier', v),
-            },
-            {
-              label: 'Alignment',
-              value: filters.alignment,
-              options: ALIGNMENT_OPTIONS,
-              onChange: (v) => setFilter('alignment', v),
-            },
-          ]}
-          toggles={[
-            {
-              label: 'Active DReps only',
-              checked: filters.activeOnly,
-              onChange: (v) => setFilter('activeOnly', v),
-            },
-          ]}
-          resultCount={filtered.length}
-          totalCount={dreps.length}
-          entityLabel="DReps"
-          isFiltered={!isDefaultFilters}
-          onReset={resetFilters}
-          pageInfo={totalPages > 1 ? `Page ${page + 1} / ${totalPages}` : undefined}
-        />
+      {/* ── Sticky filter bar — Engaged+ ─────────────────────────── */}
+      <DepthGate minDepth="engaged">
+        <div className="sticky top-14 lg:top-0 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2 bg-card/60 backdrop-blur-xl border-b border-border/30">
+          <DiscoverFilterBar
+            search={filters.search}
+            onSearchChange={(v) => setFilter('search', v)}
+            searchPlaceholder="Search by name, ticker, or ID\u2026"
+            chipGroups={[
+              {
+                label: 'Tier',
+                value: filters.tier,
+                options: TIER_CHIPS,
+                onChange: (v) => setFilter('tier', v),
+              },
+              {
+                label: 'Alignment',
+                value: filters.alignment,
+                options: ALIGNMENT_OPTIONS,
+                onChange: (v) => setFilter('alignment', v),
+              },
+            ]}
+            toggles={[
+              {
+                label: 'Active DReps only',
+                checked: filters.activeOnly,
+                onChange: (v) => setFilter('activeOnly', v),
+              },
+            ]}
+            resultCount={filtered.length}
+            totalCount={dreps.length}
+            entityLabel="DReps"
+            isFiltered={!isDefaultFilters}
+            onReset={resetFilters}
+            pageInfo={totalPages > 1 ? `Page ${page + 1} / ${totalPages}` : undefined}
+          />
 
-        {/* Consolidated toolbar: match sort + view toggle */}
-        <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/20">
-          <div className="flex items-center gap-2">
-            {matchProfile && (
-              <>
-                <button
-                  onClick={() => setSortMode(sortMode === 'match' ? 'score' : 'match')}
-                  className={cn(
-                    'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all border',
-                    sortMode === 'match'
-                      ? 'bg-primary/10 border-primary/30 text-primary'
-                      : 'bg-muted/30 border-border text-muted-foreground hover:text-foreground',
+          {/* Consolidated toolbar: match sort + view toggle */}
+          <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/20">
+            <div className="flex items-center gap-2">
+              {matchProfile && (
+                <>
+                  <button
+                    onClick={() => setSortMode(sortMode === 'match' ? 'score' : 'match')}
+                    className={cn(
+                      'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all border',
+                      sortMode === 'match'
+                        ? 'bg-primary/10 border-primary/30 text-primary'
+                        : 'bg-muted/30 border-border text-muted-foreground hover:text-foreground',
+                    )}
+                  >
+                    <Sparkles className="h-3 w-3" />
+                    {sortMode === 'match' ? 'Sorted by match' : 'Sort by match'}
+                  </button>
+                  {sortMode === 'match' && (
+                    <span className="text-[10px] text-muted-foreground hidden sm:inline">
+                      Based on your{' '}
+                      <Link href="/match" className="text-primary hover:underline">
+                        profile
+                      </Link>
+                    </span>
                   )}
-                >
-                  <Sparkles className="h-3 w-3" />
-                  {sortMode === 'match' ? 'Sorted by match' : 'Sort by match'}
-                </button>
-                {sortMode === 'match' && (
-                  <span className="text-[10px] text-muted-foreground hidden sm:inline">
-                    Based on your{' '}
-                    <Link href="/match" className="text-primary hover:underline">
-                      profile
-                    </Link>
-                  </span>
+                </>
+              )}
+            </div>
+            <div className="hidden sm:flex items-center gap-0.5">
+              <button
+                onClick={() => toggleViewMode('cards')}
+                className={cn(
+                  'p-1.5 rounded transition-colors',
+                  viewMode === 'cards'
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:text-foreground',
                 )}
-              </>
-            )}
-          </div>
-          <div className="hidden sm:flex items-center gap-0.5">
-            <button
-              onClick={() => toggleViewMode('cards')}
-              className={cn(
-                'p-1.5 rounded transition-colors',
-                viewMode === 'cards'
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
-              title="Card view"
-            >
-              <LayoutGrid className="h-3.5 w-3.5" />
-            </button>
-            <button
-              onClick={() => toggleViewMode('table')}
-              className={cn(
-                'p-1.5 rounded transition-colors',
-                viewMode === 'table'
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
-              title="Table view"
-            >
-              <TableProperties className="h-3.5 w-3.5" />
-            </button>
+                title="Card view"
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={() => toggleViewMode('table')}
+                className={cn(
+                  'p-1.5 rounded transition-colors',
+                  viewMode === 'table'
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+                title="Table view"
+              >
+                <TableProperties className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      </DepthGate>
 
       {/* ── Content ──────────────────────────────────────────────── */}
-      {pageItems.length === 0 && inactiveItems.length === 0 ? (
+      {isInformedOnly ? (
+        /* Informed: top DReps by score, compact card grid, no filters */
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {activeItems.slice(0, 12).map((drep, i) => (
+            <div
+              key={drep.drepId}
+              className="animate-in fade-in slide-in-from-bottom-2 duration-300 fill-mode-backwards"
+              style={{ animationDelay: `${Math.min(i, 11) * 30}ms` }}
+            >
+              <CivicaDRepCard
+                drep={drep}
+                rank={i + 1}
+                endorsementCount={endorsementCounts[drep.drepId]}
+              />
+            </div>
+          ))}
+        </div>
+      ) : pageItems.length === 0 && inactiveItems.length === 0 ? (
         <div className="py-16 text-center space-y-2">
           {filters.alignment !== 'all' ? (
             <>
@@ -645,7 +739,19 @@ export function CivicaDRepBrowse(_props: CivicaDRepBrowseProps) {
         </div>
       )}
 
-      <DiscoverPagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
+      {/* Deep: analytics context placeholder */}
+      <DepthGate minDepth="deep">
+        {/* TODO: Phase 6+ — DRep analytics, voting pattern analysis, delegation flow visualization */}
+        <div className="rounded-xl border border-dashed border-border/40 bg-card/30 p-4 text-center">
+          <p className="text-xs text-muted-foreground/60">
+            DRep analytics and delegation flow visualization coming soon
+          </p>
+        </div>
+      </DepthGate>
+
+      {!isInformedOnly && (
+        <DiscoverPagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
+      )}
     </div>
   );
 }

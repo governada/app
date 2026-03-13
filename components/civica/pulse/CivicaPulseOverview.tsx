@@ -2,7 +2,7 @@
 
 import { useCallback } from 'react';
 import { useSearchParams, usePathname } from 'next/navigation';
-import { Activity } from 'lucide-react';
+import { Activity, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ErrorCard } from '@/components/ui/ErrorCard';
 import { useGovernancePulse } from '@/hooks/queries';
@@ -22,6 +22,9 @@ import { useGovernanceHealthIndex } from '@/hooks/queries';
 import { EmptyState } from './EmptyState';
 import { FirstVisitBanner } from '@/components/ui/FirstVisitBanner';
 import { AnonymousNudge } from '@/components/civica/shared/AnonymousNudge';
+import { useGovernanceDepth } from '@/hooks/useGovernanceDepth';
+import { useDepthConfig } from '@/hooks/useDepthConfig';
+import { DepthGate } from '@/components/providers/DepthGate';
 import type {
   TreasuryData,
   LeaderboardData,
@@ -65,6 +68,187 @@ const TABS: { id: PulseTab; label: string }[] = [
 
 const VALID_PULSE_TABS = new Set<PulseTab>(TABS.map((t) => t.id));
 
+/* ── Hands-Off: single score + trend arrow ─────────────────────────────────── */
+function GHIMinimal() {
+  const { data: rawGhi, isLoading } = useGovernanceHealthIndex(1);
+  const ghi = rawGhi as
+    | {
+        current?: { score: number; band: string };
+        trend?: { direction: string; delta: number };
+      }
+    | undefined;
+
+  if (isLoading) {
+    return (
+      <div className="rounded-xl border border-border/50 bg-card/70 backdrop-blur-md p-5 flex items-center gap-4">
+        <div className="h-12 w-12 rounded-full bg-muted/40 animate-pulse" />
+        <div className="space-y-1">
+          <div className="h-4 w-32 bg-muted/40 rounded animate-pulse" />
+          <div className="h-3 w-20 bg-muted/40 rounded animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+
+  const score = ghi?.current?.score ?? 0;
+  const band = ghi?.current?.band ?? 'fair';
+  const direction = (ghi?.trend?.direction ?? 'flat') as 'up' | 'down' | 'flat';
+  const arrow = direction === 'up' ? '\u2191' : direction === 'down' ? '\u2193' : '\u2192';
+  const TrendIcon = direction === 'up' ? TrendingUp : direction === 'down' ? TrendingDown : Minus;
+  const trendColor =
+    direction === 'up'
+      ? 'text-emerald-500'
+      : direction === 'down'
+        ? 'text-rose-500'
+        : 'text-muted-foreground';
+
+  const BAND_COLORS: Record<string, string> = {
+    strong: 'text-emerald-500',
+    good: 'text-green-500',
+    fair: 'text-amber-500',
+    critical: 'text-rose-500',
+  };
+  const scoreColor = BAND_COLORS[band] ?? BAND_COLORS.fair;
+
+  return (
+    <div
+      className="rounded-xl border border-border/50 bg-card/70 backdrop-blur-md p-5 space-y-1"
+      data-discovery="gov-health"
+    >
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+        Governance Health
+      </p>
+      <div className="flex items-baseline gap-2">
+        <span className={cn('text-4xl font-bold tabular-nums', scoreColor)}>
+          {Math.round(score)}
+        </span>
+        <span className={cn('text-lg', trendColor)} aria-label={`Trend: ${direction}`}>
+          {arrow}
+        </span>
+        <TrendIcon className={cn('h-4 w-4', trendColor)} />
+      </div>
+      <p className="text-xs text-muted-foreground capitalize">{band}</p>
+    </div>
+  );
+}
+
+/* ── Informed: score + 4-dimension breakdown + trend ───────────────────────── */
+function GHIInformedView() {
+  const { data: rawGhi, isLoading, isError, refetch } = useGovernanceHealthIndex(5);
+  const ghi = rawGhi as
+    | {
+        current: {
+          score: number;
+          band: string;
+          components: { name: string; value: number; weight: number; contribution: number }[];
+        };
+        trend?: { direction: string; delta: number; streakEpochs: number };
+      }
+    | undefined;
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="rounded-xl border border-border/50 bg-card/70 backdrop-blur-md p-5 flex items-center gap-4">
+          <div className="h-[80px] w-[80px] rounded-full bg-muted/40 animate-pulse" />
+          <div className="flex-1 space-y-2">
+            <div className="h-4 w-40 bg-muted/40 rounded animate-pulse" />
+            <div className="h-3 w-60 bg-muted/40 rounded animate-pulse" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError || !ghi?.current) {
+    return (
+      <ErrorCard message="Governance Health temporarily unavailable." onRetry={() => refetch()} />
+    );
+  }
+
+  const { score, band, components } = ghi.current;
+  const direction = (ghi.trend?.direction ?? 'flat') as 'up' | 'down' | 'flat';
+  const delta = ghi.trend?.delta ?? 0;
+
+  const BAND_COLORS: Record<string, { text: string; bg: string }> = {
+    strong: { text: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+    good: { text: 'text-green-500', bg: 'bg-green-500/10' },
+    fair: { text: 'text-amber-500', bg: 'bg-amber-500/10' },
+    critical: { text: 'text-rose-500', bg: 'bg-rose-500/10' },
+  };
+  const style = BAND_COLORS[band] ?? BAND_COLORS.fair;
+  const TrendIcon = direction === 'up' ? TrendingUp : direction === 'down' ? TrendingDown : Minus;
+  const trendColor =
+    direction === 'up'
+      ? 'text-emerald-500'
+      : direction === 'down'
+        ? 'text-rose-500'
+        : 'text-muted-foreground';
+
+  // Show top 4 components
+  const topComponents = [...components].sort((a, b) => b.weight - a.weight).slice(0, 4);
+
+  return (
+    <div className="space-y-4" data-discovery="gov-health">
+      {/* Score + band */}
+      <div className="rounded-xl border border-border/50 bg-card/70 backdrop-blur-md p-5">
+        <div className="flex items-center gap-4 mb-4">
+          <div className="text-center">
+            <span className={cn('text-3xl font-bold tabular-nums', style.text)}>
+              {Math.round(score)}
+            </span>
+            <span className="text-xs text-muted-foreground">/100</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold">Governance Health</h2>
+              <span
+                className={cn(
+                  'text-xs font-semibold px-2 py-0.5 rounded-full',
+                  style.bg,
+                  style.text,
+                )}
+              >
+                {band.charAt(0).toUpperCase() + band.slice(1)}
+              </span>
+            </div>
+            {delta !== 0 && (
+              <span
+                className={cn('inline-flex items-center gap-0.5 text-xs font-medium', trendColor)}
+              >
+                <TrendIcon className="h-3 w-3" />
+                {delta > 0 ? '+' : ''}
+                {Math.round(delta * 10) / 10} this epoch
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Dimension breakdown */}
+        <div className="grid grid-cols-2 gap-3">
+          {topComponents.map((comp) => (
+            <div key={comp.name} className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground truncate">{comp.name}</span>
+                <span className="text-xs font-medium tabular-nums">{Math.round(comp.value)}</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-muted/40 overflow-hidden">
+                <div
+                  className={cn(
+                    'h-full rounded-full transition-all',
+                    style.bg.replace('/10', '/60'),
+                  )}
+                  style={{ width: `${Math.min(100, comp.value)}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Legacy tab aliases for backwards compatibility with bookmarked URLs
 const TAB_ALIASES: Record<string, PulseTab> = {
   overview: 'now',
@@ -85,6 +269,8 @@ function resolvePulseTab(param: string | null): PulseTab {
 export function CivicaPulseOverview() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
+  const { isAtLeast } = useGovernanceDepth();
+  const depthConfig = useDepthConfig('governance');
 
   const activeTab = resolvePulseTab(searchParams.get('tab'));
 
@@ -156,6 +342,18 @@ export function CivicaPulseOverview() {
 
   const loading = pulseLoading || treasuryLoading;
   const hasError = pulseError || treasuryError;
+
+  // ── Hands-Off: single score + arrow ─────────────────────────────────────
+  if (!isAtLeast('informed')) {
+    return <GHIMinimal />;
+  }
+
+  // ── Informed: score + dimension breakdown, no tabs ─────────────────────
+  if (!isAtLeast('engaged')) {
+    return <GHIInformedView />;
+  }
+
+  // ── Engaged + Deep: full dashboard (current behavior = Engaged baseline) ─
 
   return (
     <div className="space-y-6 pt-4" data-discovery="gov-health">
@@ -262,6 +460,16 @@ export function CivicaPulseOverview() {
 
           {/* 6. Live Activity Ticker */}
           <ActivityTicker variant="inline" />
+
+          {/* 7. Deep: historical overlay placeholder */}
+          <DepthGate minDepth="deep">
+            {/* TODO: Phase 6+ — Historical health overlay, cross-epoch comparison, health projections */}
+            <div className="rounded-xl border border-dashed border-border/40 bg-card/30 p-4 text-center">
+              <p className="text-xs text-muted-foreground/60">
+                Historical health overlay and epoch comparison coming soon
+              </p>
+            </div>
+          </DepthGate>
         </div>
       )}
     </div>
