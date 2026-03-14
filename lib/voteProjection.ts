@@ -167,11 +167,10 @@ export function computeTrajectory(
   // Current yes %
   const currentYesPct = snapshots[snapshots.length - 1].yesPct;
 
-  // Project forward
+  // Project forward — floor at current (votes can't be un-cast)
   const projected = currentYesPct + weightedPace * epochsRemaining;
 
-  // Clamp to 0-100
-  return Math.max(0, Math.min(100, projected));
+  return Math.max(currentYesPct, Math.min(100, projected));
 }
 
 // ---------------------------------------------------------------------------

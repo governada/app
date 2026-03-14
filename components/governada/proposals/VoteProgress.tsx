@@ -112,6 +112,11 @@ export function VoteProgress({ projection, isOpen }: VoteProgressProps) {
   }
 
   // ─── informed+: progress bar with threshold ─────────────────────────
+  const projectedPct = projection.projectedFinalYesPct ?? projection.currentYesPct;
+  const showProjectedFill =
+    projection.projectedFinalYesPct != null &&
+    projection.projectedFinalYesPct - projection.currentYesPct > 0.5;
+
   return (
     <div className={cn('rounded-xl border overflow-hidden', style.bgColor)}>
       {/* Verdict header */}
@@ -136,8 +141,8 @@ export function VoteProgress({ projection, isOpen }: VoteProgressProps) {
       {/* Progress bar */}
       {projection.thresholdPct != null && (
         <div className="px-4 pb-3">
-          <div className="relative h-2.5 rounded-full bg-muted/50 overflow-visible">
-            {/* Yes power fill */}
+          <div className="relative h-3 rounded-full bg-muted/50 overflow-visible">
+            {/* Yes power fill (solid) */}
             <div
               className={cn(
                 'absolute inset-y-0 left-0 rounded-full transition-all duration-500',
@@ -145,20 +150,42 @@ export function VoteProgress({ projection, isOpen }: VoteProgressProps) {
               )}
               style={{ width: `${Math.min(100, projection.currentYesPct)}%` }}
             />
-            {/* Projected fill (ghost) */}
-            {projection.projectedFinalYesPct != null &&
-              projection.projectedFinalYesPct > projection.currentYesPct && (
+            {/* Projected fill (striped ghost) */}
+            {showProjectedFill && (
+              <div
+                className="absolute inset-y-0 rounded-r-full overflow-hidden"
+                style={{
+                  left: `${Math.min(100, projection.currentYesPct)}%`,
+                  width: `${Math.min(100 - projection.currentYesPct, projectedPct - projection.currentYesPct)}%`,
+                }}
+              >
                 <div
-                  className={cn('absolute inset-y-0 rounded-r-full opacity-25', style.barColor)}
+                  className={cn('absolute inset-0 opacity-30', style.barColor)}
                   style={{
-                    left: `${Math.min(100, projection.currentYesPct)}%`,
-                    width: `${Math.min(100 - projection.currentYesPct, projection.projectedFinalYesPct - projection.currentYesPct)}%`,
+                    backgroundImage: `repeating-linear-gradient(
+                      -45deg,
+                      transparent,
+                      transparent 3px,
+                      rgba(255,255,255,0.15) 3px,
+                      rgba(255,255,255,0.15) 6px
+                    )`,
                   }}
                 />
-              )}
+              </div>
+            )}
+            {/* Projected endpoint marker */}
+            {showProjectedFill && (
+              <div
+                className={cn(
+                  'absolute top-1/2 -translate-y-1/2 h-4 w-1 rounded-full opacity-50',
+                  style.barColor,
+                )}
+                style={{ left: `${Math.min(100, projectedPct)}%` }}
+              />
+            )}
             {/* Threshold marker */}
             <div
-              className="absolute top-[-3px] bottom-[-3px] w-0.5 bg-foreground/60"
+              className="absolute top-[-4px] bottom-[-4px] w-0.5 bg-foreground/60"
               style={{ left: `${Math.min(100, projection.thresholdPct)}%` }}
             >
               <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-[9px] text-muted-foreground whitespace-nowrap">
@@ -172,12 +199,12 @@ export function VoteProgress({ projection, isOpen }: VoteProgressProps) {
             <span className="text-xs text-foreground/70">
               {projection.currentYesPct.toFixed(1)}% voting Yes
             </span>
-            {projection.projectedFinalYesPct != null &&
-              Math.abs(projection.projectedFinalYesPct - projection.currentYesPct) > 1 && (
-                <span className="text-xs text-muted-foreground">
-                  Projected: {Math.round(projection.projectedFinalYesPct)}%
-                </span>
-              )}
+            {showProjectedFill && (
+              <span className="text-xs text-muted-foreground">
+                Projected: ~{Math.round(projectedPct)}%
+                {projectedPct >= projection.thresholdPct ? ' (passes)' : ''}
+              </span>
+            )}
           </div>
         </div>
       )}
