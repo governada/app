@@ -2,7 +2,18 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { BookOpen, ChevronRight, Users, Vote, Shield, Scale, Search, X } from 'lucide-react';
+import {
+  BookOpen,
+  ChevronRight,
+  Users,
+  Vote,
+  Shield,
+  Scale,
+  Search,
+  X,
+  Rocket,
+  ArrowRight,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { GOV_TERMS, type GovTermDef } from '@/lib/microcopy';
@@ -80,6 +91,24 @@ export function LearnClient() {
           Everything you need to understand how Cardano is governed.
         </p>
       </div>
+
+      {/* Guided onboarding banner */}
+      <Link
+        href="/get-started"
+        className="group flex items-center gap-4 rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/10 transition-colors p-5"
+      >
+        <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+          <Rocket className="h-5 w-5 text-primary" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold">New to Cardano governance?</p>
+          <p className="text-xs text-muted-foreground">
+            Follow our step-by-step guide to understand governance, connect your wallet, and choose
+            your representative.
+          </p>
+        </div>
+        <ArrowRight className="h-4 w-4 text-primary shrink-0 group-hover:translate-x-0.5 transition-transform" />
+      </Link>
 
       {/* Getting Started */}
       <section data-discovery="help-getting-started">

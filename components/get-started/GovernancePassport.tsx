@@ -3,6 +3,7 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Share2, Check, Shield, Wallet, Link2, Vote, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { trackOnboarding, ONBOARDING_EVENTS } from '@/lib/funnel';
 import { Badge } from '@/components/ui/badge';
 import { GovernanceRadar } from '@/components/GovernanceRadar';
 import type { AlignmentScores } from '@/lib/drepIdentity';
@@ -229,6 +230,9 @@ function ShareButton({ passport }: { passport: GovernancePassportData }) {
   const [copied, setCopied] = useState(false);
 
   const handleShare = useCallback(async () => {
+    trackOnboarding(ONBOARDING_EVENTS.PASSPORT_SHARED, {
+      stage: passport.stage,
+    });
     const encoded = encodePassportForShare(passport);
     const url = `${window.location.origin}/get-started?passport=${encoded}`;
 

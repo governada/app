@@ -18,6 +18,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { fadeInUp, staggerContainer } from '@/lib/animations';
+import { trackOnboarding, ONBOARDING_EVENTS } from '@/lib/funnel';
 import { useDelegation } from '@/hooks/useDelegation';
 import { useWallet } from '@/utils/wallet';
 import type { GovernancePassport } from '@/lib/passport';
@@ -52,6 +53,10 @@ export function StageDelegate({ passport, onComplete }: StageDelegateProps) {
   // Check if user already delegated to the matched DRep — auto-advance
   useEffect(() => {
     if (isAlreadyDelegated && isActiveStage) {
+      trackOnboarding(ONBOARDING_EVENTS.DELEGATED, {
+        drep_id: drepId,
+        source: 'already_delegated',
+      });
       onComplete();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -103,6 +108,10 @@ export function StageDelegate({ passport, onComplete }: StageDelegateProps) {
   const handleConfirm = async () => {
     const result = await confirmDelegation(drepId);
     if (result) {
+      trackOnboarding(ONBOARDING_EVENTS.DELEGATED, {
+        drep_id: drepId,
+        source: 'onboarding_flow',
+      });
       onComplete();
     }
   };
@@ -230,7 +239,7 @@ export function StageDelegate({ passport, onComplete }: StageDelegateProps) {
           <CardContent className="p-5 space-y-4">
             <div className="flex items-center gap-4">
               {passport.alignment && (
-                <GovernanceRadar alignments={passport.alignment} size="small" animate={false} />
+                <GovernanceRadar alignments={passport.alignment} size="mini" animate={false} />
               )}
               <div className="min-w-0 flex-1">
                 <p className="font-semibold truncate">{drepName}</p>

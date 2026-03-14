@@ -11,12 +11,14 @@ import {
   Smartphone,
   Monitor,
   Check,
+  Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { fadeInUp, spring, staggerContainer } from '@/lib/animations';
+import { trackOnboarding, ONBOARDING_EVENTS } from '@/lib/funnel';
 import type { GovernancePassport } from '@/lib/passport';
 
 interface StagePrepareProps {
@@ -100,7 +102,17 @@ function WalletRecommendations({ onDone }: { onDone: () => void }) {
               Built by the team behind Cardano. Full governance support with a clean interface.
             </p>
             <Button asChild size="sm" variant="outline" className="w-full gap-1">
-              <a href="https://www.lace.io/" target="_blank" rel="noopener noreferrer">
+              <a
+                href="https://www.lace.io/"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() =>
+                  trackOnboarding(ONBOARDING_EVENTS.WALLET_RECOMMENDED, {
+                    wallet: 'lace',
+                    device: 'desktop',
+                  })
+                }
+              >
                 Install Lace
                 <ExternalLink className="h-3 w-3" />
               </a>
@@ -124,7 +136,17 @@ function WalletRecommendations({ onDone }: { onDone: () => void }) {
               Set up in seconds on your phone. Great governance support with a mobile-first design.
             </p>
             <Button asChild size="sm" variant="outline" className="w-full gap-1">
-              <a href="https://vespr.xyz/" target="_blank" rel="noopener noreferrer">
+              <a
+                href="https://vespr.xyz/"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() =>
+                  trackOnboarding(ONBOARDING_EVENTS.WALLET_RECOMMENDED, {
+                    wallet: 'vespr',
+                    device: 'mobile',
+                  })
+                }
+              >
                 Get VESPR
                 <ExternalLink className="h-3 w-3" />
               </a>
@@ -226,7 +248,10 @@ function ExchangeGuide({ onDone, onBack }: { onDone: () => void; onBack: () => v
                 variant="outline"
                 size="sm"
                 className="justify-start"
-                onClick={() => setSelectedExchange(key)}
+                onClick={() => {
+                  trackOnboarding(ONBOARDING_EVENTS.EXCHANGE_SELECTED, { exchange: key });
+                  setSelectedExchange(key);
+                }}
               >
                 {EXCHANGE_STEPS[key].name}
               </Button>
@@ -370,6 +395,7 @@ export function StagePrepare({ passport, onComplete }: StagePrepareProps) {
   }
 
   const handleComplete = (path: GovernancePassport['walletPath']) => {
+    trackOnboarding(ONBOARDING_EVENTS.SELF_ID, { path: path ?? 'unknown' });
     onComplete(path);
   };
 

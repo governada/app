@@ -15,6 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { fadeInUp, staggerContainer } from '@/lib/animations';
+import { trackOnboarding, ONBOARDING_EVENTS } from '@/lib/funnel';
 import { useWallet } from '@/utils/wallet';
 import type { GovernancePassport } from '@/lib/passport';
 
@@ -47,6 +48,7 @@ export function StageConnect({ passport, onComplete, onGoBack }: StageConnectPro
     if (!isActiveStage) return;
     if (connected && isAuthenticated && !authComplete) {
       setAuthComplete(true);
+      trackOnboarding(ONBOARDING_EVENTS.CONNECTED, { source: 'returning_user' });
       onComplete();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -63,6 +65,7 @@ export function StageConnect({ passport, onComplete, onGoBack }: StageConnectPro
         setAuthenticating(false);
         if (success) {
           setAuthComplete(true);
+          trackOnboarding(ONBOARDING_EVENTS.CONNECTED, { source: 'fresh_connect' });
           onComplete();
         }
       })();
