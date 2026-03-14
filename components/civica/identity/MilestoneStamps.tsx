@@ -125,9 +125,32 @@ export function MilestoneStamps({
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
   if (earned.length === 0) {
+    // Show first 5 milestones as locked previews so users know what's achievable
+    const previews = CITIZEN_MILESTONES.slice(0, 5);
     return (
-      <div className="flex items-center justify-center rounded-lg border border-border/50 bg-muted/20 px-4 py-3">
-        <p className="text-xs text-muted-foreground">No milestones yet</p>
+      <div className="space-y-3">
+        <div className="flex gap-2 overflow-hidden">
+          {previews.map((def) => {
+            const Icon = ICON_MAP[def.icon] ?? Vote;
+            return (
+              <div
+                key={def.key}
+                className="flex w-16 h-16 flex-col items-center justify-center rounded-lg border border-border/30 bg-muted/10 shrink-0 opacity-40"
+              >
+                <div className="relative">
+                  <Icon className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <span className="text-[10px] text-muted-foreground mt-1 text-center leading-tight line-clamp-2 px-0.5">
+                  {def.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Earn milestones by delegating, engaging with proposals, and building your governance
+          footprint.
+        </p>
       </div>
     );
   }
