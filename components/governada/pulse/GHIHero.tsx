@@ -124,7 +124,7 @@ function buildPersonaAddendum(segment: string, band: string): string | null {
   return null;
 }
 
-export function GHIHero() {
+export function GHIHero({ compact = false }: { compact?: boolean }) {
   const { data: rawGhi, isLoading, isError, refetch } = useGovernanceHealthIndex(1);
   const shouldReduceMotion = useReducedMotion();
   const { segment } = useSegment();
@@ -263,12 +263,14 @@ export function GHIHero() {
             </span>
           )}
         </div>
-        {streakLabel && <p className="text-xs text-muted-foreground">{streakLabel}</p>}
+        {!compact && streakLabel && <p className="text-xs text-muted-foreground">{streakLabel}</p>}
         <p className="text-sm text-muted-foreground">{verdict}</p>
         {personaAddendum && <p className="text-xs text-primary/80 mt-1">{personaAddendum}</p>}
-        <p className="text-[10px] text-muted-foreground/70 mt-1">
-          Absolute scoring — when participants improve, this number rises.
-        </p>
+        {!compact && (
+          <p className="text-[10px] text-muted-foreground/70 mt-1">
+            Absolute scoring — when participants improve, this number rises.
+          </p>
+        )}
       </div>
 
       {/* Pulse animation keyframes */}

@@ -130,7 +130,7 @@ function BriefingSkeleton() {
 // Component
 // ---------------------------------------------------------------------------
 
-export function GovernanceBriefing() {
+export function GovernanceBriefing({ compact = false }: { compact?: boolean }) {
   const segment = useSegment();
   const { data: pulseRaw, isLoading: pulseLoading, isError: pulseError } = useGovernancePulse();
   const {
@@ -175,60 +175,73 @@ export function GovernanceBriefing() {
   return (
     <div className="rounded-xl border border-border/50 bg-card/70 backdrop-blur-md p-5 space-y-4">
       {/* Narrative paragraph */}
-      <p className="text-sm text-foreground leading-relaxed">
-        <Link
-          href="/governance/representatives"
-          className="underline decoration-dotted underline-offset-2 hover:decoration-solid"
-        >
+      {compact ? (
+        <p className="text-sm text-foreground leading-relaxed">
           <strong className={bandColor(pBand)}>{activeDReps.toLocaleString()}</strong> DReps
-        </Link>{' '}
-        are actively participating this epoch
-        {drepDelta != null ? (
-          <>
-            {' '}
-            &mdash;{' '}
-            <strong
-              className={cn(
-                drepDelta > 0
-                  ? 'text-emerald-600 dark:text-emerald-400'
-                  : drepDelta < 0
-                    ? 'text-rose-600 dark:text-rose-400'
-                    : 'text-muted-foreground',
-              )}
-            >
-              {formatDelta(drepDelta)}
-            </strong>{' '}
-            from last.
-          </>
-        ) : (
-          '.'
-        )}{' '}
-        They&rsquo;ve cast{' '}
-        <strong className={bandColor(pBand)}>{votesThisWeek.toLocaleString()}</strong> votes across{' '}
-        <Link
-          href="/governance/proposals"
-          className="underline decoration-dotted underline-offset-2 hover:decoration-solid"
-        >
-          <strong className={bandColor(pBand)}>{activeProposals.toLocaleString()}</strong> active
-          proposals
-        </Link>
-        {criticalMention ? (
-          <>
-            , including{' '}
-            <strong className="text-rose-600 dark:text-rose-400">{criticalProposals}</strong> marked
-            critical
-          </>
-        ) : (
-          ''
-        )}
-        . Participation rate is{' '}
-        <strong className={bandColor(pBand)}>{avgParticipation.toFixed(1)}%</strong> (
-        {bandLabel(pBand)}), while{' '}
-        <strong className={bandColor(rBand)}>{avgRationale.toFixed(1)}%</strong> are providing
-        rationales. The treasury holds{' '}
-        <strong className={bandColor(tBand)}>&#8371;{formatAda(treasuryBalance)}</strong> with{' '}
-        <strong className={bandColor(tBand)}>{runwayLabel}</strong> runway.
-      </p>
+          participating across{' '}
+          <strong className={bandColor(pBand)}>{activeProposals.toLocaleString()}</strong> proposals
+          with <strong className={bandColor(pBand)}>{avgParticipation.toFixed(1)}%</strong>{' '}
+          participation ({bandLabel(pBand)}). Treasury: &#8371;
+          <strong className={bandColor(tBand)}>{formatAda(treasuryBalance)}</strong> ({runwayLabel}{' '}
+          runway).
+        </p>
+      ) : (
+        <p className="text-sm text-foreground leading-relaxed">
+          <Link
+            href="/governance/representatives"
+            className="underline decoration-dotted underline-offset-2 hover:decoration-solid"
+          >
+            <strong className={bandColor(pBand)}>{activeDReps.toLocaleString()}</strong> DReps
+          </Link>{' '}
+          are actively participating this epoch
+          {drepDelta != null ? (
+            <>
+              {' '}
+              &mdash;{' '}
+              <strong
+                className={cn(
+                  drepDelta > 0
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : drepDelta < 0
+                      ? 'text-rose-600 dark:text-rose-400'
+                      : 'text-muted-foreground',
+                )}
+              >
+                {formatDelta(drepDelta)}
+              </strong>{' '}
+              from last.
+            </>
+          ) : (
+            '.'
+          )}{' '}
+          They&rsquo;ve cast{' '}
+          <strong className={bandColor(pBand)}>{votesThisWeek.toLocaleString()}</strong> votes
+          across{' '}
+          <Link
+            href="/governance/proposals"
+            className="underline decoration-dotted underline-offset-2 hover:decoration-solid"
+          >
+            <strong className={bandColor(pBand)}>{activeProposals.toLocaleString()}</strong> active
+            proposals
+          </Link>
+          {criticalMention ? (
+            <>
+              , including{' '}
+              <strong className="text-rose-600 dark:text-rose-400">{criticalProposals}</strong>{' '}
+              marked critical
+            </>
+          ) : (
+            ''
+          )}
+          . Participation rate is{' '}
+          <strong className={bandColor(pBand)}>{avgParticipation.toFixed(1)}%</strong> (
+          {bandLabel(pBand)}), while{' '}
+          <strong className={bandColor(rBand)}>{avgRationale.toFixed(1)}%</strong> are providing
+          rationales. The treasury holds{' '}
+          <strong className={bandColor(tBand)}>&#8371;{formatAda(treasuryBalance)}</strong> with{' '}
+          <strong className={bandColor(tBand)}>{runwayLabel}</strong> runway.
+        </p>
+      )}
 
       {/* Headline metrics row */}
       <div className="flex flex-wrap gap-3">

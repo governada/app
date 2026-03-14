@@ -45,14 +45,14 @@ export function TreasuryKeyMetrics({
 
   return (
     <div className="grid grid-cols-3 gap-3">
-      <MetricCard label="NCL Utilization" value={nclValue} subtext={nclSubtext} />
+      <MetricCard label="Budget Used" value={nclValue} subtext={nclSubtext} />
       <MetricCard
-        label="Pending Proposals"
+        label="Awaiting Votes"
         value={String(pendingCount)}
-        subtext={pendingCount === 0 ? 'None active' : undefined}
+        subtext={pendingCount === 0 ? 'None active' : 'proposals pending'}
       />
       <MetricCard
-        label="Effectiveness"
+        label="Money Well Spent"
         value={effectivenessRate !== null ? `${effectivenessRate}%` : '—'}
         subtext={effectivenessRate !== null ? 'of funded projects delivered' : 'Awaiting data'}
       />
