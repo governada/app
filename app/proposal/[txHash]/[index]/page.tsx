@@ -24,6 +24,14 @@ import { DebateSection } from '@/components/governada/proposals/DebateSection';
 import { ProposalActionZone } from '@/components/governada/proposals/ProposalActionZone';
 import { ProposalDepthGate } from '@/components/governada/proposals/ProposalDepthGate';
 import { ProposalDepthSection } from '@/components/governada/proposals/ProposalDepthSection';
+import { getFeatureFlag } from '@/lib/featureFlags';
+import { getProposalBrief } from '@/lib/proposalBrief';
+import { computeConvictionPulseData } from '@/lib/convictionPulse';
+import { CompactHeader } from '@/components/governada/proposals/CompactHeader';
+import { ConvictionPulseViz } from '@/components/governada/proposals/ConvictionPulseViz';
+import { InlineActionNudge } from '@/components/governada/proposals/InlineActionNudge';
+import { LivingBrief } from '@/components/governada/proposals/LivingBrief';
+import { SourceMaterial } from '@/components/governada/proposals/SourceMaterial';
 
 export const dynamic = 'force-dynamic';
 
@@ -71,6 +79,14 @@ export default async function ProposalDetailPage({ params }: PageProps) {
 
   if (!proposal) notFound();
 
+  // Living Brief feature flag
+  const livingBriefEnabled = await getFeatureFlag('living_brief', false);
+
+  // Fetch brief data if enabled (non-blocking, defaults to null)
+  const brief = livingBriefEnabled
+    ? await getProposalBrief(txHash, proposalIndex).catch(() => null)
+    : null;
+
   // eslint-disable-next-line react-hooks/purity -- server component: Date.now() is fine during SSR
   const currentEpoch = blockTimeToEpoch(Math.floor(Date.now() / 1000));
   const status = getProposalStatus(proposal);
@@ -110,6 +126,20 @@ export default async function ProposalDetailPage({ params }: PageProps) {
 
   const title = proposal.title || `Proposal ${txHash.slice(0, 12)}...`;
 
+  // Compute conviction pulse data for the new layout
+  const pulseData = livingBriefEnabled
+    ? computeConvictionPulseData(
+        votes.map((v) => ({
+          drepId: v.drepId,
+          drepName: v.drepName,
+          vote: v.vote,
+          votingPowerLovelace: null, // Not available in vote detail
+          hasRationale: !!(v.rationaleAiSummary || v.rationaleText),
+        })),
+        null, // citizen sentiment loaded client-side
+      )
+    : null;
+
   // JSON-LD structured data for governance proposal
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -128,7 +158,118 @@ export default async function ProposalDetailPage({ params }: PageProps) {
     },
   };
 
-  return (
+  return livingBriefEnabled ? (
+    <div className="container mx-auto px-4 py-6 sm:py-8 space-y-6 sm:space-y-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <PageViewTracker
+        event="proposal_detail_viewed"
+        properties={{ tx_hash: txHash, index: proposalIndex }}
+        discoveryEvent="proposal_viewed"
+      />
+
+      <div className="flex items-center justify-between gap-2">
+        <Breadcrumb
+          items={[
+            { label: 'Governance', href: '/' },
+            { label: 'Proposals', href: '/governance/proposals' },
+            { label: title },
+          ]}
+        />
+        <WatchEntityButton entityType="proposal" entityId={`${txHash}:${proposalIndex}`} />
+      </div>
+
+      {/* Zone 1: Compact Header */}
+      <CompactHeader
+        title={title}
+        proposalType={proposal.proposalType}
+        status={status}
+        expirationEpoch={proposal.expirationEpoch}
+        currentEpoch={currentEpoch}
+        withdrawalAmount={proposal.withdrawalAmount}
+        blockTime={proposal.blockTime}
+      />
+
+      {/* Zone 2: Conviction Pulse */}
+      {pulseData && pulseData.totalVoters > 0 && <ConvictionPulseViz data={pulseData} />}
+
+      {/* Zone 3: Action Nudge */}
+      <ProposalDepthSection section="actionZone">
+        <InlineActionNudge
+          txHash={txHash}
+          proposalIndex={proposalIndex}
+          title={title}
+          isOpen={isOpen}
+          proposalType={proposal.proposalType}
+        />
+      </ProposalDepthSection>
+
+      {/* Zone 4: Living Brief */}
+      <ProposalDepthSection section="intelligenceBriefing">
+        <LivingBrief
+          brief={brief?.content ?? null}
+          briefId={brief?.id ?? null}
+          rationaleCount={brief?.rationaleCount ?? rationaleEntries.length}
+          rationales={rationaleEntries}
+          aiSummary={proposal.aiSummary}
+          txHash={txHash}
+          proposalIndex={proposalIndex}
+        />
+      </ProposalDepthSection>
+
+      {/* Zone 5: Source Material (collapsed accordion) */}
+      <ProposalDepthSection section="debate">
+        <SourceMaterial
+          rationales={rationaleEntries}
+          proposalTitle={title}
+          txHash={txHash}
+          proposalIndex={proposalIndex}
+          adoptionData={adoptionData}
+          votePowerByEpoch={votePowerByEpoch}
+          votes={votes}
+          status={status}
+          proposalType={proposal.proposalType}
+          abstract={proposal.abstract}
+          proposedEpoch={proposal.proposedEpoch}
+          expirationEpoch={proposal.expirationEpoch}
+          ratifiedEpoch={proposal.ratifiedEpoch}
+          enactedEpoch={proposal.enactedEpoch}
+          droppedEpoch={proposal.droppedEpoch}
+          expiredEpoch={proposal.expiredEpoch}
+          currentEpoch={currentEpoch}
+        />
+      </ProposalDepthSection>
+
+      {/* Outcome Section */}
+      <ProposalDepthSection section="outcomeSection">
+        {!isOpen && (
+          <ProposalOutcomeSection
+            proposal={{
+              txHash,
+              proposalIndex,
+              title,
+              proposalType: proposal.proposalType,
+              withdrawalAmount: proposal.withdrawalAmount,
+              outcome: status as 'ratified' | 'enacted' | 'dropped' | 'expired',
+            }}
+            votes={votes.map((v) => ({ drepId: v.drepId, vote: v.vote }))}
+            majorityVote={
+              proposal.yesCount >= proposal.noCount && proposal.yesCount >= proposal.abstainCount
+                ? 'Yes'
+                : proposal.noCount >= proposal.abstainCount
+                  ? 'No'
+                  : 'Abstain'
+            }
+          />
+        )}
+        {(status === 'enacted' || status === 'ratified') && (
+          <ImpactTags txHash={txHash} proposalIndex={proposalIndex} />
+        )}
+      </ProposalDepthSection>
+    </div>
+  ) : (
     <div className="container mx-auto px-4 py-6 sm:py-8 space-y-6 sm:space-y-8">
       <script
         type="application/ld+json"

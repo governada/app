@@ -50,7 +50,8 @@ export type ProposalSection =
   | 'voterTabs'
   | 'description'
   | 'similarProposals'
-  | 'outcomeSection';
+  | 'outcomeSection'
+  | 'sourceMaterial';
 
 const PROPOSAL_SECTIONS_HANDS_OFF: Record<ProposalSection, boolean> = {
   hero: true,
@@ -64,6 +65,7 @@ const PROPOSAL_SECTIONS_HANDS_OFF: Record<ProposalSection, boolean> = {
   description: false,
   similarProposals: false,
   outcomeSection: false,
+  sourceMaterial: false,
 };
 
 const PROPOSAL_SECTIONS_INFORMED: Record<ProposalSection, boolean> = {
@@ -78,6 +80,7 @@ const PROPOSAL_SECTIONS_INFORMED: Record<ProposalSection, boolean> = {
   description: false,
   similarProposals: false,
   outcomeSection: false,
+  sourceMaterial: false,
 };
 
 const PROPOSAL_SECTIONS_ENGAGED: Record<ProposalSection, boolean> = {
@@ -92,6 +95,7 @@ const PROPOSAL_SECTIONS_ENGAGED: Record<ProposalSection, boolean> = {
   description: true,
   similarProposals: false,
   outcomeSection: true,
+  sourceMaterial: false,
 };
 
 const PROPOSAL_SECTIONS_DEEP: Record<ProposalSection, boolean> = {
@@ -106,6 +110,7 @@ const PROPOSAL_SECTIONS_DEEP: Record<ProposalSection, boolean> = {
   description: true,
   similarProposals: true,
   outcomeSection: true,
+  sourceMaterial: true,
 };
 
 const GOVERNANCE_CONFIG = {
