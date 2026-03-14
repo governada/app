@@ -22,7 +22,9 @@ import {
   AlertCircle,
   RefreshCw,
   ArrowLeft,
+  ExternalLink,
 } from 'lucide-react';
+import Link from 'next/link';
 import { posthog } from '@/lib/posthog';
 
 interface WalletConnectModalProps {
@@ -202,10 +204,20 @@ export function WalletConnectModal({
                   </Button>
                 ))
               ) : (
-                <div className="text-center py-6 text-muted-foreground">
-                  <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>No Cardano wallets detected</p>
-                  <p className="text-sm mt-1">Install Eternl, Nami, or Lace to continue</p>
+                <div className="text-center py-6 space-y-3">
+                  <AlertCircle className="h-8 w-8 mx-auto text-muted-foreground opacity-50" />
+                  <div className="space-y-1">
+                    <p className="font-medium text-foreground">No Cardano wallet detected</p>
+                    <p className="text-sm text-muted-foreground">
+                      You need a CIP-95 compatible wallet to participate in governance.
+                    </p>
+                  </div>
+                  <Button variant="outline" size="sm" className="gap-1.5" asChild>
+                    <Link href="/get-started">
+                      Need help getting set up?
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </Link>
+                  </Button>
                 </div>
               )}
             </div>
