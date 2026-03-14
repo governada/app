@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Users, Compass } from 'lucide-react';
+import { ArrowRight, Users, Compass, Rocket } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import dynamic from 'next/dynamic';
 import { trackFunnel, FUNNEL_EVENTS } from '@/lib/funnel';
@@ -95,6 +95,21 @@ export function AnonymousLanding({ pulseData }: AnonymousLandingProps) {
             <Link href="/governance">
               <Compass className="h-4 w-4" />
               See What&apos;s Happening
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
+          <Button
+            asChild
+            variant="ghost"
+            size="lg"
+            className="w-full gap-2 text-muted-foreground hover:text-primary"
+            onClick={() =>
+              trackFunnel(FUNNEL_EVENTS.EXPLORE_CLICKED, { source: 'landing_get_started' })
+            }
+          >
+            <Link href="/get-started">
+              <Rocket className="h-4 w-4" />
+              New to Cardano Governance? Get Started
               <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
