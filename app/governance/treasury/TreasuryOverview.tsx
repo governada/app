@@ -1,17 +1,24 @@
 'use client';
 
-import { TreasuryNarrativeHero } from '@/components/treasury/TreasuryNarrativeHero';
+import { TreasuryVerdict } from '@/components/treasury/TreasuryVerdict';
 import { NclBudgetBar } from '@/components/treasury/NclBudgetBar';
 import { NclUtilizationTrend } from '@/components/treasury/NclUtilizationTrend';
 import { TreasuryKeyMetrics } from '@/components/treasury/TreasuryKeyMetrics';
 import { TreasuryEpochFlow } from '@/components/treasury/TreasuryEpochFlow';
 import { TreasuryPendingProposals } from '@/components/TreasuryPendingProposals';
 import { TreasuryAccountabilitySection } from '@/components/TreasuryAccountabilitySection';
+import { TreasuryPersonalImpact } from '@/components/treasury/TreasuryPersonalImpact';
 import dynamic from 'next/dynamic';
 
 const TreasurySimulator = dynamic(
-  () => import('@/components/TreasurySimulator').then((m) => ({ default: m.TreasurySimulator })),
-  { ssr: false, loading: () => <div className="h-64 animate-pulse bg-muted rounded-xl" /> },
+  () =>
+    import('@/components/TreasurySimulator').then((m) => ({
+      default: m.TreasurySimulator,
+    })),
+  {
+    ssr: false,
+    loading: () => <div className="h-64 animate-pulse bg-muted rounded-xl" />,
+  },
 );
 import { DRepTreasuryTrackRecord } from '@/components/treasury/DRepTreasuryTrackRecord';
 import { SegmentGate } from '@/components/shared/SegmentGate';
@@ -24,6 +31,7 @@ import {
 import { useTreasuryCurrent, useTreasuryNcl, useTreasuryHistory } from '@/hooks/queries';
 import { useSegment } from '@/components/providers/SegmentProvider';
 import type { NclUtilization, IncomeVsOutflow } from '@/lib/treasury';
+import { formatAda } from '@/lib/treasury';
 import { useQuery } from '@tanstack/react-query';
 
 interface TreasuryCurrentData {
@@ -46,17 +54,13 @@ async function fetchJson<T>(url: string): Promise<T> {
 }
 
 /**
- * Narrative-first treasury overview with NCL budget bar as visual anchor.
+ * 4-Level Treasury Overview
  *
- * Layout:
- * 1. Narrative hero — contextual paragraph
- * 2. NCL budget bar — horizontal segmented bar
- * 3. Key metrics — 3-stat row
- * 4. Epoch flow — income vs outflow last 6 epochs
- * 5. Pending proposals — with per-proposal NCL impact
- * 6. [DRep only] Track record
- * 7. Accordion: Spending Accountability
- * 8. Accordion: Runway Projections
+ * Level 1 — Verdict: health indicator + inline stats (5-second test)
+ * Level 2 — Budget Story: NCL bar + key metrics (the "where")
+ * Level 3 — Active Decisions: pending proposals + DRep stance (the "what")
+ * Level 4 — Your Impact: personal DRep track record + pending impact (the "you")
+ * Deep Dive — Accordions: utilization trend, epoch flow, accountability, simulator
  */
 export function TreasuryOverview() {
   const { drepId } = useSegment();
@@ -70,7 +74,6 @@ export function TreasuryOverview() {
   const incomeVsOutflow =
     (rawHistory as { incomeVsOutflow: IncomeVsOutflow[] } | undefined)?.incomeVsOutflow ?? [];
 
-  // Effectiveness rate for narrative + metrics
   const { data: rawEffectiveness } = useQuery({
     queryKey: ['treasury-effectiveness'],
     queryFn: () => fetchJson<{ effectivenessRate: number | null }>('/api/treasury/effectiveness'),
@@ -86,8 +89,6 @@ export function TreasuryOverview() {
   const pendingTotalAda = treasury?.pendingTotalAda ?? 0;
   const effectivenessRate = rawEffectiveness?.effectivenessRate ?? null;
 
-  const epochFlow = incomeVsOutflow;
-
   const nclImpact = ncl
     ? {
         utilizationPct: ncl.utilizationPct,
@@ -98,39 +99,63 @@ export function TreasuryOverview() {
 
   return (
     <div className="space-y-6">
-      {/* 1. Narrative hero */}
-      <TreasuryNarrativeHero
+      {/* ──────────────────────────────────────────────────────────────
+          LEVEL 1 — THE VERDICT
+          One glanceable health indicator + inline stats.
+          Passes the 5-second test on its own.
+         ────────────────────────────────────────────────────────────── */}
+      <TreasuryVerdict
         balanceAda={balance}
         trend={trend}
+        ncl={ncl}
         effectivenessRate={effectivenessRate}
         pendingCount={pendingCount}
-        pendingTotalAda={pendingTotalAda}
         runwayMonths={runway}
-        ncl={ncl}
       />
 
-      {/* 2. NCL Budget Bar */}
-      {ncl && <NclBudgetBar ncl={ncl} />}
-      {!ncl && treasury && (
-        <div className="rounded-xl border border-border/50 bg-card/70 backdrop-blur-md p-5 text-sm text-muted-foreground">
-          No active NCL period. The community has not yet set a spending limit for the current epoch
-          range.
-        </div>
-      )}
+      {/* ──────────────────────────────────────────────────────────────
+          LEVEL 2 — THE BUDGET STORY
+          Where is the money going this period?
+         ────────────────────────────────────────────────────────────── */}
+      <section className="space-y-4">
+        {ncl && (
+          <p className="text-sm text-muted-foreground">
+            The community set a ₳{formatAda(ncl.period.nclAda)} spending limit for epochs{' '}
+            {ncl.period.startEpoch}–{ncl.period.endEpoch}. Here&apos;s how it&apos;s being used.
+          </p>
+        )}
 
-      {/* 3. Key metrics */}
-      <TreasuryKeyMetrics
-        ncl={ncl}
-        pendingCount={pendingCount}
-        effectivenessRate={effectivenessRate}
-      />
+        {ncl && <NclBudgetBar ncl={ncl} />}
+        {!ncl && treasury && (
+          <div className="rounded-xl border border-border/50 bg-card/70 backdrop-blur-md p-5 text-sm text-muted-foreground">
+            No active NCL period. The community has not yet set a spending limit for the current
+            epoch range.
+          </div>
+        )}
 
-      {/* 4. Epoch flow */}
-      {epochFlow.length > 0 && <TreasuryEpochFlow data={epochFlow} />}
+        <TreasuryKeyMetrics
+          ncl={ncl}
+          pendingCount={pendingCount}
+          effectivenessRate={effectivenessRate}
+        />
+      </section>
 
-      {/* 5. Pending proposals with NCL impact */}
+      {/* ──────────────────────────────────────────────────────────────
+          LEVEL 3 — ACTIVE DECISIONS
+          What's being decided right now?
+         ────────────────────────────────────────────────────────────── */}
       <section>
-        <h2 className="text-lg font-semibold mb-3">Pending Proposals</h2>
+        <h2 className="text-lg font-semibold mb-3">Active Decisions</h2>
+
+        {/* DRep stance callout (for DReps: your track record as context) */}
+        <SegmentGate show={['drep']}>
+          {drepId && (
+            <div className="mb-4">
+              <DRepTreasuryTrackRecord drepId={drepId} />
+            </div>
+          )}
+        </SegmentGate>
+
         <TreasuryPendingProposals
           treasuryBalanceAda={balance}
           runwayMonths={runway}
@@ -138,16 +163,23 @@ export function TreasuryOverview() {
         />
       </section>
 
-      {/* 6. DRep track record (segment-gated) */}
-      <SegmentGate show={['drep']}>
-        {drepId && (
-          <section>
-            <DRepTreasuryTrackRecord drepId={drepId} />
-          </section>
-        )}
+      {/* ──────────────────────────────────────────────────────────────
+          LEVEL 4 — YOUR IMPACT
+          How does this affect you personally?
+          Gated to connected users with a DRep.
+         ────────────────────────────────────────────────────────────── */}
+      <SegmentGate show={['drep', 'citizen']}>
+        <TreasuryPersonalImpact
+          balanceAda={balance}
+          nclRemainingAda={ncl?.remainingAda ?? null}
+          nclAda={ncl?.period.nclAda ?? null}
+          nclUtilizationPct={ncl?.utilizationPct ?? null}
+        />
       </SegmentGate>
 
-      {/* 7, 8, 9. Depth sections behind accordion */}
+      {/* ──────────────────────────────────────────────────────────────
+          DEEP DIVE — Analytical depth behind accordions
+         ────────────────────────────────────────────────────────────── */}
       <Accordion type="multiple" className="space-y-2">
         {ncl && (
           <AccordionItem
@@ -155,7 +187,7 @@ export function TreasuryOverview() {
             className="rounded-xl border border-border/50 bg-card/70 backdrop-blur-md px-5"
           >
             <AccordionTrigger className="text-sm font-semibold hover:no-underline">
-              Budget Utilization Over Time
+              How has spending evolved?
               <span className="ml-2 text-xs font-normal text-muted-foreground">
                 {Math.round(ncl.utilizationPct)}% used
               </span>
@@ -166,12 +198,26 @@ export function TreasuryOverview() {
           </AccordionItem>
         )}
 
+        {incomeVsOutflow.length > 0 && (
+          <AccordionItem
+            value="epoch-flow"
+            className="rounded-xl border border-border/50 bg-card/70 backdrop-blur-md px-5"
+          >
+            <AccordionTrigger className="text-sm font-semibold hover:no-underline">
+              Income vs outflow by epoch
+            </AccordionTrigger>
+            <AccordionContent>
+              <TreasuryEpochFlow data={incomeVsOutflow} />
+            </AccordionContent>
+          </AccordionItem>
+        )}
+
         <AccordionItem
           value="accountability"
           className="rounded-xl border border-border/50 bg-card/70 backdrop-blur-md px-5"
         >
           <AccordionTrigger className="text-sm font-semibold hover:no-underline">
-            Spending Accountability
+            Did funded projects deliver?
             {effectivenessRate !== null && (
               <span className="ml-2 text-xs font-normal text-muted-foreground">
                 {effectivenessRate}% delivered
@@ -188,7 +234,7 @@ export function TreasuryOverview() {
           className="rounded-xl border border-border/50 bg-card/70 backdrop-blur-md px-5"
         >
           <AccordionTrigger className="text-sm font-semibold hover:no-underline">
-            Explore Runway Scenarios
+            How long will the treasury last?
           </AccordionTrigger>
           <AccordionContent>
             <TreasurySimulator currentBalance={balance} burnRate={burnRate} currentEpoch={epoch} />
