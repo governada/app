@@ -33,6 +33,56 @@ export const FUNNEL_EVENTS = {
 
 export type FunnelEvent = (typeof FUNNEL_EVENTS)[keyof typeof FUNNEL_EVENTS];
 
+/* ─── Onboarding hub events (get-started flow) ────────── */
+
+export const ONBOARDING_EVENTS = {
+  /** Page loaded */
+  VIEWED: 'get_started_viewed',
+  /** Each stage transition */
+  STAGE_ENTERED: 'get_started_stage_entered',
+  /** Stage 2 self-identification choice */
+  SELF_ID: 'get_started_self_id',
+  /** Exchange guide viewed */
+  EXCHANGE_SELECTED: 'get_started_exchange_selected',
+  /** Wallet recommendation link clicked */
+  WALLET_RECOMMENDED: 'get_started_wallet_recommended',
+  /** Stage 3 wallet connected */
+  CONNECTED: 'get_started_connected',
+  /** Stage 4 delegation completed */
+  DELEGATED: 'get_started_delegated',
+  /** Passport share button clicked */
+  PASSPORT_SHARED: 'passport_shared',
+  /** Shared passport link opened */
+  PASSPORT_VIEWED: 'passport_viewed',
+  /** User navigated away mid-flow */
+  ABANDONED: 'get_started_abandoned',
+  /** Returning user continues from saved state */
+  RESUMED: 'get_started_resumed',
+} as const;
+
+export type OnboardingEvent = (typeof ONBOARDING_EVENTS)[keyof typeof ONBOARDING_EVENTS];
+
+interface OnboardingProperties {
+  stage?: number | string;
+  source?: string;
+  path?: string;
+  exchange?: string;
+  wallet?: string;
+  device?: string;
+  platform?: string;
+  drep_id?: string;
+  has_match_profile?: boolean;
+  time_from_start?: number;
+  [key: string]: string | number | boolean | null | undefined;
+}
+
+export function trackOnboarding(event: OnboardingEvent, properties?: OnboardingProperties) {
+  posthog.capture(event, {
+    funnel_version: 'v1',
+    ...properties,
+  });
+}
+
 /* ─── Typed capture helpers ────────────────────────────── */
 
 interface FunnelProperties {
