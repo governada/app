@@ -2,7 +2,8 @@
 
 import { useCallback } from 'react';
 import { useSearchParams, usePathname } from 'next/navigation';
-import { Activity, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import Link from 'next/link';
+import { Activity, TrendingUp, TrendingDown, Minus, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ErrorCard } from '@/components/ui/ErrorCard';
 import { useGovernancePulse } from '@/hooks/queries';
@@ -22,6 +23,7 @@ import { useGovernanceHealthIndex } from '@/hooks/queries';
 import { EmptyState } from './EmptyState';
 import { FirstVisitBanner } from '@/components/ui/FirstVisitBanner';
 import { AnonymousNudge } from '@/components/governada/shared/AnonymousNudge';
+import { useSegment } from '@/components/providers/SegmentProvider';
 import { useGovernanceDepth } from '@/hooks/useGovernanceDepth';
 import { useDepthConfig } from '@/hooks/useDepthConfig';
 import { DepthGate } from '@/components/providers/DepthGate';
@@ -93,7 +95,6 @@ function GHIMinimal() {
   const score = ghi?.current?.score ?? 0;
   const band = ghi?.current?.band ?? 'fair';
   const direction = (ghi?.trend?.direction ?? 'flat') as 'up' | 'down' | 'flat';
-  const arrow = direction === 'up' ? '\u2191' : direction === 'down' ? '\u2193' : '\u2192';
   const TrendIcon = direction === 'up' ? TrendingUp : direction === 'down' ? TrendingDown : Minus;
   const trendColor =
     direction === 'up'
@@ -120,28 +121,29 @@ function GHIMinimal() {
 
   return (
     <div
-      className="rounded-xl border border-border/50 bg-card/70 backdrop-blur-md p-5 space-y-1"
+      className="rounded-xl border border-border/50 bg-card/70 backdrop-blur-md p-5"
       data-discovery="gov-health"
     >
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-        Governance Health
-      </p>
-      <div className="flex items-baseline gap-2">
-        <span className={cn('text-4xl font-bold tabular-nums', scoreColor)}>
-          {Math.round(score)}
-        </span>
-        <span className={cn('text-lg', trendColor)} aria-label={`Trend: ${direction}`}>
-          {arrow}
-        </span>
-        <TrendIcon className={cn('h-4 w-4', trendColor)} />
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-1.5 flex-1 min-w-0">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Governance Health
+          </p>
+          <p className={cn('text-sm font-medium', scoreColor)}>{verdict}</p>
+        </div>
+        <div className="flex items-baseline gap-1.5 shrink-0">
+          <span className={cn('text-lg font-bold tabular-nums', scoreColor)}>
+            {Math.round(score)}
+          </span>
+          <TrendIcon className={cn('h-3.5 w-3.5', trendColor)} />
+        </div>
       </div>
-      <p className="text-xs text-muted-foreground">{verdict}</p>
     </div>
   );
 }
 
 /* ── Informed: score + 4-dimension breakdown + trend ───────────────────────── */
-function GHIInformedView() {
+function GHIInformedView({ currentEpoch }: { currentEpoch?: number }) {
   const { data: rawGhi, isLoading, isError, refetch } = useGovernanceHealthIndex(5);
   const ghi = rawGhi as
     | {
@@ -219,6 +221,11 @@ function GHIInformedView() {
               >
                 {band.charAt(0).toUpperCase() + band.slice(1)}
               </span>
+              {currentEpoch != null && (
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  Epoch {currentEpoch}
+                </span>
+              )}
             </div>
             {delta !== 0 && (
               <span
@@ -254,6 +261,29 @@ function GHIInformedView() {
         </div>
       </div>
     </div>
+  );
+}
+
+/* ── Next-Step CTA: persona-aware action prompt ──────────────────────────── */
+const NEXT_STEPS: Record<string, { label: string; href: string }> = {
+  drep: { label: 'Review & vote on active proposals', href: '/governance/proposals' },
+  spo: { label: 'Check SPO governance participation', href: '/governance/proposals' },
+  citizen: { label: "Review your DRep's activity", href: '/you/delegation' },
+  cc: { label: 'Review constitutional alignment', href: '/governance/proposals' },
+  anonymous: { label: 'Connect your wallet for personalized insights', href: '/you' },
+};
+
+function NextStepCTA() {
+  const { segment } = useSegment();
+  const step = NEXT_STEPS[segment] ?? NEXT_STEPS.anonymous;
+  return (
+    <Link
+      href={step.href}
+      className="group flex items-center justify-between rounded-lg border border-border/40 bg-primary/5 hover:bg-primary/10 px-4 py-2.5 transition-colors"
+    >
+      <span className="text-sm font-medium text-foreground">{step.label}</span>
+      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+    </Link>
   );
 }
 
@@ -360,8 +390,8 @@ export function GovernadaPulseOverview() {
   if (!isAtLeast('engaged')) {
     return (
       <div className="space-y-6">
-        <GHIInformedView />
-        <GovernanceBriefing />
+        <GHIInformedView currentEpoch={pulse?.currentEpoch} />
+        <GovernanceBriefing compact />
         <GovernanceAlerts
           communityGap={pulse?.communityGap}
           spotlightProposal={pulse?.spotlightProposal}
@@ -442,7 +472,7 @@ export function GovernadaPulseOverview() {
       {safeTab === 'now' && (
         <div className="space-y-8" role="tabpanel" id="pulse-tabpanel-now" aria-label="Now">
           {/* 1. GHI Verdict */}
-          <GHIHero />
+          <GHIHero compact={!isAtLeast('deep')} />
 
           {/* 2. Personal governance footprint */}
           <GovernanceImpactCard
@@ -466,7 +496,10 @@ export function GovernadaPulseOverview() {
             alertLevel={healthConfig.alertLevel as 'critical' | 'full'}
           />
 
-          {/* 5. GHI Explorer (click-to-expand breakdown) */}
+          {/* 5. Persona-aware next step */}
+          <NextStepCTA />
+
+          {/* 6. GHI Explorer (click-to-expand breakdown) */}
           {ghiData?.current && (
             <GHIExplorer
               components={ghiData.current.components}
@@ -486,10 +519,10 @@ export function GovernadaPulseOverview() {
             />
           )}
 
-          {/* 6. Live Activity Ticker (deep only) */}
+          {/* 7. Live Activity Ticker (deep only) */}
           {healthConfig.showActivityTicker && <ActivityTicker variant="inline" />}
 
-          {/* 7. Deep: historical overlay placeholder */}
+          {/* 8. Deep: historical overlay placeholder */}
           <DepthGate minDepth="deep">
             <div className="rounded-xl border border-dashed border-border/40 bg-card/30 p-4 text-center">
               <p className="text-xs text-muted-foreground/60">

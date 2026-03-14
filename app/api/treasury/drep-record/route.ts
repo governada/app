@@ -12,7 +12,10 @@ export const GET = withRouteHandler(async (request) => {
 
   const record = await getDRepTreasuryTrackRecord(drepId);
 
-  return NextResponse.json(record, {
-    headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
-  });
+  return NextResponse.json(
+    { record },
+    {
+      headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
+    },
+  );
 });

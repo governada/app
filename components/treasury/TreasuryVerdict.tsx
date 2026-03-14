@@ -109,6 +109,14 @@ export function TreasuryVerdict({
             <span className="ml-1 text-xs">({trend === 'growing' ? '↑' : '↓'})</span>
           )}
         </span>
+        {runwayMonths > 0 && (
+          <span className="text-muted-foreground">
+            <span className="font-semibold text-foreground">
+              {runwayMonths < 12 ? `${runwayMonths}mo` : `${Math.round(runwayMonths / 12)}yr`}
+            </span>{' '}
+            runway
+          </span>
+        )}
       </div>
     </div>
   );

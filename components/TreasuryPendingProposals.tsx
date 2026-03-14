@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CardListSkeleton } from '@/components/ui/content-skeletons';
 import { Scale, ExternalLink, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { formatAda } from '@/lib/treasury';
+import type { DRepTreasuryVote } from '@/lib/treasury';
 import { posthog } from '@/lib/posthog';
 import { useTreasuryPending } from '@/hooks/queries';
 
@@ -36,6 +37,8 @@ interface Props {
   runwayMonths: number;
   /** NCL data for per-proposal impact indicators */
   nclImpact?: NclImpact | null;
+  /** Per-proposal DRep votes for inline vote badges */
+  drepVotes?: DRepTreasuryVote[];
 }
 
 const tierColors: Record<string, string> = {
@@ -44,9 +47,20 @@ const tierColors: Record<string, string> = {
   major: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
 };
 
-export function TreasuryPendingProposals({ nclImpact }: Props) {
+const voteColors: Record<string, string> = {
+  Yes: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400',
+  No: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+  Abstain: 'bg-slate-100 text-slate-600 dark:bg-slate-800/30 dark:text-slate-400',
+};
+
+export function TreasuryPendingProposals({ nclImpact, drepVotes }: Props) {
   const { data: raw, isLoading: loading } = useTreasuryPending();
   const data = raw as PendingData | undefined;
+
+  const voteMap = useMemo(() => {
+    if (!drepVotes?.length) return new Map<string, string>();
+    return new Map(drepVotes.map((v) => [`${v.txHash}-${v.index}`, v.vote]));
+  }, [drepVotes]);
 
   useEffect(() => {
     if (data?.proposals?.length) {
@@ -99,6 +113,18 @@ export function TreasuryPendingProposals({ nclImpact }: Props) {
                     className={`text-[10px] ${tierColors[p.treasuryTier] || ''}`}
                   >
                     {p.treasuryTier}
+                  </Badge>
+                )}
+                {voteMap.get(`${p.txHash}-${p.index}`) && (
+                  <Badge
+                    variant="secondary"
+                    className={`text-[10px] ${voteColors[voteMap.get(`${p.txHash}-${p.index}`)!] || ''}`}
+                  >
+                    {voteMap.get(`${p.txHash}-${p.index}`) === 'Yes'
+                      ? 'Your DRep: Yes'
+                      : voteMap.get(`${p.txHash}-${p.index}`) === 'No'
+                        ? 'Your DRep: No'
+                        : 'Your DRep: Abstain'}
                   </Badge>
                 )}
               </div>

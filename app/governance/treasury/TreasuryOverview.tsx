@@ -8,6 +8,9 @@ import { TreasuryEpochFlow } from '@/components/treasury/TreasuryEpochFlow';
 import { TreasuryPendingProposals } from '@/components/TreasuryPendingProposals';
 import { TreasuryAccountabilitySection } from '@/components/TreasuryAccountabilitySection';
 import { TreasuryPersonalImpact } from '@/components/treasury/TreasuryPersonalImpact';
+import { CitizenDRepStance } from '@/components/treasury/CitizenDRepStance';
+import { useDRepTreasuryRecord } from '@/hooks/useDRepTreasuryRecord';
+import { useWallet } from '@/utils/wallet';
 import dynamic from 'next/dynamic';
 
 const TreasurySimulator = dynamic(
@@ -63,7 +66,12 @@ async function fetchJson<T>(url: string): Promise<T> {
  * Deep Dive — Accordions: utilization trend, epoch flow, accountability, simulator
  */
 export function TreasuryOverview() {
-  const { drepId } = useSegment();
+  const { segment, drepId } = useSegment();
+  const { delegatedDrepId } = useWallet();
+  const effectiveDrepId = segment === 'drep' ? drepId : delegatedDrepId;
+  const { data: rawDrepRecord } = useDRepTreasuryRecord(effectiveDrepId);
+  const drepVotes = rawDrepRecord?.record?.votes;
+
   const { data: rawCurrent } = useTreasuryCurrent();
   const treasury = rawCurrent as TreasuryCurrentData | undefined;
 
@@ -156,10 +164,18 @@ export function TreasuryOverview() {
           )}
         </SegmentGate>
 
+        {/* Citizen stance callout: how their delegated DRep votes on treasury */}
+        <SegmentGate show={['citizen']}>
+          <div className="mb-4">
+            <CitizenDRepStance />
+          </div>
+        </SegmentGate>
+
         <TreasuryPendingProposals
           treasuryBalanceAda={balance}
           runwayMonths={runway}
           nclImpact={nclImpact}
+          drepVotes={drepVotes}
         />
       </section>
 

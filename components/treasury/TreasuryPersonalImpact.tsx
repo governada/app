@@ -1,10 +1,10 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
 import { formatAda } from '@/lib/treasury';
-import type { DRepTreasuryRecord } from '@/lib/treasury';
 import { useSegment } from '@/components/providers/SegmentProvider';
+import { useWallet } from '@/utils/wallet';
 import { useTreasuryPending } from '@/hooks/queries';
+import { useDRepTreasuryRecord } from '@/hooks/useDRepTreasuryRecord';
 
 interface TreasuryPersonalImpactProps {
   balanceAda: number;
@@ -14,23 +14,18 @@ interface TreasuryPersonalImpactProps {
 }
 
 export function TreasuryPersonalImpact({
-  balanceAda,
   nclRemainingAda,
   nclAda,
   nclUtilizationPct,
 }: TreasuryPersonalImpactProps) {
-  const { drepId } = useSegment();
+  const { segment, drepId } = useSegment();
+  const { delegatedDrepId } = useWallet();
 
-  const { data: rawRecord } = useQuery<{ record: DRepTreasuryRecord }>({
-    queryKey: ['treasury-drep-record', drepId],
-    queryFn: async () => {
-      const res = await fetch(`/api/treasury/drep-record?drepId=${encodeURIComponent(drepId!)}`);
-      if (!res.ok) throw new Error('Failed to fetch DRep treasury record');
-      return res.json();
-    },
-    enabled: !!drepId,
-    staleTime: 5 * 60 * 1000,
-  });
+  // DReps see their own record; citizens see their delegated DRep's record
+  const effectiveDrepId = segment === 'drep' ? drepId : delegatedDrepId;
+  const isCitizen = segment === 'citizen';
+
+  const { data: rawRecord } = useDRepTreasuryRecord(effectiveDrepId);
 
   const { data: rawPending } = useTreasuryPending();
   const pending = rawPending as { totalAda: number; proposals: unknown[] } | undefined;
@@ -47,16 +42,20 @@ export function TreasuryPersonalImpact({
 
   if (!hasDRepData && pendingTotalAda === 0) return null;
 
+  const label = isCitizen ? "Your DRep's" : 'Your';
+
   return (
     <div className="rounded-xl border border-border/50 bg-card/70 backdrop-blur-md p-5">
-      <h3 className="text-sm font-semibold mb-3">Your Treasury Impact</h3>
+      <h3 className="text-sm font-semibold mb-3">
+        {isCitizen ? "Your DRep's Treasury Impact" : 'Your Treasury Impact'}
+      </h3>
 
       <div className="space-y-3">
         {/* DRep voting record summary */}
         {hasDRepData && record && (
           <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
             <div>
-              <span className="text-muted-foreground">Approved </span>
+              <span className="text-muted-foreground">{label} approved </span>
               <span className="font-semibold text-emerald-400">
                 ₳{formatAda(record.approvedAda)}
               </span>
@@ -65,7 +64,7 @@ export function TreasuryPersonalImpact({
               </span>
             </div>
             <div>
-              <span className="text-muted-foreground">Opposed </span>
+              <span className="text-muted-foreground">{label} opposed </span>
               <span className="font-semibold text-red-400">₳{formatAda(record.opposedAda)}</span>
               <span className="text-muted-foreground text-xs ml-1">({record.opposedCount})</span>
             </div>
@@ -81,7 +80,9 @@ export function TreasuryPersonalImpact({
         {/* Judgment score */}
         {hasDRepData && record?.judgmentScore !== null && record?.judgmentScore !== undefined && (
           <div className="text-sm">
-            <span className="text-muted-foreground">Of what you approved, </span>
+            <span className="text-muted-foreground">
+              Of what {isCitizen ? 'they' : 'you'} approved,{' '}
+            </span>
             <span className="font-semibold">{record.judgmentScore}%</span>
             <span className="text-muted-foreground"> delivered results</span>
           </div>

@@ -475,6 +475,12 @@ export async function findSimilarProposals(
 // DRep Treasury Track Record
 // ---------------------------------------------------------------------------
 
+export interface DRepTreasuryVote {
+  txHash: string;
+  index: number;
+  vote: 'Yes' | 'No' | 'Abstain';
+}
+
 export interface DRepTreasuryRecord {
   totalProposals: number;
   totalAdaVotedOn: number;
@@ -490,6 +496,8 @@ export interface DRepTreasuryRecord {
     pending: number;
   };
   judgmentScore: number | null;
+  /** Per-proposal votes for overlay on proposal lists */
+  votes: DRepTreasuryVote[];
 }
 
 export async function getDRepTreasuryTrackRecord(drepId: string): Promise<DRepTreasuryRecord> {
@@ -516,6 +524,7 @@ export async function getDRepTreasuryTrackRecord(drepId: string): Promise<DRepTr
       abstainedCount: 0,
       accountabilityStats: { delivered: 0, partial: 0, notDelivered: 0, pending: 0 },
       judgmentScore: null,
+      votes: [],
     };
   }
 
@@ -527,6 +536,7 @@ export async function getDRepTreasuryTrackRecord(drepId: string): Promise<DRepTr
     opposedAda = 0,
     totalAdaVotedOn = 0;
   const approvedEnacted: string[] = [];
+  const perProposalVotes: DRepTreasuryVote[] = [];
 
   for (const v of votes) {
     const key = `${v.proposal_tx_hash}-${v.proposal_index}`;
@@ -535,6 +545,11 @@ export async function getDRepTreasuryTrackRecord(drepId: string): Promise<DRepTr
 
     const ada = proposal.withdrawal_amount || 0;
     totalAdaVotedOn += ada;
+    perProposalVotes.push({
+      txHash: v.proposal_tx_hash,
+      index: v.proposal_index,
+      vote: v.vote as 'Yes' | 'No' | 'Abstain',
+    });
 
     if (v.vote === 'Yes') {
       approvedCount++;
@@ -593,6 +608,7 @@ export async function getDRepTreasuryTrackRecord(drepId: string): Promise<DRepTr
     abstainedCount,
     accountabilityStats,
     judgmentScore,
+    votes: perProposalVotes,
   };
 }
 
