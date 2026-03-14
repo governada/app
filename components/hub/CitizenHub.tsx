@@ -53,6 +53,7 @@ import { DepthGate } from '@/components/providers/DepthGate';
 import { CommunityConsensus } from './CommunityConsensus';
 import { DelegationHealthSummary } from './DelegationHealthSummary';
 import { DepthDiscoveryFooter } from './DepthDiscoveryFooter';
+import { GovernancePulse } from './GovernancePulse';
 import { WhatChanged } from '@/components/hub/WhatChanged';
 import { playMilestoneChime } from '@/lib/sounds';
 
@@ -1111,6 +1112,14 @@ export function CitizenHub() {
 
       {/* ── Delegation Health (always visible) ─────────────── */}
       <DelegationHealthSummary />
+
+      {/* ── Governance Pulse teaser (undelegated citizens only) */}
+      {!delegatedDrep && (
+        <GovernancePulse
+          activeProposalCount={consequence?.activeProposals?.length ?? 0}
+          aiHeadline={aiHeadline}
+        />
+      )}
 
       {/* ── Decided proposals (informed+) ──────────────────── */}
       <DepthGate minDepth="informed">
