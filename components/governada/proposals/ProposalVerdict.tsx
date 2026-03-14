@@ -1,6 +1,7 @@
 import { CheckCircle2, XCircle, Scale, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getVerdict, type VerdictType } from './proposal-theme';
+import { getVotingBodies } from '@/lib/governance/votingBodies';
 
 const VERDICT_ICONS: Record<VerdictType, typeof CheckCircle2> = {
   passing: CheckCircle2,
@@ -11,6 +12,8 @@ const VERDICT_ICONS: Record<VerdictType, typeof CheckCircle2> = {
   expired: Clock,
 };
 
+const BODY_LABEL: Record<string, string> = { drep: 'DRep', spo: 'SPO', cc: 'CC' };
+
 interface ProposalVerdictProps {
   status: string;
   triBody?: {
@@ -18,12 +21,21 @@ interface ProposalVerdictProps {
     spo: { yes: number; no: number; abstain: number };
     cc: { yes: number; no: number; abstain: number };
   } | null;
+  proposalType?: string;
   accentColor?: string;
 }
 
-export function ProposalVerdict({ status, triBody, accentColor }: ProposalVerdictProps) {
+export function ProposalVerdict({
+  status,
+  triBody,
+  proposalType,
+  accentColor,
+}: ProposalVerdictProps) {
   const verdict = getVerdict(status, triBody);
   const Icon = VERDICT_ICONS[verdict.type];
+  const eligibleBodies = proposalType
+    ? getVotingBodies(proposalType)
+    : (['drep', 'spo', 'cc'] as const);
 
   return (
     <div
@@ -39,21 +51,16 @@ export function ProposalVerdict({ status, triBody, accentColor }: ProposalVerdic
 
       {triBody && (
         <div className="flex items-center gap-3 ml-auto">
-          {(
-            [
-              { label: 'DRep', data: triBody.drep },
-              { label: 'SPO', data: triBody.spo },
-              { label: 'CC', data: triBody.cc },
-            ] as const
-          ).map(({ label, data }) => {
+          {eligibleBodies.map((body) => {
+            const data = triBody[body];
             const total = data.yes + data.no + data.abstain;
             if (total === 0) return null;
             const yesPct = Math.round((data.yes / total) * 100);
             const color =
               yesPct >= 60 ? 'text-emerald-400' : yesPct >= 40 ? 'text-amber-400' : 'text-red-400';
             return (
-              <span key={label} className="text-xs tabular-nums">
-                <span className="text-muted-foreground">{label}</span>{' '}
+              <span key={body} className="text-xs tabular-nums">
+                <span className="text-muted-foreground">{BODY_LABEL[body]}</span>{' '}
                 <span className={cn('font-semibold', color)}>{yesPct}%</span>
               </span>
             );

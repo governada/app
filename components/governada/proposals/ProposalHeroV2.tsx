@@ -42,6 +42,11 @@ interface ProposalHeroV2Props {
   triBody: TriBodyVotes | null;
   blockTime: number | null;
   nclUtilization?: NclUtilization | null;
+  /** DRep vote counts for threshold meter (integrated into tri-body panel) */
+  yesCount?: number;
+  noCount?: number;
+  abstainCount?: number;
+  totalVotes?: number;
 }
 
 export function ProposalHeroV2({
@@ -63,6 +68,10 @@ export function ProposalHeroV2({
   triBody,
   blockTime,
   nclUtilization,
+  yesCount,
+  noCount,
+  abstainCount,
+  totalVotes,
 }: ProposalHeroV2Props) {
   const theme = getProposalTheme(proposalType);
   const TypeIcon = theme.icon;
@@ -172,13 +181,28 @@ export function ProposalHeroV2({
 
         {/* Verdict strip at bottom of hero */}
         <div className="px-6 pb-5">
-          <ProposalVerdict status={status} triBody={triBody} accentColor={theme.accent} />
+          <ProposalVerdict
+            status={status}
+            triBody={triBody}
+            proposalType={proposalType}
+            accentColor={theme.accent}
+          />
         </div>
       </div>
 
-      {/* Tri-body vote bars */}
+      {/* Tri-body vote bars (type-aware: only shows eligible governance bodies) */}
       {triBody && (
-        <TriBodyVotePanel triBody={triBody} txHash={txHash} proposalIndex={proposalIndex} />
+        <TriBodyVotePanel
+          triBody={triBody}
+          txHash={txHash}
+          proposalIndex={proposalIndex}
+          proposalType={proposalType}
+          yesCount={yesCount}
+          noCount={noCount}
+          abstainCount={abstainCount}
+          totalVotes={totalVotes}
+          isOpen={isOpen}
+        />
       )}
 
       {/* User's DRep vote */}

@@ -5,7 +5,6 @@ import { blockTimeToEpoch } from '@/lib/koios';
 import { getTreasuryBalance, getNclUtilization } from '@/lib/treasury';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ProposalDescription } from '@/components/ProposalDescription';
-import { ThresholdMeter } from '@/components/ThresholdMeter';
 import { Breadcrumb } from '@/components/shared/Breadcrumb';
 import { getProposalStatus } from '@/utils/proposalPriority';
 import { ProposalOutcomeSection } from '@/components/ProposalOutcomeSection';
@@ -18,13 +17,12 @@ import { ProposalLifecycleTimeline } from '@/components/governada/proposals/Prop
 import { ImpactTags } from '@/components/engagement/ImpactTags';
 import { EngagementSummary } from '@/components/engagement/EngagementSummary';
 import { ConcernFlagBanner } from '@/components/engagement/ConcernFlagBanner';
-import { ProposalSentimentSection } from '@/components/engagement/ProposalSentimentSection';
-import { ConcernFlagsSection } from '@/components/engagement/ConcernFlagsSection';
 import { ProposalHeroV2 } from '@/components/governada/proposals/ProposalHeroV2';
 import { WatchEntityButton } from '@/components/WatchEntityButton';
 import { IntelligenceBriefing } from '@/components/governada/proposals/IntelligenceBriefing';
 import { DebateSection } from '@/components/governada/proposals/DebateSection';
-import { ActionPanel } from '@/components/governada/proposals/ActionPanel';
+import { ProposalActionZone } from '@/components/governada/proposals/ProposalActionZone';
+import { ProposalDepthGate } from '@/components/governada/proposals/ProposalDepthGate';
 
 export const dynamic = 'force-dynamic';
 
@@ -171,10 +169,14 @@ export default async function ProposalDetailPage({ params }: PageProps) {
         triBody={proposal.triBody ?? null}
         blockTime={proposal.blockTime}
         nclUtilization={nclUtilization}
+        yesCount={proposal.yesCount}
+        noCount={proposal.noCount}
+        abstainCount={proposal.abstainCount}
+        totalVotes={proposal.totalVotes}
       />
 
-      {/* Zone 2: Take Action — vote flow + citizen voice side by side */}
-      <ActionPanel
+      {/* Zone 2: Primary Action — persona-branching (DRep/SPO vote flow vs citizen engagement) */}
+      <ProposalActionZone
         txHash={txHash}
         proposalIndex={proposalIndex}
         title={title}
@@ -184,7 +186,24 @@ export default async function ProposalDetailPage({ params }: PageProps) {
         aiSummary={proposal.aiSummary}
       />
 
-      {/* Zone 3: Community Signals — engagement, concerns, dimension tags */}
+      {/* Zone 3: Intelligence Briefing — AI summary + constitutional + params */}
+      <IntelligenceBriefing
+        txHash={txHash}
+        proposalIndex={proposalIndex}
+        aiSummary={proposal.aiSummary}
+        proposalType={proposal.proposalType}
+        paramChanges={proposal.paramChanges}
+      />
+
+      {/* Zone 4: The Debate — elevated for prominence, social sharing per rationale */}
+      <DebateSection
+        rationales={rationaleEntries}
+        proposalTitle={title}
+        txHash={txHash}
+        proposalIndex={proposalIndex}
+      />
+
+      {/* Zone 5: Community Signals — read-only engagement, concerns, dimension tags */}
       <div className="space-y-4">
         <EngagementSummary txHash={txHash} proposalIndex={proposalIndex} />
         <ConcernFlagBanner
@@ -200,26 +219,10 @@ export default async function ProposalDetailPage({ params }: PageProps) {
                   : null
           }
         />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <ProposalSentimentSection txHash={txHash} proposalIndex={proposalIndex} isOpen={isOpen} />
-          <ConcernFlagsSection txHash={txHash} proposalIndex={proposalIndex} isOpen={isOpen} />
-        </div>
         <ProposalDimensionTags relevantPrefs={proposal.relevantPrefs} />
       </div>
 
-      {/* Zone 4: Intelligence Briefing — AI summary + constitutional + params merged */}
-      <IntelligenceBriefing
-        txHash={txHash}
-        proposalIndex={proposalIndex}
-        aiSummary={proposal.aiSummary}
-        proposalType={proposal.proposalType}
-        paramChanges={proposal.paramChanges}
-      />
-
-      {/* Zone 5: The Debate — structured pro/con rationales */}
-      <DebateSection rationales={rationaleEntries} />
-
-      {/* Zone 6: Deep Dive — timeline, thresholds, adoption, voters, description */}
+      {/* Zone 6: Deep Dive — timeline, adoption, voters, description */}
       <ProposalLifecycleTimeline
         proposedEpoch={proposal.proposedEpoch}
         expirationEpoch={proposal.expirationEpoch}
@@ -230,49 +233,35 @@ export default async function ProposalDetailPage({ params }: PageProps) {
         currentEpoch={currentEpoch}
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>DRep Voting Power</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <ThresholdMeter
+      {/* Deep dive sections — gated for anonymous */}
+      <ProposalDepthGate
+        message="Unlock vote analytics, voter details, and similar proposals"
+        surface="deep-dive"
+      >
+        <div className="space-y-6 sm:space-y-8">
+          {adoptionData.length > 1 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Vote Adoption</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <VoteAdoptionCurve votes={adoptionData} />
+              </CardContent>
+            </Card>
+          )}
+
+          <ProposalVoterTabs
+            votes={votes}
             txHash={txHash}
             proposalIndex={proposalIndex}
-            proposalType={proposal.proposalType}
-            yesCount={proposal.yesCount}
-            noCount={proposal.noCount}
-            abstainCount={proposal.abstainCount}
-            totalVotes={proposal.totalVotes}
-            isOpen={isOpen}
-            variant="full"
+            status={status}
           />
-          <p className="text-sm text-muted-foreground text-center">
-            {proposal.totalVotes} DReps voted on this proposal
-          </p>
-        </CardContent>
-      </Card>
 
-      {adoptionData.length > 1 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Vote Adoption</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <VoteAdoptionCurve votes={adoptionData} />
-          </CardContent>
-        </Card>
-      )}
+          <ProposalDescription aiSummary={null} abstract={proposal.abstract} />
 
-      <ProposalVoterTabs
-        votes={votes}
-        txHash={txHash}
-        proposalIndex={proposalIndex}
-        status={status}
-      />
-
-      <ProposalDescription aiSummary={null} abstract={proposal.abstract} />
-
-      <SimilarProposals txHash={txHash} proposalIndex={proposalIndex} />
+          <SimilarProposals txHash={txHash} proposalIndex={proposalIndex} />
+        </div>
+      </ProposalDepthGate>
 
       {!isOpen && (
         <ProposalOutcomeSection
