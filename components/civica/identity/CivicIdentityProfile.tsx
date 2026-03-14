@@ -15,6 +15,10 @@ import {
   Landmark,
   ChevronDown,
   ChevronRight,
+  Lock,
+  HandHeart,
+  Megaphone,
+  TrendingUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -148,6 +152,95 @@ function UnstakedCTA() {
   );
 }
 
+/* ── Preview / empty states ───────────────────────────────────── */
+
+/** Ghost preview of governance rings with sample data — shows users what the page looks like with real data */
+function FootprintPreview() {
+  const sampleRings: import('@/lib/governanceRings').RingValues = {
+    delegation: 0.72,
+    coverage: 0.85,
+    engagement: 0.45,
+  };
+
+  return (
+    <div className="relative">
+      {/* Ghost rings at low opacity */}
+      <div className="opacity-20 pointer-events-none select-none">
+        <div className="flex flex-col items-center gap-5">
+          <div className="relative">
+            <GovernanceRings rings={sampleRings} size={200} />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <GovernancePulse pulse={68} pulseColor="primary" pulseLabel="Healthy" />
+            </div>
+          </div>
+          <div className="flex flex-wrap justify-center gap-x-5 gap-y-1.5">
+            {RING_CONFIG.map((config) => (
+              <div key={config.key} className="flex items-center gap-1.5">
+                <div className="h-2.5 w-2.5 rounded-full" style={{ background: config.color }} />
+                <span className="text-xs text-muted-foreground">{config.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Overlay with explanation */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="rounded-xl border border-border/50 bg-card/95 backdrop-blur-md p-5 text-center space-y-2 max-w-xs shadow-lg">
+          <p className="text-sm font-semibold text-foreground">Your Governance Pulse</p>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Three rings track your governance presence: how well your DRep performs, how many
+            proposals are covered, and how actively you participate. Together they form your
+            Governance Pulse score.
+          </p>
+          <Button variant="outline" size="sm" asChild className="mt-1">
+            <Link href="/match">
+              Find Your DRep
+              <ArrowRight className="h-3.5 w-3.5 ml-1" />
+            </Link>
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Preview of milestone stamps in locked state */
+function MilestonesPreview() {
+  const sampleMilestones = [
+    { icon: HandHeart, label: 'First Delegation' },
+    { icon: Flame, label: '10-Epoch Streak' },
+    { icon: Vote, label: '10 Proposals' },
+    { icon: Megaphone, label: 'First Civic Action' },
+    { icon: TrendingUp, label: 'Rising Citizen' },
+  ];
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-2 overflow-hidden">
+        {sampleMilestones.map(({ icon: Icon, label }) => (
+          <div
+            key={label}
+            className="flex w-16 h-16 flex-col items-center justify-center rounded-lg border border-border/30 bg-muted/10 shrink-0 opacity-40"
+          >
+            <div className="relative">
+              <Icon className="h-4 w-4 text-muted-foreground" />
+              <Lock className="h-2.5 w-2.5 text-muted-foreground absolute -bottom-0.5 -right-1" />
+            </div>
+            <span className="text-[10px] text-muted-foreground mt-1 text-center leading-tight line-clamp-2 px-0.5">
+              {label}
+            </span>
+          </div>
+        ))}
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Earn milestones by delegating, engaging with proposals, and building your governance
+        footprint. Your first milestone unlocks when you delegate to a DRep.
+      </p>
+    </div>
+  );
+}
+
 /* ── Loading skeleton ──────────────────────────────────────────── */
 
 function ProfileSkeleton() {
@@ -255,115 +348,97 @@ export function CivicIdentityProfile() {
       </div>
 
       {/* ── Hero: Governance Rings + Pulse ───────────────────────── */}
-      <AsyncContent
-        isLoading={footprintLoading || impactScoreLoading}
-        isError={footprintError}
-        data={footprint}
-        errorMessage="Unable to load your governance footprint."
-        skeleton={
-          <div className="flex justify-center">
-            <Skeleton className="h-[200px] w-[200px] rounded-full" />
-          </div>
-        }
-      >
-        {footprint && (
-          <>
-            {isUndelegated ? (
-              <UndelegatedCTA />
-            ) : (
-              <div className="flex flex-col items-center gap-5">
-                {/* Rings with Pulse centered inside */}
-                <div className="relative">
-                  <GovernanceRings rings={ringsData.rings} size={200} />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <GovernancePulse
-                      pulse={ringsData.pulse}
-                      pulseColor={ringsData.pulseColor}
-                      pulseLabel={ringsData.pulseLabel}
-                    />
-                  </div>
-                </div>
-
-                {/* Ring legend */}
-                <div className="flex flex-wrap justify-center gap-x-5 gap-y-1.5">
-                  {RING_CONFIG.map((config) => (
-                    <div key={config.key} className="flex items-center gap-1.5">
-                      <div
-                        className="h-2.5 w-2.5 rounded-full"
-                        style={{ background: config.color }}
-                      />
-                      <span className="text-xs text-muted-foreground">{config.label}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Governance archetype (from delegated DRep's alignment) */}
-                {footprint.delegationRecord.drepAlignment &&
-                  (() => {
-                    const alignment = footprint.delegationRecord.drepAlignment as AlignmentScores;
-                    const archetype = getCompoundArchetype(alignment);
-                    const dominant = getDominantDimension(alignment);
-                    const color = getIdentityColor(dominant);
-                    return (
-                      <div className="text-center">
-                        <p
-                          className="text-lg font-bold tracking-tight"
-                          style={{ color: color.hex }}
-                        >
-                          {archetype}
-                        </p>
-                        <p className="text-xs text-muted-foreground">Your governance archetype</p>
-                      </div>
-                    );
-                  })()}
-
-                {/* Identity narrative */}
-                <IdentityNarrative
-                  participationTier={footprint.identity.participationTier}
-                  drepName={footprint.delegationRecord.drepName}
-                  delegationAgeDays={footprint.identity.delegationAgeDays}
-                  proposalsInfluenced={footprint.impact.proposalsInfluenced}
+      {footprintLoading || impactScoreLoading ? (
+        <div className="flex justify-center">
+          <Skeleton className="h-[200px] w-[200px] rounded-full" />
+        </div>
+      ) : footprintError || !footprint ? (
+        <FootprintPreview />
+      ) : isUndelegated ? (
+        <UndelegatedCTA />
+      ) : (
+        <>
+          <div className="flex flex-col items-center gap-5">
+            {/* Rings with Pulse centered inside */}
+            <div className="relative">
+              <GovernanceRings rings={ringsData.rings} size={200} />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <GovernancePulse
                   pulse={ringsData.pulse}
+                  pulseColor={ringsData.pulseColor}
                   pulseLabel={ringsData.pulseLabel}
-                  rings={ringsData.rings}
-                  archetype={
-                    footprint.delegationRecord.drepAlignment
-                      ? getCompoundArchetype(
-                          footprint.delegationRecord.drepAlignment as AlignmentScores,
-                        )
-                      : null
-                  }
-                  milestonesEarned={earned.length}
                 />
-
-                {/* Pulse history sparkline (only renders if snapshots exist) */}
-                <PulseHistoryChart className="justify-center" />
               </div>
-            )}
+            </div>
 
-            {isUnstaked && <UnstakedCTA />}
-          </>
-        )}
-      </AsyncContent>
+            {/* Ring legend */}
+            <div className="flex flex-wrap justify-center gap-x-5 gap-y-1.5">
+              {RING_CONFIG.map((config) => (
+                <div key={config.key} className="flex items-center gap-1.5">
+                  <div className="h-2.5 w-2.5 rounded-full" style={{ background: config.color }} />
+                  <span className="text-xs text-muted-foreground">{config.label}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Governance archetype (from delegated DRep's alignment) */}
+            {footprint.delegationRecord.drepAlignment &&
+              (() => {
+                const alignment = footprint.delegationRecord.drepAlignment as AlignmentScores;
+                const archetype = getCompoundArchetype(alignment);
+                const dominant = getDominantDimension(alignment);
+                const color = getIdentityColor(dominant);
+                return (
+                  <div className="text-center">
+                    <p className="text-lg font-bold tracking-tight" style={{ color: color.hex }}>
+                      {archetype}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Your governance archetype</p>
+                  </div>
+                );
+              })()}
+
+            {/* Identity narrative */}
+            <IdentityNarrative
+              participationTier={footprint.identity.participationTier}
+              drepName={footprint.delegationRecord.drepName}
+              delegationAgeDays={footprint.identity.delegationAgeDays}
+              proposalsInfluenced={footprint.impact.proposalsInfluenced}
+              pulse={ringsData.pulse}
+              pulseLabel={ringsData.pulseLabel}
+              rings={ringsData.rings}
+              archetype={
+                footprint.delegationRecord.drepAlignment
+                  ? getCompoundArchetype(
+                      footprint.delegationRecord.drepAlignment as AlignmentScores,
+                    )
+                  : null
+              }
+              milestonesEarned={earned.length}
+            />
+
+            {/* Pulse history sparkline (only renders if snapshots exist) */}
+            <PulseHistoryChart className="justify-center" />
+          </div>
+
+          {isUnstaked && <UnstakedCTA />}
+        </>
+      )}
 
       {/* ── Milestone Stamps ─────────────────────────────────────── */}
       <div data-discovery="you-milestones">
         <SectionHeader title="Milestones" />
-        <AsyncContent
-          isLoading={milestonesLoading}
-          isError={milestonesError}
-          data={milestonesData}
-          errorMessage="Unable to load milestones."
-          skeleton={
-            <div className="flex gap-2">
-              {[...Array(4)].map((_, i) => (
-                <Skeleton key={i} className="h-16 w-16 rounded-lg" />
-              ))}
-            </div>
-          }
-        >
+        {milestonesLoading ? (
+          <div className="flex gap-2">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-16 w-16 rounded-lg" />
+            ))}
+          </div>
+        ) : milestonesError || !milestonesData ? (
+          <MilestonesPreview />
+        ) : (
           <MilestoneStamps earned={earned} recentKeys={recentKeys} stakeAddress={stakeAddress} />
-        </AsyncContent>
+        )}
       </div>
 
       {/* ── Governance Alignment ─────────────────────────────────── */}
