@@ -4,13 +4,28 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { TriBodyVoteBar } from '@/components/TriBodyVoteBar';
+import { ThresholdMeter } from '@/components/ThresholdMeter';
 import { Users, Server, ShieldCheck, TrendingUp, TrendingDown, Equal } from 'lucide-react';
+import { getVotingBodies, type GovernanceBody } from '@/lib/governance/votingBodies';
 import type { TriBodyVotes } from '@/lib/data';
+
+const BODY_CONFIG: Record<GovernanceBody, { label: string; icon: typeof Users; color: string }> = {
+  drep: { label: 'DReps', icon: Users, color: 'text-primary' },
+  spo: { label: 'SPOs', icon: Server, color: 'text-cyan-500' },
+  cc: { label: 'CC', icon: ShieldCheck, color: 'text-amber-500' },
+};
 
 interface TriBodyVotePanelProps {
   triBody: TriBodyVotes;
   txHash: string;
   proposalIndex: number;
+  proposalType: string;
+  /** DRep vote counts for integrated threshold meter */
+  yesCount?: number;
+  noCount?: number;
+  abstainCount?: number;
+  totalVotes?: number;
+  isOpen?: boolean;
 }
 
 interface AlignmentData {
@@ -72,7 +87,17 @@ function BodyColumn({
   );
 }
 
-export function TriBodyVotePanel({ triBody, txHash, proposalIndex }: TriBodyVotePanelProps) {
+export function TriBodyVotePanel({
+  triBody,
+  txHash,
+  proposalIndex,
+  proposalType,
+  yesCount,
+  noCount,
+  abstainCount,
+  totalVotes,
+  isOpen,
+}: TriBodyVotePanelProps) {
   const [alignment, setAlignment] = useState<AlignmentData | null>(null);
 
   useEffect(() => {
@@ -84,8 +109,11 @@ export function TriBodyVotePanel({ triBody, txHash, proposalIndex }: TriBodyVote
       .catch(() => {});
   }, [txHash, proposalIndex]);
 
-  const hasSpo = triBody.spo.yes + triBody.spo.no + triBody.spo.abstain > 0;
-  const hasCc = triBody.cc.yes + triBody.cc.no + triBody.cc.abstain > 0;
+  const eligibleBodies = getVotingBodies(proposalType);
+  const hasSpo =
+    eligibleBodies.includes('spo') && triBody.spo.yes + triBody.spo.no + triBody.spo.abstain > 0;
+  const hasCc =
+    eligibleBodies.includes('cc') && triBody.cc.yes + triBody.cc.no + triBody.cc.abstain > 0;
 
   const drepMajority =
     triBody.drep.yes >= triBody.drep.no && triBody.drep.yes >= triBody.drep.abstain
@@ -104,18 +132,34 @@ export function TriBodyVotePanel({ triBody, txHash, proposalIndex }: TriBodyVote
   let alignmentCallout: string | null = null;
   if (hasSpo && spoMajority) {
     if (drepMajority === spoMajority) {
-      alignmentCallout = `DReps and SPOs agreed on this proposal — both majority voted ${drepMajority}.`;
+      alignmentCallout = `DReps and SPOs agreed on this proposal \u2014 both majority voted ${drepMajority}.`;
     } else {
-      alignmentCallout = `DReps and SPOs diverged — DReps voted ${drepMajority} while SPOs voted ${spoMajority}.`;
+      alignmentCallout = `DReps and SPOs diverged \u2014 DReps voted ${drepMajority} while SPOs voted ${spoMajority}.`;
     }
   }
+
+  const gridCols =
+    eligibleBodies.length === 1
+      ? 'grid-cols-1'
+      : eligibleBodies.length === 2
+        ? 'grid-cols-2'
+        : 'grid-cols-3';
+
+  const showThreshold =
+    yesCount != null &&
+    noCount != null &&
+    abstainCount != null &&
+    totalVotes != null &&
+    isOpen != null;
 
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <CardTitle>Tri-Body Governance Votes</CardTitle>
-          {alignment && (
+          <CardTitle>
+            {eligibleBodies.length === 1 ? 'DRep Governance Votes' : 'Governance Votes'}
+          </CardTitle>
+          {alignment && eligibleBodies.length > 1 && (
             <Badge
               variant="outline"
               className={
@@ -146,11 +190,41 @@ export function TriBodyVotePanel({ triBody, txHash, proposalIndex }: TriBodyVote
           cc={hasCc ? triBody.cc : undefined}
         />
 
-        <div className="grid grid-cols-3 gap-3">
-          <BodyColumn label="DReps" icon={Users} color="text-primary" votes={triBody.drep} />
-          <BodyColumn label="SPOs" icon={Server} color="text-cyan-500" votes={triBody.spo} />
-          <BodyColumn label="CC" icon={ShieldCheck} color="text-amber-500" votes={triBody.cc} />
+        <div className={`grid ${gridCols} gap-3`}>
+          {eligibleBodies.map((body) => {
+            const config = BODY_CONFIG[body];
+            return (
+              <BodyColumn
+                key={body}
+                label={config.label}
+                icon={config.icon}
+                color={config.color}
+                votes={triBody[body]}
+              />
+            );
+          })}
         </div>
+
+        {/* Integrated DRep voting power threshold (replaces standalone card) */}
+        {showThreshold && (
+          <div className="pt-2 border-t border-border/50">
+            <p className="text-xs font-medium text-muted-foreground mb-2">DRep Voting Power</p>
+            <ThresholdMeter
+              txHash={txHash}
+              proposalIndex={proposalIndex}
+              proposalType={proposalType}
+              yesCount={yesCount!}
+              noCount={noCount!}
+              abstainCount={abstainCount!}
+              totalVotes={totalVotes!}
+              isOpen={isOpen!}
+              variant="compact"
+            />
+            <p className="text-[10px] text-muted-foreground text-center mt-1.5">
+              {totalVotes} DReps voted on this proposal
+            </p>
+          </div>
+        )}
 
         {alignmentCallout && (
           <div className="rounded-md bg-muted/40 px-3 py-2 text-sm text-muted-foreground">

@@ -4,6 +4,7 @@ import { Sparkles } from 'lucide-react';
 import { ProposalAiSummary } from '@/components/ProposalAiSummary';
 import { ConstitutionalAlignmentCard } from '@/components/ConstitutionalAlignmentCard';
 import { ParamChangesCard } from '@/components/governada/proposals/ParamChangesCard';
+import { ProposalDepthGate } from '@/components/governada/proposals/ProposalDepthGate';
 
 interface IntelligenceBriefingProps {
   txHash: string;
@@ -35,9 +36,19 @@ export function IntelligenceBriefing({
       </div>
 
       <div className="p-6 space-y-6">
+        {/* AI summary visible to all */}
         {aiSummary && <ProposalAiSummary summary={aiSummary} />}
-        <ConstitutionalAlignmentCard txHash={txHash} proposalIndex={proposalIndex} />
-        {hasParams && <ParamChangesCard paramChanges={paramChanges} />}
+
+        {/* Constitutional alignment + param changes gated for anonymous */}
+        <ProposalDepthGate
+          message="Unlock constitutional analysis and parameter details"
+          surface="intelligence-briefing"
+        >
+          <div className="space-y-6">
+            <ConstitutionalAlignmentCard txHash={txHash} proposalIndex={proposalIndex} />
+            {hasParams && <ParamChangesCard paramChanges={paramChanges} />}
+          </div>
+        </ProposalDepthGate>
       </div>
     </section>
   );

@@ -32,6 +32,41 @@ interface TimelineEvent {
   color: string;
 }
 
+/**
+ * Merge events that are within 1 epoch of each other to prevent overlap.
+ * Combined events get a joined label like "Proposed / Now".
+ */
+function mergeCloseEvents(events: TimelineEvent[]): TimelineEvent[] {
+  if (events.length <= 1) return events;
+
+  const merged: TimelineEvent[] = [];
+  let i = 0;
+
+  while (i < events.length) {
+    const current = { ...events[i] };
+    let j = i + 1;
+
+    // Merge any subsequent events within 1 epoch
+    while (j < events.length && events[j].epoch - current.epoch <= 1) {
+      current.label = `${current.label} / ${events[j].label}`;
+      // Use the more "active" status and its icon/color
+      if (events[j].status === 'current') {
+        current.status = 'current';
+        current.icon = events[j].icon;
+        current.color = events[j].color;
+      }
+      // Use the later epoch for positioning
+      current.epoch = events[j].epoch;
+      j++;
+    }
+
+    merged.push(current);
+    i = j;
+  }
+
+  return merged;
+}
+
 interface ProposalLifecycleTimelineProps {
   proposedEpoch: number | null;
   expirationEpoch: number | null;
@@ -130,80 +165,95 @@ export function ProposalLifecycleTimeline({
     }
   }
 
-  // Sort by epoch
+  // Sort by epoch then merge close events
   events.sort((a, b) => a.epoch - b.epoch);
+  const merged = mergeCloseEvents(events);
 
-  if (events.length < 2) return null;
+  if (merged.length < 2) return null;
 
-  const minEpoch = events[0].epoch;
-  const maxEpoch = events[events.length - 1].epoch;
-  const range = maxEpoch - minEpoch || 1;
+  // Time remaining for open proposals
+  const remaining = isOpen && expirationEpoch ? Math.max(0, expirationEpoch - currentEpoch) : null;
+  const remainingDays = remaining != null ? remaining * 5 : null;
 
+  // Use flex layout for clean spacing — no absolute positioning overlap issues
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm flex items-center gap-2">
-          <Clock className="h-4 w-4" />
-          Lifecycle
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {/* Timeline bar */}
-        <div className="relative h-2 bg-muted rounded-full overflow-hidden mb-6">
-          {/* Progress fill */}
-          {isOpen && expirationEpoch ? (
-            <div
-              className="absolute h-full bg-primary/30 rounded-full"
-              style={{
-                left: '0%',
-                width: `${Math.min(((currentEpoch - minEpoch) / range) * 100, 100)}%`,
-              }}
-            />
-          ) : (
-            <div className="absolute h-full bg-primary/30 rounded-full w-full" />
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            Lifecycle
+          </CardTitle>
+          {remainingDays != null && remaining != null && remaining > 0 && (
+            <span
+              className={cn(
+                'text-xs font-medium',
+                remaining <= 2 ? 'text-red-500 dark:text-red-400' : 'text-muted-foreground',
+              )}
+            >
+              ~{remainingDays} days left
+            </span>
           )}
         </div>
-
-        {/* Event dots + labels — alternate above/below for dense timelines */}
-        <div className="relative" style={{ height: '5rem' }}>
-          {events.map((event, idx) => {
-            const pct = ((event.epoch - minEpoch) / range) * 100;
+      </CardHeader>
+      <CardContent>
+        {/* Flex-based timeline — evenly spaced events with connected segments */}
+        <div className="flex items-start">
+          {merged.map((event, idx) => {
             const Icon = event.icon;
-            const isBelow = idx % 2 === 0;
+            const isLast = idx === merged.length - 1;
+
+            // Progress fill: past segments are filled, current-to-future is partial
+            const segmentFilled =
+              idx < merged.length - 1 &&
+              (merged[idx + 1].status === 'past' ||
+                (event.status === 'past' && merged[idx + 1].status === 'current'));
+
             return (
               <div
                 key={`${event.label}-${event.epoch}`}
-                className={cn(
-                  'absolute flex items-center -translate-x-1/2',
-                  isBelow ? 'flex-col top-[1.25rem]' : 'flex-col-reverse bottom-[1.25rem]',
-                )}
-                style={{ left: `${pct}%` }}
+                className="flex items-start flex-1 min-w-0"
               >
-                <div
-                  className={cn(
-                    'rounded-full p-1',
-                    event.status === 'current'
-                      ? 'bg-amber-500/20 ring-2 ring-amber-500/40'
-                      : event.status === 'future'
-                        ? 'bg-muted'
-                        : 'bg-card',
-                  )}
-                >
-                  <Icon className={cn('h-3.5 w-3.5', event.color)} />
+                {/* Event marker + label */}
+                <div className="flex flex-col items-center shrink-0">
+                  <div
+                    className={cn(
+                      'rounded-full p-1.5',
+                      event.status === 'current'
+                        ? 'bg-amber-500/20 ring-2 ring-amber-500/40'
+                        : event.status === 'future'
+                          ? 'bg-muted'
+                          : 'bg-primary/10',
+                    )}
+                  >
+                    <Icon className={cn('h-3.5 w-3.5', event.color)} />
+                  </div>
+                  <span
+                    className={cn(
+                      'text-[10px] mt-1.5 font-medium text-center leading-tight',
+                      event.status === 'future'
+                        ? 'text-muted-foreground/50'
+                        : 'text-muted-foreground',
+                    )}
+                  >
+                    {event.label}
+                  </span>
+                  <span className="text-[9px] text-muted-foreground/50 tabular-nums text-center">
+                    {formatEpochLabel(event.epoch)}
+                  </span>
                 </div>
-                <span
-                  className={cn(
-                    'text-[9px] mt-1 whitespace-nowrap font-medium tabular-nums leading-tight text-center',
-                    event.status === 'future'
-                      ? 'text-muted-foreground/50'
-                      : 'text-muted-foreground',
-                    !isBelow && 'mb-1 mt-0',
-                  )}
-                >
-                  {event.label}
-                  <br />
-                  <span className="opacity-60">{formatEpochLabel(event.epoch)}</span>
-                </span>
+
+                {/* Connector segment */}
+                {!isLast && (
+                  <div className="flex-1 flex items-center px-1 pt-[0.85rem]">
+                    <div
+                      className={cn(
+                        'h-0.5 w-full rounded-full',
+                        segmentFilled ? 'bg-primary/40' : 'bg-border',
+                      )}
+                    />
+                  </div>
+                )}
               </div>
             );
           })}

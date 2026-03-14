@@ -186,7 +186,12 @@ export function ProposalHeroV1({
 
       {/* Tri-body vote bars */}
       {triBody && (
-        <TriBodyVotePanel triBody={triBody} txHash={txHash} proposalIndex={proposalIndex} />
+        <TriBodyVotePanel
+          triBody={triBody}
+          txHash={txHash}
+          proposalIndex={proposalIndex}
+          proposalType={proposalType}
+        />
       )}
 
       {/* User's DRep vote */}
