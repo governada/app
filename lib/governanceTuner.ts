@@ -31,7 +31,11 @@ export interface TunerLevel {
 export const GOVERNANCE_DEPTHS: GovernanceDepth[] = ['hands_off', 'informed', 'engaged', 'deep'];
 
 /** Most critical "something is wrong" alerts — delegation health, governance crisis. */
-const HANDS_OFF_EVENTS: string[] = ['drep-inactive', 'treasury-health-alert'];
+const HANDS_OFF_EVENTS: string[] = [
+  'drep-inactive',
+  'treasury-health-alert',
+  'epoch-summary-light',
+];
 
 /** Major governance updates — new proposals, DRep score changes, epoch summaries. */
 const INFORMED_EVENTS: string[] = [
