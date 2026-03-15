@@ -156,14 +156,14 @@ const HEALTH_CONFIG = {
     communityIntel: 'none' as const,
   },
   informed: {
-    showTabs: false,
-    availableTabs: [] as readonly string[],
+    showTabs: true,
+    availableTabs: ['now'] as readonly string[],
     showActivityTicker: false,
     showTrends: false,
     showObservatory: false,
     alertLevel: 'critical' as const,
     showGHIExplorerTrends: false,
-    communityIntel: 'none' as const,
+    communityIntel: 'temperature' as const,
   },
   engaged: {
     showTabs: true,

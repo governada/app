@@ -40,6 +40,7 @@ import { ConvictionTugOfWar } from '@/components/governada/proposals/ConvictionT
 import { InlineActionNudge } from '@/components/governada/proposals/InlineActionNudge';
 import { LivingBrief } from '@/components/governada/proposals/LivingBrief';
 import { SourceMaterial } from '@/components/governada/proposals/SourceMaterial';
+import { YourRepresentativeCard } from '@/components/governada/proposals/YourRepresentativeCard';
 // VoteProgress is now integrated into ConvictionTugOfWar
 
 export const dynamic = 'force-dynamic';
@@ -271,6 +272,9 @@ export default async function ProposalDetailPage({ params }: PageProps) {
         </p>
       )}
 
+      {/* Your Representative — shows citizen's DRep and their vote */}
+      <YourRepresentativeCard txHash={txHash} proposalIndex={proposalIndex} />
+
       {/* Zone 2: Force Balance + Vote Progress (unified) */}
       {pulseData && pulseData.totalVoters > 0 && (
         <ConvictionTugOfWar
@@ -417,6 +421,9 @@ export default async function ProposalDetailPage({ params }: PageProps) {
         abstainCount={proposal.abstainCount}
         totalVotes={proposal.totalVotes}
       />
+
+      {/* Your Representative — shows citizen's DRep and their vote */}
+      <YourRepresentativeCard txHash={txHash} proposalIndex={proposalIndex} />
 
       {/* Zone 2: Primary Action — persona-branching (DRep/SPO vote flow vs citizen engagement) */}
       <ProposalDepthSection section="actionZone">
