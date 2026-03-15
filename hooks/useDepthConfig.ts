@@ -144,15 +144,29 @@ const GOVERNANCE_CONFIG = {
   },
 } as const satisfies Record<GovernanceDepth, object>;
 
-const BRIEFING_CONFIG = {
+interface BriefingConfig {
+  headlineLimit: number;
+  showNarrative: boolean;
+  showVoice: boolean;
+  showLookingAhead: boolean;
+  showEngagement: boolean;
+  treasuryDetail: 'balance_only' | 'balance_runway' | 'full';
+  drepDetail: 'score_verdict' | 'score_verdict_change' | 'full';
+  /** Show epoch-over-epoch comparison panel (deep only) */
+  showEpochComparison?: boolean;
+  /** Surface raw vote breakdowns per proposal (deep only) */
+  showVoteBreakdown?: boolean;
+}
+
+const BRIEFING_CONFIG: Record<GovernanceDepth, BriefingConfig> = {
   hands_off: {
     headlineLimit: 2,
     showNarrative: false,
     showVoice: false,
     showLookingAhead: false,
     showEngagement: false,
-    treasuryDetail: 'balance_only' as const,
-    drepDetail: 'score_verdict' as const,
+    treasuryDetail: 'balance_only',
+    drepDetail: 'score_verdict',
   },
   informed: {
     headlineLimit: 3,
@@ -160,8 +174,8 @@ const BRIEFING_CONFIG = {
     showVoice: false,
     showLookingAhead: false,
     showEngagement: false,
-    treasuryDetail: 'balance_runway' as const,
-    drepDetail: 'score_verdict_change' as const,
+    treasuryDetail: 'balance_runway',
+    drepDetail: 'score_verdict_change',
   },
   engaged: {
     headlineLimit: 4,
@@ -169,19 +183,21 @@ const BRIEFING_CONFIG = {
     showVoice: true,
     showLookingAhead: true,
     showEngagement: true,
-    treasuryDetail: 'full' as const,
-    drepDetail: 'full' as const,
+    treasuryDetail: 'full',
+    drepDetail: 'full',
   },
   deep: {
-    headlineLimit: 4,
+    headlineLimit: 6,
     showNarrative: true,
     showVoice: true,
     showLookingAhead: true,
     showEngagement: true,
-    treasuryDetail: 'full' as const,
-    drepDetail: 'full' as const,
+    treasuryDetail: 'full',
+    drepDetail: 'full',
+    showEpochComparison: true,
+    showVoteBreakdown: true,
   },
-} as const satisfies Record<GovernanceDepth, object>;
+};
 
 const HEALTH_CONFIG = {
   hands_off: {
