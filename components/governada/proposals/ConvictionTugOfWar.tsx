@@ -5,6 +5,7 @@ import type { ConvictionPulseData } from '@/lib/convictionPulse';
 import type { VotePowerByEpoch } from '@/lib/data';
 import type { VoteProjection } from '@/lib/voteProjection';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useDepthConfig } from '@/hooks/useDepthConfig';
 import { cn } from '@/lib/utils';
 
 interface PowerFallback {
@@ -75,6 +76,29 @@ function formatAdaShort(ada: number): string {
   return ada.toFixed(0);
 }
 
+/** Map proposalSections to depth 0-3 */
+function getDepth(sections: Record<string, boolean>): 0 | 1 | 2 | 3 {
+  if (sections.sourceMaterial) return 3;
+  if (sections.outcomeSection) return 2;
+  if (sections.actionZone) return 1;
+  return 0;
+}
+
+function getVerdictColor(projection: VoteProjection | null | undefined): string {
+  if (!projection) return 'text-muted-foreground';
+  switch (projection.projectedOutcome) {
+    case 'passing':
+    case 'likely_pass':
+    case 'leaning_pass':
+      return 'text-emerald-400';
+    case 'unlikely_pass':
+    case 'leaning_fail':
+      return 'text-red-400';
+    default:
+      return 'text-foreground/70';
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -88,8 +112,10 @@ export function ConvictionTugOfWar({
   className,
 }: ConvictionTugOfWarProps) {
   const cssId = useId().replace(/:/g, '');
+  const { proposalSections } = useDepthConfig<'governance'>('governance');
+  const depth = getDepth(proposalSections);
 
-  // Aggregate vote power — prefer per-epoch data, fall back to canonical summary
+  // Aggregate vote power
   const totals = useMemo(() => {
     let yes = powerByEpoch.reduce((s, p) => s + p.yesPower, 0);
     let no = powerByEpoch.reduce((s, p) => s + p.noPower, 0);
@@ -125,6 +151,9 @@ export function ConvictionTugOfWar({
 
   const balancePoint = totals.yes + totals.no > 0 ? totals.no / (totals.yes + totals.no) : 0.5;
   const glowIntensity = Math.max(0.3, data.conviction / 100);
+  const hasPower = totals.total > 0;
+  const yesWinning = totals.yes > totals.no;
+  const verdictColor = getVerdictColor(projection);
 
   // Animation
   const [progress, setProgress] = useState(0);
@@ -156,30 +185,89 @@ export function ConvictionTugOfWar({
   }, []);
 
   const svgWidth = 600;
-  const svgHeight = 48;
-  const beamY = 8;
-  const beamHeight = 24;
+  const svgHeight = depth === 0 ? 36 : 48;
+  const beamY = depth === 0 ? 4 : 8;
+  const beamHeight = depth === 0 ? 20 : 24;
   const clashX = balancePoint * svgWidth;
   const noWidth = clashX * progress;
   const yesWidth = (svgWidth - clashX) * progress;
-  const hasPower = totals.total > 0;
-  const yesWinning = totals.yes > totals.no;
 
-  // Verdict color for the integrated projection section
-  const verdictColor = projection
-    ? projection.projectedOutcome === 'passing' ||
-      projection.projectedOutcome === 'likely_pass' ||
-      projection.projectedOutcome === 'leaning_pass'
-      ? 'text-emerald-400'
-      : projection.projectedOutcome === 'unlikely_pass' ||
-          projection.projectedOutcome === 'leaning_fail'
-        ? 'text-red-400'
-        : 'text-muted-foreground'
-    : 'text-muted-foreground';
+  // ─── hands_off: compact verdict + beam only ───────────────────────
+  if (depth === 0) {
+    return (
+      <div className={cn('rounded-xl border border-border/50 bg-card/50 px-5 py-3', className)}>
+        {/* Verdict + beam in one tight row */}
+        <div className="flex items-center gap-3 mb-2">
+          {projection && (
+            <span className={cn('text-sm font-semibold shrink-0', verdictColor)}>
+              {projection.verdictLabel}
+            </span>
+          )}
+          {!projection && hasPower && (
+            <span
+              className={cn(
+                'text-sm font-semibold shrink-0',
+                yesWinning ? 'text-emerald-400' : 'text-red-400',
+              )}
+            >
+              {yesWinning ? 'Yes leads' : 'No leads'}
+            </span>
+          )}
+          <span className="text-xs text-muted-foreground">
+            {Math.round(totals.noPct)}% No — {Math.round(totals.yesPct)}% Yes
+          </span>
+        </div>
+        {hasPower && (
+          <svg
+            viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+            className="w-full"
+            style={{ height: '28px' }}
+          >
+            <defs>
+              <linearGradient id={`no-g-${cssId}`} x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="#ef4444" stopOpacity={0.8} />
+                <stop offset="100%" stopColor="#ef4444" stopOpacity={0.4} />
+              </linearGradient>
+              <linearGradient id={`yes-g-${cssId}`} x1="1" y1="0" x2="0" y2="0">
+                <stop offset="0%" stopColor="#10b981" stopOpacity={0.8} />
+                <stop offset="100%" stopColor="#10b981" stopOpacity={0.4} />
+              </linearGradient>
+            </defs>
+            <rect
+              x="0"
+              y={beamY}
+              width={svgWidth}
+              height={beamHeight}
+              rx={beamHeight / 2}
+              fill="currentColor"
+              fillOpacity={0.06}
+            />
+            <rect
+              x={clashX - noWidth}
+              y={beamY}
+              width={noWidth}
+              height={beamHeight}
+              rx={noWidth > beamHeight ? beamHeight / 2 : noWidth / 2}
+              fill={`url(#no-g-${cssId})`}
+            />
+            <rect
+              x={clashX}
+              y={beamY}
+              width={yesWidth}
+              height={beamHeight}
+              rx={yesWidth > beamHeight ? beamHeight / 2 : yesWidth / 2}
+              fill={`url(#yes-g-${cssId})`}
+            />
+          </svg>
+        )}
+      </div>
+    );
+  }
 
+  // ─── informed+: full card with depth-adaptive sections ────────────
   return (
     <div className={cn('rounded-xl border border-border/50 bg-card/50 overflow-hidden', className)}>
-      {/* Metrics row */}
+      {/* Metrics row — informed+ shows conviction/polarization */}
       <div className="px-5 pt-4 pb-2 flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-5">
           <MetricDisplay
@@ -193,9 +281,10 @@ export function ConvictionTugOfWar({
             tooltip="How divided the community is on this proposal (0-100). Low = broad consensus, High = sharp disagreement. Based on the distribution of voting power across Yes, No, and Abstain."
           />
         </div>
+        {/* informed: voter count only. engaged+: + ADA */}
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <span>{data.totalVoters} voters</span>
-          {totals.totalAda > 0 && (
+          {depth >= 2 && totals.totalAda > 0 && (
             <>
               <span className="text-border">|</span>
               <span>{formatAdaShort(totals.totalAda)} ADA</span>
@@ -208,7 +297,7 @@ export function ConvictionTugOfWar({
       <div className="px-5 pb-2">
         {hasPower ? (
           <>
-            {/* Side labels */}
+            {/* Side labels — informed+ shows voter counts */}
             <div className="flex items-end justify-between mb-2">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold text-red-400">No</span>
@@ -254,7 +343,6 @@ export function ConvictionTugOfWar({
                 </filter>
               </defs>
 
-              {/* Background track */}
               <rect
                 x="0"
                 y={beamY}
@@ -265,7 +353,7 @@ export function ConvictionTugOfWar({
                 fillOpacity={0.06}
               />
 
-              {/* No glow */}
+              {/* No glow + beam */}
               <rect
                 x={clashX - noWidth}
                 y={beamY}
@@ -276,7 +364,6 @@ export function ConvictionTugOfWar({
                 opacity={0.15 * glowIntensity}
                 filter={`url(#glow-${cssId})`}
               />
-              {/* No beam */}
               <rect
                 x={clashX - noWidth}
                 y={beamY}
@@ -286,7 +373,7 @@ export function ConvictionTugOfWar({
                 fill={`url(#no-g-${cssId})`}
               />
 
-              {/* Yes glow */}
+              {/* Yes glow + beam */}
               <rect
                 x={clashX}
                 y={beamY}
@@ -297,7 +384,6 @@ export function ConvictionTugOfWar({
                 opacity={0.15 * glowIntensity}
                 filter={`url(#glow-${cssId})`}
               />
-              {/* Yes beam */}
               <rect
                 x={clashX}
                 y={beamY}
@@ -328,10 +414,32 @@ export function ConvictionTugOfWar({
                 </>
               )}
 
-              {/* ADA labels */}
-              <text x={8} y={svgHeight - 1} className="fill-red-400" fontSize="10" fontWeight="600">
-                {formatAdaFromLovelace(totals.no)} ADA
-              </text>
+              {/* ADA labels — engaged+ only */}
+              {depth >= 2 && (
+                <>
+                  <text
+                    x={8}
+                    y={svgHeight - 1}
+                    className="fill-red-400"
+                    fontSize="10"
+                    fontWeight="600"
+                  >
+                    {formatAdaFromLovelace(totals.no)} ADA
+                  </text>
+                  <text
+                    x={svgWidth - 8}
+                    y={svgHeight - 1}
+                    textAnchor="end"
+                    className="fill-emerald-400"
+                    fontSize="10"
+                    fontWeight="600"
+                  >
+                    {formatAdaFromLovelace(totals.yes)} ADA
+                  </text>
+                </>
+              )}
+
+              {/* Center percentage — always visible */}
               <text
                 x={svgWidth / 2}
                 y={svgHeight - 1}
@@ -340,16 +448,6 @@ export function ConvictionTugOfWar({
                 fontSize="10"
               >
                 {Math.round(totals.noPct)}% — {Math.round(totals.yesPct)}%
-              </text>
-              <text
-                x={svgWidth - 8}
-                y={svgHeight - 1}
-                textAnchor="end"
-                className="fill-emerald-400"
-                fontSize="10"
-                fontWeight="600"
-              >
-                {formatAdaFromLovelace(totals.yes)} ADA
               </text>
             </svg>
           </>
@@ -360,9 +458,9 @@ export function ConvictionTugOfWar({
         )}
       </div>
 
-      {/* Integrated vote progress — threshold + projection in same card */}
+      {/* Threshold progress — informed+ */}
       {projection && projection.thresholdPct != null && (
-        <div className="px-5 pb-4 pt-2 border-t border-border/20">
+        <div className="px-5 pb-3 pt-2 border-t border-border/20">
           <div className="flex items-center justify-between mb-1.5">
             <span className={cn('text-sm font-semibold', verdictColor)}>
               {projection.verdictLabel}
@@ -375,14 +473,12 @@ export function ConvictionTugOfWar({
             )}
           </div>
 
-          {/* Threshold progress bar */}
+          {/* Threshold bar */}
           <div className="relative h-2.5 rounded-full bg-muted/40 overflow-visible mb-2">
-            {/* Yes power fill */}
             <div
               className="absolute inset-y-0 left-0 rounded-full bg-emerald-500 transition-all duration-500"
               style={{ width: `${Math.min(100, projection.currentYesPct)}%` }}
             />
-            {/* Threshold marker */}
             <div
               className="absolute top-[-4px] bottom-[-4px] w-0.5 bg-foreground/50"
               style={{ left: `${Math.min(100, projection.thresholdPct)}%` }}
@@ -393,41 +489,27 @@ export function ConvictionTugOfWar({
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-foreground/70">
-              {projection.currentYesPct.toFixed(1)}% of active stake voting Yes
-              {projection.yesOfVotersPct != null && projection.participationPct < 50 && (
-                <span className="text-muted-foreground ml-1">
-                  ({Math.round(projection.yesOfVotersPct)}% of voters)
-                </span>
-              )}
-            </span>
-          </div>
+          {/* informed: just the key number */}
+          <span className="text-xs text-foreground/70">
+            {projection.currentYesPct.toFixed(1)}% of active stake voting Yes
+            {projection.yesOfVotersPct != null && projection.participationPct < 50 && (
+              <span className="text-muted-foreground ml-1">
+                ({Math.round(projection.yesOfVotersPct)}% of voters)
+              </span>
+            )}
+          </span>
 
-          {/* Verdict detail */}
-          <p className="text-xs text-muted-foreground mt-1.5">{projection.verdictDetail}</p>
-          {projection.historicalEvidence && (
-            <p className="text-xs text-muted-foreground mt-0.5">{projection.historicalEvidence}</p>
+          {/* engaged+: verdict detail + historical evidence */}
+          {depth >= 2 && (
+            <div className="mt-1.5 space-y-0.5">
+              <p className="text-xs text-muted-foreground">{projection.verdictDetail}</p>
+              {projection.historicalEvidence && (
+                <p className="text-xs text-muted-foreground">{projection.historicalEvidence}</p>
+              )}
+            </div>
           )}
         </div>
       )}
-
-      {/* Label */}
-      <div className="px-5 pb-3 flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">{data.label}</span>
-        {hasPower && (
-          <span className="text-xs text-muted-foreground">
-            {yesWinning ? (
-              <span className="text-emerald-400 font-medium">Yes leads</span>
-            ) : totals.yes === totals.no ? (
-              <span className="text-amber-400 font-medium">Tied</span>
-            ) : (
-              <span className="text-red-400 font-medium">No leads</span>
-            )}{' '}
-            by voting power
-          </span>
-        )}
-      </div>
     </div>
   );
 }

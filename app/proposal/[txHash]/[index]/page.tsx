@@ -254,9 +254,10 @@ export default async function ProposalDetailPage({ params }: PageProps) {
       />
 
       {/* 1-line summary — answers "what is this?" above the fold */}
-      {proposal.aiSummary && (
+      {/* 1-line summary — answers "what is this?" above the fold */}
+      {(proposal.aiSummary || proposal.abstract) && (
         <p className="text-sm text-foreground/70 leading-relaxed line-clamp-2 -mt-2">
-          {proposal.aiSummary}
+          {proposal.aiSummary || proposal.abstract}
         </p>
       )}
 
