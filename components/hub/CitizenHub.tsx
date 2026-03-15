@@ -632,15 +632,38 @@ function ProposalHeadlines() {
         Governance activity
       </h2>
       <div className="space-y-1.5">
-        {proposals.map((p) => (
-          <Link
-            key={`${p.txHash}:${p.index}`}
-            href={`/proposal/${p.txHash}/${p.index}`}
-            className="block text-sm text-foreground/80 hover:text-primary transition-colors line-clamp-1"
-          >
-            {p.title ?? 'Untitled Proposal'}
-          </Link>
-        ))}
+        {proposals.map((p) => {
+          const outcome = p.outcome ? OUTCOME_CONFIG[p.outcome] : null;
+          const OutcomeIcon = outcome?.icon ?? null;
+          const voteInfo = p.drepVote ? VOTE_LABELS[p.drepVote] : null;
+
+          return (
+            <Link
+              key={`${p.txHash}:${p.index}`}
+              href={`/proposal/${p.txHash}/${p.index}`}
+              className="flex items-center gap-1.5 text-sm text-foreground/80 hover:text-primary transition-colors"
+            >
+              {outcome && OutcomeIcon && (
+                <span
+                  className={cn(
+                    'inline-flex items-center gap-0.5 shrink-0 rounded-full border px-1.5 py-0 text-[9px] font-semibold uppercase tracking-wider',
+                    outcome.bg,
+                    outcome.color,
+                  )}
+                >
+                  <OutcomeIcon className="h-2.5 w-2.5" />
+                  {outcome.label}
+                </span>
+              )}
+              <span className="truncate">{p.title ?? 'Untitled Proposal'}</span>
+              {voteInfo && (
+                <span className={cn('shrink-0 text-[10px] font-medium', voteInfo.color)}>
+                  — DRep: {p.drepVote}
+                </span>
+              )}
+            </Link>
+          );
+        })}
       </div>
       <Link
         href="/governance/proposals"
