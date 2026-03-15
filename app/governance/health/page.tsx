@@ -63,7 +63,7 @@ export default function HealthPage() {
         </Suspense>
 
         {/* Community Intelligence — feature-flagged + depth-gated */}
-        <DepthGate minDepth="engaged">
+        <DepthGate minDepth="informed">
           <FeatureGate flag="governance_temperature">
             <GovernanceTemperature />
           </FeatureGate>

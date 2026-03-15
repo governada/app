@@ -355,6 +355,16 @@ export const EVENT_REGISTRY: EventDefinition[] = [
     defaultChannels: ['email', 'push'],
     channels: ['email', 'push', 'telegram'],
   },
+  {
+    key: 'epoch-summary-light',
+    category: 'digest',
+    audience: 'all',
+    urgency: 'scheduled',
+    label: 'Epoch Summary (Light)',
+    description: 'Brief epoch status with key stats — one sentence, no action required',
+    defaultChannels: ['push'],
+    channels: ['push', 'email'],
+  },
 
   // ── Tier Notifications (Phase A) ────────────────────────────────────────────
   {
