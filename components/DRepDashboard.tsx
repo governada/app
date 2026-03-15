@@ -30,6 +30,8 @@ import {
 } from '@/utils/recommendations';
 import { getStoredSession } from '@/lib/supabaseAuth';
 import { VoteExplanationEditor } from '@/components/VoteExplanationEditor';
+import { CitizenViewPanel } from '@/components/governada/profiles/CitizenViewPanel';
+import { type TrustSignal } from '@/components/governada/profiles/TrustSignals';
 
 interface DRepDashboardProps {
   drep: {
@@ -46,6 +48,12 @@ interface DRepDashboardProps {
   };
   scoreHistory: ScoreSnapshot[];
   isSimulated?: boolean;
+  /** Trust signals computed from DRep data — when provided, shows the "How Citizens See You" panel */
+  trustSignals?: TrustSignal[];
+  /** Tier label (e.g. "Gold", "Silver") */
+  tier?: string;
+  /** Current delegator count */
+  delegatorCount?: number;
 }
 
 const PRIORITY_CONFIG = {
@@ -68,7 +76,14 @@ const IMPORTANCE_BADGE: Record<string, string> = {
   TreasuryWithdrawals: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
 };
 
-export function DRepDashboard({ drep, scoreHistory, isSimulated }: DRepDashboardProps) {
+export function DRepDashboard({
+  drep,
+  scoreHistory,
+  isSimulated,
+  trustSignals,
+  tier,
+  delegatorCount,
+}: DRepDashboardProps) {
   const [claimed, setClaimed] = useState(false);
   const [explanations, setExplanations] = useState<Record<string, string>>({});
   const recommendations = generateRecommendations(drep);
@@ -157,6 +172,18 @@ export function DRepDashboard({ drep, scoreHistory, isSimulated }: DRepDashboard
         <CardDescription>Personalized insights to help you improve your DRep Score</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* How Citizens See You — citizen perspective insight panel */}
+        {trustSignals && trustSignals.length > 0 && tier && (
+          <CitizenViewPanel
+            drepId={drep.drepId}
+            trustSignals={trustSignals}
+            tier={tier}
+            delegatorCount={delegatorCount ?? 0}
+            participationRate={drep.effectiveParticipation}
+            rationaleRate={drep.rationaleRate}
+          />
+        )}
+
         {/* Recommendations */}
         {recommendations.length > 0 && (
           <div className="space-y-3">
