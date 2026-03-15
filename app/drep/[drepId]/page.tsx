@@ -118,7 +118,7 @@ import { createClient } from '@/lib/supabase';
 import { BASE_URL } from '@/lib/constants';
 import { Suspense } from 'react';
 import { SegmentGate } from '@/components/shared/SegmentGate';
-import { computeTrustSignals } from '@/components/governada/profiles/TrustSignals';
+import { computeTrustSignals } from '@/lib/trustSignals';
 import { DRepProfileClient } from '@/components/governada/profiles/DRepProfileClient';
 import { ActivityHeatmap } from '@/components/ActivityHeatmap';
 import { getDRepTreasuryTrackRecord } from '@/lib/treasury';
