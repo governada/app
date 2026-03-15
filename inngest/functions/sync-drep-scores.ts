@@ -62,26 +62,26 @@ export const syncDrepScores = inngest.createFunction(
         // drep_votes (15K+ rows) was silently truncated by .range(0, 99999),
         // causing 384+ DReps to get 0 scores despite having votes.
         const [drepRows, voteRows, proposalRows, summaryRows] = await Promise.all([
-          fetchAll(
+          fetchAll(() =>
             supabase
               .from('dreps')
               .select('id, info, metadata, metadata_hash_verified, anchor_hash'),
           ),
-          fetchAll(
+          fetchAll(() =>
             supabase
               .from('drep_votes')
               .select(
                 'drep_id, proposal_tx_hash, proposal_index, vote, block_time, epoch_no, rationale_quality',
               ),
           ),
-          fetchAll(
+          fetchAll(() =>
             supabase
               .from('proposals')
               .select(
                 'tx_hash, proposal_index, proposal_type, treasury_tier, withdrawal_amount, block_time, proposed_epoch, expired_epoch, ratified_epoch, dropped_epoch',
               ),
           ),
-          fetchAll(
+          fetchAll(() =>
             supabase
               .from('proposal_voting_summary')
               .select(
@@ -272,12 +272,13 @@ export const syncDrepScores = inngest.createFunction(
         const s4 = Date.now();
         const drepIds = [...drepVotes.keys()];
 
-        const historyRows = await fetchAll(
+        const cutoffDate = new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10);
+        const historyRows = await fetchAll(() =>
           supabase
             .from('drep_score_history')
             .select('drep_id, snapshot_date, score')
             .in('drep_id', drepIds)
-            .gte('snapshot_date', new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10))
+            .gte('snapshot_date', cutoffDate)
             .order('snapshot_date', { ascending: true }),
         );
 
@@ -308,7 +309,7 @@ export const syncDrepScores = inngest.createFunction(
 
         // Load existing tiers BEFORE writing new scores so we can detect changes
         const drepIdList = [...finalScores.keys()];
-        const priorDreps = await fetchAll(
+        const priorDreps = await fetchAll(() =>
           supabase.from('dreps').select('id, score, current_tier').in('id', drepIdList),
         );
 

@@ -134,20 +134,20 @@ export const syncSpoScores = inngest.createFunction(
 
       // Use fetchAll to paginate past PostgREST row limits
       const [voteRows, proposalRows, classificationRows, poolRows] = await Promise.all([
-        fetchAll(
+        fetchAll(() =>
           supabase
             .from('spo_votes')
             .select('pool_id, proposal_tx_hash, proposal_index, vote, block_time, epoch'),
         ),
-        fetchAll(
+        fetchAll(() =>
           supabase
             .from('proposals')
             .select(
               'tx_hash, proposal_index, proposal_type, treasury_tier, withdrawal_amount, block_time, proposed_epoch, expired_epoch, ratified_epoch, dropped_epoch',
             ),
         ),
-        fetchAll(supabase.from('proposal_classifications').select('*')),
-        fetchAll(
+        fetchAll(() => supabase.from('proposal_classifications').select('*')),
+        fetchAll(() =>
           supabase
             .from('pools')
             .select(
