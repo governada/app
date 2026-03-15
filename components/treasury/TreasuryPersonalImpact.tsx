@@ -1,10 +1,14 @@
 'use client';
 
+import { Wallet } from 'lucide-react';
 import { formatAda } from '@/lib/treasury';
 import { useSegment } from '@/components/providers/SegmentProvider';
 import { useWallet } from '@/utils/wallet';
 import { useTreasuryPending } from '@/hooks/queries';
 import { useDRepTreasuryRecord } from '@/hooks/useDRepTreasuryRecord';
+
+/** Approximate circulating ADA supply (~37B). Updated periodically by sync. */
+const CIRCULATING_SUPPLY_ADA = 37_000_000_000;
 
 interface TreasuryPersonalImpactProps {
   balanceAda: number;
@@ -14,12 +18,13 @@ interface TreasuryPersonalImpactProps {
 }
 
 export function TreasuryPersonalImpact({
+  balanceAda: treasuryBalanceAda,
   nclRemainingAda,
   nclAda,
   nclUtilizationPct,
 }: TreasuryPersonalImpactProps) {
   const { segment, drepId } = useSegment();
-  const { delegatedDrepId } = useWallet();
+  const { delegatedDrepId, balanceAda: walletBalanceAda } = useWallet();
 
   // DReps see their own record; citizens see their delegated DRep's record
   const effectiveDrepId = segment === 'drep' ? drepId : delegatedDrepId;
@@ -40,7 +45,13 @@ export function TreasuryPersonalImpact({
       ? Math.round(((nclAda - nclRemainingAda + pendingTotalAda) / nclAda) * 100)
       : null;
 
-  if (!hasDRepData && pendingTotalAda === 0) return null;
+  // Proportional share: (userAda / circulatingSupply) * treasuryBalance
+  const proportionalShare =
+    walletBalanceAda && walletBalanceAda > 0 && treasuryBalanceAda > 0
+      ? (walletBalanceAda / CIRCULATING_SUPPLY_ADA) * treasuryBalanceAda
+      : null;
+
+  if (!hasDRepData && pendingTotalAda === 0 && proportionalShare === null) return null;
 
   const label = isCitizen ? "Your DRep's" : 'Your';
 
@@ -51,6 +62,22 @@ export function TreasuryPersonalImpact({
       </h3>
 
       <div className="space-y-3">
+        {/* Proportional treasury share */}
+        {proportionalShare !== null && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Wallet className="h-3.5 w-3.5 shrink-0" />
+            <span>
+              Your proportional share of the treasury:{' '}
+              <span className="font-semibold text-foreground">
+                ₳
+                {new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(
+                  proportionalShare,
+                )}
+              </span>
+            </span>
+          </div>
+        )}
+
         {/* DRep voting record summary */}
         {hasDRepData && record && (
           <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
