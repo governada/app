@@ -196,11 +196,18 @@ export function VoteProgress({ projection, isOpen }: VoteProgressProps) {
 
           {/* Numbers below bar */}
           <div className="flex items-center justify-between mt-2">
-            <span className="text-xs text-foreground/70">
-              {projection.currentYesPct.toFixed(1)}% voting Yes
-            </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-foreground/70">
+                {projection.currentYesPct.toFixed(1)}% of active stake voting Yes
+              </span>
+              {projection.yesOfVotersPct != null && projection.participationPct < 50 && (
+                <span className="text-xs text-muted-foreground">
+                  ({Math.round(projection.yesOfVotersPct)}% of voters)
+                </span>
+              )}
+            </div>
             {showProjectedFill && (
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-muted-foreground shrink-0">
                 Projected: ~{Math.round(projectedPct)}%
                 {projectedPct >= projection.thresholdPct ? ' (passes)' : ''}
               </span>
