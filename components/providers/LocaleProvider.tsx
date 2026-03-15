@@ -6,6 +6,7 @@ import {
   DEFAULT_LOCALE,
   LOCALE_COOKIE,
   LOCALE_COOKIE_MAX_AGE,
+  RTL_LOCALES,
   isValidLocale,
 } from '@/lib/i18n/config';
 
@@ -30,6 +31,12 @@ function setCookie(name: string, value: string, maxAge: number) {
   document.cookie = `${name}=${encodeURIComponent(value)};path=/;max-age=${maxAge};samesite=lax`;
 }
 
+/** Sync lang and dir attributes on the <html> element */
+function syncHtmlAttributes(locale: SupportedLocale) {
+  document.documentElement.lang = locale;
+  document.documentElement.dir = RTL_LOCALES.has(locale) ? 'rtl' : 'ltr';
+}
+
 export function LocaleProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<SupportedLocale>(DEFAULT_LOCALE);
 
@@ -38,14 +45,14 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     const cookieVal = getCookie(LOCALE_COOKIE);
     if (cookieVal && isValidLocale(cookieVal)) {
       setLocaleState(cookieVal);
-      document.documentElement.lang = cookieVal;
+      syncHtmlAttributes(cookieVal);
     }
   }, []);
 
   const setLocale = useCallback((newLocale: SupportedLocale) => {
     setLocaleState(newLocale);
     setCookie(LOCALE_COOKIE, newLocale, LOCALE_COOKIE_MAX_AGE);
-    document.documentElement.lang = newLocale;
+    syncHtmlAttributes(newLocale);
   }, []);
 
   return <LocaleContext.Provider value={{ locale, setLocale }}>{children}</LocaleContext.Provider>;

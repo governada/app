@@ -23,6 +23,7 @@ interface GovernadaSidebarProps {
 
 export function GovernadaSidebar({ collapsed, onToggle }: GovernadaSidebarProps) {
   const pathname = usePathname();
+  const { t } = useTranslation();
   const { segment, stakeAddress, drepId, poolId } = useSegment();
   const { depth } = useGovernanceDepth();
   const unreadCount = useUnreadNotifications(stakeAddress ?? null);
@@ -61,7 +62,7 @@ export function GovernadaSidebar({ collapsed, onToggle }: GovernadaSidebarProps)
           collapsed && 'justify-center px-0',
         )}
         aria-current={active ? 'page' : undefined}
-        title={collapsed ? item.label : undefined}
+        title={collapsed ? t(item.label) : undefined}
       >
         {active && (
           <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full bg-primary" />
@@ -74,7 +75,7 @@ export function GovernadaSidebar({ collapsed, onToggle }: GovernadaSidebarProps)
             </span>
           )}
         </span>
-        {!collapsed && <span className="truncate">{item.label}</span>}
+        {!collapsed && <span className="truncate">{t(item.label)}</span>}
       </Link>
     );
   };
@@ -132,7 +133,7 @@ export function GovernadaSidebar({ collapsed, onToggle }: GovernadaSidebarProps)
                 {/* Section label (not clickable) */}
                 {!collapsed && (
                   <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-                    {section.label}
+                    {t(section.label)}
                   </div>
                 )}
                 {collapsed && (
@@ -155,13 +156,13 @@ export function GovernadaSidebar({ collapsed, onToggle }: GovernadaSidebarProps)
                   collapsed && 'justify-center px-0',
                 )}
                 aria-current={isSectionActive(section) ? 'page' : undefined}
-                title={collapsed ? section.label : undefined}
+                title={collapsed ? t(section.label) : undefined}
               >
                 {isSectionActive(section) && (
                   <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full bg-primary" />
                 )}
                 <section.icon className="h-4 w-4 shrink-0" />
-                {!collapsed && <span>{section.label}</span>}
+                {!collapsed && <span>{t(section.label)}</span>}
               </Link>
             )}
           </div>
@@ -182,7 +183,7 @@ export function GovernadaSidebar({ collapsed, onToggle }: GovernadaSidebarProps)
           ) : (
             <>
               <PanelLeftClose className="h-4 w-4 mr-2" />
-              <span className="text-xs text-muted-foreground">Collapse</span>
+              <span className="text-xs text-muted-foreground">{t('Collapse')}</span>
             </>
           )}
         </Button>
