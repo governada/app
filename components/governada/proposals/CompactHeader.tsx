@@ -96,8 +96,11 @@ export function CompactHeader({
           )}
 
           {withdrawalAmount != null && withdrawalAmount > 0 && (
-            <Badge variant="outline" className="text-[10px] tabular-nums font-medium">
-              &#x20B3; {formatTreasuryCompact(withdrawalAmount)}
+            <Badge
+              variant="outline"
+              className="text-xs tabular-nums font-semibold text-amber-400 border-amber-400/30"
+            >
+              &#x20B3; {formatTreasuryCompact(withdrawalAmount / 1_000_000)} ADA
             </Badge>
           )}
 

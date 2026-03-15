@@ -38,7 +38,7 @@ import { ConvictionTugOfWar } from '@/components/governada/proposals/ConvictionT
 import { InlineActionNudge } from '@/components/governada/proposals/InlineActionNudge';
 import { LivingBrief } from '@/components/governada/proposals/LivingBrief';
 import { SourceMaterial } from '@/components/governada/proposals/SourceMaterial';
-import { VoteProgress } from '@/components/governada/proposals/VoteProgress';
+// VoteProgress is now integrated into ConvictionTugOfWar
 
 export const dynamic = 'force-dynamic';
 
@@ -253,17 +253,23 @@ export default async function ProposalDetailPage({ params }: PageProps) {
         blockTime={proposal.blockTime}
       />
 
-      {/* Zone 2: Conviction Pulse */}
+      {/* 1-line summary — answers "what is this?" above the fold */}
+      {proposal.aiSummary && (
+        <p className="text-sm text-foreground/70 leading-relaxed line-clamp-2 -mt-2">
+          {proposal.aiSummary}
+        </p>
+      )}
+
+      {/* Zone 2: Force Balance + Vote Progress (unified) */}
       {pulseData && pulseData.totalVoters > 0 && (
         <ConvictionTugOfWar
           data={pulseData}
           powerByEpoch={votePowerByEpoch}
           powerFallback={powerSummary}
+          projection={voteProjection}
+          isOpen={isOpen}
         />
       )}
-
-      {/* Zone 2.5: Vote Progress */}
-      {voteProjection && <VoteProgress projection={voteProjection} isOpen={isOpen} />}
 
       {/* Zone 3: Action Nudge */}
       <ProposalDepthSection section="actionZone">

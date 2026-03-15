@@ -285,6 +285,7 @@ export function computeVoteProjection(input: VoteProjectionInput): VoteProjectio
   const currentlyClose = Math.abs(currentYesPct - thresholdPct) < 10;
   const earlyStage = participationPct < 20;
   const veryEarlyStage = participationPct < 10;
+  const noLeadsByPower = noPower > yesPower && votedPower > 0;
 
   let projectedOutcome: ProjectedOutcome;
   let verdictLabel: string;
@@ -302,17 +303,24 @@ export function computeVoteProjection(input: VoteProjectionInput): VoteProjectio
     const margin = (currentYesPct - thresholdPct).toFixed(1);
     verdictDetail = `Currently above the ${Math.round(thresholdPct)}% threshold by ${margin} percentage points.`;
   } else if (veryEarlyStage) {
-    // < 10% participation: too early to call regardless of base rate
     projectedOutcome = 'too_close';
     verdictLabel = 'Voting underway';
     verdictDetail = `${participationPct.toFixed(0)}% of active DRep stake has voted so far — too early for a reliable projection.${voterContext}`;
+  } else if (noLeadsByPower && !earlyStage) {
+    // No currently leads by voting power — respect the actual direction
+    projectedOutcome = 'leaning_fail';
+    verdictLabel = 'No currently leads';
+    verdictDetail = `No holds more voting power than Yes.${voterContext} ${epochsRemaining != null ? `${epochsRemaining} epochs remaining for the balance to shift.` : ''}`;
+  } else if (noLeadsByPower && earlyStage) {
+    // No leads but still early
+    projectedOutcome = 'too_close';
+    verdictLabel = 'Contested — No leads early';
+    verdictDetail = `No holds an early lead by voting power, but only ${participationPct.toFixed(0)}% of active stake has voted.${voterContext}`;
   } else if (trajectoryAbove && progressRatio > 0.5) {
-    // Trajectory projects above AND already halfway there
     projectedOutcome = baseRateFavorable ? 'likely_pass' : 'leaning_pass';
     verdictLabel = baseRateFavorable ? 'Likely to pass' : 'Leaning toward passing';
     verdictDetail = `Trajectory projects ${Math.round(projectedFinalYesPct!)}% support by deadline (${Math.round(thresholdPct)}% needed).${voterContext}`;
   } else if (trajectoryAbove && earlyStage) {
-    // Trajectory projects above but still early — temper confidence
     projectedOutcome = 'leaning_pass';
     verdictLabel = 'Early momentum';
     verdictDetail = `On pace to reach ${Math.round(projectedFinalYesPct!)}% support, but only ${participationPct.toFixed(0)}% of active stake has voted.${voterContext}`;
@@ -321,12 +329,10 @@ export function computeVoteProjection(input: VoteProjectionInput): VoteProjectio
     verdictLabel = 'Too close to call';
     verdictDetail = `At ${currentYesPct.toFixed(1)}% — within striking distance of the ${Math.round(thresholdPct)}% threshold.${voterContext}`;
   } else if (progressRatio > 0.5 && baseRateFavorable) {
-    // Past halfway to threshold + favorable history
     projectedOutcome = 'leaning_pass';
     verdictLabel = 'Leaning toward passing';
     verdictDetail = `At ${currentYesPct.toFixed(1)}% of the ${Math.round(thresholdPct)}% needed, with historical patterns favoring passage.${voterContext}`;
   } else if (progressRatio < 0.3 && !earlyStage) {
-    // Less than 30% of way to threshold AND meaningful participation — trouble
     projectedOutcome = baseRateUnfavorable ? 'unlikely_pass' : 'leaning_fail';
     verdictLabel = baseRateUnfavorable ? 'Unlikely to pass' : 'Behind pace';
     verdictDetail = `At ${currentYesPct.toFixed(1)}% of the ${Math.round(thresholdPct)}% needed with ${epochsRemaining ?? '?'} epochs remaining.${voterContext}`;
