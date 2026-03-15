@@ -165,6 +165,15 @@ export function GovernadaDRepCard({
           </div>
         )}
 
+        {/* ── Limited track record warning for Emerging DReps (score < 30) ── */}
+        {score < 30 && (
+          <div className="mb-3">
+            <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400/80 bg-amber-500/10 px-1.5 py-0.5 rounded-full">
+              Limited track record
+            </span>
+          </div>
+        )}
+
         {/* ── Footer stats + CTA ──────────────────────────────────── */}
         <div className="mt-auto flex items-center justify-between pt-2 border-t border-border/30">
           <div className="flex items-center gap-2.5 text-[10px] text-muted-foreground">
