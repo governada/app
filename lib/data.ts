@@ -131,6 +131,14 @@ let lastSyncTrigger = 0;
 let lastProposalsSyncTrigger = 0;
 const SYNC_TRIGGER_COOLDOWN_MS = 10 * 60 * 1000; // 10 min debounce
 
+// In-memory cache for getAllDReps — data only changes every 6 hours (sync interval),
+// so a 5-minute TTL eliminates redundant Supabase queries for API and page requests.
+const DREPS_CACHE_TTL_MS = 5 * 60 * 1000;
+let _drepsCache: {
+  data: { dreps: EnrichedDRep[]; allDReps: EnrichedDRep[]; error: boolean; totalAvailable: number };
+  timestamp: number;
+} | null = null;
+
 /**
  * Trigger background sync without blocking.
  * In production, fires an Inngest event to retrigger the DReps sync.
@@ -173,6 +181,11 @@ export async function getAllDReps(): Promise<{
   totalAvailable: number;
 }> {
   const isDev = process.env.NODE_ENV === 'development';
+
+  // Return cached result if fresh
+  if (_drepsCache && Date.now() - _drepsCache.timestamp < DREPS_CACHE_TTL_MS) {
+    return _drepsCache.data;
+  }
 
   try {
     if (isDev) {
@@ -253,12 +266,14 @@ export async function getAllDReps(): Promise<{
       });
     }
 
-    return {
+    const result = {
       dreps: wellDocumentedDReps,
       allDReps: allDReps,
       error: false,
       totalAvailable: allDReps.length,
     };
+    _drepsCache = { data: result, timestamp: Date.now() };
+    return result;
   } catch (error: unknown) {
     logger.error('[Data] Cache read failed, falling back to Koios', {
       error: error instanceof Error ? error.message : String(error),
