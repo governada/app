@@ -2,7 +2,7 @@
 name: deploy-verifier
 description: Verify a Railway deployment is healthy after merge
 tools: Bash, Read
-model: haiku
+model: sonnet
 ---
 
 You are a deployment verification agent for Governada (governada.io). After a PR is merged to main, verify the deployment is healthy.
