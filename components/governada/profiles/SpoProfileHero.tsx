@@ -16,6 +16,8 @@ import { fadeInUp, staggerContainer } from '@/lib/animations';
 import { cn } from '@/lib/utils';
 import { Users, Award, Archive, ShieldCheck } from 'lucide-react';
 import { tierKey, TIER_BADGE_BG, TIER_SCORE_COLOR } from '@/components/governada/cards/tierStyles';
+import { TrustSignals, type TrustSignal } from '@/components/governada/profiles/TrustSignals';
+import { useSegment } from '@/components/providers/SegmentProvider';
 import type { TierName } from '@/lib/scoring/tiers';
 
 interface SpoProfileHeroProps {
@@ -31,6 +33,7 @@ interface SpoProfileHeroProps {
   isRetired?: boolean;
   isRetiring?: boolean;
   isClaimed?: boolean;
+  trustSignals?: TrustSignal[];
   children?: React.ReactNode;
 }
 
@@ -47,8 +50,12 @@ export function SpoProfileHero({
   isRetired,
   isRetiring,
   isClaimed,
+  trustSignals,
   children,
 }: SpoProfileHeroProps) {
+  const { segment } = useSegment();
+  const isGovernanceParticipant = segment === 'drep' || segment === 'spo' || segment === 'cc';
+
   const hasAlignment =
     alignments.treasuryConservative != null ||
     alignments.treasuryGrowth != null ||
@@ -137,58 +144,113 @@ export function SpoProfileHero({
             )}
           </div>
 
-          {/* Narrative */}
-          {narrative && (
-            <p className="text-sm text-muted-foreground leading-relaxed max-w-2xl">{narrative}</p>
+          {/* Trust Signals — replaces raw stats for citizens */}
+          {trustSignals && !isGovernanceParticipant && (
+            <TrustSignals tier={tier} signals={trustSignals} />
           )}
 
-          {/* Key stats — 3 only: rank, participation %, delegators */}
-          <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground pt-2">
-            {rank !== null && (
+          {/* AI narrative summary — accent-bordered */}
+          {narrative && (
+            <p
+              className="text-sm text-muted-foreground leading-relaxed max-w-2xl"
+              style={
+                identityColor
+                  ? { borderLeft: `2px solid ${identityColor.hex}`, paddingLeft: '0.75rem' }
+                  : undefined
+              }
+            >
+              {narrative}
+            </p>
+          )}
+
+          {/* Key stats — governance participants see raw metrics, citizens see trust signals above */}
+          {isGovernanceParticipant && (
+            <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground pt-2">
+              {rank !== null && (
+                <span className="flex items-center gap-1.5">
+                  <Award
+                    className="h-4 w-4"
+                    style={{ color: identityColor?.hex ?? 'currentColor' }}
+                  />
+                  <span className="font-mono font-medium text-foreground">Top {100 - rank}%</span>
+                  of SPOs
+                </span>
+              )}
               <span className="flex items-center gap-1.5">
-                <Award
+                <span
+                  className="h-4 w-4 inline-flex items-center justify-center text-[11px] font-bold"
+                  style={{ color: identityColor?.hex ?? 'currentColor' }}
+                >
+                  %
+                </span>
+                <span className="font-mono font-medium text-foreground">{participationRate}%</span>
+                participation
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Users
                   className="h-4 w-4"
                   style={{ color: identityColor?.hex ?? 'currentColor' }}
                 />
-                <span className="font-mono font-medium text-foreground">Top {100 - rank}%</span>
-                of SPOs
+                <span className="font-mono font-medium text-foreground">
+                  {delegatorCount.toLocaleString()}
+                </span>
+                delegators
               </span>
-            )}
-            <span className="flex items-center gap-1.5">
-              <span
-                className="h-4 w-4 inline-flex items-center justify-center text-[11px] font-bold"
-                style={{ color: identityColor?.hex ?? 'currentColor' }}
-              >
-                %
-              </span>
-              <span className="font-mono font-medium text-foreground">{participationRate}%</span>
-              participation
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Users className="h-4 w-4" style={{ color: identityColor?.hex ?? 'currentColor' }} />
-              <span className="font-mono font-medium text-foreground">
-                {delegatorCount.toLocaleString()}
-              </span>
-              delegators
-            </span>
-          </div>
+            </div>
+          )}
 
-          {/* Actions slot */}
+          {/* Actions slot (staking CTA, watch, pin) */}
           {children && <div className="pt-2 flex flex-wrap gap-2">{children}</div>}
         </motion.div>
 
-        {/* Right: Signature visual — GovernanceRadar only */}
-        {hasAlignment && (
+        {/* Right: Signature visual */}
+        {isGovernanceParticipant ? (
+          /* Governance participants: full radar */
+          hasAlignment ? (
+            <motion.div
+              className="flex items-center justify-center lg:justify-end"
+              variants={fadeInUp}
+            >
+              <GovernanceRadar alignments={alignments} size="full" />
+            </motion.div>
+          ) : (
+            <motion.div
+              className="flex items-center justify-center lg:justify-end"
+              variants={fadeInUp}
+            >
+              <div className="text-center space-y-1">
+                <span
+                  className={cn(
+                    'font-display text-5xl font-bold tabular-nums',
+                    TIER_SCORE_COLOR[tk],
+                  )}
+                >
+                  {score}
+                </span>
+                <p className="text-xs text-muted-foreground">governance score</p>
+              </div>
+            </motion.div>
+          )
+        ) : trustSignals ? (
+          /* Citizens with trust signals: tier display */
           <motion.div
             className="flex items-center justify-center lg:justify-end"
             variants={fadeInUp}
           >
-            <GovernanceRadar alignments={alignments} size="full" />
+            <div className="flex flex-col items-center justify-center gap-3 px-6">
+              <div className="text-center">
+                <div
+                  className="text-4xl font-bold"
+                  style={{ color: identityColor?.hex ?? undefined }}
+                >
+                  {tier}
+                </div>
+                <div className="text-sm text-muted-foreground mt-1">Governance Tier</div>
+              </div>
+            </div>
           </motion.div>
-        )}
-
-        {/* Fallback when no alignment: just the score */}
-        {!hasAlignment && (
+        ) : (
+          /* Fallback: just the score */
           <motion.div
             className="flex items-center justify-center lg:justify-end"
             variants={fadeInUp}

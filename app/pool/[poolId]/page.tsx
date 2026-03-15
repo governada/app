@@ -5,14 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { PageViewTracker } from '@/components/PageViewTracker';
 import { PoolProfileClient } from '@/components/PoolProfileClient';
-import { GovernanceRadar } from '@/components/GovernanceRadar';
-import { BarChart3, Archive } from 'lucide-react';
+import { BarChart3, Archive, MessageSquare } from 'lucide-react';
 import { Breadcrumb } from '@/components/shared/Breadcrumb';
 import type { AlignmentScores } from '@/lib/drepIdentity';
 import { getPersonalityLabel } from '@/lib/drepIdentity';
 import nextDynamic from 'next/dynamic';
 import { TierThemeProvider } from '@/components/providers/TierThemeProvider';
 import { generateSpoNarrative } from '@/lib/narratives';
+import { computeSpoTrustSignals } from '@/lib/spoTrustSignals';
 import { cn } from '@/lib/utils';
 
 const TierCelebrationManager = nextDynamic(() =>
@@ -51,6 +51,15 @@ const SpoProfileTabsV2 = nextDynamic(
   { loading: () => <div className="h-32 animate-pulse bg-muted rounded-xl" /> },
 );
 
+const SpoProfileClientV2 = nextDynamic(
+  () => import('@/components/governada/profiles/SpoProfileClient').then((m) => m.SpoProfileClient),
+  { loading: () => <div className="h-40 animate-pulse bg-muted rounded-xl" /> },
+);
+const StakePoolButton = nextDynamic(
+  () => import('@/components/governada/profiles/StakePoolButton').then((m) => m.StakePoolButton),
+  { loading: () => null },
+);
+
 import { SpoProfileHero } from '@/components/governada/profiles/SpoProfileHero';
 import { WatchEntityButton } from '@/components/WatchEntityButton';
 import { PinButton } from '@/components/shared/PinButton';
@@ -65,17 +74,6 @@ export const dynamic = 'force-dynamic';
 
 interface PageProps {
   params: Promise<{ poolId: string }>;
-}
-
-function formatAda(lovelace: number | string | null | undefined): string {
-  if (lovelace == null) return '\u2014';
-  const n = typeof lovelace === 'string' ? parseInt(lovelace, 10) : lovelace;
-  if (isNaN(n)) return '\u2014';
-  const ada = n / 1_000_000;
-  if (ada >= 1_000_000_000) return `${(ada / 1_000_000_000).toFixed(2)}B`;
-  if (ada >= 1_000_000) return `${(ada / 1_000_000).toFixed(1)}M`;
-  if (ada >= 1_000) return `${Math.round(ada / 1_000)}K`;
-  return ada.toFixed(0);
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -250,7 +248,7 @@ async function getInterBodyAlignment(
 
 async function getSimilarPools(
   poolId: string,
-  alignments: AlignmentScores,
+  _alignments: AlignmentScores,
   score: number,
 ): Promise<
   Array<{
@@ -470,6 +468,18 @@ export default async function PoolProfilePage({ params }: PageProps) {
     isClaimed: !!claimedBy,
     governanceStatement,
     scoreMomentum,
+  });
+
+  // Trust signals for citizen-readable hero
+  const trustSignals = computeSpoTrustSignals({
+    participationRate,
+    lastVotedText,
+    scoreMomentum,
+    governanceStatement,
+    isClaimed: !!claimedBy,
+    homepage,
+    socialLinks,
+    delegatorCount,
   });
 
   // Personality label for TrustCard
@@ -747,7 +757,7 @@ export default async function PoolProfilePage({ params }: PageProps) {
           entityHref={`/pool/${encodeURIComponent(poolId)}`}
         />
 
-        {/* Chapter 1: The Story — Hero */}
+        {/* Chapter 1: The Story — Hero with trust signals + staking CTA */}
         <SpoProfileHero
           name={displayName}
           ticker={ticker}
@@ -761,10 +771,36 @@ export default async function PoolProfilePage({ params }: PageProps) {
           isRetired={isRetired}
           isRetiring={isRetiring}
           isClaimed={!!claimedBy}
+          trustSignals={trustSignals}
         >
+          <StakePoolButton poolId={poolId} ticker={ticker} />
           <WatchEntityButton entityType="spo" entityId={poolId} />
           <PinButton type="pool" id={poolId} label={displayName} />
         </SpoProfileHero>
+
+        {/* Chapter 1.5: Governance Philosophy — prominent accent-bordered statement */}
+        {governanceStatement && (
+          <div className="rounded-xl border border-primary/20 bg-card/70 backdrop-blur-md px-5 py-5">
+            <div className="flex items-center gap-2 mb-3">
+              <MessageSquare className="h-4 w-4 text-primary" />
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Governance Philosophy
+              </span>
+            </div>
+            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap border-l-2 border-primary/40 pl-4">
+              {governanceStatement}
+            </p>
+          </div>
+        )}
+
+        {/* Chapter 1.75: Governance Values Alignment — personalized quiz/match */}
+        <SpoProfileClientV2
+          poolId={poolId}
+          poolName={displayName}
+          poolAlignments={alignments}
+          delegatorCount={delegatorCount}
+          scoreMomentum={scoreMomentum}
+        />
 
         {/* Chapter 2: Trust at a Glance — persona-gated trust metrics */}
         <SpoTrustCard
