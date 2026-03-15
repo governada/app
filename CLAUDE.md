@@ -147,6 +147,10 @@ C:\Users\dalto\governada\
 | `/ship`                                                        | Full deploy pipeline for a single PR (preflight → CI → merge → deploy → verify)                                                      |
 | `/hotfix`                                                      | Single-commit fix directly on main                                                                                                   |
 
+## Compaction Instructions
+
+When compacting, preserve: the current task/goal, approved plan details, architectural decisions made this session, and any user feedback/corrections. The post-compact hook recovers git state and checkpoints automatically -- do not duplicate that. Focus on retaining the "why" behind decisions and any user preferences expressed during the session.
+
 ## Path-Scoped Rules
 
 Detailed context loads automatically from `.claude/rules/` when working on:
