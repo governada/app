@@ -159,8 +159,10 @@ export function DRepProfileHero({
               </span>
             </div>
 
-            {/* Actions slot (delegation CTA, compare, etc.) */}
-            {children && <div className="pt-2 flex flex-wrap gap-2">{children}</div>}
+            {/* Actions slot (delegation CTA, compare, etc.) — skip for citizens since it renders in the right column */}
+            {children && (isGovernanceParticipant || !trustSignals || !tier) && (
+              <div className="pt-2 flex flex-wrap gap-2">{children}</div>
+            )}
           </motion.div>
 
           {/* Right: Signature visuals — radar for governance participants, trust signals already shown for citizens */}
