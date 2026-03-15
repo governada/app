@@ -378,7 +378,9 @@ export function GovernadaDRepBrowse(_props: GovernadaDRepBrowseProps) {
   });
   const [sortMode, setSortMode] = useState<SortMode>(() => {
     if (typeof window === 'undefined') return 'score';
-    return sortParam === 'match' && loadMatchProfile() ? 'match' : 'score';
+    // Default to match sort when user has alignment data (WS-7)
+    if (sortParam === 'score') return 'score';
+    return loadMatchProfile() ? 'match' : 'score';
   });
 
   const deferredSearch = useDeferredValue(filters.search);
@@ -450,7 +452,7 @@ export function GovernadaDRepBrowse(_props: GovernadaDRepBrowseProps) {
       }
     }
 
-    // Sort by match compatibility if enabled and profile exists
+    // Sort by blended alignment+score when match mode active (WS-7)
     if (sortMode === 'match' && matchProfile) {
       const userAlign = matchProfile.userAlignments;
       result = [...result].sort((a, b) => {
@@ -470,10 +472,12 @@ export function GovernadaDRepBrowse(_props: GovernadaDRepBrowseProps) {
           innovation: b.alignmentInnovation,
           transparency: b.alignmentTransparency,
         };
-        const distDiff =
-          alignmentDistance(userAlign, aAlign) - alignmentDistance(userAlign, bAlign);
-        if (distDiff !== 0) return distDiff;
-        return (b.drepScore ?? 0) - (a.drepScore ?? 0);
+        // Blended score: alignment × 0.7 + normalizedScore × 0.3
+        const aMatchPct = distanceToMatchScore(alignmentDistance(userAlign, aAlign));
+        const bMatchPct = distanceToMatchScore(alignmentDistance(userAlign, bAlign));
+        const aBlended = (aMatchPct / 100) * 0.7 + ((a.drepScore ?? 0) / 100) * 0.3;
+        const bBlended = (bMatchPct / 100) * 0.7 + ((b.drepScore ?? 0) / 100) * 0.3;
+        return bBlended - aBlended;
       });
     }
 
@@ -594,7 +598,7 @@ export function GovernadaDRepBrowse(_props: GovernadaDRepBrowseProps) {
                     )}
                   >
                     <Sparkles className="h-3 w-3" />
-                    {sortMode === 'match' ? 'Sorted by match' : 'Sort by match'}
+                    {sortMode === 'match' ? 'Best Match' : 'Governance Score'}
                   </button>
                   {sortMode === 'match' && (
                     <span className="text-[10px] text-muted-foreground hidden sm:inline">
