@@ -3,9 +3,28 @@
  *
  * Defines supported locales, cookie name, and Accept-Language parsing.
  * Path B approach: browser auto-translate + targeted UI chrome translations.
+ *
+ * Languages ordered by estimated Cardano governance community size:
+ * en (~40-45%), ja (~12-15%), es (~10-12%), ko (~6-8%), pt (~5-7%),
+ * fr (~4-5%), de (~3-4%), vi (~3-4%), id (~2-3%), ru (~1-2%),
+ * it (~1-2%), ar (~1-2%), he (<1%)
  */
 
-export const SUPPORTED_LOCALES = ['en', 'ja', 'es', 'pt', 'id', 'ko'] as const;
+export const SUPPORTED_LOCALES = [
+  'en',
+  'ja',
+  'es',
+  'ko',
+  'pt',
+  'fr',
+  'de',
+  'vi',
+  'id',
+  'ru',
+  'it',
+  'ar',
+  'he',
+] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
 export const DEFAULT_LOCALE: SupportedLocale = 'en';
@@ -17,10 +36,20 @@ export const LOCALE_NAMES: Record<SupportedLocale, string> = {
   en: 'English',
   ja: '日本語',
   es: 'Español',
-  pt: 'Português',
-  id: 'Bahasa Indonesia',
   ko: '한국어',
+  pt: 'Português',
+  fr: 'Français',
+  de: 'Deutsch',
+  vi: 'Tiếng Việt',
+  id: 'Bahasa Indonesia',
+  ru: 'Русский',
+  it: 'Italiano',
+  ar: 'العربية',
+  he: 'עברית',
 };
+
+/** RTL locales — used to set dir="rtl" on the html element */
+export const RTL_LOCALES: ReadonlySet<SupportedLocale> = new Set(['ar', 'he']);
 
 export function isValidLocale(locale: string): locale is SupportedLocale {
   return (SUPPORTED_LOCALES as readonly string[]).includes(locale);
