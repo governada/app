@@ -146,11 +146,25 @@ function Section({
 
 /* ── Consequence card for a decided proposal ─────────────────── */
 
+function getAlignmentBadge(
+  drepVote: string | null,
+  outcome: 'ratified' | 'dropped' | 'expired' | null,
+): { label: string; color: string } | null {
+  if (!drepVote || drepVote === 'Abstain' || !outcome) return null;
+  const passed = outcome === 'ratified';
+  const votedYes = drepVote === 'Yes';
+  if ((votedYes && passed) || (!votedYes && !passed)) {
+    return { label: 'Aligned with outcome', color: 'text-emerald-600 dark:text-emerald-400' };
+  }
+  return { label: 'Diverged from outcome', color: 'text-amber-600 dark:text-amber-400' };
+}
+
 function ConsequenceCard({ proposal }: { proposal: ConsequenceProposal }) {
   const outcome = proposal.outcome ? OUTCOME_CONFIG[proposal.outcome] : null;
   const OutcomeIcon = outcome?.icon ?? Clock;
   const voteInfo = proposal.drepVote ? VOTE_LABELS[proposal.drepVote] : null;
   const typeLabel = PROPOSAL_TYPE_LABELS[proposal.proposalType] ?? proposal.proposalType;
+  const alignment = getAlignmentBadge(proposal.drepVote, proposal.outcome);
 
   return (
     <Link
@@ -183,13 +197,19 @@ function ConsequenceCard({ proposal }: { proposal: ConsequenceProposal }) {
             {proposal.title ?? 'Untitled Proposal'}
           </p>
 
-          {/* DRep vote + community signal row */}
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          {/* DRep vote + alignment + community signal row */}
+          <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
             {voteInfo && (
               <span className={cn('font-medium', voteInfo.color)}>{voteInfo.label}</span>
             )}
             {!voteInfo && proposal.drepVote === null && (
               <span className="text-muted-foreground/60">Your representative didn&apos;t vote</span>
+            )}
+            {alignment && (
+              <span className={cn('inline-flex items-center gap-1 font-medium', alignment.color)}>
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-current" />
+                {alignment.label}
+              </span>
             )}
             {proposal.communitySignal && proposal.communitySignal.total > 0 && (
               <CommunitySignalInline signal={proposal.communitySignal} />
