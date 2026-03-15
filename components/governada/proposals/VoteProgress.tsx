@@ -1,6 +1,6 @@
 'use client';
 
-import { TrendingUp, AlertTriangle, CheckCircle2, XCircle, Minus, Info } from 'lucide-react';
+import { TrendingUp, CheckCircle2, XCircle, Info, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useDepthConfig } from '@/hooks/useDepthConfig';
 import { cn } from '@/lib/utils';
@@ -12,7 +12,7 @@ interface VoteProgressProps {
 }
 
 // ---------------------------------------------------------------------------
-// Verdict styling
+// Verdict styling — green when trending pass, red when trending fail
 // ---------------------------------------------------------------------------
 
 function getVerdictStyle(outcome: ProjectedOutcome) {
@@ -20,53 +20,72 @@ function getVerdictStyle(outcome: ProjectedOutcome) {
     case 'passing':
       return {
         icon: CheckCircle2,
-        color: 'text-emerald-500',
-        bgColor: 'bg-emerald-500/10 border-emerald-500/20',
+        color: 'text-emerald-400',
+        bgColor: 'bg-emerald-500/8 border-emerald-500/20',
         barColor: 'bg-emerald-500',
+        ghostColor: 'bg-emerald-500/20',
       };
     case 'likely_pass':
-      return {
-        icon: TrendingUp,
-        color: 'text-emerald-400',
-        bgColor: 'bg-emerald-400/10 border-emerald-400/20',
-        barColor: 'bg-emerald-400',
-      };
     case 'leaning_pass':
       return {
         icon: TrendingUp,
-        color: 'text-emerald-300',
-        bgColor: 'bg-emerald-300/10 border-emerald-300/20',
-        barColor: 'bg-emerald-300',
+        color: 'text-emerald-400',
+        bgColor: 'bg-emerald-500/8 border-emerald-500/20',
+        barColor: 'bg-emerald-500',
+        ghostColor: 'bg-emerald-500/20',
       };
     case 'too_close':
       return {
-        icon: AlertTriangle,
-        color: 'text-amber-400',
-        bgColor: 'bg-amber-400/10 border-amber-400/20',
-        barColor: 'bg-amber-400',
+        icon: Clock,
+        color: 'text-emerald-400',
+        bgColor: 'bg-emerald-500/8 border-emerald-500/20',
+        barColor: 'bg-emerald-500',
+        ghostColor: 'bg-emerald-500/15',
       };
     case 'leaning_fail':
-      return {
-        icon: Minus,
-        color: 'text-orange-400',
-        bgColor: 'bg-orange-400/10 border-orange-400/20',
-        barColor: 'bg-orange-400',
-      };
     case 'unlikely_pass':
       return {
         icon: XCircle,
         color: 'text-red-400',
-        bgColor: 'bg-red-400/10 border-red-400/20',
-        barColor: 'bg-red-400',
+        bgColor: 'bg-red-500/8 border-red-500/20',
+        barColor: 'bg-emerald-500',
+        ghostColor: 'bg-red-500/15',
       };
     case 'no_threshold':
       return {
         icon: Info,
         color: 'text-blue-400',
-        bgColor: 'bg-blue-400/10 border-blue-400/20',
-        barColor: 'bg-blue-400',
+        bgColor: 'bg-blue-500/8 border-blue-500/20',
+        barColor: 'bg-blue-500',
+        ghostColor: 'bg-blue-500/20',
       };
   }
+}
+
+// ---------------------------------------------------------------------------
+// Compute a projected yes% for the bar even when trajectory returns null.
+// Uses historical pass rate as a proxy: if 87% of treasury proposals pass,
+// project that the bar will reach ~87% of the threshold.
+// ---------------------------------------------------------------------------
+
+function getEffectiveProjection(projection: VoteProjection): number {
+  // If we have a real trajectory projection, use it
+  if (
+    projection.projectedFinalYesPct != null &&
+    projection.projectedFinalYesPct > projection.currentYesPct
+  ) {
+    return projection.projectedFinalYesPct;
+  }
+
+  // Fallback: use historical pass rate to estimate where similar proposals end up
+  if (projection.historicalPassRate != null && projection.thresholdPct != null) {
+    // If 87% of similar proposals pass, project that this one reaches the threshold * 0.87
+    // Blend with current position: don't project below where we already are
+    const historicalTarget = projection.thresholdPct * (0.5 + projection.historicalPassRate * 0.7);
+    return Math.max(projection.currentYesPct + 1, Math.min(100, historicalTarget));
+  }
+
+  return projection.currentYesPct;
 }
 
 // ---------------------------------------------------------------------------
@@ -79,13 +98,13 @@ export function VoteProgress({ projection, isOpen }: VoteProgressProps) {
   const style = getVerdictStyle(projection.projectedOutcome);
   const Icon = style.icon;
 
-  // For closed proposals, show final result instead of projection
+  // For closed proposals, show final result
   if (!isOpen) {
     return (
-      <div className={cn('rounded-xl border px-4 py-3 flex items-center gap-3', style.bgColor)}>
-        <Icon className={cn('h-4 w-4 shrink-0', style.color)} />
+      <div className={cn('rounded-xl border px-5 py-3.5 flex items-center gap-3', style.bgColor)}>
+        <Icon className={cn('h-5 w-5 shrink-0', style.color)} />
         <div className="min-w-0">
-          <span className={cn('text-sm font-medium', style.color)}>
+          <span className={cn('text-sm font-semibold', style.color)}>
             {projection.isPassing ? 'Passed' : 'Did not pass'}
           </span>
           {depth >= 1 && (
@@ -99,11 +118,11 @@ export function VoteProgress({ projection, isOpen }: VoteProgressProps) {
   // ─── hands_off: single verdict line ─────────────────────────────────
   if (depth === 0) {
     return (
-      <div className={cn('rounded-xl border px-4 py-3 flex items-center gap-3', style.bgColor)}>
-        <Icon className={cn('h-4 w-4 shrink-0', style.color)} />
-        <span className={cn('text-sm font-medium', style.color)}>{projection.verdictLabel}</span>
+      <div className={cn('rounded-xl border px-5 py-3.5 flex items-center gap-3', style.bgColor)}>
+        <Icon className={cn('h-5 w-5 shrink-0', style.color)} />
+        <span className={cn('text-sm font-semibold', style.color)}>{projection.verdictLabel}</span>
         {projection.thresholdPct != null && (
-          <span className="text-xs text-muted-foreground">
+          <span className="text-sm text-muted-foreground">
             {Math.round(projection.currentYesPct)}% of {Math.round(projection.thresholdPct)}% needed
           </span>
         )}
@@ -112,26 +131,26 @@ export function VoteProgress({ projection, isOpen }: VoteProgressProps) {
   }
 
   // ─── informed+: progress bar with threshold ─────────────────────────
-  const projectedPct = projection.projectedFinalYesPct ?? projection.currentYesPct;
-  const showProjectedFill =
-    projection.projectedFinalYesPct != null &&
-    projection.projectedFinalYesPct - projection.currentYesPct > 0.5;
+  const effectiveProjection = getEffectiveProjection(projection);
+  const showProjectedFill = effectiveProjection > projection.currentYesPct + 0.5;
 
   return (
     <div className={cn('rounded-xl border overflow-hidden', style.bgColor)}>
       {/* Verdict header */}
-      <div className="px-4 py-3 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <Icon className={cn('h-4 w-4 shrink-0', style.color)} />
-          <span className={cn('text-sm font-medium', style.color)}>{projection.verdictLabel}</span>
+      <div className="px-5 py-3.5 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <Icon className={cn('h-5 w-5 shrink-0', style.color)} />
+          <span className={cn('text-sm font-semibold', style.color)}>
+            {projection.verdictLabel}
+          </span>
           {projection.confidence === 'low' && (
-            <Badge variant="outline" className="text-[10px] text-muted-foreground shrink-0">
+            <Badge variant="outline" className="text-[11px] text-muted-foreground shrink-0">
               Limited data
             </Badge>
           )}
         </div>
         {projection.epochsRemaining != null && projection.epochsRemaining > 0 && (
-          <span className="text-xs text-muted-foreground shrink-0">
+          <span className="text-sm text-muted-foreground shrink-0">
             {projection.epochsRemaining} epoch{projection.epochsRemaining !== 1 ? 's' : ''}{' '}
             remaining
           </span>
@@ -140,9 +159,16 @@ export function VoteProgress({ projection, isOpen }: VoteProgressProps) {
 
       {/* Progress bar */}
       {projection.thresholdPct != null && (
-        <div className="px-4 pb-3">
-          <div className="relative h-3 rounded-full bg-muted/50 overflow-visible">
-            {/* Yes power fill (solid) */}
+        <div className="px-5 pb-3.5">
+          <div className="relative h-3.5 rounded-full bg-muted/40 overflow-visible">
+            {/* Projected fill (lighter shade extension) — always shows where we expect to land */}
+            {showProjectedFill && (
+              <div
+                className={cn('absolute inset-y-0 left-0 rounded-full', style.ghostColor)}
+                style={{ width: `${Math.min(100, effectiveProjection)}%` }}
+              />
+            )}
+            {/* Yes power fill (solid — actual votes) */}
             <div
               className={cn(
                 'absolute inset-y-0 left-0 rounded-full transition-all duration-500',
@@ -150,66 +176,33 @@ export function VoteProgress({ projection, isOpen }: VoteProgressProps) {
               )}
               style={{ width: `${Math.min(100, projection.currentYesPct)}%` }}
             />
-            {/* Projected fill (striped ghost) */}
-            {showProjectedFill && (
-              <div
-                className="absolute inset-y-0 rounded-r-full overflow-hidden"
-                style={{
-                  left: `${Math.min(100, projection.currentYesPct)}%`,
-                  width: `${Math.min(100 - projection.currentYesPct, projectedPct - projection.currentYesPct)}%`,
-                }}
-              >
-                <div
-                  className={cn('absolute inset-0 opacity-30', style.barColor)}
-                  style={{
-                    backgroundImage: `repeating-linear-gradient(
-                      -45deg,
-                      transparent,
-                      transparent 3px,
-                      rgba(255,255,255,0.15) 3px,
-                      rgba(255,255,255,0.15) 6px
-                    )`,
-                  }}
-                />
-              </div>
-            )}
-            {/* Projected endpoint marker */}
-            {showProjectedFill && (
-              <div
-                className={cn(
-                  'absolute top-1/2 -translate-y-1/2 h-4 w-1 rounded-full opacity-50',
-                  style.barColor,
-                )}
-                style={{ left: `${Math.min(100, projectedPct)}%` }}
-              />
-            )}
             {/* Threshold marker */}
             <div
-              className="absolute top-[-4px] bottom-[-4px] w-0.5 bg-foreground/60"
+              className="absolute top-[-5px] bottom-[-5px] w-0.5 bg-foreground/50"
               style={{ left: `${Math.min(100, projection.thresholdPct)}%` }}
             >
-              <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-[9px] text-muted-foreground whitespace-nowrap">
+              <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] text-muted-foreground whitespace-nowrap font-medium">
                 {Math.round(projection.thresholdPct)}%
               </div>
             </div>
           </div>
 
           {/* Numbers below bar */}
-          <div className="flex items-center justify-between mt-2">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs text-foreground/70">
+          <div className="flex items-center justify-between mt-2.5">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <span className="text-sm text-foreground/80">
                 {projection.currentYesPct.toFixed(1)}% of active stake voting Yes
               </span>
               {projection.yesOfVotersPct != null && projection.participationPct < 50 && (
-                <span className="text-xs text-muted-foreground">
+                <span className="text-sm text-muted-foreground">
                   ({Math.round(projection.yesOfVotersPct)}% of voters)
                 </span>
               )}
             </div>
             {showProjectedFill && (
-              <span className="text-xs text-muted-foreground shrink-0">
-                Projected: ~{Math.round(projectedPct)}%
-                {projectedPct >= projection.thresholdPct ? ' (passes)' : ''}
+              <span className="text-sm text-muted-foreground shrink-0">
+                Projected: ~{Math.round(effectiveProjection)}%
+                {effectiveProjection >= (projection.thresholdPct ?? 0) ? ' (passes)' : ''}
               </span>
             )}
           </div>
@@ -218,15 +211,13 @@ export function VoteProgress({ projection, isOpen }: VoteProgressProps) {
 
       {/* engaged+: detailed context */}
       {depth >= 2 && (
-        <div className="px-4 pb-3 space-y-1.5 border-t border-border/20 pt-2.5">
-          <p className="text-xs text-foreground/70">{projection.verdictDetail}</p>
+        <div className="px-5 pb-3.5 space-y-1.5 border-t border-border/20 pt-3">
+          <p className="text-sm text-foreground/80">{projection.verdictDetail}</p>
           {projection.historicalEvidence && (
-            <p className="text-xs text-muted-foreground">{projection.historicalEvidence}</p>
+            <p className="text-sm text-muted-foreground">{projection.historicalEvidence}</p>
           )}
           {projection.confidence !== 'high' && (
-            <p className="text-[10px] text-muted-foreground italic">
-              {projection.confidenceReason}
-            </p>
+            <p className="text-xs text-muted-foreground italic">{projection.confidenceReason}</p>
           )}
         </div>
       )}

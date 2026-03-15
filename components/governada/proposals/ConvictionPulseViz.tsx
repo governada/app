@@ -2,6 +2,7 @@
 
 import { useId } from 'react';
 import type { ConvictionPulseData } from '@/lib/convictionPulse';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 interface ConvictionPulseVizProps {
@@ -9,15 +10,24 @@ interface ConvictionPulseVizProps {
   className?: string;
 }
 
-function MetricPill({ label, value }: { label: string; value: number }) {
+function MetricPill({ label, value, tooltip }: { label: string; value: number; tooltip: string }) {
   const color =
     value >= 60 ? 'text-emerald-400' : value >= 30 ? 'text-amber-400' : 'text-muted-foreground';
 
   return (
-    <div className="flex items-center gap-1.5">
-      <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</span>
-      <span className={cn('text-sm font-bold tabular-nums', color)}>{value}</span>
-    </div>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="flex items-center gap-1.5 cursor-help">
+            <span className="text-xs text-muted-foreground uppercase tracking-wider">{label}</span>
+            <span className={cn('text-sm font-bold tabular-nums', color)}>{value}</span>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="max-w-64 text-xs">
+          {tooltip}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
@@ -39,8 +49,16 @@ export function ConvictionPulseViz({ data, className }: ConvictionPulseVizProps)
       {/* Metrics bar */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-4">
-          <MetricPill label="Conviction" value={data.conviction} />
-          <MetricPill label="Polarization" value={data.polarization} />
+          <MetricPill
+            label="Conviction"
+            value={data.conviction}
+            tooltip="How deeply DReps care about this proposal (0-100). Based on rationale rate, quality of reasoning, and breadth of participation. High conviction means DReps are engaging seriously."
+          />
+          <MetricPill
+            label="Polarization"
+            value={data.polarization}
+            tooltip="How divided the community is on this proposal (0-100). Low = broad consensus, High = sharp disagreement. Based on the distribution of voting power across Yes, No, and Abstain."
+          />
         </div>
         <span className="text-xs text-muted-foreground">{data.label}</span>
       </div>

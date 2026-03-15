@@ -721,6 +721,7 @@ export interface ProposalVoteDetail {
   drepName: string | null;
   vote: 'Yes' | 'No' | 'Abstain';
   blockTime: number;
+  votingPowerLovelace: number | null;
   rationaleText: string | null;
   rationaleAiSummary: string | null;
   hashVerified: boolean | null;
@@ -848,7 +849,7 @@ export async function getVotesByProposal(
 
     const { data: votes, error } = await supabase
       .from('drep_votes')
-      .select('vote_tx_hash, drep_id, vote, block_time, meta_url')
+      .select('vote_tx_hash, drep_id, vote, block_time, meta_url, voting_power_lovelace')
       .eq('proposal_tx_hash', txHash)
       .eq('proposal_index', proposalIndex)
       .order('block_time', { ascending: false });
@@ -913,6 +914,7 @@ export async function getVotesByProposal(
         drepName: drepNameMap.get(v.drep_id) || null,
         vote: v.vote as 'Yes' | 'No' | 'Abstain',
         blockTime: v.block_time,
+        votingPowerLovelace: v.voting_power_lovelace ?? null,
         rationaleText: rat?.text || null,
         rationaleAiSummary: rat?.summary || null,
         hashVerified: rat?.verified ?? null,

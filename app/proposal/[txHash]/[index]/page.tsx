@@ -157,7 +157,7 @@ export default async function ProposalDetailPage({ params }: PageProps) {
           drepId: v.drepId,
           drepName: v.drepName,
           vote: v.vote,
-          votingPowerLovelace: null, // Not available in vote detail
+          votingPowerLovelace: v.votingPowerLovelace ?? null,
           hasRationale: !!(v.rationaleAiSummary || v.rationaleText),
         })),
         null, // citizen sentiment loaded client-side
