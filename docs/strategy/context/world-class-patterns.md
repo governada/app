@@ -878,6 +878,46 @@ _(Patterns for structured proposal processes, stage gates, and deliberation pipe
 - **Applicable to**: Cardano governance proposals starting as informal Forum/community discussions, then importing into Governada's structured lifecycle. The link between discussion and formal proposal is preserved.
 - **Adoption difficulty**: Medium — import pipeline + discussion linking + stage management
 
+### Embedded AI & Intelligence Patterns
+
+_(Patterns for AI that's a tool, not a chatbot — workflow-embedded intelligence)_
+
+#### Verbs Not Nouns — Embedded AI Over Chatbots
+
+- **Source**: Industry pattern (2025-2026 shift) — https://aakashgupta.medium.com/the-chatbot-era-is-already-over-heres-what-s-replacing-it-85e176769e04
+- **Discovered**: 2026-03-16 (explore-feature: AI tooling architecture)
+- **What they do**: "Good AI products are verbs — the AI enables the action but doesn't become the thing you interact with." AI embeds into existing workflows: Slack's summarize button on threads, Figma's generate inside the canvas, Linear's triage intelligence on issues. The AI is invisible when not needed, contextual when invoked, and produces output in the same format as human-created content.
+- **Why it's world-class**: Once AI embeds into a workflow, switching becomes painful — lock-in through habit, not features. Users don't "use AI" — they do their actual task. AI-enabled workflows grew from 3% to 25% of enterprise processes by end of 2025.
+- **Applicable to**: Governance AI should NOT be a chat panel. It should be "Analyze" buttons on proposal sections, auto-generated intelligence blocks on briefs, constitutional flags on draft sections. The platform feels smart — it doesn't have an "AI feature."
+- **Adoption difficulty**: Medium — requires rethinking AI from a feature to an infrastructure layer
+
+#### AI Skills as Structured Prompt Templates (Claude Code / Cursor Pattern)
+
+- **Source**: Claude Code Skills — https://code.claude.com/docs/en/slash-commands + Cursor Rules — https://docs.cursor.com/context/rules-for-ai
+- **Discovered**: 2026-03-16 (explore-feature: AI tooling architecture)
+- **What they do**: Skills are file-based prompt templates (`/command-name`) with YAML frontmatter for auto-invocation, stored alongside project code. Each produces structured output. Claude Code skills follow the open Agent Skills standard (portable across tools). Cursor uses path-scoped rules so different analysis applies to different file types automatically.
+- **Why it's world-class**: Skills are version-controlled, shareable, community-contributable. When one team member improves a workflow, the whole team benefits. The structured I/O means skill outputs are artifacts (usable directly), not conversation text.
+- **Applicable to**: Governance skills (`/budget-builder`, `/risk-analysis`, `/constitutional-check`, `/draft-rationale`) as structured prompt templates. Community-contributed skills. Each produces structured output insertable into proposals/rationales. Skill invocations logged as provenance.
+- **Adoption difficulty**: Medium — prompt template engine + structured I/O parsing + skill library UI
+
+#### BYOK Three-Tier Model (TypingMind / OpenRouter / VS Code)
+
+- **Source**: TypingMind — https://custom.typingmind.com/ + OpenRouter BYOK — https://openrouter.ai/docs/guides/overview/auth/byok + VS Code BYOK — https://code.visualstudio.com/blogs/2025/10/22/bring-your-own-key
+- **Discovered**: 2026-03-16 (explore-feature: AI tooling architecture)
+- **What they do**: Three-tier: Free (basic AI, rate-limited), Subscriber (hosted AI included in subscription), BYOK (bring your own API key, no rate limits). TypingMind stores keys locally (personal) or encrypted server-side (teams). OpenRouter charges 5% of model costs for BYOK (first 1M requests free). VS Code/Copilot lets enterprises use existing negotiated provider agreements.
+- **Why it's world-class**: Separates predictable platform costs from variable AI costs. Power users aren't limited by platform AI. Enterprise customers use existing security/compliance agreements. Provider abstraction means no vendor lock-in.
+- **Applicable to**: Free citizens get basic AI summaries. DRep/SPO Pro gets full AI skills. BYOK tier for power users, institutions, researchers. Provider abstraction via Vercel AI SDK pattern — same skill, different model.
+- **Adoption difficulty**: Medium — encrypted key storage + provider routing + rate limit tiers
+
+#### Process Provenance as Trust Signal (Legal AI Audit Trails + C2PA)
+
+- **Source**: Harvey AI audit trails — https://www.harvey.ai/ + Clio verified citations — https://www.clio.com/work/ + C2PA content provenance — https://blog.google/innovation-and-ai/products/google-gen-ai-content-transparency-c2pa/
+- **Discovered**: 2026-03-16 (explore-feature: AI tooling architecture)
+- **What they do**: Harvey tracks AI usage per attorney, matter, and practice area. Clio grounds every output in verified legal sources. C2PA provides cryptographic content credentials showing provenance (camera-captured, software-edited, AI-generated). The distinction: compliance audit (who used AI when) vs correctness audit (are the sources valid).
+- **Why it's world-class**: In high-stakes professional contexts, both types of audit matter. AI provenance is moving from voluntary to regulated. The provenance IS the trust signal — it can't be faked retroactively.
+- **Applicable to**: Every AI-assisted governance action carries provenance metadata: which skills were used, what inputs, what outputs, how much was human-edited. Displayed on proposals ("Team used 6 skills over 18 days") and vote records ("DRep deliberated 2 days, 58% rationale edited from draft"). Process provenance is the unfakeable differentiator between thoughtful governance and rubber-stamping.
+- **Adoption difficulty**: Easy-Medium — activity logging + display components + metadata on proposals/votes
+
 ### Performance & Perceived Speed
 
 _(Patterns for loading states, optimistic UI, streaming, progressive rendering)_
