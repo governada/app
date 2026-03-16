@@ -452,7 +452,7 @@ export function GovernadaPulseOverview() {
         ))}
       </div>
 
-      {/* ── Observatory tab (deep only) ───── */}
+      {/* ── Observatory tab (engaged only) ───── */}
       {healthConfig.showObservatory && safeTab === 'observatory' && (
         <div role="tabpanel" id="pulse-tabpanel-observatory" aria-label="Observatory">
           <GovernadaObservatory />
@@ -472,7 +472,7 @@ export function GovernadaPulseOverview() {
       {safeTab === 'now' && (
         <div className="space-y-8" role="tabpanel" id="pulse-tabpanel-now" aria-label="Now">
           {/* 1. GHI Verdict */}
-          <GHIHero compact={!isAtLeast('deep')} />
+          <GHIHero compact={!isAtLeast('engaged')} />
 
           {/* 2. Personal governance footprint */}
           <GovernanceImpactCard
@@ -519,11 +519,11 @@ export function GovernadaPulseOverview() {
             />
           )}
 
-          {/* 7. Live Activity Ticker (deep only) */}
+          {/* 7. Live Activity Ticker (engaged only) */}
           {healthConfig.showActivityTicker && <ActivityTicker variant="inline" />}
 
           {/* 8. Deep: historical overlay placeholder */}
-          <DepthGate minDepth="deep">
+          <DepthGate minDepth="engaged">
             <div className="rounded-xl border border-dashed border-border/40 bg-card/30 p-4 text-center">
               <p className="text-xs text-muted-foreground/60">
                 Historical health overlay and epoch comparison coming soon

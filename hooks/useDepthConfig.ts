@@ -23,13 +23,6 @@ const HUB_CONFIG = {
     proposalLimit: 4,
   },
   engaged: {
-    maxSections: 8,
-    showFootprint: true,
-    showSentiment: true,
-    showAnalytics: false,
-    proposalLimit: 8,
-  },
-  deep: {
     maxSections: 99,
     showFootprint: true,
     showSentiment: true,
@@ -91,21 +84,6 @@ const PROPOSAL_SECTIONS_ENGAGED: Record<ProposalSection, boolean> = {
   communitySignals: true,
   lifecycle: true,
   adoptionCurve: true,
-  voterTabs: false,
-  description: true,
-  similarProposals: false,
-  outcomeSection: true,
-  sourceMaterial: false,
-};
-
-const PROPOSAL_SECTIONS_DEEP: Record<ProposalSection, boolean> = {
-  hero: true,
-  actionZone: true,
-  intelligenceBriefing: true,
-  debate: true,
-  communitySignals: true,
-  lifecycle: true,
-  adoptionCurve: true,
   voterTabs: true,
   description: true,
   similarProposals: true,
@@ -130,17 +108,10 @@ const GOVERNANCE_CONFIG = {
   },
   engaged: {
     showRationales: true,
-    showHistoricalTrends: false,
-    showDRepPosition: true,
-    proposalDetail: 'full' as const,
-    proposalSections: PROPOSAL_SECTIONS_ENGAGED,
-  },
-  deep: {
-    showRationales: true,
     showHistoricalTrends: true,
     showDRepPosition: true,
     proposalDetail: 'full' as const,
-    proposalSections: PROPOSAL_SECTIONS_DEEP,
+    proposalSections: PROPOSAL_SECTIONS_ENGAGED,
   },
 } as const satisfies Record<GovernanceDepth, object>;
 
@@ -152,9 +123,9 @@ interface BriefingConfig {
   showEngagement: boolean;
   treasuryDetail: 'balance_only' | 'balance_runway' | 'full';
   drepDetail: 'score_verdict' | 'score_verdict_change' | 'full';
-  /** Show epoch-over-epoch comparison panel (deep only) */
+  /** Show epoch-over-epoch comparison panel (engaged only) */
   showEpochComparison?: boolean;
-  /** Surface raw vote breakdowns per proposal (deep only) */
+  /** Surface raw vote breakdowns per proposal (engaged only) */
   showVoteBreakdown?: boolean;
 }
 
@@ -178,15 +149,6 @@ const BRIEFING_CONFIG: Record<GovernanceDepth, BriefingConfig> = {
     drepDetail: 'score_verdict_change',
   },
   engaged: {
-    headlineLimit: 4,
-    showNarrative: true,
-    showVoice: true,
-    showLookingAhead: true,
-    showEngagement: true,
-    treasuryDetail: 'full',
-    drepDetail: 'full',
-  },
-  deep: {
     headlineLimit: 6,
     showNarrative: true,
     showVoice: true,
@@ -221,16 +183,6 @@ const HEALTH_CONFIG = {
     communityIntel: 'temperature' as const,
   },
   engaged: {
-    showTabs: true,
-    availableTabs: ['now', 'history'] as readonly string[],
-    showActivityTicker: false,
-    showTrends: false,
-    showObservatory: false,
-    alertLevel: 'full' as const,
-    showGHIExplorerTrends: false,
-    communityIntel: 'temperature' as const,
-  },
-  deep: {
     showTabs: true,
     availableTabs: ['now', 'history', 'observatory'] as readonly string[],
     showActivityTicker: true,

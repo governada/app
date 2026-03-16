@@ -16,6 +16,8 @@ import {
 import { computeTier } from '@/lib/scoring/tiers';
 import { EmailOptIn } from '@/components/notifications/EmailOptIn';
 import { GovernanceTuner } from '@/components/governada/mygov/GovernanceTuner';
+import { BYOKSettings } from '@/components/settings/BYOKSettings';
+import { FeatureGate } from '@/components/FeatureGate';
 
 // ---------------------------------------------------------------------------
 // Section wrapper
@@ -234,6 +236,11 @@ export function GovernadaProfile() {
           </p>
         </div>
       </Section>
+
+      {/* BYOK API Keys */}
+      <FeatureGate flag="byok_api_keys">
+        <BYOKSettings />
+      </FeatureGate>
 
       {/* Danger zone */}
       <div className="rounded-xl border border-rose-900/30 bg-rose-950/5 overflow-hidden">

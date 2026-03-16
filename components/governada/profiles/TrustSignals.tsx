@@ -106,8 +106,8 @@ export function TrustSignals({ tier, signals, className }: TrustSignalsProps) {
         )}
       </div>
 
-      {/* Methodology accordion — deep depth only */}
-      {isAtLeast('deep') && visibleSignals.length > 0 && (
+      {/* Methodology accordion — engaged depth only */}
+      {isAtLeast('engaged') && visibleSignals.length > 0 && (
         <Accordion type="single" collapsible className="w-full">
           <AccordionItem value="methodology" className="border-border/30">
             <AccordionTrigger className="py-2 text-xs text-muted-foreground hover:no-underline">
@@ -141,7 +141,7 @@ export function TrustSignals({ tier, signals, className }: TrustSignalsProps) {
 
 function getVisibleSignals(
   signals: TrustSignal[],
-  isAtLeast: (threshold: 'hands_off' | 'informed' | 'engaged' | 'deep') => boolean,
+  isAtLeast: (threshold: 'hands_off' | 'informed' | 'engaged') => boolean,
 ): TrustSignal[] {
   // hands_off: no signals, tier badge only
   if (!isAtLeast('informed')) return [];
@@ -151,7 +151,7 @@ function getVisibleSignals(
     return signals.filter((s) => s.key === 'participation' || s.key === 'reliability');
   }
 
-  // engaged + deep: all signals
+  // engaged: all signals
   return signals;
 }
 

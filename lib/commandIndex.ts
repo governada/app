@@ -10,7 +10,6 @@ import {
   Wallet,
   LogOut,
   HelpCircle,
-  Bell,
   User,
   type LucideIcon,
 } from 'lucide-react';
@@ -55,14 +54,6 @@ export const PAGE_COMMANDS: CommandItem[] = [
     icon: Vote,
     href: '/my-gov',
     shortcut: 'G',
-  },
-  {
-    id: 'page-inbox',
-    label: 'My Gov — Inbox',
-    sublabel: 'Governance notifications and actions',
-    group: 'pages',
-    icon: Bell,
-    href: '/my-gov/inbox',
   },
   {
     id: 'page-profile',

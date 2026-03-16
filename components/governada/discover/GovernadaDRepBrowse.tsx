@@ -760,8 +760,8 @@ export function GovernadaDRepBrowse(_props: GovernadaDRepBrowseProps) {
         </div>
       )}
 
-      {/* Deep: analytics context placeholder */}
-      <DepthGate minDepth="deep">
+      {/* Engaged: analytics context placeholder */}
+      <DepthGate minDepth="engaged">
         {/* TODO: Phase 6+ — DRep analytics, voting pattern analysis, delegation flow visualization */}
         <div className="rounded-xl border border-dashed border-border/40 bg-card/30 p-4 text-center">
           <p className="text-xs text-muted-foreground/60">

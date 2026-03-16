@@ -16,7 +16,7 @@ interface DRepDetailedAnalysisProps {
  *
  * - Citizens and anonymous users see a collapsed "Show detailed analysis" toggle.
  * - DReps, SPOs, CC members, and researchers see everything expanded by default.
- * - Deep-depth citizens also see it expanded by default.
+ * - Engaged-depth citizens also see it expanded by default.
  *
  * When expanded, a sticky collapse bar appears at the top so users can easily
  * collapse and return to the core profile as they scroll through the analysis.
@@ -26,8 +26,8 @@ export function DRepDetailedAnalysis({ children }: DRepDetailedAnalysisProps) {
   const { isAtLeast } = useGovernanceDepth();
 
   const isDetailedSegment = segment === 'drep' || segment === 'spo' || segment === 'cc';
-  const isDeepCitizen = segment === 'citizen' && isAtLeast('deep');
-  const shouldAutoExpand = isDetailedSegment || isDeepCitizen;
+  const isEngagedCitizen = segment === 'citizen' && isAtLeast('engaged');
+  const shouldAutoExpand = isDetailedSegment || isEngagedCitizen;
 
   // User toggle: null = not yet toggled by user, use segment-derived default
   const [userToggled, setUserToggled] = useState<boolean | null>(null);
@@ -36,7 +36,7 @@ export function DRepDetailedAnalysis({ children }: DRepDetailedAnalysisProps) {
   const [showStickyCollapse, setShowStickyCollapse] = useState(false);
   const gateRef = useRef<HTMLDivElement>(null);
 
-  // Derived expanded state: user toggle wins, else expand for confirmed detailed segments or deep citizens
+  // Derived expanded state: user toggle wins, else expand for confirmed detailed segments or engaged citizens
   const expanded = userToggled !== null ? userToggled : !isLoading && shouldAutoExpand;
 
   // IntersectionObserver to show sticky collapse when the gate top scrolls out of viewport

@@ -164,7 +164,7 @@ function NotificationBell({ unreadCount }: { unreadCount: number }) {
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild className="justify-center text-xs text-primary">
-              <Link href="/you/inbox">{t('View all notifications')}</Link>
+              <Link href="/you">{t('View all notifications')}</Link>
             </DropdownMenuItem>
           </>
         )}

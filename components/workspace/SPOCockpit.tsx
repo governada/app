@@ -70,7 +70,7 @@ function formatAdaCompact(ada: number): string {
  * - Hands-Off: Delegation hero + governance score (status widget)
  * - Informed:  + delegator count + vote/participation stats (operational summary)
  * - Engaged:   Current full cockpit (default for SPOs)
- * - Deep:      + pool comparison analytics (rank, peers, score trend)
+ * - Engaged:   + pool comparison analytics (rank, peers, score trend)
  *
  * SPO default depth = engaged, so existing users see no change.
  */
@@ -107,7 +107,7 @@ export function SPOCockpit() {
   const scoreDelta = (summary?.scoreDelta as number) ?? null;
   const momentum = (summary?.momentum as string) ?? (competitive?.momentum as string) ?? null;
 
-  // Deep analytics data from competitive endpoint
+  // Engaged analytics data from competitive endpoint
   const neighbors = (competitive?.neighbors as NeighborPool[]) ?? [];
   const scoreHistory = (competitive?.scoreHistory as ScoreSnapshot[]) ?? [];
 
@@ -312,8 +312,8 @@ export function SPOCockpit() {
         </div>
       </DepthGate>
 
-      {/* Deep: Pool comparison analytics */}
-      <DepthGate minDepth="deep">
+      {/* Engaged: Pool comparison analytics */}
+      <DepthGate minDepth="engaged">
         <PoolComparisonAnalytics
           score={score}
           rank={rank}
@@ -337,7 +337,7 @@ export function SPOCockpit() {
 }
 
 // ---------------------------------------------------------------------------
-// Pool Comparison Analytics — deep-depth competitive intelligence
+// Pool Comparison Analytics — engaged-depth competitive intelligence
 // ---------------------------------------------------------------------------
 
 interface PoolComparisonAnalyticsProps {

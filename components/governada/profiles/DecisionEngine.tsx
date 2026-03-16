@@ -38,12 +38,11 @@ interface DecisionEngineProps {
 
 /* ─── Depth-based card limits ─────────────────────────── */
 
-function getCardLimits(isAtLeast: (t: 'hands_off' | 'informed' | 'engaged' | 'deep') => boolean): {
+function getCardLimits(isAtLeast: (t: 'hands_off' | 'informed' | 'engaged') => boolean): {
   agreements: number;
   disagreements: number;
 } {
-  if (isAtLeast('deep')) return { agreements: Infinity, disagreements: Infinity };
-  if (isAtLeast('engaged')) return { agreements: 3, disagreements: 2 };
+  if (isAtLeast('engaged')) return { agreements: Infinity, disagreements: Infinity };
   if (isAtLeast('informed')) return { agreements: 2, disagreements: 2 };
   // hands_off: show alignment header + 1 top agreement only
   return { agreements: 1, disagreements: 0 };

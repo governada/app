@@ -534,7 +534,7 @@ export function useAlignmentAlerts() {
             inboxData.potentialGain > 0
               ? `Voting with rationale could boost your score by +${inboxData.potentialGain} pts.`
               : `Open proposals are awaiting your vote.`,
-          link: '/my-gov/inbox',
+          link: '/my-gov',
           timestamp: now,
           read: false,
           metadata: {
@@ -550,7 +550,7 @@ export function useAlignmentAlerts() {
           type: 'drep-urgent-deadline',
           title: `${inboxData.urgentCount} proposal${inboxData.urgentCount !== 1 ? 's' : ''} expiring soon`,
           description: `These proposals will expire within 2 epochs. Vote before they close.`,
-          link: '/my-gov/inbox',
+          link: '/my-gov',
           timestamp: now,
           read: false,
           metadata: { urgentCount: inboxData.urgentCount },

@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
         await sendMessage(
           chatId,
           `Check pending proposals for <b>${escapeHtml(getDRepPrimaryName(drep))}</b>:\n\n` +
-            `<a href="${SITE_URL}/dashboard/inbox">Open Governance Inbox</a>`,
+            `<a href="${SITE_URL}/my-gov">Open Governance Dashboard</a>`,
         );
         break;
       }

@@ -69,7 +69,7 @@ export default function HealthPage() {
           </FeatureGate>
         </DepthGate>
 
-        <DepthGate minDepth="deep">
+        <DepthGate minDepth="engaged">
           <div className="grid gap-6 lg:grid-cols-2">
             <FeatureGate flag="community_mandate">
               <CitizenMandate />

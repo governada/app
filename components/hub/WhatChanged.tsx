@@ -142,7 +142,7 @@ export function WhatChanged() {
           </div>
 
           <Link
-            href="/you/inbox"
+            href="/you"
             onClick={handleDismiss}
             className="flex items-center justify-center gap-1.5 text-xs text-primary hover:underline group"
           >

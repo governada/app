@@ -746,6 +746,205 @@ _(Patterns for structured discussion, argument quality, consensus finding, gover
 - **Applicable to**: Any future text participation features — gate deeper actions behind governance engagement history (participation score, delegation history, civic identity level)
 - **Adoption difficulty**: Easy — civic identity / milestones infrastructure already exists
 
+### Structured Q&A & Accountability
+
+_(Patterns for structured communication between reviewers and content authors)_
+
+#### SEC Comment Letter Format (Point-by-Point Accountability)
+
+- **Source**: SEC EDGAR Filing Review Process — https://www.sec.gov/resources-small-businesses/capital-raising-building-blocks/sec-filing-review-process
+- **Discovered**: 2026-03-16 (explore-feature: proposal review tool addendum)
+- **What they do**: SEC issues numbered concerns about IPO filings. Companies respond point-by-point. Multiple rounds until all concerns addressed. Full correspondence becomes public record after resolution. Companies must address every single comment — ignoring one is not an option.
+- **Why it's world-class**: Creates mandatory transparency. The numbered format makes accountability unambiguous — every concern has a traceable response. The public record means future filers benefit from the scrutiny. Non-responsiveness is visible.
+- **Applicable to**: Governance Q&A between DReps and proposal teams. Numbered questions with mandatory point-by-point responses. "3 of 5 DRep questions remain unanswered" as a trust signal.
+- **Adoption difficulty**: Medium — needs Q&A data model, response interface for proposal teams, resolution tracking
+
+#### Quote-from-Source Anchored Questions (Kickstarter Pattern)
+
+- **Source**: Kickstarter Project Comments — https://www.kickstarter.com/blog/product-upgrades-project-quotes-in-comments-and-more
+- **Discovered**: 2026-03-16 (explore-feature: proposal review tool addendum)
+- **What they do**: Backers highlight text in the project description (up to 300 chars), and a popup converts it into a blockquote in a new comment. The question is directly anchored to the specific claim being questioned.
+- **Why it's world-class**: Eliminates ambiguity. "You said X in paragraph 3 — substantiate this" is far more powerful than "I have a question about the budget." The anchor creates an unbreakable link between claim and challenge.
+- **Applicable to**: DReps highlighting specific proposal text to anchor their questions. Quote appears as blockquote in the Q&A section.
+- **Adoption difficulty**: Easy — text selection + quote extraction is a straightforward UI pattern
+
+### AI Research & Professional Intelligence
+
+_(Patterns for AI-assisted professional decision-making, not chatbots)_
+
+#### Question-In, Structured-Table-Out Research (Elicit Pattern)
+
+- **Source**: Elicit.com — https://elicit.com/
+- **Discovered**: 2026-03-16 (explore-feature: proposal review tool addendum)
+- **What they do**: Researcher types a question, Elicit searches 138M+ papers using semantic embeddings, returns structured table (not paragraph). Users define custom columns ("What was the sample size?") and Elicit extracts that data from up to 1,000 papers. 94-99% extraction accuracy. Sentence-level citations.
+- **Why it's world-class**: Not a chatbot — it's a research workspace. The structured table output enables comparison across sources. Custom columns mean the user defines what matters, not the AI. Sentence-level citations (not just paper-level) enable precise verification.
+- **Applicable to**: DRep querying across proposals — "Show me all proposals over 1M ADA with their delivery track records and constitutional alignment scores." Structured table with per-cell citations to on-chain data.
+- **Adoption difficulty**: Hard — needs structured data extraction pipeline + table UI + cross-proposal querying
+
+#### Domain-Specific AI with Authoritative Source Validation (Harvey/Clio Pattern)
+
+- **Source**: Harvey AI — https://www.harvey.ai/ + Clio Work — https://www.clio.com/work/
+- **Discovered**: 2026-03-16 (explore-feature: proposal review tool addendum)
+- **What they do**: Harvey validates every cited case against Shepard's Citations (legal gold standard). Clio maintains persistent case context across conversations. Both are grounded in verified domain data, never general web knowledge. Lawyers report 25% reduction in mental strain and 2x correct answers.
+- **Why it's world-class**: Domain-specific trust. Legal AI that cites non-existent cases is worse than useless — it's malpractice. Grounding in authoritative sources + persistent context transforms AI from "sometimes useful" to "professionally reliable."
+- **Applicable to**: Governance AI grounded in on-chain data (the blockchain as "Shepard's Citations"). Persistent context across a DRep's review session. Every claim validated against proposal text, constitutional articles, or on-chain data.
+- **Adoption difficulty**: Medium — existing data infrastructure is strong, needs conversational AI layer + citation linking
+
+### Annotation & Personal Knowledge
+
+_(Patterns for professional markup, annotation, and knowledge building)_
+
+#### Social Annotation as Transparent Overlay (Hypothesis Pattern)
+
+- **Source**: Hypothesis — https://web.hypothes.is/
+- **Discovered**: 2026-03-16 (explore-feature: proposal review tool addendum)
+- **What they do**: Browser extension adds annotation layer over any web page/PDF. Original document untouched. Annotations visible as sidebar overlay, togglable on/off. Group-scoped visibility (public, private, or group-only). Threaded replies on each annotation.
+- **Why it's world-class**: Separates the document from the discussion about it. Group scoping enables parallel review tracks (private expert review + public community discussion). Engagement heatmaps show which parts received most annotation — areas of confusion or controversy.
+- **Applicable to**: DRep annotation layer on governance proposals. Private notes for personal review, group annotations for DRep coalition deliberation, optional public annotations for transparency. Heatmap shows "14 DReps annotated this section."
+- **Adoption difficulty**: Medium — needs annotation data model, overlay UI, group permissions
+
+#### Keyboard-First Reading with Marginalia (Readwise Pattern)
+
+- **Source**: Readwise Reader — https://docs.readwise.io/reader/docs
+- **Discovered**: 2026-03-16 (explore-feature: proposal review tool addendum)
+- **What they do**: Press H to highlight, T to tag, N to add note. Zero-friction: auto-highlight mode converts any selection into highlight immediately. Notes appear as marginalia in right margin. Up/down arrows navigate paragraph-by-paragraph. Highlights auto-export to note-taking apps.
+- **Why it's world-class**: The tool disappears into the reading process. Keyboard-first creates a rhythm: read, highlight, note, move forward. Marginalia mirrors centuries of physical book annotation. Export pipeline means annotations become permanent knowledge.
+- **Applicable to**: DRep proposal review with keyboard shortcuts (H=highlight, N=note, Q=question, C=concern). Annotations feed into rationale drafting. Cross-proposal note search builds governance knowledge base.
+- **Adoption difficulty**: Medium — keyboard handler + annotation persistence + marginalia UI
+
+### Decision Quality & Deliberation
+
+_(Patterns for improving decision quality through structured thinking)_
+
+#### Pre-Outcome Decision Journal (Farnam Street Pattern)
+
+- **Source**: Farnam Street Decision Journal — https://fs.blog/decision-journal/
+- **Discovered**: 2026-03-16 (explore-feature: proposal review tool addendum)
+- **What they do**: Before making a decision, record: the specific decision, alternatives considered, key assumptions, confidence percentage, mental/physical state, and a "review in" date. At the review date, compare actual outcomes to predictions. Creates a feedback loop that most decision-makers lack.
+- **Why it's world-class**: Captures reasoning BEFORE the outcome is known, preventing hindsight bias. Confidence calibration over many decisions reveals systematic biases ("my 70% is actually 50%"). Assumption surfacing makes hidden premises examinable.
+- **Applicable to**: DRep decision journal per proposal — position, confidence, assumptions, "what would change my mind." After funded projects deliver (or don't), prompt retrospective. Creates governance learning loop unique in the ecosystem.
+- **Adoption difficulty**: Easy — structured form + persistence + retrospective prompts
+
+#### Analysis of Competing Hypotheses (Intelligence Community Pattern)
+
+- **Source**: CIA/Richards Heuer ACH Framework — https://en.wikipedia.org/wiki/Analysis_of_competing_hypotheses
+- **Discovered**: 2026-03-16 (explore-feature: proposal review tool addendum)
+- **What they do**: List hypotheses (possible outcomes). List evidence. Build matrix rating each evidence item's consistency with each hypothesis. Identify "diagnostic" evidence that distinguishes between hypotheses. Eliminate hypotheses with most inconsistent evidence. Test conclusion sensitivity.
+- **Why it's world-class**: Forces analysts to disprove rather than prove (countering confirmation bias). Matrix visualization makes reasoning gaps visible. Diagnosticity scoring separates signal from noise. Used for 50+ years in high-stakes intelligence analysis.
+- **Applicable to**: Optional structured analysis for complex/contentious governance proposals. DRep lists possible outcomes, maps evidence, focuses on what actually distinguishes success from failure. AI can assist in populating the matrix.
+- **Adoption difficulty**: Medium — matrix UI + AI assistance for population + optional workflow integration
+
+#### Rationale Joining / Opinion Architecture (Judicial Pattern)
+
+- **Source**: U.S. Supreme Court Opinion Format — https://www.americanbar.org/groups/public_education/publications/teaching-legal-docs/how-to-read-a-u-s-supreme-court-opinion/
+- **Discovered**: 2026-03-16 (explore-feature: proposal review tool addendum)
+- **What they do**: Majority opinion (decision + reasoning), concurrences (same outcome, different reasoning), dissents (different outcome + reasoning). Justices can join parts of an opinion selectively ("I join Parts I, II, and IV, but not Part III"). Creates a precise map of agreement and disagreement.
+- **Why it's world-class**: Formal disagreement architecture. Dissent is not buried — it's published alongside the majority with equal prominence. Part-by-part joining reveals exactly where reasoning diverges. Creates a rich record for future reference.
+- **Applicable to**: DRep rationale joining — "I adopt DRep X's rationale" (one-click join), concurrence (same vote, own reasoning), dissent (different vote + reasoning), partial join (agree with their constitutional analysis, not economic). Creates structured deliberation record.
+- **Adoption difficulty**: Medium — rationale linking data model + join/concur/dissent UI + CIP-100 extension for references
+
+### Document Versioning & Comparison
+
+_(Patterns for version management, diff visualization, and document lifecycle)_
+
+#### Three-Pane Synchronized Document Comparison (Litera Compare)
+
+- **Source**: Litera Compare (formerly DeltaView) — https://www.litera.com/products/litera-compare
+- **Discovered**: 2026-03-16 (explore-feature: proposal authoring lifecycle)
+- **What they do**: Three synchronized scrolling windows: original, modified, and redline. All scroll in sync. Every change numbered with click-to-navigate. Detects text, formatting, table, and image changes. Patented comparison engine produces readable redlines even for heavily restructured documents.
+- **Why it's world-class**: The gold standard for professional document comparison. Numbered change navigation converts overwhelming diffs into structured review tasks. Three-pane view shows both versions AND the diff simultaneously.
+- **Applicable to**: Governance proposal version comparison. Side-by-side previous and current versions with a unified redline. Numbered changes ("Change 3 of 12: Budget reduced from 5M to 3M ADA") with click-to-navigate.
+- **Adoption difficulty**: Medium — needs comparison algorithm + three-pane UI + semantic section awareness
+
+#### Semantic Structure Beneath Simple Surface (LegisPro / Akoma Ntoso)
+
+- **Source**: Xcential LegisPro — https://www.xcential.com/legispro
+- **Discovered**: 2026-03-16 (explore-feature: proposal authoring lifecycle)
+- **What they do**: Word-processor interface where every element (section, clause, citation) is semantically tagged in XML. "Change sets" — named bundles of modifications that can be toggled, compared, merged independently. Auto-generates amending language ("In Section 4(b), strike X and insert Y"). The diff IS the amendment.
+- **Why it's world-class**: Users think they're editing prose, but the system captures semantic meaning. Enables amendment trees, point-in-time views, and automated cross-reference maintenance. Used by governments worldwide.
+- **Applicable to**: Governance proposals with structured sections (budget, timeline, rationale, references). Semantic awareness means the diff engine can flag "budget changed" separately from cosmetic text changes.
+- **Adoption difficulty**: Hard — requires structured document model + semantic parsing + amendment management
+
+### Proposal & RFC Lifecycle Processes
+
+_(Patterns for structured proposal processes, stage gates, and deliberation pipelines)_
+
+#### Final Comment Period with Disposition (Rust RFC / IETF)
+
+- **Source**: Rust RFC Process — https://rust-lang.github.io/rfcs/ + IETF — https://www.ietf.org/process/rfcs/
+- **Discovered**: 2026-03-16 (explore-feature: proposal authoring lifecycle)
+- **What they do**: Before a decision, announce an FCP with a specific disposition (merge/close/postpone). Bounded timeframe (10 days for Rust). Forces resolution and prevents indefinite discussion. One last chance for objections. After FCP, the disposition is enacted.
+- **Why it's world-class**: Solves both premature decisions (minimum time requirements) and indefinite deliberation (bounded window). The stated disposition creates transparency: "we intend to accept this unless someone objects."
+- **Applicable to**: Before on-chain submission, proposal teams trigger an FCP (1 epoch / 5 days) with a stated disposition. All DReps notified. Last objection window. Prevents both rushed and stalled proposals.
+- **Adoption difficulty**: Easy — notification system + timer + stage gate logic
+
+#### Point-by-Point Response Requirement (Academic Peer Review)
+
+- **Source**: Academic journal peer review process — standard practice across SAGE, Wiley, Elsevier, etc.
+- **Discovered**: 2026-03-16 (explore-feature: proposal authoring lifecycle)
+- **What they do**: Authors must address every reviewer comment in a formal response letter, either incorporating the suggestion or respectfully disagreeing with explanation. Re-reviewed by original reviewers. Creates a formal dialogue where every concern has a traceable response.
+- **Why it's world-class**: Prevents proposals from ignoring inconvenient feedback. The response document IS the evidence of engagement. Creates thorough, documented iteration that builds trust.
+- **Applicable to**: After community review, proposal teams publish a formal response addressing each piece of substantive feedback. The response becomes part of the permanent record. Reviewers can update their scores based on the response.
+- **Adoption difficulty**: Easy — response form + linking to original review + notification
+
+#### Structured Review Rubrics (Catalyst Scoring)
+
+- **Source**: Cardano Project Catalyst — https://docs.projectcatalyst.io/current-fund/community-review
+- **Discovered**: 2026-03-16 (explore-feature: proposal authoring lifecycle)
+- **What they do**: Reviewers score on three dimensions: Impact (1-5), Feasibility (1-5), Value for Money (1-5) with written justification for each score. Scores aggregated and visible to voters. Two-phase review (community review → voter decision).
+- **Why it's world-class**: Transforms "what do you think?" into structured, comparable data. A proposal with 4.5 Impact but 2.0 Feasibility tells a clear story. Aggregated rubric scores help voters who can't read every proposal in depth.
+- **Applicable to**: Community Review stage of governance proposals. Dimension-specific scores create comparable data across proposals and reviewers. Different rubric dimensions per proposal type.
+- **Adoption difficulty**: Easy — scoring form + aggregation + display
+
+#### Discussion-to-Proposal Pipeline (Commonwealth / ENS)
+
+- **Source**: Commonwealth — https://commonwealth.im/ + ENS DAO — https://docs.ens.domains/dao/governance/process/
+- **Discovered**: 2026-03-16 (explore-feature: proposal authoring lifecycle)
+- **What they do**: Community discussion threads promoted to formal proposals, preserving the provenance of ideas. ENS uses different tools per stage: GitHub (drafting), Discourse (temperature check), Snapshot (voting), Governor (execution). Each stage has appropriate rigor.
+- **Why it's world-class**: Captures how governance ideas actually emerge — from informal discussion to formal proposal. The provenance chain means voters can trace any proposal back to the original community conversation that spawned it.
+- **Applicable to**: Cardano governance proposals starting as informal Forum/community discussions, then importing into Governada's structured lifecycle. The link between discussion and formal proposal is preserved.
+- **Adoption difficulty**: Medium — import pipeline + discussion linking + stage management
+
+### Embedded AI & Intelligence Patterns
+
+_(Patterns for AI that's a tool, not a chatbot — workflow-embedded intelligence)_
+
+#### Verbs Not Nouns — Embedded AI Over Chatbots
+
+- **Source**: Industry pattern (2025-2026 shift) — https://aakashgupta.medium.com/the-chatbot-era-is-already-over-heres-what-s-replacing-it-85e176769e04
+- **Discovered**: 2026-03-16 (explore-feature: AI tooling architecture)
+- **What they do**: "Good AI products are verbs — the AI enables the action but doesn't become the thing you interact with." AI embeds into existing workflows: Slack's summarize button on threads, Figma's generate inside the canvas, Linear's triage intelligence on issues. The AI is invisible when not needed, contextual when invoked, and produces output in the same format as human-created content.
+- **Why it's world-class**: Once AI embeds into a workflow, switching becomes painful — lock-in through habit, not features. Users don't "use AI" — they do their actual task. AI-enabled workflows grew from 3% to 25% of enterprise processes by end of 2025.
+- **Applicable to**: Governance AI should NOT be a chat panel. It should be "Analyze" buttons on proposal sections, auto-generated intelligence blocks on briefs, constitutional flags on draft sections. The platform feels smart — it doesn't have an "AI feature."
+- **Adoption difficulty**: Medium — requires rethinking AI from a feature to an infrastructure layer
+
+#### AI Skills as Structured Prompt Templates (Claude Code / Cursor Pattern)
+
+- **Source**: Claude Code Skills — https://code.claude.com/docs/en/slash-commands + Cursor Rules — https://docs.cursor.com/context/rules-for-ai
+- **Discovered**: 2026-03-16 (explore-feature: AI tooling architecture)
+- **What they do**: Skills are file-based prompt templates (`/command-name`) with YAML frontmatter for auto-invocation, stored alongside project code. Each produces structured output. Claude Code skills follow the open Agent Skills standard (portable across tools). Cursor uses path-scoped rules so different analysis applies to different file types automatically.
+- **Why it's world-class**: Skills are version-controlled, shareable, community-contributable. When one team member improves a workflow, the whole team benefits. The structured I/O means skill outputs are artifacts (usable directly), not conversation text.
+- **Applicable to**: Governance skills (`/budget-builder`, `/risk-analysis`, `/constitutional-check`, `/draft-rationale`) as structured prompt templates. Community-contributed skills. Each produces structured output insertable into proposals/rationales. Skill invocations logged as provenance.
+- **Adoption difficulty**: Medium — prompt template engine + structured I/O parsing + skill library UI
+
+#### BYOK Three-Tier Model (TypingMind / OpenRouter / VS Code)
+
+- **Source**: TypingMind — https://custom.typingmind.com/ + OpenRouter BYOK — https://openrouter.ai/docs/guides/overview/auth/byok + VS Code BYOK — https://code.visualstudio.com/blogs/2025/10/22/bring-your-own-key
+- **Discovered**: 2026-03-16 (explore-feature: AI tooling architecture)
+- **What they do**: Three-tier: Free (basic AI, rate-limited), Subscriber (hosted AI included in subscription), BYOK (bring your own API key, no rate limits). TypingMind stores keys locally (personal) or encrypted server-side (teams). OpenRouter charges 5% of model costs for BYOK (first 1M requests free). VS Code/Copilot lets enterprises use existing negotiated provider agreements.
+- **Why it's world-class**: Separates predictable platform costs from variable AI costs. Power users aren't limited by platform AI. Enterprise customers use existing security/compliance agreements. Provider abstraction means no vendor lock-in.
+- **Applicable to**: Free citizens get basic AI summaries. DRep/SPO Pro gets full AI skills. BYOK tier for power users, institutions, researchers. Provider abstraction via Vercel AI SDK pattern — same skill, different model.
+- **Adoption difficulty**: Medium — encrypted key storage + provider routing + rate limit tiers
+
+#### Process Provenance as Trust Signal (Legal AI Audit Trails + C2PA)
+
+- **Source**: Harvey AI audit trails — https://www.harvey.ai/ + Clio verified citations — https://www.clio.com/work/ + C2PA content provenance — https://blog.google/innovation-and-ai/products/google-gen-ai-content-transparency-c2pa/
+- **Discovered**: 2026-03-16 (explore-feature: AI tooling architecture)
+- **What they do**: Harvey tracks AI usage per attorney, matter, and practice area. Clio grounds every output in verified legal sources. C2PA provides cryptographic content credentials showing provenance (camera-captured, software-edited, AI-generated). The distinction: compliance audit (who used AI when) vs correctness audit (are the sources valid).
+- **Why it's world-class**: In high-stakes professional contexts, both types of audit matter. AI provenance is moving from voluntary to regulated. The provenance IS the trust signal — it can't be faked retroactively.
+- **Applicable to**: Every AI-assisted governance action carries provenance metadata: which skills were used, what inputs, what outputs, how much was human-edited. Displayed on proposals ("Team used 6 skills over 18 days") and vote records ("DRep deliberated 2 days, 58% rationale edited from draft"). Process provenance is the unfakeable differentiator between thoughtful governance and rubber-stamping.
+- **Adoption difficulty**: Easy-Medium — activity logging + display components + metadata on proposals/votes
+
 ### Performance & Perceived Speed
 
 _(Patterns for loading states, optimistic UI, streaming, progressive rendering)_

@@ -149,6 +149,25 @@ export const SEGMENT_PRESETS: SegmentPreset[] = [
     pickerDescription: 'View the app as this committee member.',
   },
 
+  // -- Proposer (capability overlay — works with any segment) --
+  {
+    id: 'citizen-proposer',
+    label: 'Citizen + Active Proposer',
+    description: 'A citizen who has an active proposal draft',
+    segment: 'citizen',
+    overrides: { delegatedDrep: 'drep_always_abstain' },
+  },
+  {
+    id: 'drep-proposer',
+    label: 'DRep + Active Proposer',
+    description: 'A DRep who is also authoring a proposal',
+    segment: 'drep',
+    overrides: {},
+    requiresPicker: 'drep',
+    pickerTitle: 'Pick a DRep',
+    pickerDescription: 'View as a DRep who also has active proposal drafts.',
+  },
+
   // -- Anonymous --
   {
     id: 'anonymous',
@@ -240,8 +259,7 @@ export const GOVERNANCE_DEPTH_DIMENSION: CrossCuttingDimension<GovernanceDepth> 
   values: [
     { key: 'hands_off', label: 'Hands-Off', description: 'Alerts only when something is wrong' },
     { key: 'informed', label: 'Informed', description: 'Major governance updates' },
-    { key: 'engaged', label: 'Engaged', description: 'Active governance participation' },
-    { key: 'deep', label: 'Deep', description: 'Full visibility, full control' },
+    { key: 'engaged', label: 'Engaged', description: 'Full visibility, all the tools' },
   ],
   defaultValue: null,
 };

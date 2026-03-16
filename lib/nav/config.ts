@@ -33,7 +33,6 @@ import {
   Building,
   Trophy,
   UserCog,
-  Bell,
   Settings,
   BadgeCheck,
   BookOpen,
@@ -41,6 +40,7 @@ import {
   Shield,
   Rocket,
   Link2,
+  PenLine,
 } from 'lucide-react';
 import type { UserSegment } from '@/components/providers/SegmentProvider';
 import { type GovernanceDepth, getTunerLevel } from '@/lib/governanceTuner';
@@ -98,6 +98,7 @@ export interface BottomBarConfig {
 /** Home sub-items for DRep persona (workspace tools shown under Home) */
 export const HOME_DREP_ITEMS: NavItem[] = [
   { href: '/workspace', label: 'Home', icon: Vote, sublabelKey: 'home.pendingVotes' },
+  { href: '/workspace/review', label: 'Review', icon: FileText, sublabelKey: 'home.pendingReview' },
   {
     href: '/workspace/votes',
     label: 'Voting Record',
@@ -110,11 +111,13 @@ export const HOME_DREP_ITEMS: NavItem[] = [
     icon: Users,
     sublabelKey: 'home.delegatedAda',
   },
+  { href: '/workspace/author', label: 'Author', icon: PenLine },
 ];
 
 /** Home sub-items for SPO persona (workspace tools shown under Home) */
 export const HOME_SPO_ITEMS: NavItem[] = [
   { href: '/workspace', label: 'Gov Score', icon: BarChart3, sublabelKey: 'home.govScore' },
+  { href: '/workspace/review', label: 'Review', icon: FileText, sublabelKey: 'home.pendingReview' },
   { href: '/workspace/pool-profile', label: 'Pool Profile', icon: Building },
   {
     href: '/workspace/delegators',
@@ -123,6 +126,12 @@ export const HOME_SPO_ITEMS: NavItem[] = [
     sublabelKey: 'home.delegatedAda',
   },
   { href: '/workspace/position', label: 'Position', icon: Trophy },
+  { href: '/workspace/author', label: 'Author', icon: PenLine },
+];
+
+/** Home sub-items for citizen persona — minimal workspace with Author access */
+export const HOME_CITIZEN_ITEMS: NavItem[] = [
+  { href: '/workspace/author', label: 'Author', icon: PenLine, requiresAuth: true },
 ];
 
 // Legacy aliases for any code that still references the old names
@@ -156,7 +165,6 @@ export const GOVERNANCE_ITEMS: NavItem[] = [
 /** Base You items — all authenticated personas */
 const YOU_BASE: NavItem[] = [
   { href: '/you', label: 'Identity', icon: UserCog },
-  { href: '/you/inbox', label: 'Inbox', icon: Bell, badge: 'unread', sublabelKey: 'you.unread' },
   { href: '/you/settings', label: 'Settings', icon: Settings },
 ];
 
@@ -309,8 +317,19 @@ export function getSidebarSections(
       href: '/',
       items: filteredItems,
     });
+  } else if (segment === 'citizen' || segment === 'cc') {
+    // Authenticated citizens and CC members get Home with Author workspace access
+    const filteredItems = filterByDepth(HOME_CITIZEN_ITEMS, depth);
+    sections.push({
+      id: 'home',
+      label: 'Home',
+      icon: Home,
+      href: '/',
+      items: filteredItems.length > 0 ? filteredItems : undefined,
+      requiresAuth: true,
+    });
   } else {
-    // Citizens, anonymous, CC — Home is a single link
+    // Anonymous — Home is a single link
     sections.push({
       id: 'home',
       label: 'Home',
@@ -446,6 +465,7 @@ export function getPillBarItems(
     }
     if (segment === 'drep') return filterByDepth(HOME_DREP_ITEMS, depth);
     if (segment === 'spo') return filterByDepth(HOME_SPO_ITEMS, depth);
+    if (segment === 'citizen' || segment === 'cc') return filterByDepth(HOME_CITIZEN_ITEMS, depth);
     return filterByDepth(HOME_DREP_ITEMS, depth);
   }
   if (pathname.startsWith('/you')) {

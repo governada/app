@@ -44,8 +44,8 @@ export function DiscoveryMode({
 }: DiscoveryModeProps) {
   const { isAtLeast } = useGovernanceDepth();
 
-  // Deep depth users without alignment data — show a prompt to take the quiz
-  if (isAtLeast('deep') as boolean) {
+  // Engaged depth users without alignment data — show a prompt to take the quiz
+  if (isAtLeast('engaged') as boolean) {
     return (
       <div className={cn('rounded-lg border p-6 text-center', className)}>
         <p className="text-muted-foreground">

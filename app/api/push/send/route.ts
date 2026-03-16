@@ -64,7 +64,7 @@ export const POST = withRouteHandler(
                 ? `${criticalCount} critical proposal${criticalCount !== 1 ? 's' : ''} need your vote`
                 : `${pendingCount} proposal${pendingCount !== 1 ? 's' : ''} awaiting your vote`,
             body: 'Open your DRep dashboard to review and vote.',
-            url: '/my-gov/inbox',
+            url: '/my-gov',
           },
         };
         break;
