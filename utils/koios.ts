@@ -1184,37 +1184,29 @@ export async function fetchCommitteeInfo(): Promise<{
   }>;
 } | null> {
   try {
-    const data = await koiosFetch<
-      Array<{
-        proposal_tx_hash: string;
-        proposal_index: number;
-        cc_members: Array<{
-          cc_hot_id: string;
-          cc_cold_id: string;
-          status: string;
-          start_epoch: number | null;
-          expiration_epoch: number | null;
-        }>;
-      }>
-    >('/committee_info');
+    // Koios /committee_info returns an array of objects. The members field name
+    // varies across API versions: 'cc_members' or 'members'. Handle both.
+    const data = await koiosFetch<Array<Record<string, unknown>>>('/committee_info');
 
     if (!data || data.length === 0) return null;
 
+    type CCMember = {
+      cc_hot_id: string;
+      cc_cold_id: string;
+      status: string;
+      start_epoch: number | null;
+      expiration_epoch: number | null;
+    };
+
     // Flatten and deduplicate by cc_hot_id
-    const memberMap = new Map<
-      string,
-      {
-        cc_hot_id: string;
-        cc_cold_id: string;
-        status: string;
-        start_epoch: number | null;
-        expiration_epoch: number | null;
-      }
-    >();
+    const memberMap = new Map<string, CCMember>();
 
     for (const entry of data) {
-      if (!entry.cc_members) continue;
-      for (const member of entry.cc_members) {
+      // Handle both 'cc_members' and 'members' field names
+      const membersArr =
+        (entry.cc_members as CCMember[] | undefined) ?? (entry.members as CCMember[] | undefined);
+      if (!Array.isArray(membersArr)) continue;
+      for (const member of membersArr) {
         if (member.cc_hot_id) {
           memberMap.set(member.cc_hot_id, member);
         }

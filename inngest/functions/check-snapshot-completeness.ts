@@ -39,6 +39,10 @@ export const checkSnapshotCompleteness = inngest.createFunction(
           .eq('id', 1)
           .single();
         const epoch = statsRow?.current_epoch ?? 0;
+        // Epoch-transition snapshots (participation, recaps, epoch_stats) are written
+        // for the *previous* epoch when the new epoch is detected. So we check epoch-1
+        // for those tables, since the current epoch's data won't exist until next transition.
+        const prevEpoch = epoch > 0 ? epoch - 1 : 0;
 
         if (epoch === 0) {
           return [{ name: 'epoch', passed: false, detail: 'Could not determine current epoch' }];
@@ -184,16 +188,16 @@ export const checkSnapshotCompleteness = inngest.createFunction(
           detail: `${delegSnapCount ?? 0}/${expectedDreps} DReps (${delegCoverage.toFixed(1)}%)`,
         });
 
-        // 11. Governance participation snapshots for current epoch
+        // 11. Governance participation snapshots — written during epoch transition for prevEpoch
         const { data: partRow } = await supabase
           .from('governance_participation_snapshots')
           .select('epoch')
-          .eq('epoch', epoch)
+          .eq('epoch', prevEpoch)
           .maybeSingle();
         results.push({
           name: 'governance_participation_snapshots',
           passed: !!partRow,
-          detail: partRow ? `epoch ${epoch} present` : `epoch ${epoch} MISSING`,
+          detail: partRow ? `epoch ${prevEpoch} present` : `epoch ${prevEpoch} MISSING`,
         });
 
         // 12. Proposal classifications — not epoch-scoped; verify coverage vs active proposals
@@ -212,50 +216,50 @@ export const checkSnapshotCompleteness = inngest.createFunction(
           detail: `${classifiedTotal}/${activeTotal} proposals classified (${classifyCoverage.toFixed(1)}%)`,
         });
 
-        // 13. Epoch recaps for current epoch
+        // 13. Epoch recaps — written during epoch transition for prevEpoch
         const { data: recapRow } = await supabase
           .from('epoch_recaps')
           .select('epoch')
-          .eq('epoch', epoch)
+          .eq('epoch', prevEpoch)
           .maybeSingle();
         results.push({
           name: 'epoch_recaps',
           passed: !!recapRow,
-          detail: recapRow ? `epoch ${epoch} present` : `epoch ${epoch} MISSING`,
+          detail: recapRow ? `epoch ${prevEpoch} present` : `epoch ${prevEpoch} MISSING`,
         });
 
-        // 14. SPO score snapshots for current epoch
+        // 14. SPO score snapshots for current epoch (column is epoch_no, not epoch)
         const { count: spoScoreCount } = await supabase
           .from('spo_score_snapshots')
           .select('pool_id', { count: 'exact', head: true })
-          .eq('epoch', epoch);
+          .eq('epoch_no', epoch);
         results.push({
           name: 'spo_score_snapshots',
           passed: (spoScoreCount ?? 0) > 0,
           detail: `${spoScoreCount ?? 0} pools for epoch ${epoch}`,
         });
 
-        // 15. SPO alignment snapshots for current epoch
+        // 15. SPO alignment snapshots for current epoch (column is epoch_no, not epoch)
         const { count: spoAlignCount } = await supabase
           .from('spo_alignment_snapshots')
           .select('pool_id', { count: 'exact', head: true })
-          .eq('epoch', epoch);
+          .eq('epoch_no', epoch);
         results.push({
           name: 'spo_alignment_snapshots',
           passed: (spoAlignCount ?? 0) > 0,
           detail: `${spoAlignCount ?? 0} pools for epoch ${epoch}`,
         });
 
-        // 16. Governance epoch stats for current epoch
+        // 16. Governance epoch stats — written during epoch transition for prevEpoch
         const { data: govStatsRow } = await supabase
           .from('governance_epoch_stats')
           .select('epoch_no')
-          .eq('epoch_no', epoch)
+          .eq('epoch_no', prevEpoch)
           .maybeSingle();
         results.push({
           name: 'governance_epoch_stats',
           passed: !!govStatsRow,
-          detail: govStatsRow ? `epoch ${epoch} present` : `epoch ${epoch} MISSING`,
+          detail: govStatsRow ? `epoch ${prevEpoch} present` : `epoch ${prevEpoch} MISSING`,
         });
 
         // 17. Epoch governance summaries (data moat) for current epoch

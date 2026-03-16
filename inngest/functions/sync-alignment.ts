@@ -484,13 +484,15 @@ export const syncAlignment = inngest.createFunction(
     const snapshotResult = await step.run('persist-snapshots', async () => {
       const sb = getSupabaseAdmin();
 
-      const { data: tipData } = await sb
-        .from('proposals')
-        .select('proposed_epoch')
-        .order('proposed_epoch', { ascending: false })
-        .limit(1);
-      const currentEpoch =
-        (tipData as { proposed_epoch: number }[] | null)?.[0]?.proposed_epoch || 0;
+      // Use governance_stats.current_epoch so snapshots land in the same epoch
+      // that check-snapshot-completeness queries. Previously derived from
+      // proposals.proposed_epoch which could diverge.
+      const { data: statsRow } = await sb
+        .from('governance_stats')
+        .select('current_epoch')
+        .eq('id', 1)
+        .single();
+      const currentEpoch = statsRow?.current_epoch ?? 0;
       if (currentEpoch === 0) return { epoch: 0, snapshots: 0 };
 
       const snapshots = computeResult.scores.map((row) => ({
