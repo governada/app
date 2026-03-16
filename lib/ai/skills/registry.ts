@@ -41,5 +41,6 @@ export function listSkills(): Array<{ name: string; description: string; categor
  * Call this once during app initialization.
  */
 export async function loadBuiltinSkills(): Promise<void> {
+  await import('./constitutional-check');
   await import('./research-precedent');
 }

@@ -9,6 +9,7 @@ import { SentimentBar } from '@/components/workspace/shared/SentimentBar';
 import { VoteTally } from '@/components/workspace/shared/VoteTally';
 import { IntelligenceBlocks } from '@/components/workspace/review/IntelligenceBlocks';
 import { SourceMaterial } from '@/components/workspace/review/SourceMaterial';
+import { MinorityReport } from '@/components/workspace/shared/MinorityReport';
 import { FeatureGate } from '@/components/FeatureGate';
 import type { ReviewQueueItem } from '@/lib/workspace/types';
 
@@ -150,6 +151,11 @@ export function ReviewBrief({ item, position, total }: ReviewBriefProps) {
           />
         </CardContent>
       </Card>
+
+      {/* Minority Report (always visible if data exists) */}
+      <FeatureGate flag="perspective_clustering">
+        <MinorityReport proposalTxHash={item.txHash} proposalIndex={item.proposalIndex} />
+      </FeatureGate>
 
       {/* Source Material */}
       <SourceMaterial item={item} />
