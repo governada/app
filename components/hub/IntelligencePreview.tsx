@@ -86,7 +86,7 @@ export function IntelligencePreview() {
           Epoch {data.epoch}
         </Badge>
         <Link
-          href="/governance"
+          href="/governance/pulse"
           className="text-xs text-primary/80 hover:text-primary transition-colors flex items-center gap-1"
         >
           See the full briefing

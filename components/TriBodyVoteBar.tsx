@@ -27,21 +27,21 @@ const SIZE_CONFIG = {
 const BODY_COLORS = {
   primary: {
     label: 'text-primary',
-    yes: 'bg-primary',
-    no: 'bg-destructive',
-    abstain: 'bg-muted-foreground/30',
+    yes: 'bg-primary/80',
+    no: 'bg-destructive/80',
+    abstain: 'bg-muted-foreground/40',
   },
   cyan: {
     label: 'text-cyan-500',
-    yes: 'bg-cyan-500',
-    no: 'bg-destructive',
-    abstain: 'bg-muted-foreground/30',
+    yes: 'bg-cyan-500/80',
+    no: 'bg-destructive/80',
+    abstain: 'bg-muted-foreground/40',
   },
   amber: {
     label: 'text-amber-500',
-    yes: 'bg-amber-500',
-    no: 'bg-destructive',
-    abstain: 'bg-muted-foreground/30',
+    yes: 'bg-amber-500/80',
+    no: 'bg-destructive/80',
+    abstain: 'bg-muted-foreground/40',
   },
 } as const;
 

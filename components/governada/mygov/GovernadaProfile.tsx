@@ -160,24 +160,40 @@ export function GovernadaProfile() {
           )}
           {segment === 'drep' && drepId && (
             <div className="flex justify-between">
-              <span className="text-muted-foreground">DRep ID</span>
+              <span className="text-muted-foreground">DRep</span>
               <Link
                 href={`/drep/${drepId}`}
-                className="text-primary hover:underline truncate max-w-[160px] font-mono"
+                className="text-primary hover:underline truncate max-w-[200px]"
               >
-                {drepId.slice(0, 16)}…
+                {displayName || drepId.slice(0, 16) + '…'}
               </Link>
+            </div>
+          )}
+          {segment === 'drep' && drepId && displayName && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">DRep ID</span>
+              <span className="truncate max-w-[160px] font-mono text-foreground/80">
+                {drepId.slice(0, 16)}…
+              </span>
             </div>
           )}
           {segment === 'spo' && poolId && (
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Pool ID</span>
+              <span className="text-muted-foreground">Pool</span>
               <Link
                 href={`/pool/${poolId}`}
-                className="text-primary hover:underline truncate max-w-[160px] font-mono"
+                className="text-primary hover:underline truncate max-w-[200px]"
               >
-                {poolId.slice(0, 16)}…
+                {displayName || poolId.slice(0, 16) + '…'}
               </Link>
+            </div>
+          )}
+          {segment === 'spo' && poolId && displayName && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Pool ID</span>
+              <span className="truncate max-w-[160px] font-mono text-foreground/80">
+                {poolId.slice(0, 16)}…
+              </span>
             </div>
           )}
         </div>

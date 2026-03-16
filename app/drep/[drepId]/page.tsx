@@ -13,7 +13,7 @@
  */
 
 import { notFound } from 'next/navigation';
-import { cookies } from 'next/headers';
+
 import nextDynamic from 'next/dynamic';
 import type { Metadata } from 'next';
 
@@ -426,13 +426,6 @@ export default async function DRepDetailPage({ params, searchParams }: DRepDetai
   const treasuryJudgmentScore = treasuryRecord?.judgmentScore ?? null;
   const treasuryProposalCount = treasuryRecord?.totalProposals ?? 0;
 
-  // Check if viewer is authenticated (hide certain elements for anonymous visitors)
-  let isViewerAuthenticated = false;
-  try {
-    const cookieStore = await cookies();
-    isViewerAuthenticated = !!cookieStore.get('drepscore_session')?.value;
-  } catch {}
-
   const brokenLinks = new Set(linkChecks.filter((c) => c.status === 'broken').map((c) => c.uri));
 
   const adjustedRationale = applyRationaleCurve(drep.rationaleRate);
@@ -597,44 +590,15 @@ export default async function DRepDetailPage({ params, searchParams }: DRepDetai
         })}
         narrativeAccentColor={getIdentityColor(getDominantDimension(alignments)).hex}
       >
-        <InlineDelegationCTA drepId={drep.drepId} drepName={drepName} />
+        <SegmentGate hide={['drep']}>
+          <InlineDelegationCTA drepId={drep.drepId} drepName={drepName} />
+        </SegmentGate>
         <CompareButton currentDrepId={drep.drepId} currentDrepName={drepName} />
         <WatchEntityButton entityType="drep" entityId={drep.drepId} />
         <PinButton type="drep" id={drep.drepId} label={drepName} />
       </DRepProfileHero>
 
-      {/* Tier Progress + Momentum — governance participants only */}
-      {isViewerAuthenticated && tierProgress.pointsToNext != null && (
-        <SegmentGate show={['drep', 'spo', 'cc']}>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-xl border border-border/50 bg-card/70 backdrop-blur-md px-4 sm:px-5 py-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <span className="text-sm font-medium whitespace-nowrap">
-                {tierProgress.pointsToNext} pts to{' '}
-                <span className="text-primary font-bold">{tierProgress.nextTier}</span>
-              </span>
-              <span className="text-xs text-muted-foreground whitespace-nowrap">
-                {tierProgress.percentWithinTier}% through {tierProgress.currentTier}
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              {drep.scoreMomentum != null && drep.scoreMomentum !== 0 && (
-                <span
-                  className={`text-xs font-medium tabular-nums whitespace-nowrap ${drep.scoreMomentum > 0 ? 'text-emerald-400' : 'text-rose-400'}`}
-                >
-                  {drep.scoreMomentum > 0 ? '+' : ''}
-                  {drep.scoreMomentum.toFixed(1)} pts/day
-                </span>
-              )}
-              <div className="w-24 h-1.5 bg-border rounded-full overflow-hidden shrink-0">
-                <div
-                  className="h-full rounded-full bg-primary"
-                  style={{ width: `${tierProgress.percentWithinTier}%` }}
-                />
-              </div>
-            </div>
-          </div>
-        </SegmentGate>
-      )}
+      {/* Tier progress lives in the DRep/SPO workspace homepage, not on public profiles */}
 
       {/* ════════════════════════════════════════════
           DECISION ENGINE / DISCOVERY MODE

@@ -68,12 +68,6 @@ function formatAda(ada: number): string {
   return ada.toLocaleString();
 }
 
-function formatPowerFraction(fraction: number): string {
-  if (fraction >= 0.01) return `${(fraction * 100).toFixed(1)}%`;
-  if (fraction >= 0.001) return `${(fraction * 100).toFixed(2)}%`;
-  return `${(fraction * 100).toFixed(3)}%`;
-}
-
 /** Convert epoch number to a human-readable date range like "Mar 8 – 13" */
 function epochDateRange(epoch: number): string {
   const SHELLEY_GENESIS = 1596491091;
@@ -200,10 +194,12 @@ function ConsequenceCard({ proposal }: { proposal: ConsequenceProposal }) {
           {/* DRep vote + alignment + community signal row */}
           <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
             {voteInfo && (
-              <span className={cn('font-medium', voteInfo.color)}>{voteInfo.label}</span>
+              <span className={cn('font-medium', voteInfo.color)}>
+                DRep {voteInfo.label.toLowerCase()}
+              </span>
             )}
             {!voteInfo && proposal.drepVote === null && (
-              <span className="text-muted-foreground/60">Your representative didn&apos;t vote</span>
+              <span className="text-muted-foreground/60">Your DRep didn&apos;t vote</span>
             )}
             {alignment && (
               <span className={cn('inline-flex items-center gap-1 font-medium', alignment.color)}>
@@ -354,7 +350,7 @@ function ActiveProposalCard({ proposal }: { proposal: ConsequenceProposal }) {
                 </span>
               )}
               {!voteInfo && (
-                <span className="text-amber-400/80">Your representative hasn&apos;t voted yet</span>
+                <span className="text-amber-400/80">Your DRep hasn&apos;t voted yet</span>
               )}
               {community.total > 0 && <CommunitySignalInline signal={community} />}
             </div>
