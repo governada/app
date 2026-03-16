@@ -24,12 +24,17 @@ import {
 import type { VoteChoice } from '@/lib/voting';
 import { posthog } from '@/lib/posthog';
 
+interface ReviewWorkspaceProps {
+  /** Deep-link key in "txHash:index" format to auto-select a proposal on load */
+  initialProposalKey?: string;
+}
+
 /**
  * ReviewWorkspace — the top-level client component for /workspace/review.
  * Three-column layout on desktop (queue rail + main content + notes sidebar),
  * stacked on mobile with a floating button for the notes sheet.
  */
-export function ReviewWorkspace() {
+export function ReviewWorkspace({ initialProposalKey }: ReviewWorkspaceProps) {
   const { segment, drepId, poolId } = useSegment();
   const { ownDRepId } = useWallet();
 
@@ -52,6 +57,18 @@ export function ReviewWorkspace() {
   useEffect(() => {
     posthog.capture('review_workspace_viewed', { voter_role: voterRole });
   }, [voterRole]);
+
+  // Auto-select a proposal from deep link (e.g. ?proposal=txHash:0)
+  useEffect(() => {
+    if (!initialProposalKey || items.length === 0) return;
+    const [txHash, indexStr] = initialProposalKey.split(':');
+    const proposalIndex = Number(indexStr);
+    if (!txHash || isNaN(proposalIndex)) return;
+    const idx = items.findIndex(
+      (item) => item.txHash === txHash && item.proposalIndex === proposalIndex,
+    );
+    if (idx >= 0) setSelectedIndex(idx);
+  }, [initialProposalKey, items]);
 
   // Progress computation
   const progress = useMemo(() => {

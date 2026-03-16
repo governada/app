@@ -38,6 +38,7 @@ import { getHistoricalBaseRate, computeVoteProjection } from '@/lib/voteProjecti
 import { CompactHeader } from '@/components/governada/proposals/CompactHeader';
 import { ConvictionTugOfWar } from '@/components/governada/proposals/ConvictionTugOfWar';
 import { InlineActionNudge } from '@/components/governada/proposals/InlineActionNudge';
+import { ProposalBridge } from '@/components/governada/proposals/ProposalBridge';
 import { LivingBrief } from '@/components/governada/proposals/LivingBrief';
 import { SourceMaterial } from '@/components/governada/proposals/SourceMaterial';
 import { YourRepresentativeCard } from '@/components/governada/proposals/YourRepresentativeCard';
@@ -90,8 +91,9 @@ export default async function ProposalDetailPage({ params }: PageProps) {
 
   if (!proposal) notFound();
 
-  // Living Brief feature flag
+  // Feature flags
   const livingBriefEnabled = await getFeatureFlag('living_brief', false);
+  const discoveryActionSplit = await getFeatureFlag('discovery_action_split', false);
 
   // Fetch brief data + historical context if enabled (non-blocking, defaults to null)
   const brief = livingBriefEnabled
@@ -295,15 +297,25 @@ export default async function ProposalDetailPage({ params }: PageProps) {
         />
       )}
 
-      {/* Zone 3: Action Nudge */}
+      {/* Zone 3: Action Bridge / Nudge */}
       <ProposalDepthSection section="actionZone">
-        <InlineActionNudge
-          txHash={txHash}
-          proposalIndex={proposalIndex}
-          title={title}
-          isOpen={isOpen}
-          proposalType={proposal.proposalType}
-        />
+        {discoveryActionSplit ? (
+          <ProposalBridge
+            txHash={txHash}
+            proposalIndex={proposalIndex}
+            title={title}
+            isOpen={isOpen}
+            proposalType={proposal.proposalType}
+          />
+        ) : (
+          <InlineActionNudge
+            txHash={txHash}
+            proposalIndex={proposalIndex}
+            title={title}
+            isOpen={isOpen}
+            proposalType={proposal.proposalType}
+          />
+        )}
       </ProposalDepthSection>
 
       {/* Zone 4: Living Brief */}
@@ -443,17 +455,27 @@ export default async function ProposalDetailPage({ params }: PageProps) {
         treasuryBalanceAda={treasury?.balanceAda ?? null}
       />
 
-      {/* Zone 2: Primary Action — persona-branching (DRep/SPO vote flow vs citizen engagement) */}
+      {/* Zone 2: Primary Action — bridge to workspace (flag) or embedded action zone (legacy) */}
       <ProposalDepthSection section="actionZone">
-        <ProposalActionZone
-          txHash={txHash}
-          proposalIndex={proposalIndex}
-          title={title}
-          isOpen={isOpen}
-          proposalAbstract={proposal.abstract}
-          proposalType={proposal.proposalType}
-          aiSummary={proposal.aiSummary}
-        />
+        {discoveryActionSplit ? (
+          <ProposalBridge
+            txHash={txHash}
+            proposalIndex={proposalIndex}
+            title={title}
+            isOpen={isOpen}
+            proposalType={proposal.proposalType}
+          />
+        ) : (
+          <ProposalActionZone
+            txHash={txHash}
+            proposalIndex={proposalIndex}
+            title={title}
+            isOpen={isOpen}
+            proposalAbstract={proposal.abstract}
+            proposalType={proposal.proposalType}
+            aiSummary={proposal.aiSummary}
+          />
+        )}
       </ProposalDepthSection>
 
       {/* Zone 3: Intelligence Briefing — AI summary + constitutional + params */}

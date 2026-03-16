@@ -32,6 +32,7 @@ import {
 import { VoteRecord } from '@/types/drep';
 import { VotingHistoryWithPrefs } from '@/components/VotingHistoryWithPrefs';
 import { InlineDelegationCTA } from '@/components/InlineDelegationCTA';
+import { DelegationBridgeButton } from '@/components/governada/profiles/DelegationBridgeButton';
 const ScoreHistoryChart = nextDynamic(
   () => import('@/components/ScoreHistoryChart').then((m) => m.ScoreHistoryChart),
   { loading: () => <div className="h-32 animate-pulse bg-muted rounded-lg" /> },
@@ -118,6 +119,7 @@ import {
 } from '@/lib/data';
 import { createClient } from '@/lib/supabase';
 import { BASE_URL } from '@/lib/constants';
+import { getFeatureFlag } from '@/lib/featureFlags';
 import { Suspense } from 'react';
 import { SegmentGate } from '@/components/shared/SegmentGate';
 import { computeTrustSignals } from '@/lib/trustSignals';
@@ -364,6 +366,7 @@ export default async function DRepDetailPage({ params, searchParams }: DRepDetai
   }
 
   const matchScore = match ? parseInt(match, 10) : null;
+  const discoveryActionSplit = await getFeatureFlag('discovery_action_split', false);
 
   let scoreHistory: Awaited<ReturnType<typeof getScoreHistory>> = [];
   let percentile = 0;
@@ -591,7 +594,11 @@ export default async function DRepDetailPage({ params, searchParams }: DRepDetai
         narrativeAccentColor={getIdentityColor(getDominantDimension(alignments)).hex}
       >
         <SegmentGate hide={['drep']}>
-          <InlineDelegationCTA drepId={drep.drepId} drepName={drepName} />
+          {discoveryActionSplit ? (
+            <DelegationBridgeButton drepId={drep.drepId} drepName={drepName} />
+          ) : (
+            <InlineDelegationCTA drepId={drep.drepId} drepName={drepName} />
+          )}
         </SegmentGate>
         <CompareButton currentDrepId={drep.drepId} currentDrepName={drepName} />
         <WatchEntityButton entityType="drep" entityId={drep.drepId} />
