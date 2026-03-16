@@ -36,6 +36,8 @@ interface IntelligenceBlocksProps {
   title: string;
   abstract: string | null;
   proposalType: string;
+  /** When true, hides PerspectiveDiversity during sealed period */
+  isSealed?: boolean;
 }
 
 interface ConstitutionalFlag {
@@ -369,7 +371,7 @@ export function IntelligenceBlocks(props: IntelligenceBlocksProps) {
     <div className="space-y-3">
       <ConstitutionalSummaryBlock {...props} />
       <SimilarProposalsBlock {...props} />
-      <PerspectiveDiversityBlock />
+      {!props.isSealed && <PerspectiveDiversityBlock />}
     </div>
   );
 }

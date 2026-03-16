@@ -9,7 +9,6 @@ import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { ReviewQueue } from './ReviewQueue';
 import { ReviewBrief } from './ReviewBrief';
 import { ReviewActionZone } from './ReviewActionZone';
-import { PostVoteShare } from './PostVoteShare';
 import { ProposalNotes } from './ProposalNotes';
 import { DecisionJournal } from './DecisionJournal';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -48,8 +47,6 @@ export function ReviewWorkspace({ initialProposalKey }: ReviewWorkspaceProps = {
   const { getStatus, setStatus, reviewedCount } = useQueueState(voterId);
 
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [voteTxHash, setVoteTxHash] = useState<string | null>(null);
-  const [lastVote, setLastVote] = useState<string | null>(null);
   const [notesSheetOpen, setNotesSheetOpen] = useState(false);
 
   const items = useMemo(() => data?.items ?? [], [data?.items]);
@@ -88,35 +85,23 @@ export function ReviewWorkspace({ initialProposalKey }: ReviewWorkspaceProps = {
   // Navigation callbacks
   const goNext = useCallback(() => {
     setSelectedIndex((prev) => Math.min(prev + 1, items.length - 1));
-    setVoteTxHash(null);
-    setLastVote(null);
   }, [items.length]);
 
   const goPrev = useCallback(() => {
     setSelectedIndex((prev) => Math.max(prev - 1, 0));
-    setVoteTxHash(null);
-    setLastVote(null);
   }, []);
 
   const handleSelect = useCallback((index: number) => {
     setSelectedIndex(index);
-    setVoteTxHash(null);
-    setLastVote(null);
   }, []);
 
-  // Vote success handler
+  // Vote success handler — called by ReviewActionZone after on-chain vote succeeds
   const handleVoteSuccess = useCallback(
     (vote: VoteChoice) => {
       if (!selectedItem) return;
       setStatus(selectedItem.txHash, selectedItem.proposalIndex, 'voted', vote);
-      // We don't store the full txHash from the vote result here;
-      // the ReviewActionZone shows the CardanoScan link directly.
-      // After success, auto-advance after a brief delay if there's a next item.
-      if (selectedIndex < items.length - 1) {
-        setTimeout(() => goNext(), 1500);
-      }
     },
-    [selectedItem, setStatus, selectedIndex, items.length, goNext],
+    [selectedItem, setStatus],
   );
 
   // Keyboard shortcuts (vote buttons handled by ReviewActionZone, but nav here)
@@ -231,18 +216,6 @@ export function ReviewWorkspace({ initialProposalKey }: ReviewWorkspaceProps = {
               onVote={(_txHash, _index, vote) => handleVoteSuccess(vote as VoteChoice)}
               onNextProposal={goNext}
             />
-
-            {/* Post-vote share (placeholder for PR 3) */}
-            {voteTxHash && lastVote && (
-              <PostVoteShare
-                drepId={voterId}
-                txHash={selectedItem.txHash}
-                index={selectedItem.proposalIndex}
-                vote={lastVote}
-                proposalTitle={selectedItem.title || 'Governance Proposal'}
-                onNextProposal={goNext}
-              />
-            )}
           </div>
         )}
       </div>
