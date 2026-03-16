@@ -1,10 +1,10 @@
 import { z } from 'zod';
 
 // ---------------------------------------------------------------------------
-// Draft CRUD schemas
+// Shared enums
 // ---------------------------------------------------------------------------
 
-const GOVERNANCE_ACTION_TYPES = [
+const ProposalTypeEnum = z.enum([
   'InfoAction',
   'TreasuryWithdrawals',
   'ParameterChange',
@@ -12,12 +12,20 @@ const GOVERNANCE_ACTION_TYPES = [
   'NoConfidence',
   'NewCommittee',
   'NewConstitution',
-] as const;
+]);
+
+// ---------------------------------------------------------------------------
+// Draft CRUD schemas (authoring pipeline)
+// ---------------------------------------------------------------------------
 
 export const CreateDraftSchema = z.object({
   stakeAddress: z.string().min(1, 'stakeAddress is required'),
-  proposalType: z.enum(GOVERNANCE_ACTION_TYPES),
-  title: z.string().max(200).optional(),
+  title: z.string().max(200).default(''),
+  abstract: z.string().max(2000).default(''),
+  motivation: z.string().max(10000).default(''),
+  rationale: z.string().max(10000).default(''),
+  proposalType: ProposalTypeEnum,
+  typeSpecific: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const UpdateDraftSchema = z.object({
@@ -25,12 +33,14 @@ export const UpdateDraftSchema = z.object({
   abstract: z.string().max(2000).optional(),
   motivation: z.string().max(10000).optional(),
   rationale: z.string().max(10000).optional(),
+  proposalType: ProposalTypeEnum.optional(),
   typeSpecific: z.record(z.string(), z.unknown()).optional(),
+  status: z.enum(['draft', 'review', 'ready', 'submitted', 'archived']).optional(),
 });
 
 export const SaveVersionSchema = z.object({
-  versionName: z.string().min(1, 'Version name is required').max(100),
-  editSummary: z.string().max(500).optional(),
+  versionName: z.string().min(1, 'versionName is required').max(200),
+  editSummary: z.string().max(1000).optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -38,11 +48,11 @@ export const SaveVersionSchema = z.object({
 // ---------------------------------------------------------------------------
 
 export const ConstitutionalCheckSchema = z.object({
-  title: z.string().max(200),
-  abstract: z.string().max(2000),
-  motivation: z.string().max(10000),
-  rationale: z.string().max(10000),
-  proposalType: z.enum(GOVERNANCE_ACTION_TYPES),
+  title: z.string().min(1, 'title is required').max(200),
+  abstract: z.string().max(2000).default(''),
+  motivation: z.string().max(10000).default(''),
+  rationale: z.string().max(10000).default(''),
+  proposalType: ProposalTypeEnum,
   typeSpecific: z.record(z.string(), z.unknown()).optional(),
 });
 
@@ -51,12 +61,10 @@ export const ConstitutionalCheckSchema = z.object({
 // ---------------------------------------------------------------------------
 
 export const Cip108PreviewSchema = z.object({
-  title: z.string().min(1, 'Title is required').max(200),
-  abstract: z.string().min(1, 'Abstract is required').max(2000),
-  motivation: z.string().min(1, 'Motivation is required').max(10000),
-  rationale: z.string().min(1, 'Rationale is required').max(10000),
-  proposalType: z.enum(GOVERNANCE_ACTION_TYPES),
-  typeSpecific: z.record(z.string(), z.unknown()).optional(),
+  title: z.string().min(1, 'title is required').max(200),
+  abstract: z.string().max(2000).default(''),
+  motivation: z.string().max(10000).default(''),
+  rationale: z.string().max(10000).default(''),
   authorName: z.string().max(200).optional(),
 });
 

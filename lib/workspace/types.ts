@@ -6,6 +6,39 @@
  */
 
 // ---------------------------------------------------------------------------
+// Governance action types (shared)
+// ---------------------------------------------------------------------------
+
+export type ProposalType =
+  | 'InfoAction'
+  | 'TreasuryWithdrawals'
+  | 'ParameterChange'
+  | 'HardForkInitiation'
+  | 'NoConfidence'
+  | 'NewCommittee'
+  | 'NewConstitution';
+
+export const PROPOSAL_TYPE_LABELS: Record<ProposalType, string> = {
+  InfoAction: 'Info Action',
+  TreasuryWithdrawals: 'Treasury Withdrawal',
+  ParameterChange: 'Parameter Change',
+  HardForkInitiation: 'Hard Fork Initiation',
+  NoConfidence: 'No Confidence',
+  NewCommittee: 'New Committee',
+  NewConstitution: 'New Constitution',
+};
+
+export const PROPOSAL_TYPE_DESCRIPTIONS: Record<ProposalType, string> = {
+  InfoAction: 'A non-binding informational action for community signaling.',
+  TreasuryWithdrawals: 'Request ADA from the Cardano treasury for a specific purpose.',
+  ParameterChange: 'Propose a change to one or more protocol parameters.',
+  HardForkInitiation: 'Initiate a hard fork to upgrade the protocol.',
+  NoConfidence: 'Express no confidence in the current Constitutional Committee.',
+  NewCommittee: 'Propose new members for the Constitutional Committee.',
+  NewConstitution: 'Propose a replacement for the Cardano Constitution.',
+};
+
+// ---------------------------------------------------------------------------
 // Review Workspace types
 // ---------------------------------------------------------------------------
 
@@ -63,16 +96,17 @@ export interface ReviewQueueResponse {
 // Authoring Pipeline types
 // ---------------------------------------------------------------------------
 
-export type DraftStatus = 'draft' | 'community_review' | 'final_comment' | 'submitted' | 'archived';
+export type DraftStatus = 'draft' | 'review' | 'ready' | 'submitted' | 'archived';
 
-export type GovernanceActionType =
-  | 'InfoAction'
-  | 'TreasuryWithdrawals'
-  | 'ParameterChange'
-  | 'HardForkInitiation'
-  | 'NoConfidence'
-  | 'NewCommittee'
-  | 'NewConstitution';
+export interface DraftContent {
+  title: string;
+  abstract: string;
+  motivation: string;
+  rationale: string;
+  proposalType: ProposalType;
+  /** Type-specific fields (e.g., withdrawal amount for treasury) */
+  typeSpecific?: Record<string, unknown>;
+}
 
 export interface ProposalDraft {
   id: string;
@@ -81,12 +115,10 @@ export interface ProposalDraft {
   abstract: string;
   motivation: string;
   rationale: string;
-  proposalType: GovernanceActionType;
-  typeSpecific: Record<string, unknown>;
+  proposalType: ProposalType;
+  typeSpecific: Record<string, unknown> | null;
   status: DraftStatus;
   currentVersion: number;
-  lastConstitutionalCheck: ConstitutionalCheckResult | null;
-  lastConstitutionalCheckAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -96,57 +128,51 @@ export interface DraftVersion {
   draftId: string;
   versionNumber: number;
   versionName: string;
-  editSummary: string;
+  editSummary: string | null;
   content: DraftContent;
-  constitutionalCheck: ConstitutionalCheckResult | null;
   createdAt: string;
-}
-
-export interface DraftContent {
-  title: string;
-  abstract: string;
-  motivation: string;
-  rationale: string;
-  typeSpecific: Record<string, unknown>;
 }
 
 // ---------------------------------------------------------------------------
 // Constitutional Pre-Check types
 // ---------------------------------------------------------------------------
 
-export interface ConstitutionalCheckResult {
-  flags: ConstitutionalFlag[];
-  score: 'pass' | 'warning' | 'fail';
-  checkedAt: string;
-  model: string;
-}
+export type CheckSeverity = 'info' | 'warning' | 'critical';
+export type CheckScore = 'pass' | 'warning' | 'fail';
 
 export interface ConstitutionalFlag {
   article: string;
   section?: string;
   concern: string;
-  severity: 'info' | 'warning' | 'critical';
+  severity: CheckSeverity;
+}
+
+export interface ConstitutionalCheckResult {
+  flags: ConstitutionalFlag[];
+  score: CheckScore;
+  checkedAt: string;
+  model: string;
 }
 
 // ---------------------------------------------------------------------------
 // CIP-108 types
 // ---------------------------------------------------------------------------
 
+export interface Cip108Body {
+  title: string;
+  abstract: string;
+  motivation: string;
+  rationale: string;
+  references?: Array<{
+    '@type': string;
+    label: string;
+    uri: string;
+  }>;
+}
+
 export interface Cip108Document {
   '@context': Record<string, unknown>;
   hashAlgorithm: string;
-  body: {
-    title: string;
-    abstract: string;
-    motivation: string;
-    rationale: string;
-    references?: Array<{
-      '@type': string;
-      label: string;
-      uri: string;
-    }>;
-  };
-  authors?: Array<{
-    name?: string;
-  }>;
+  body: Cip108Body;
+  authors?: Array<{ name?: string }>;
 }
