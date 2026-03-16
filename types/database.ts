@@ -1193,6 +1193,38 @@ export type Database = {
         };
         Relationships: [];
       };
+      cip108_documents: {
+        Row: {
+          content_hash: string;
+          created_at: string;
+          document: Json;
+          draft_id: string;
+          owner_stake_address: string;
+        };
+        Insert: {
+          content_hash: string;
+          created_at?: string;
+          document: Json;
+          draft_id: string;
+          owner_stake_address: string;
+        };
+        Update: {
+          content_hash?: string;
+          created_at?: string;
+          document?: Json;
+          draft_id?: string;
+          owner_stake_address?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'cip108_documents_draft_id_fkey';
+            columns: ['draft_id'];
+            isOneToOne: false;
+            referencedRelation: 'proposal_drafts';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       citizen_assemblies: {
         Row: {
           ai_context: Json | null;
@@ -4243,6 +4275,36 @@ export type Database = {
           proposal_tx_hash?: string;
           rationale_text?: string;
           vote_tx_hash?: string | null;
+        };
+        Relationships: [];
+      };
+      research_conversations: {
+        Row: {
+          created_at: string;
+          id: string;
+          messages: Json;
+          proposal_index: number;
+          proposal_tx_hash: string;
+          updated_at: string;
+          user_id: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          messages?: Json;
+          proposal_index: number;
+          proposal_tx_hash: string;
+          updated_at?: string;
+          user_id?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          messages?: Json;
+          proposal_index?: number;
+          proposal_tx_hash?: string;
+          updated_at?: string;
+          user_id?: string | null;
         };
         Relationships: [];
       };

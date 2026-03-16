@@ -25,6 +25,7 @@
  * sentiment_divergence           — Sentiment Divergence Index (citizen vs DRep alignment)
  * state_of_governance_report     — Auto-generated epoch report with community intelligence
  * governance_temperature         — Governance Temperature gauge (0-100 aggregate sentiment)
+ * research_assistant             — Conversational AI research assistant for proposal analysis
  *
  * ---------------------------------------------------------------------------
  * RETIRED FLAGS (code checks removed or hardcoded)

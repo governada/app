@@ -325,3 +325,23 @@ export interface StructuredDiff {
   rationale: DiffResult[];
   fieldsChanged: string[];
 }
+
+// ---------------------------------------------------------------------------
+// Research Assistant types
+// ---------------------------------------------------------------------------
+
+export interface ResearchMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+  sources?: Array<{ type: string; reference: string; text: string }>;
+}
+
+export interface ResearchConversation {
+  id: string;
+  proposalTxHash: string;
+  proposalIndex: number;
+  messages: ResearchMessage[];
+  createdAt: string;
+  updatedAt: string;
+}
