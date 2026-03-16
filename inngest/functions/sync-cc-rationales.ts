@@ -18,6 +18,7 @@ import { computeFullConstitutionalFidelity } from '@/lib/scoring/ccTransparency'
 import type { CCMemberVoteData } from '@/lib/scoring/ccTransparency';
 import { logger } from '@/lib/logger';
 import { errMsg, capMsg } from '@/lib/sync-utils';
+import { fetchCommitteeInfo } from '@/utils/koios';
 
 export const syncCcRationales = inngest.createFunction(
   {
@@ -118,45 +119,9 @@ export const syncCcRationales = inngest.createFunction(
       const supabase = getSupabaseAdmin();
 
       try {
-        // Fetch committee_info from Koios
-        const res = await fetch('https://api.koios.rest/api/v1/committee_info?limit=10', {
-          headers: { Accept: 'application/json' },
-          signal: AbortSignal.timeout(15_000),
-        });
-
-        if (!res.ok) return { members: 0, source: 'koios_failed' };
-        const data = await res.json();
-
-        // committee_info returns proposals with nested members array
-        const allMembers: Array<{
-          cc_hot_id: string;
-          cc_cold_id: string;
-          status: string;
-          expiration_epoch: number;
-          authorization_epoch: number | null;
-          has_script: boolean;
-        }> = [];
-
-        for (const proposal of data) {
-          if (Array.isArray(proposal.members)) {
-            for (const m of proposal.members) {
-              if (m.cc_hot_id) {
-                allMembers.push({
-                  cc_hot_id: m.cc_hot_id,
-                  cc_cold_id: m.cc_cold_id ?? null,
-                  status: m.status ?? 'unknown',
-                  expiration_epoch: m.expiration_epoch ?? null,
-                  authorization_epoch: m.start_epoch ?? null,
-                  has_script: m.cc_hot_has_script ?? false,
-                });
-              }
-            }
-          }
-        }
-
-        // Dedupe by cc_hot_id (keep latest)
-        const memberMap = new Map<string, (typeof allMembers)[0]>();
-        for (const m of allMembers) memberMap.set(m.cc_hot_id, m);
+        // Use shared fetchCommitteeInfo which handles both field name variants
+        const committeeData = await fetchCommitteeInfo();
+        if (!committeeData?.members?.length) return { members: 0, source: 'no_data' };
 
         // Get author names from rationales
         const { data: authorNames } = await supabase
@@ -171,16 +136,15 @@ export const syncCcRationales = inngest.createFunction(
 
         // Upsert members
         let upserted = 0;
-        for (const [hotId, m] of memberMap) {
+        for (const m of committeeData.members) {
           const { error } = await supabase.from('cc_members').upsert(
             {
-              cc_hot_id: hotId,
+              cc_hot_id: m.cc_hot_id,
               cc_cold_id: m.cc_cold_id,
-              author_name: authorMap.get(hotId) ?? null,
+              author_name: authorMap.get(m.cc_hot_id) ?? null,
               status: m.status,
               expiration_epoch: m.expiration_epoch,
-              authorization_epoch: m.authorization_epoch,
-              has_script: m.has_script,
+              authorization_epoch: m.start_epoch ?? null,
               updated_at: new Date().toISOString(),
             },
             { onConflict: 'cc_hot_id' },

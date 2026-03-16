@@ -74,29 +74,23 @@ export async function executeSecondarySync(): Promise<Record<string, unknown>> {
       // Step 2 + 3: Power snapshots (reads fresh delegator counts) + Integrity — parallel
       const results = await Promise.allSettled([
         // Step 2: Power snapshots (reads fresh delegator counts written by Step 1)
+        // Snapshot ALL DReps (not just active) so coverage matches the completeness check
+        // which counts all rows in the dreps table.
         (async () => {
-          const { data: dreps } = await supabase
-            .from('dreps')
-            .select('id, info')
-            .filter('info->>isActive', 'eq', 'true');
+          const { data: dreps } = await supabase.from('dreps').select('id, info');
 
           if (!dreps?.length) return 0;
 
           const currentEpoch = blockTimeToEpoch(Math.floor(Date.now() / 1000));
-          const rows = dreps
-            .filter((d) => {
-              const info = d.info as Record<string, unknown> | null;
-              return info?.votingPowerLovelace != null;
-            })
-            .map((d) => {
-              const info = (d.info || {}) as Record<string, unknown>;
-              return {
-                drep_id: d.id as string,
-                epoch_no: currentEpoch,
-                amount_lovelace: parseInt(String(info.votingPowerLovelace || '0'), 10),
-                delegator_count: (info.delegatorCount as number) || 0,
-              };
-            });
+          const rows = dreps.map((d) => {
+            const info = (d.info || {}) as Record<string, unknown>;
+            return {
+              drep_id: d.id as string,
+              epoch_no: currentEpoch,
+              amount_lovelace: parseInt(String(info.votingPowerLovelace || '0'), 10),
+              delegator_count: (info.delegatorCount as number) || 0,
+            };
+          });
 
           if (!rows.length) return 0;
 
