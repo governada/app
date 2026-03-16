@@ -9,6 +9,7 @@ import { trackFunnel, FUNNEL_EVENTS } from '@/lib/funnel';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { GovernanceConsequenceCard } from './GovernanceConsequenceCard';
 import { GovernanceClimatePreview } from './GovernanceClimatePreview';
+import { IntelligencePreview } from './IntelligencePreview';
 
 const ConstellationScene = dynamic(
   () => import('@/components/ConstellationScene').then((m) => ({ default: m.ConstellationScene })),
@@ -152,6 +153,9 @@ export function AnonymousLanding({ pulseData }: AnonymousLandingProps) {
             totalDelegators={pulseData.totalDelegators}
           />
         )}
+
+        {/* Intelligence preview — real AI headline from latest epoch briefing */}
+        <IntelligencePreview />
 
         {/* Secondary discovery links */}
         <div className="flex items-center justify-center gap-4 text-xs">

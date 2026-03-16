@@ -67,6 +67,7 @@ import {
 } from '@/hooks/useQuickMatch';
 import { PoolMatchEnhancement } from '@/components/governada/match/PoolMatchEnhancement';
 import { QuizExplainer } from '@/components/governada/match/QuizExplainer';
+import { UnlockPreview } from '@/components/governada/match/UnlockPreview';
 
 /* ─── Question definitions ──────────────────────────────── */
 
@@ -943,6 +944,9 @@ function ResultsScreen({
       {drepResults.confidenceBreakdown && (
         <MatchConfidenceCTA breakdown={drepResults.confidenceBreakdown} variant="full" />
       )}
+
+      {/* "What you'll unlock" preview — only for anonymous users */}
+      {!getStoredSession() && hasMatches && <UnlockPreview />}
 
       {/* Wallet connect at moment of intent — only for anonymous users */}
       {!getStoredSession() && hasMatches && (
