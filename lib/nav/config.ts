@@ -33,7 +33,6 @@ import {
   Building,
   Trophy,
   UserCog,
-  Bell,
   Settings,
   BadgeCheck,
   BookOpen,
@@ -166,7 +165,6 @@ export const GOVERNANCE_ITEMS: NavItem[] = [
 /** Base You items — all authenticated personas */
 const YOU_BASE: NavItem[] = [
   { href: '/you', label: 'Identity', icon: UserCog },
-  { href: '/you/inbox', label: 'Inbox', icon: Bell, badge: 'unread', sublabelKey: 'you.unread' },
   { href: '/you/settings', label: 'Settings', icon: Settings },
 ];
 

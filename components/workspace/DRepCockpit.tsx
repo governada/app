@@ -30,9 +30,9 @@ import type { CockpitData } from '@/hooks/queries';
  * - Hands-Off: Pending votes + delegation health (to-do widget)
  * - Informed:  + Score hero (score change visibility)
  * - Engaged:   + Action feed + heatmap (full workspace, current default)
- * - Deep:      + delegator analytics (delegation health, growth, retention)
+ * - Engaged:   + delegator analytics (delegation health, growth, retention)
  *
- * DRep default depth = deep, so existing users see no change.
+ * DRep default depth = engaged, so existing users see no change.
  */
 
 function formatAdaCompact(ada: number): string {
@@ -41,7 +41,7 @@ function formatAdaCompact(ada: number): string {
   return ada.toLocaleString();
 }
 
-/** Delegator analytics card — shown at deep depth using snapshot data. */
+/** Delegator analytics card — shown at engaged depth using snapshot data. */
 function DelegatorAnalytics({ delegation }: { delegation: CockpitData['delegation'] }) {
   const { currentDelegators, snapshots } = delegation;
   const delegators = currentDelegators ?? 0;
@@ -193,15 +193,15 @@ export function DRepCockpit() {
         </DepthGate>
       </div>
 
-      {/* Deep: delegator analytics */}
-      <DepthGate minDepth="deep">
+      {/* Engaged: delegator analytics */}
+      <DepthGate minDepth="engaged">
         <DelegatorAnalytics delegation={data.delegation} />
       </DepthGate>
 
       {/* Depth upgrade nudge — always at the bottom */}
       <DepthUpgradeNudge
         feature="delegator analytics and competitive intelligence"
-        requiredDepth="deep"
+        requiredDepth="engaged"
       />
     </div>
   );

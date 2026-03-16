@@ -349,14 +349,6 @@ export function useDashboardDelegatorTrends(drepId: string | null | undefined) {
   });
 }
 
-export function useDashboardInbox(drepId: string | null | undefined) {
-  return useQuery({
-    queryKey: ['dashboard-inbox', drepId],
-    queryFn: () => fetchJson(`/api/dashboard/inbox?drepId=${encodeURIComponent(drepId!)}`),
-    enabled: !!drepId,
-  });
-}
-
 export function useGovernanceDecentralization() {
   return useQuery({
     queryKey: ['governance-decentralization'],
@@ -667,14 +659,6 @@ export function useSPOUrgent(poolId: string | null | undefined) {
   });
 }
 
-export function useSPOInbox(poolId: string | null | undefined) {
-  return useQuery({
-    queryKey: ['spo-inbox', poolId],
-    queryFn: () => fetchJson(`/api/dashboard/spo-inbox?poolId=${encodeURIComponent(poolId!)}`),
-    enabled: !!poolId,
-  });
-}
-
 export function useProposalOutcome(txHash: string | null | undefined, index: number | undefined) {
   return useQuery({
     queryKey: ['proposal-outcome', txHash, index],
@@ -828,24 +812,7 @@ export function useWorkspaceCockpit(drepId: string | null | undefined) {
   });
 }
 
-// ── Inbox Notifications ─────────────────────────────────────────────────────
-
-export interface InboxNotification {
-  id: string;
-  title: string;
-  body: string | null;
-  type: string;
-  action_url: string | null;
-  metadata: Record<string, unknown> | null;
-  read: boolean;
-  created_at: string;
-}
-
-interface NotificationsResponse {
-  notifications: InboxNotification[];
-  hasMore: boolean;
-  unreadCount: number;
-}
+// ── Authed fetch helper ─────────────────────────────────────────────────────
 
 async function fetchAuthed<T>(url: string): Promise<T> {
   const { getStoredSession } = await import('@/lib/supabaseAuth');
@@ -855,16 +822,6 @@ async function fetchAuthed<T>(url: string): Promise<T> {
   const res = await fetch(url, { headers });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return res.json();
-}
-
-export function useInboxNotifications(enabled: boolean) {
-  return useQuery<NotificationsResponse>({
-    queryKey: ['inbox-notifications'],
-    queryFn: () => fetchAuthed<NotificationsResponse>('/api/you/notifications'),
-    enabled,
-    staleTime: 30_000,
-    refetchInterval: 60_000,
-  });
 }
 
 // ── Citizen Impact Score ─────────────────────────────────────────────────────

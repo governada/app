@@ -195,8 +195,8 @@ export function SpoProfileClient({
             to update your preferences
           </div>
         </div>
-      ) : isAtLeast('deep') ? (
-        /* ── Deep depth without alignment — prompt to quiz ── */
+      ) : isAtLeast('engaged') ? (
+        /* ── Engaged depth without alignment — prompt to quiz ── */
         <div className={cn('rounded-lg border p-6 text-center')}>
           <p className="text-muted-foreground">
             Take the{' '}

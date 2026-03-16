@@ -135,7 +135,7 @@ export function ComparisonStrip({
       : `vs. Your #1 Match: ${comparisonDrep.name}`;
 
   const showParticipationAndTier = isAtLeast('engaged');
-  const showComparisonLink = isAtLeast('deep');
+  const showComparisonLink = isAtLeast('engaged');
 
   const comparisonUrl = `/compare?dreps=${encodeURIComponent(viewingDrep.drepId)},${encodeURIComponent(comparisonDrep.drepId)}`;
 

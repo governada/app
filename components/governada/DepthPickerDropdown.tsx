@@ -8,7 +8,6 @@ import {
   BellOff,
   Bell,
   BellRing,
-  BellPlus,
   Loader2,
   CheckCircle,
   type LucideIcon,
@@ -38,7 +37,6 @@ const ICON_MAP: Record<string, LucideIcon> = {
   BellOff,
   Bell,
   BellRing,
-  BellPlus,
 };
 
 async function saveGovernanceDepth(depth: GovernanceDepth): Promise<void> {

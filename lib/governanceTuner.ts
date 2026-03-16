@@ -2,18 +2,17 @@
  * Governance Tuner — maps user intent ("how closely do I follow governance?")
  * to concrete notification/digest configuration.
  *
- * Four depth levels:
+ * Three depth levels:
  * - hands_off: "Alert me only if something is wrong" (~2 events)
  * - informed: "Keep me posted on major events" (~5 events, default for citizens)
- * - engaged: "I want to participate actively" (~12 events, default for SPOs)
- * - deep: "Full visibility into everything" (all events, default for DReps)
+ * - engaged: "Full visibility into governance. All events, all tools, maximum detail." (all events, default for DReps/SPOs/CC)
  */
 
 import { EVENT_REGISTRY } from './notificationRegistry';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-export type GovernanceDepth = 'hands_off' | 'informed' | 'engaged' | 'deep';
+export type GovernanceDepth = 'hands_off' | 'informed' | 'engaged';
 
 export interface TunerLevel {
   key: GovernanceDepth;
@@ -28,7 +27,7 @@ export interface TunerLevel {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-export const GOVERNANCE_DEPTHS: GovernanceDepth[] = ['hands_off', 'informed', 'engaged', 'deep'];
+export const GOVERNANCE_DEPTHS: GovernanceDepth[] = ['hands_off', 'informed', 'engaged'];
 
 /** Most critical "something is wrong" alerts — delegation health, governance crisis. */
 const HANDS_OFF_EVENTS: string[] = [
@@ -43,20 +42,6 @@ const INFORMED_EVENTS: string[] = [
   'critical-proposal-open',
   'drep-score-change',
   'governance-brief',
-];
-
-/** Active participation — alignment, tiers, votes, milestones, proposal outcomes. */
-const ENGAGED_EVENTS: string[] = [
-  ...INFORMED_EVENTS,
-  'alignment-drift',
-  'tier-change',
-  'drep-voted',
-  'treasury-proposal-new',
-  'delegation-milestone',
-  'engagement-outcome',
-  'representation-drop',
-  'poll-deadline',
-  'better-match-found',
 ];
 
 /** All user-facing events (excludes system-only events like profile-view, api-health-alert). */
@@ -90,22 +75,12 @@ export const TUNER_LEVELS: Record<GovernanceDepth, TunerLevel> = {
   engaged: {
     key: 'engaged',
     label: 'Engaged',
-    description: 'Active governance participation. Full dashboard, all the tools.',
-    shortDescription: 'Active governance participation',
+    description: 'Full visibility into governance. All events, all tools, maximum detail.',
+    shortDescription: 'Full visibility, all the tools',
     iconName: 'BellRing',
-    eventTypes: ENGAGED_EVENTS,
-    digestFrequency: 'epoch',
-    order: 2,
-  },
-  deep: {
-    key: 'deep',
-    label: 'Deep',
-    description: 'Everything visible. Full event stream, all metrics, maximum detail.',
-    shortDescription: 'Full visibility, full control',
-    iconName: 'BellPlus',
     eventTypes: getAllUserFacingEventKeys(),
     digestFrequency: 'epoch',
-    order: 3,
+    order: 2,
   },
 };
 
@@ -125,19 +100,19 @@ export function getTunerDigestFrequency(depth: GovernanceDepth): string {
 
 /**
  * Default governance depth for a user segment.
- * citizen → informed, drep → deep, spo → engaged, cc → engaged, anonymous → informed.
+ * drep/spo/cc → engaged, citizen → informed, anonymous → hands_off.
  */
 export function getDefaultDepthForSegment(segment: string): GovernanceDepth {
   switch (segment) {
     case 'drep':
-      return 'deep';
     case 'spo':
     case 'cc':
       return 'engaged';
     case 'citizen':
+      return 'informed';
     case 'anonymous':
     default:
-      return 'informed';
+      return 'hands_off';
   }
 }
 

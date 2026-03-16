@@ -259,8 +259,7 @@ export const GOVERNANCE_DEPTH_DIMENSION: CrossCuttingDimension<GovernanceDepth> 
   values: [
     { key: 'hands_off', label: 'Hands-Off', description: 'Alerts only when something is wrong' },
     { key: 'informed', label: 'Informed', description: 'Major governance updates' },
-    { key: 'engaged', label: 'Engaged', description: 'Active governance participation' },
-    { key: 'deep', label: 'Deep', description: 'Full visibility, full control' },
+    { key: 'engaged', label: 'Engaged', description: 'Full visibility, all the tools' },
   ],
   defaultValue: null,
 };

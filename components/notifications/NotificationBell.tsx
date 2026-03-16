@@ -11,14 +11,14 @@ interface NotificationBellProps {
 
 /**
  * NotificationBell — header icon with unread count badge.
- * Links to /you/inbox.
+ * Links to /you.
  */
 export function NotificationBell({ className }: NotificationBellProps) {
   const { unreadCount } = useNotificationCount();
 
   return (
     <Link
-      href="/you/inbox"
+      href="/you"
       className={cn(
         'relative inline-flex items-center justify-center h-9 w-9 rounded-lg hover:text-primary hover:bg-primary/10 transition-colors',
         className,

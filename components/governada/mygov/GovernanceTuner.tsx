@@ -6,7 +6,6 @@ import {
   BellOff,
   Bell,
   BellRing,
-  BellPlus,
   ChevronDown,
   Loader2,
   CheckCircle,
@@ -32,7 +31,6 @@ const ICON_MAP: Record<string, LucideIcon> = {
   BellOff,
   Bell,
   BellRing,
-  BellPlus,
 };
 
 // ── Category display metadata ────────────────────────────────────────────────
@@ -167,7 +165,7 @@ export function GovernanceTuner() {
       </div>
 
       {/* Segmented control */}
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-3 gap-2">
         {GOVERNANCE_DEPTHS.map((depth) => {
           const lvl = TUNER_LEVELS[depth];
           const Icon = ICON_MAP[lvl.iconName] ?? Bell;
@@ -261,8 +259,8 @@ export function GovernanceTuner() {
           </div>
         </CardContent>
 
-        {/* Fine-tune section (Deep level only) */}
-        {(effectiveDepth === 'engaged' || effectiveDepth === 'deep') && (
+        {/* Fine-tune section (Engaged level only) */}
+        {effectiveDepth === 'engaged' && (
           <div className="border-t border-border">
             <button
               onClick={() => setFineTuneOpen((prev) => !prev)}
@@ -294,7 +292,7 @@ export function GovernanceTuner() {
   );
 }
 
-// ── Fine-tune panel (read-only preview of what Deep enables) ─────────────────
+// ── Fine-tune panel (read-only preview of what Engaged enables) ──────────────
 
 function FineTunePanel({
   events,

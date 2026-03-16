@@ -416,7 +416,7 @@ async function resolveStakeAddress(
 
 /**
  * Persist a notification to the inbox (notifications table) so users can
- * see it in the /you/inbox UI. Called once per notifyUser() invocation,
+ * see it in the /you UI. Called once per notifyUser() invocation,
  * not once per channel.
  */
 async function persistToInbox(

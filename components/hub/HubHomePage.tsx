@@ -70,8 +70,8 @@ export function HubHomePage({ pulseData }: HubHomePageProps) {
         <ActionQueueCard />
         <h1 className="text-xl font-bold text-foreground">Governance Cockpit</h1>
         <DRepCockpit />
-        {/* Competitive context — deep only (competitive intelligence) */}
-        <DepthGate minDepth="deep">
+        {/* Competitive context — engaged only (competitive intelligence) */}
+        <DepthGate minDepth="engaged">
           <CompetitiveContext />
         </DepthGate>
         {/* Profile sharing — engaged+ (workspace integration) */}

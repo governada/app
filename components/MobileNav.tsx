@@ -14,7 +14,6 @@ import {
   Wallet,
   LogOut,
   User,
-  Inbox,
   Shield,
   ToggleLeft,
 } from 'lucide-react';
@@ -38,10 +37,7 @@ const PRIMARY_NAV_ITEMS = [
 
 const AUTH_NAV_ITEM = { href: '/my-gov', label: 'My Governance', icon: Vote };
 
-const DREP_NAV_ITEMS = [
-  { href: '/my-gov', label: 'Dashboard', icon: Sparkles },
-  { href: '/my-gov/inbox', label: 'Governance Inbox', icon: Inbox },
-];
+const DREP_NAV_ITEMS = [{ href: '/my-gov', label: 'Dashboard', icon: Sparkles }];
 
 export function MobileNav({
   isAuthenticated,

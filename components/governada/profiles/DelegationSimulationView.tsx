@@ -94,8 +94,8 @@ export function DelegationSimulationView({ simulation, className }: DelegationSi
   const [expanded, setExpanded] = useState(false);
   const { isAtLeast } = useGovernanceDepth();
 
-  // Deep depth shows full list, engaged shows summary only
-  const showFullList = isAtLeast('deep');
+  // Engaged depth shows full list, informed shows summary only
+  const showFullList = isAtLeast('engaged');
 
   const alignmentPct =
     simulation.totalClassifiedVotes > 0
