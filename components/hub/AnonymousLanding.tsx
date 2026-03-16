@@ -121,22 +121,6 @@ export function AnonymousLanding({ pulseData }: AnonymousLandingProps) {
           </div>
         </div>
 
-        {/* Narrative social proof — frames raw numbers as personal stakes */}
-        {pulseData && pulseData.activeProposals > 0 && (
-          <div className="rounded-xl border border-white/[0.08] bg-card/15 backdrop-blur-md p-4">
-            <p className="text-sm text-muted-foreground leading-relaxed text-center">
-              <strong className="text-foreground">
-                {pulseData.activeProposals} {t('Proposals').toLowerCase()}
-              </strong>{' '}
-              {t("proposals are deciding how Cardano's treasury is spent.")}{' '}
-              <strong className="text-foreground">
-                {pulseData.activeDReps} {t('Representatives').toLowerCase()}
-              </strong>{' '}
-              {t('are voting on your behalf. Your ADA gives you a say.')}
-            </p>
-          </div>
-        )}
-
         {/* Governance consequence card — why governance matters to your ADA */}
         {pulseData && (
           <GovernanceConsequenceCard

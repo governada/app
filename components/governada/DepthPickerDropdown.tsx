@@ -26,7 +26,12 @@ import {
 import { useSegment } from '@/components/providers/SegmentProvider';
 import { useGovernanceDepth } from '@/hooks/useGovernanceDepth';
 import { getStoredSession } from '@/lib/supabaseAuth';
-import { GOVERNANCE_DEPTHS, TUNER_LEVELS, type GovernanceDepth } from '@/lib/governanceTuner';
+import {
+  GOVERNANCE_DEPTHS,
+  TUNER_LEVELS,
+  getDefaultDepthForSegment,
+  type GovernanceDepth,
+} from '@/lib/governanceTuner';
 import { useWallet } from '@/utils/wallet-context';
 
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -123,6 +128,7 @@ export function DepthPickerDropdown() {
           {GOVERNANCE_DEPTHS.map((d) => {
             const lvl = TUNER_LEVELS[d];
             const Icon = ICON_MAP[lvl.iconName] ?? Bell;
+            const isDefault = d === getDefaultDepthForSegment(segment);
             return (
               <DropdownMenuRadioItem
                 key={d}
@@ -132,7 +138,14 @@ export function DepthPickerDropdown() {
               >
                 <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">{lvl.label}</p>
+                  <p className="text-sm font-medium">
+                    {lvl.label}
+                    {isDefault && (
+                      <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+                        (default)
+                      </span>
+                    )}
+                  </p>
                   <p className="text-xs text-muted-foreground line-clamp-1">
                     {lvl.shortDescription}
                   </p>

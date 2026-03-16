@@ -97,7 +97,7 @@ export interface BottomBarConfig {
 
 /** Home sub-items for DRep persona (workspace tools shown under Home) */
 export const HOME_DREP_ITEMS: NavItem[] = [
-  { href: '/workspace', label: 'Cockpit', icon: Vote, sublabelKey: 'home.pendingVotes' },
+  { href: '/workspace', label: 'Home', icon: Vote, sublabelKey: 'home.pendingVotes' },
   {
     href: '/workspace/votes',
     label: 'Voting Record',
