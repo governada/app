@@ -165,52 +165,12 @@ export interface TreasuryImpact {
   runwayMonthsIfApproved: number;
 }
 
-/** Proposal health/completeness assessment */
-export interface ProposalHealthResult {
-  score: number;
-  checks: Array<{
-    label: string;
-    passed: boolean;
-    weight: number;
-  }>;
-}
-
-/** Proposer track record summary */
-export interface ProposerTrackRecord {
-  totalProposals: number;
-  ratified: number;
-  expired: number;
-  dropped: number;
-  deliveryOnTime: number;
-  deliveryLate: number;
-  avgReviewScore: number | null;
-}
-
-/** Score impact estimate */
-export interface ScoreImpactEstimate {
-  currentScore: number;
-  deltaIfVote: number;
-  deltaIfVoteWithRationale: number;
-  newScoreEstimate: number;
-}
-
 /** Review time budget */
 export interface TimeBudgetEstimate {
   totalProposals: number;
   estimatedMinutes: number;
   avgMinutesPerProposal: number;
   highPriorityCount: number;
-}
-
-/** Engagement analytics for a proposal (proposer view) */
-export interface ProposalEngagementAnalytics {
-  totalViews: number;
-  uniqueViewers: number;
-  avgTimeSpentSeconds: number;
-  sectionReadCounts: Record<string, number>;
-  annotationCount: number;
-  shareCount: number;
-  viewerSegments: Record<string, number>;
 }
 
 /** Full response from the review-queue API. */
