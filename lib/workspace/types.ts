@@ -98,6 +98,13 @@ export interface ProposalReference {
   uri: string;
 }
 
+/** Annotation types */
+export type AnnotationType = 'note' | 'highlight' | 'citation' | 'concern';
+export type AnnotationField = 'abstract' | 'motivation' | 'rationale';
+
+/** Engagement event types */
+export type EngagementEventType = 'view' | 'section_read' | 'annotation_created';
+
 /** Annotation on proposal text */
 export interface ProposalAnnotation {
   id: string;
@@ -106,14 +113,27 @@ export interface ProposalAnnotation {
   proposalIndex: number;
   anchorStart: number;
   anchorEnd: number;
-  anchorField: string;
+  anchorField: AnnotationField;
   annotationText: string;
-  annotationType: 'note' | 'highlight' | 'citation' | 'concern';
-  color: string;
+  annotationType: AnnotationType;
+  color: string | null;
   isPublic: boolean;
   upvoteCount: number;
   createdAt: string;
   updatedAt: string;
+}
+
+/** Engagement event */
+export interface ProposalEngagementEvent {
+  id: number;
+  proposalTxHash: string;
+  proposalIndex: number;
+  eventType: EngagementEventType;
+  section: string | null;
+  durationSeconds: number | null;
+  userSegment: string | null;
+  userId: string | null;
+  createdAt: string;
 }
 
 /** Review framework template checklist item */
