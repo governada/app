@@ -9,11 +9,14 @@ import { PROPOSAL_TYPE_LABELS, type ProposalType } from '@/lib/workspace/types';
 import { ProposalContent } from './ProposalContent';
 import { SealedBanner } from './SealedBanner';
 import { IntelligenceBlocks } from './IntelligenceBlocks';
+import { CompetingComparison } from './CompetingComparison';
 import { SourceMaterial } from './SourceMaterial';
 import { FeatureGate } from '@/components/FeatureGate';
 
 interface ReviewBriefProps {
   item: ReviewQueueItem;
+  /** All items in the review queue — used for competing proposal comparison */
+  allItems?: ReviewQueueItem[];
 }
 
 function checkSealed(sealedUntil: string | null): boolean {
@@ -30,7 +33,7 @@ function checkSealed(sealedUntil: string | null): boolean {
  * 3. Intelligence & Analysis (collapsible accordion with all intelligence blocks)
  * 4. Source Material (compact: type, CardanoScan link, anchor URL)
  */
-export function ReviewBrief({ item }: ReviewBriefProps) {
+export function ReviewBrief({ item, allItems = [] }: ReviewBriefProps) {
   const [isSealed, setIsSealed] = useState(false);
   const [intelligenceExpanded, setIntelligenceExpanded] = useState(false);
 
@@ -135,6 +138,9 @@ export function ReviewBrief({ item }: ReviewBriefProps) {
                 isSealed={isSealed}
               />
             </FeatureGate>
+
+            {/* Competing Proposal Comparison */}
+            {allItems.length > 1 && <CompetingComparison currentItem={item} allItems={allItems} />}
 
             {/* Inter-Body Vote Tallies — hidden when sealed */}
             {!isSealed && item.interBodyVotes && (

@@ -3,6 +3,7 @@
 import { CheckCircle2, Clock, AlertTriangle, Minus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { TimeBudget } from './TimeBudget';
 import type { ReviewQueueItem, QueueItemStatus } from '@/lib/workspace/types';
 
 interface ReviewQueueProps {
@@ -48,6 +49,9 @@ export function ReviewQueue({
 }: ReviewQueueProps) {
   return (
     <div className="flex flex-col h-full">
+      {/* Time budget estimate */}
+      <TimeBudget items={items} />
+
       {/* Progress bar */}
       <div className="px-3 py-2.5 border-b border-border space-y-1.5 shrink-0">
         <div className="flex items-center justify-between text-xs">

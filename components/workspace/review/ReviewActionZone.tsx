@@ -29,6 +29,7 @@ import { QuestionGate, hasSubmittedQuestion } from './QuestionGate';
 import { ContributionOverlapBanner } from './ContributionOverlapBanner';
 import { DiversityFields } from './DiversityFields';
 import { PostVoteShare } from './PostVoteShare';
+import { ScoreImpactPreview } from './ScoreImpactPreview';
 import type { ReviewQueueItem } from '@/lib/workspace/types';
 
 interface ReviewActionZoneProps {
@@ -36,6 +37,10 @@ interface ReviewActionZoneProps {
   drepId: string;
   onVote?: (txHash: string, index: number, vote: string) => void;
   onNextProposal?: () => void;
+  /** Total proposals in queue — used for score impact preview */
+  totalProposals?: number;
+  /** Already voted count — used for score impact preview */
+  votedCount?: number;
 }
 
 type FlowStep =
@@ -225,7 +230,14 @@ function SubmissionTimeline({
 // Main component
 // ---------------------------------------------------------------------------
 
-export function ReviewActionZone({ item, drepId, onVote, onNextProposal }: ReviewActionZoneProps) {
+export function ReviewActionZone({
+  item,
+  drepId,
+  onVote,
+  onNextProposal,
+  totalProposals = 0,
+  votedCount = 0,
+}: ReviewActionZoneProps) {
   const { connected, ownDRepId } = useWallet();
   const { segment, poolId, isViewingAs, drepId: overrideDrepId } = useSegment();
   const { phase, startVote, confirmVote, reset, isProcessing, canVote: hookCanVote } = useVote();
@@ -528,6 +540,11 @@ export function ReviewActionZone({ item, drepId, onVote, onNextProposal }: Revie
                 You previously voted <span className="font-semibold">{item.existingVote}</span>.
                 Select below to change your vote.
               </div>
+            )}
+
+            {/* Score impact motivational badge */}
+            {totalProposals > 0 && (
+              <ScoreImpactPreview totalProposals={totalProposals} votedCount={votedCount} />
             )}
 
             {/* Vote buttons */}
