@@ -1,5 +1,5 @@
 /**
- * Contract A: Editor ↔ Agent Communication Types
+ * Contract A: Editor <-> Agent Communication Types
  *
  * These types define the boundary between the Tiptap editor and the AI agent.
  * The editor sends EditorContext with every agent message. The agent responds
@@ -9,7 +9,7 @@
 /** Fields of a governance proposal document */
 export type ProposalField = 'title' | 'abstract' | 'motivation' | 'rationale';
 
-/** Annotation-capable fields (title excluded — too short for annotations) */
+/** Annotation-capable fields (title excluded -- too short for annotations) */
 export type AnnotatableField = 'abstract' | 'motivation' | 'rationale';
 
 /** Editor mode */
@@ -32,13 +32,13 @@ export interface EditorContext {
   mode: EditorMode;
 }
 
-/** Agent proposes this edit — editor renders as inline diff */
+/** Agent proposes this edit -- editor renders as inline diff */
 export interface ProposedEdit {
   /** Which section to edit */
   field: ProposalField;
-  /** Character offset — start of text to replace */
+  /** Character offset -- start of text to replace */
   anchorStart: number;
-  /** Character offset — end of text to replace */
+  /** Character offset -- end of text to replace */
   anchorEnd: number;
   /** The original text being replaced */
   originalText: string;
@@ -48,13 +48,13 @@ export interface ProposedEdit {
   explanation: string;
 }
 
-/** Agent proposes this comment — editor renders at anchor point */
+/** Agent proposes this comment -- editor renders at anchor point */
 export interface ProposedComment {
   /** Which section the comment is on */
   field: AnnotatableField;
-  /** Character offset — start of anchored text */
+  /** Character offset -- start of anchored text */
   anchorStart: number;
-  /** Character offset — end of anchored text */
+  /** Character offset -- end of anchored text */
   anchorEnd: number;
   /** The text being commented on */
   anchorText: string;
@@ -62,4 +62,35 @@ export interface ProposedComment {
   commentText: string;
   /** Comment category */
   category: 'note' | 'concern' | 'question' | 'suggestion';
+}
+
+/** Slash command types available in the editor */
+export type SlashCommandType =
+  | 'improve'
+  | 'check-constitution'
+  | 'similar-proposals'
+  | 'complete'
+  | 'draft';
+
+/** Inline comment data stored on comment marks */
+export interface InlineCommentData {
+  id: string;
+  author: string;
+  authorId: string;
+  timestamp: string;
+  category: 'note' | 'concern' | 'question' | 'suggestion';
+  text: string;
+}
+
+/** Constitutional risk level for margin decorations */
+export type ConstitutionalRisk = 'green' | 'amber' | 'red';
+
+/** Margin decoration data per paragraph */
+export interface MarginIndicator {
+  /** Paragraph position (0-based index) */
+  paragraphIndex: number;
+  /** Constitutional risk level */
+  constitutionalRisk?: ConstitutionalRisk;
+  /** Number of community annotations on this paragraph */
+  annotationCount?: number;
 }

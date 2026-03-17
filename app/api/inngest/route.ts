@@ -47,6 +47,7 @@ import { computeCcRelations } from '@/inngest/functions/compute-cc-relations';
 import { analyzeCcRationales } from '@/inngest/functions/analyze-cc-rationales';
 import { generateCcBriefing } from '@/inngest/functions/generate-cc-briefing';
 import { clusterPerspectives } from '@/inngest/functions/cluster-perspectives';
+import { consolidateFeedbackFn } from '@/inngest/functions/consolidate-feedback';
 export const { GET, POST, PUT } = serve({
   client: inngest,
   functions: [
@@ -95,5 +96,6 @@ export const { GET, POST, PUT } = serve({
     analyzeCcRationales,
     generateCcBriefing,
     clusterPerspectives,
+    consolidateFeedbackFn,
   ],
 });
