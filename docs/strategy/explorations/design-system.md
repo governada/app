@@ -580,11 +580,11 @@ After founder review, the decision is to invest in a complete design language re
 - **Signature**: Governance Rings (three-ring participation/deliberation/impact display, Apple Health-inspired)
 - **Typography**: Fraunces (serif display for verdicts) + Space Grotesk (geometric body) + Geist Mono (data)
 - **Color**: Compass Teal (primary), Wayfinder Amber (secondary), Meridian Violet (tertiary). Morally neutral vote colors.
-- **Modes**: Browse (warm/light) / Work (cool/dark) / Analyze (neutral/user-choice) — designed into every component from day one
+- **Modes**: Browse (spacious) / Work (compact) / Analyze (dense) — dark-only, modes control density not theme
 - **Motion**: Fluid precision — spring-based with four categories (Enter/Feedback/Transition/Celebration)
 - **Foundation**: Built on Radix directly, not shadcn. Governance-native primitives.
-- **Theme**: Context-adaptive (Browse=light, Work=dark)
-- **Proof of concept**: Hub page in Browse mode
+- **Theme**: Dark-only. Light mode explored (#415) and rejected (#416) — constellation globe IS the brand.
+- **Shipped**: PRs #415, #416 (2026-03-17)
 
 ### Previous Recommendation (Superseded)
 

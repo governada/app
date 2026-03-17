@@ -1,6 +1,6 @@
 # The Governada Design Language
 
-> **Status:** Specification — ready for Hub proof of concept
+> **Status:** Shipped (PRs #415, #416). Dark-only. Modes control density, not theme.
 > **Created:** 2026-03-17
 > **Metaphor:** The Compass
 > **Signature:** Governance Rings
@@ -19,7 +19,7 @@ This metaphor shapes every design decision:
 - **Data visualizations** show position and direction, not just magnitude
 - **Empty states** are invitations to explore, not dead ends
 
-The compass is warm in your hand but precise in its reading. That duality — warm accessibility, cool precision — defines the three modes.
+The constellation globe — glowing nodes representing governance entities orbiting the ecosystem — is the visual anchor. The design language enhances this dark-mode-only aesthetic with institutional typography and a refined palette. Modes control information density, not theme.
 
 ---
 
@@ -29,15 +29,14 @@ The compass is warm in your hand but precise in its reading. That duality — wa
 
 Color in Governada serves three purposes: **brand identity**, **governance semantics**, and **emotional temperature**. No color is arbitrary — each earns its place.
 
-OKLCH throughout for perceptual consistency across light and dark modes.
+OKLCH throughout for perceptual consistency. Dark-only — the constellation globe and glowing node motif define the brand.
 
 ### Primary: Compass Teal
 
 Deep, warm teal. The color of a compass rose on a cartographic chart. Authoritative but not cold. Replaces the placeholder cyan.
 
 ```
-Light: oklch(0.50 0.12 192)   — deep, institutional
-Dark:  oklch(0.72 0.12 192)   — brighter for dark backgrounds
+oklch(0.72 0.12 192)   — bright against deep space backgrounds
 ```
 
 Used for: primary buttons, active states, links, focus rings, navigation accents, Participation governance ring.
@@ -47,8 +46,7 @@ Used for: primary buttons, active states, links, focus rings, navigation accents
 The brass of a compass instrument. Warmth, illumination, guidance.
 
 ```
-Light: oklch(0.68 0.14 75)    — warm, golden
-Dark:  oklch(0.78 0.12 75)    — softer glow on dark
+oklch(0.78 0.12 75)   — soft golden glow on dark
 ```
 
 Used for: secondary accents, highlights, hover warmth, Deliberation governance ring, callout borders.
@@ -58,8 +56,7 @@ Used for: secondary accents, highlights, hover warmth, Deliberation governance r
 The third point of the compass triangle. Significance, depth, influence.
 
 ```
-Light: oklch(0.55 0.15 295)   — deep, purposeful
-Dark:  oklch(0.70 0.14 295)   — vibrant on dark
+oklch(0.70 0.14 295)   — vibrant on dark
 ```
 
 Used for: Impact governance ring, premium/notable indicators, alignment dimension accents.
@@ -98,18 +95,18 @@ Diamond:    oklch(0.76 0.12 200)   — clear, bright
 Legendary:  oklch(0.62 0.20 310)   — vivid, rare
 ```
 
-### Surface Colors
+### Surface Colors (Dark Only)
 
-| Surface    | Light Mode                          | Dark Mode                            |
-| ---------- | ----------------------------------- | ------------------------------------ |
-| Background | `oklch(0.97 0.005 90)` — warm paper | `oklch(0.12 0.015 260)` — deep space |
-| Card       | `oklch(0.99 0.003 90)` — clean      | `oklch(0.16 0.012 260)` — elevated   |
-| Elevated   | `oklch(1.0 0 0)` — white            | `oklch(0.20 0.010 260)` — raised     |
-| Border     | `oklch(0.90 0.01 90)` — subtle      | `oklch(0.25 0.01 260)` — subtle      |
-| Muted text | `oklch(0.55 0.01 260)`              | `oklch(0.60 0.01 260)`               |
-| Foreground | `oklch(0.15 0.02 260)` — near black | `oklch(0.95 0.005 260)` — near white |
+| Surface    | Value                                |
+| ---------- | ------------------------------------ |
+| Background | `oklch(0.12 0.015 260)` — deep space |
+| Card       | `oklch(0.16 0.012 260)` — elevated   |
+| Elevated   | `oklch(0.20 0.010 260)` — raised     |
+| Border     | `oklch(0.25 0.01 260)` — subtle      |
+| Muted text | `oklch(0.60 0.01 260)`               |
+| Foreground | `oklch(0.95 0.005 260)` — near white |
 
-Note the warm hue shift in light mode backgrounds (hue 90 = warm paper) vs. cool in dark mode (hue 260 = deep blue-space). This creates the context-adaptive temperature: Browse/light feels warm, Work/dark feels cool.
+All surfaces use the deep space (hue 260) palette. The constellation globe, glow effects, and tier accents are designed for these dark surfaces.
 
 ---
 
@@ -179,15 +176,14 @@ Fraunces and Space Grotesk share geometric DNA — Fraunces' letterforms have un
 
 ### Mode Definitions
 
-Each mode has a distinct emotional register, density level, and interaction model.
+Each mode has a distinct density level and interaction model. All modes are dark theme.
 
 #### Browse Mode
 
-> "Show me what's happening." Warm, inviting, narrative-first.
+> "Show me what's happening." Spacious, narrative-first.
 
 - **Default for**: Citizens, discovery pages, proposal detail, profile pages, mobile
-- **Theme**: Light (warm paper backgrounds)
-- **Emotional register**: Warm-professional
+- **Theme**: Dark (constellation globe visible)
 - **Base unit**: 16px
 - **Card padding**: 1.5rem (24px)
 - **Card gap**: 1rem (16px)
@@ -204,7 +200,6 @@ Each mode has a distinct emotional register, density level, and interaction mode
 
 - **Default for**: Workspace pages, DRep/SPO tools, admin
 - **Theme**: Dark (deep space backgrounds)
-- **Emotional register**: Cool-professional
 - **Base unit**: 14px
 - **Card padding**: 0.75rem (12px)
 - **Card gap**: 0.5rem (8px)
@@ -220,8 +215,7 @@ Each mode has a distinct emotional register, density level, and interaction mode
 > "Let me understand everything." Neutral, dense, data-first.
 
 - **Default for**: Opt-in only — governance health deep dive, score analysis, comparative views
-- **Theme**: User preference (inherits current)
-- **Emotional register**: Neutral-clinical
+- **Theme**: Dark
 - **Base unit**: 13px
 - **Card padding**: 0.5rem (8px)
 - **Card gap**: 0.375rem (6px)
@@ -261,15 +255,11 @@ Mobile:
   Always Browse mode (Work/Analyze not available on mobile)
 ```
 
-### Context-Adaptive Theme
+### Theme: Dark Only
 
-| Mode    | Default Theme    | Rationale                                                         |
-| ------- | ---------------- | ----------------------------------------------------------------- |
-| Browse  | Light (warm)     | Citizens browsing should feel invited, not intimidated by dark UI |
-| Work    | Dark (cool)      | DReps working long sessions benefit from reduced eye strain       |
-| Analyze | Inherits current | User preference — some prefer dark data views, others light       |
+All modes use dark theme. The constellation globe, glowing governance nodes, tier accent glows, and noise texture overlay are designed exclusively for dark surfaces. Light mode was explored (#415) and intentionally rejected (#416) — the constellation IS the brand.
 
-Users can override any mode's default theme. The recommendation is opinionated but not mandatory.
+The `.force-dark` utility class in globals.css resets CSS variables to dark-mode values for elements that must stay dark regardless of context (constellation overlays, branded loader, WebGL scenes).
 
 ---
 
@@ -494,99 +484,38 @@ Universal search + actions + navigation. Every keyboard chord, page, and action 
 
 ---
 
-## 9. Implementation: Hub Proof of Concept
+## 9. Implementation Status
 
-The Hub page is the proof of concept for the design language. It proves Browse mode, Governance Rings, the new typography, and context-adaptive theming.
+Shipped in PRs #415 and #416 (2026-03-17).
 
-### What Changes
+### What Shipped
 
-| Element       | Current                 | New                                   |
-| ------------- | ----------------------- | ------------------------------------- |
-| Theme         | Dark (constellation bg) | Light (warm paper) in Browse mode     |
-| Typography    | Geist Sans              | Space Grotesk body + Fraunces display |
-| Hero element  | Card grid               | Governance Rings (hero size, 200px)   |
-| Color accent  | Electric cyan           | Compass Teal                          |
-| Card spacing  | Dense (space-y-3)       | Generous (space-y-4, larger padding)  |
-| Score numbers | Geist Mono              | Fraunces Display                      |
-| Info style    | Cards with links        | Narrative summary + cards             |
+| Element       | Before                   | After                                            |
+| ------------- | ------------------------ | ------------------------------------------------ |
+| Palette       | Placeholder cyan/purple  | Compass Teal / Wayfinder Amber / Meridian Violet |
+| Display font  | Geist Sans               | Fraunces (variable serif)                        |
+| Body font     | Geist Sans               | Space Grotesk (geometric)                        |
+| Hub hero      | Card grid                | Governance Rings (200px, 3 animated arcs)        |
+| Score numbers | Geist Mono               | Fraunces Display                                 |
+| Color accents | Electric cyan            | Compass Teal                                     |
+| SVG rendering | `fill="white"` hardcoded | `fill="currentColor"` (mode-resilient)           |
+| Density modes | One size fits all        | Browse (spacious) / Work (compact) / Analyze     |
+| Vote colors   | Green/red/gray           | Cerulean/copper/slate (morally neutral)          |
+| Theme         | Dark forced              | Dark forced (light mode explored and rejected)   |
 
-### Hub Layout (Browse Mode)
+### Key Decision: Dark Only (#416)
 
-```
-┌─────────────────────────────────────────┐
-│  [Logo]  Governada  [Mode] [Settings]   │  ← Header
-├─────────────────────────────────────────┤
-│                                         │
-│         [Governance Rings: hero]        │  ← Hero: 200px rings
-│      Participation · Deliberation       │     with ring labels
-│              · Impact                   │
-│                                         │
-│   "Your governance is healthy."         │  ← One-line verdict (Fraunces)
-│   "3 proposals need your attention      │     Contextual subtitle (Space)
-│    before Epoch 143 ends."              │
-│                                         │
-├─────────────────────────────────────────┤
-│                                         │
-│   ┌─ Action Card ─────────────────┐     │  ← Priority actions (if any)
-│   │  3 proposals awaiting vote     │     │     Compass teal accent
-│   │  [Review Now →]               │     │
-│   └───────────────────────────────┘     │
-│                                         │
-│   ┌─ Governance Pulse ───────────┐     │  ← Health summary
-│   │  GHI: 74 (Strong)            │     │     Score in Fraunces
-│   │  Treasury: ₳1.2B             │     │     Amount in Geist Mono
-│   │  Active DReps: 847           │     │
-│   └───────────────────────────────┘     │
-│                                         │
-│   ┌─ Your Delegation ────────────┐     │  ← Persona-specific
-│   │  Delegated to: DRepName      │     │
-│   │  Score: 72  Alignment: 85%   │     │
-│   └───────────────────────────────┘     │
-│                                         │
-│   ┌─ Discovery ──────────────────┐     │  ← Engagement
-│   │  Find your governance team   │     │
-│   │  [Explore →]                 │     │
-│   └───────────────────────────────┘     │
-│                                         │
-└─────────────────────────────────────────┘
-```
+Light mode was built and deployed (#415) but created a jarring visual — the constellation globe (dark WebGL canvas) floating in warm paper backgrounds. The constellation IS the brand. Decision: dark-only, modes control density not theme.
 
-### What Stays
+### Files Added
 
-- Persona-adaptive card selection (HubCardConfig.ts)
-- SSR governance pulse data
-- TanStack Query for client-side personalization
-- SegmentProvider persona routing
-- Feature flag architecture
-- Constellation background (moved to Work mode only, or as a subtle element)
+- `components/providers/ModeProvider.tsx` — Route-based density mode selection
+- `components/ui/GovernanceRings.tsx` — Signature three-ring visualization
+- `components/hub/HubHero.tsx` — Governance Rings hero for Hub page
 
-### Implementation Steps
+### Next Steps
 
-1. **Add Fraunces font** to `app/layout.tsx` via `next/font/google`
-2. **Create ModeProvider** in `components/providers/ModeProvider.tsx`
-3. **Update globals.css** — new color tokens, mode-scoped spacing/typography variables
-4. **Build GovernanceRings** component with hero/card/badge/inline variants
-5. **Rebuild Hub page** with Browse mode layout, Governance Rings hero, new typography
-6. **Wire mode auto-selection** — Hub → Browse mode
-7. **Feature-flag the new design** — `design_language_v2` flag, existing Hub as fallback
-
-### What NOT to Do Yet
-
-- Don't rebuild workspace pages (Work mode proof comes after Hub validation)
-- Don't build command palette or keyboard system (that's Work mode)
-- Don't replace shadcn components globally (do that after Hub validates the language)
-- Don't build Alignment Compass (future signature element)
-- Don't build Analyze mode (lowest priority, prove Browse and Work first)
-
----
-
-## 10. Validation Criteria
-
-The Hub proof of concept succeeds if:
-
-1. **First impression test**: A new visitor can identify Governada's purpose in <5 seconds without reading text (rings + typography + color = "governance health")
-2. **Screenshot test**: The Governance Rings hero is immediately recognizable — someone seeing a screenshot says "what app is that?"
-3. **Typography test**: Score numbers in Fraunces feel like verdicts, not statistics. Body text in Space Grotesk reads comfortably at proposal length.
-4. **Temperature test**: Browse mode feels warm and inviting. Not cold, not sterile, not startup-generic.
-5. **Mode contrast test**: Switching to Work mode (when built) feels like a genuine context shift — not just smaller text.
-6. **Founder test**: You look at the Hub and think "this was designed for governance" — not "this is a nice React app."
+- Wire Governance Rings to real engagement data (currently placeholder values)
+- Build Alignment Compass visualization (6-axis governance fingerprint)
+- Add command palette (Cmd+K) and keyboard chord system for Work mode
+- Extract governance primitives (VoteAction, ScoreDisplay, ProposalQueue)

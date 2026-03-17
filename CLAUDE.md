@@ -35,7 +35,7 @@ Build failures or production bugs if violated:
 ## Tech Stack
 
 - **Framework**: Next.js 16 App Router, TypeScript strict, React 19
-- **UI**: shadcn/ui + Tailwind CSS v4 + custom visualizations. Dark mode via next-themes
+- **UI**: shadcn/ui + Tailwind CSS v4 + Compass Design Language. Dark-only (forced). Three density modes via ModeProvider
 - **Data**: Koios API -> Supabase (cache) -> `lib/data.ts` -> components
 - **Client data**: TanStack Query (provider: `components/Providers.tsx`)
 - **Wallet**: MeshJS. Connection optional -- show value first
@@ -59,6 +59,10 @@ Build failures or production bugs if violated:
 | Matching engine           | `lib/matching/`                                           |
 | GHI v2                    | `lib/ghi/`                                                |
 | Feature flags             | `lib/featureFlags.ts`, `components/FeatureGate.tsx`       |
+| Design language spec      | `docs/strategy/design-language.md`                        |
+| Design tokens (CSS)       | `app/globals.css` (Compass palette, mode spacing)         |
+| Density modes             | `components/providers/ModeProvider.tsx`                   |
+| Governance Rings          | `components/ui/GovernanceRings.tsx`                       |
 | Base URL                  | `lib/constants.ts` (`BASE_URL`)                           |
 | Proposal authoring        | `components/workspace/author/`, `lib/workspace/`          |
 | Proposal review           | `components/workspace/review/`, `hooks/useReviewQueue.ts` |
@@ -114,6 +118,7 @@ C:\Users\dalto\governada\
 | Work plan template (parallel agents)      | `docs/strategy/context/work-plan-template.md`      | ~80   |
 | Competitive landscape (updated by audits) | `docs/strategy/context/competitive-landscape.md`   | ~150  |
 | World-class patterns library              | `docs/strategy/context/world-class-patterns.md`    | ~100  |
+| Design language (Compass spec)            | `docs/strategy/design-language.md`                 | ~590  |
 | Civic Identity Rings plan                 | `docs/strategy/plans/civic-identity-rings.md`      | ~280  |
 | Full vision (strategic audits only)       | `docs/strategy/ultimate-vision.md`                 | ~730  |
 
