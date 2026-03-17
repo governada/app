@@ -58,44 +58,44 @@
 :root {
   --radius: 0.625rem;
 
-  /* ── Light Mode: Warm Paper ── */
-  --background: oklch(0.97 0.005 90);
-  --foreground: oklch(0.15 0.02 260);
-  --card: oklch(0.99 0.003 90);
-  --card-foreground: oklch(0.15 0.02 260);
-  --popover: oklch(0.99 0.003 90);
-  --popover-foreground: oklch(0.15 0.02 260);
+  /* ── Light mode fallback (dark forced, but tokens needed for components) ── */
+  --background: oklch(0.98 0.005 260);
+  --foreground: oklch(0.1 0.02 260);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.1 0.02 260);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.1 0.02 260);
 
-  /* Primary: Compass Teal — deep, institutional */
+  /* Primary: Compass Teal */
   --primary: oklch(0.5 0.12 192);
   --primary-foreground: oklch(0.98 0 0);
 
-  /* Secondary: Wayfinder Amber — brass warmth */
+  /* Secondary: Wayfinder Amber */
   --secondary: oklch(0.68 0.14 75);
-  --secondary-foreground: oklch(0.15 0.02 260);
+  --secondary-foreground: oklch(0.98 0 0);
 
-  --muted: oklch(0.94 0.005 90);
+  --muted: oklch(0.94 0.005 260);
   --muted-foreground: oklch(0.45 0.02 260);
 
-  --accent: oklch(0.95 0.01 90);
-  --accent-foreground: oklch(0.15 0.02 260);
+  --accent: oklch(0.95 0.01 260);
+  --accent-foreground: oklch(0.1 0.02 260);
 
-  --destructive: oklch(0.58 0.2 25);
-  --border: oklch(0.9 0.01 90);
-  --input: oklch(0.9 0.01 90);
+  --destructive: oklch(0.55 0.22 25);
+  --border: oklch(0.88 0.005 260);
+  --input: oklch(0.88 0.005 260);
   --ring: oklch(0.5 0.12 192);
 
   /* Identity accent — Compass Teal default */
-  --identity: oklch(0.5 0.12 192);
-  --identity-rgb: 0 128 128;
+  --identity: oklch(0.72 0.12 192);
+  --identity-rgb: 56 190 190;
 
   /* Primary RGB for glow effects */
-  --primary-rgb: 0 128 128;
+  --primary-rgb: 56 190 190;
 
   /* Compass Palette — named governance colors */
-  --compass-teal: oklch(0.5 0.12 192);
-  --wayfinder-amber: oklch(0.68 0.14 75);
-  --meridian-violet: oklch(0.55 0.15 295);
+  --compass-teal: oklch(0.72 0.12 192);
+  --wayfinder-amber: oklch(0.78 0.12 75);
+  --meridian-violet: oklch(0.7 0.14 295);
 
   /* Vote colors — morally neutral */
   --vote-affirm: oklch(0.62 0.12 245);
@@ -103,19 +103,19 @@
   --vote-reserve: oklch(0.55 0.02 260);
 
   /* Chart palette */
-  --chart-1: oklch(0.5 0.12 192);
-  --chart-2: oklch(0.68 0.14 75);
-  --chart-3: oklch(0.55 0.15 295);
-  --chart-4: oklch(0.68 0.16 162);
-  --chart-5: oklch(0.58 0.2 25);
+  --chart-1: oklch(0.72 0.12 192);
+  --chart-2: oklch(0.78 0.12 75);
+  --chart-3: oklch(0.7 0.14 295);
+  --chart-4: oklch(0.72 0.16 162);
+  --chart-5: oklch(0.65 0.2 25);
 
-  --sidebar: oklch(0.97 0.005 90);
-  --sidebar-foreground: oklch(0.15 0.02 260);
+  --sidebar: oklch(0.97 0.005 260);
+  --sidebar-foreground: oklch(0.1 0.02 260);
   --sidebar-primary: oklch(0.5 0.12 192);
   --sidebar-primary-foreground: oklch(0.98 0 0);
-  --sidebar-accent: oklch(0.94 0.005 90);
-  --sidebar-accent-foreground: oklch(0.15 0.02 260);
-  --sidebar-border: oklch(0.9 0.01 90);
+  --sidebar-accent: oklch(0.94 0.005 260);
+  --sidebar-accent-foreground: oklch(0.1 0.02 260);
+  --sidebar-border: oklch(0.88 0.005 260);
   --sidebar-ring: oklch(0.5 0.12 192);
 
   /* ── Mode spacing defaults (Browse) ── */
@@ -241,42 +241,6 @@
 }
 
 /* ============================================================
-   Browse mode forces light theme on dark-mode pages
-   ============================================================ */
-
-[data-mode='browse'] {
-  --background: oklch(0.97 0.005 90);
-  --foreground: oklch(0.15 0.02 260);
-  --card: oklch(0.99 0.003 90);
-  --card-foreground: oklch(0.15 0.02 260);
-  --popover: oklch(0.99 0.003 90);
-  --popover-foreground: oklch(0.15 0.02 260);
-  --primary: oklch(0.5 0.12 192);
-  --primary-foreground: oklch(0.98 0 0);
-  --secondary: oklch(0.68 0.14 75);
-  --secondary-foreground: oklch(0.15 0.02 260);
-  --muted: oklch(0.94 0.005 90);
-  --muted-foreground: oklch(0.45 0.02 260);
-  --accent: oklch(0.95 0.01 90);
-  --accent-foreground: oklch(0.15 0.02 260);
-  --border: oklch(0.9 0.01 90);
-  --input: oklch(0.9 0.01 90);
-  --ring: oklch(0.5 0.12 192);
-  --identity: oklch(0.5 0.12 192);
-  --identity-rgb: 0 128 128;
-  --primary-rgb: 0 128 128;
-  --sidebar: oklch(0.97 0.005 90);
-  --sidebar-foreground: oklch(0.15 0.02 260);
-  --sidebar-primary: oklch(0.5 0.12 192);
-  --sidebar-primary-foreground: oklch(0.98 0 0);
-  --sidebar-accent: oklch(0.94 0.005 90);
-  --sidebar-accent-foreground: oklch(0.15 0.02 260);
-  --sidebar-border: oklch(0.9 0.01 90);
-  --sidebar-ring: oklch(0.5 0.12 192);
-  color-scheme: light;
-}
-
-/* ============================================================
    Force-Dark — wraps elements that must stay dark regardless of mode
    Used for: constellation canvas overlays, branded loader, WebGL scenes.
    ============================================================ */
@@ -399,9 +363,8 @@
   }
 }
 
-/* Subtle noise texture overlay — adds organic depth to dark surfaces.
-   Hidden in Browse mode (light theme). */
-.dark body:not([data-mode='browse'])::before {
+/* Subtle noise texture overlay — adds organic depth to dark surfaces */
+.dark body::before {
   content: '';
   position: fixed;
   inset: 0;
