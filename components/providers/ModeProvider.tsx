@@ -84,16 +84,6 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     }
   }, [autoMode, userOverride]);
 
-  // Sync mode to body for CSS selectors that target body-level elements
-  // (e.g., noise texture on body::before, scrollbar styles)
-  useEffect(() => {
-    const resolvedMode = mounted ? mode : autoMode;
-    document.body.setAttribute('data-mode', resolvedMode);
-    return () => {
-      document.body.removeAttribute('data-mode');
-    };
-  }, [mode, autoMode, mounted]);
-
   return (
     <ModeContext.Provider value={{ mode, setMode, cycleMode, isAutoSelected }}>
       <div data-mode={mounted ? mode : autoMode} className="contents">
