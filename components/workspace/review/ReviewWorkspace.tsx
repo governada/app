@@ -320,8 +320,6 @@ interface StudioReviewInnerProps {
   voteToast: { vote: string; visible: boolean } | null;
   getStatus: (txHash: string, proposalIndex: number) => string | undefined;
   queueLabels: string[];
-  editorMode: 'edit' | 'review' | 'diff';
-  setEditorMode: (mode: 'edit' | 'review' | 'diff') => void;
 }
 
 function StudioReviewInner({
@@ -343,8 +341,6 @@ function StudioReviewInner({
   voteToast,
   getStatus,
   queueLabels,
-  editorMode,
-  setEditorMode,
 }: StudioReviewInnerProps) {
   const { panelOpen, activePanel, togglePanel, isFullWidth, toggleFullWidth } = useStudio();
   const actionZoneRef = useRef<HTMLDivElement>(null);
@@ -398,9 +394,20 @@ function StudioReviewInner({
         queueLabels={queueLabels}
         segmentBadge={segmentBadge}
         notificationCount={unreadCount}
-        showModeSwitch={true}
-        mode={editorMode}
-        onModeChange={setEditorMode}
+        actions={
+          <div className="flex items-center rounded-md border border-border bg-muted/30 p-0.5">
+            <button className="px-3 py-1 text-[11px] font-medium rounded-sm bg-background text-foreground shadow-sm cursor-default">
+              Review
+            </button>
+            <button
+              disabled
+              className="px-3 py-1 text-[11px] font-medium rounded-sm text-muted-foreground/40 cursor-not-allowed"
+              title="No previous revisions available for comparison"
+            >
+              Diff
+            </button>
+          </div>
+        }
         panelOpen={panelOpen}
         activePanel={activePanel}
         onPanelToggle={togglePanel}
@@ -423,25 +430,14 @@ function StudioReviewInner({
               key={`proposal-${selectedItem.txHash}-${selectedItem.proposalIndex}`}
               className="animate-in fade-in duration-150"
             >
-              {editorMode === 'diff' ? (
-                <div className="rounded-lg border border-border bg-muted/10 p-8 text-center">
-                  <p className="text-sm text-muted-foreground">
-                    No previous version available for comparison.
-                  </p>
-                  <p className="text-xs text-muted-foreground/60 mt-1">
-                    Diff view is available when a proposal has multiple versions.
-                  </p>
-                </div>
-              ) : (
-                <ProposalEditor
-                  content={itemContent}
-                  mode="review"
-                  readOnly={true}
-                  currentUserId={stakeAddress ?? 'anonymous'}
-                  onEditorReady={handleEditorReady}
-                  excludeFields={['title']}
-                />
-              )}
+              <ProposalEditor
+                content={itemContent}
+                mode="review"
+                readOnly={true}
+                currentUserId={stakeAddress ?? 'anonymous'}
+                onEditorReady={handleEditorReady}
+                excludeFields={['title']}
+              />
               {/* ReviewActionZone below editor */}
               <div className="mt-6" ref={actionZoneRef}>
                 <ReviewActionZone
@@ -538,7 +534,6 @@ export function ReviewWorkspace({ initialProposalKey }: ReviewWorkspaceProps = {
 
   const [selectedIndex, setSelectedIndex] = useState(-1); // -1 = not yet auto-selected
   const [voteToast, setVoteToast] = useState<{ vote: string; visible: boolean } | null>(null);
-  const [editorMode, setEditorMode] = useState<'edit' | 'review' | 'diff'>('review');
   const lastTrackedRef = useRef<string | null>(null);
   const editorRef = useRef<Editor | null>(null);
 
@@ -592,9 +587,7 @@ export function ReviewWorkspace({ initialProposalKey }: ReviewWorkspaceProps = {
   const selectedItem = items[selectedIndex] ?? null;
 
   // Reset editor mode to 'review' when switching proposals
-  useEffect(() => {
-    setEditorMode('review');
-  }, [selectedIndex]);
+  useEffect(() => {}, [selectedIndex]);
 
   // Track proposal view when selection changes
   useEffect(() => {
@@ -867,8 +860,6 @@ export function ReviewWorkspace({ initialProposalKey }: ReviewWorkspaceProps = {
         voteToast={voteToast}
         getStatus={getStatus}
         queueLabels={queueLabels}
-        editorMode={editorMode}
-        setEditorMode={setEditorMode}
       />
     </StudioProvider>
   );
