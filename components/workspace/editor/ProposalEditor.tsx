@@ -466,7 +466,7 @@ export function ProposalEditor({
   }
 
   return (
-    <div className="proposal-editor-wrapper relative p-6 max-w-3xl mx-auto">
+    <div className="proposal-editor-wrapper relative p-6">
       {/* Tiptap editor */}
       <EditorContent editor={editor} />
 

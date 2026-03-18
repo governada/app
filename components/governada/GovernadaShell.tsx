@@ -161,17 +161,23 @@ export function GovernadaShell({ children }: { children: React.ReactNode }) {
           <BackgroundGlobe isHomepage={isHomepage} sidebarCollapsed={sidebarCollapsed} />
         )}
 
-        <main
-          id="main-content"
-          className={cn(
-            'relative z-0 min-h-screen transition-[padding-left] duration-200',
-            isStudioMode ? '' : 'pb-16 lg:pb-0',
-            isStudioMode ? '' : sidebarCollapsed ? 'lg:pl-16' : 'lg:pl-60',
-          )}
-          tabIndex={-1}
-        >
-          {children}
-        </main>
+        {/* Discovery context wraps main so studio can access it */}
+        <SpotlightProvider>
+          <DiscoveryHub hideFab={isStudioMode} />
+          <main
+            id="main-content"
+            className={cn(
+              'relative z-0 min-h-screen transition-[padding-left] duration-200',
+              isStudioMode ? '' : 'pb-16 lg:pb-0',
+              isStudioMode ? '' : sidebarCollapsed ? 'lg:pl-16' : 'lg:pl-60',
+            )}
+            tabIndex={-1}
+          >
+            {children}
+          </main>
+          {!isStudioMode && <EngagementNudge />}
+          {!isStudioMode && <MilestoneTrigger />}
+        </SpotlightProvider>
         {!isStudioMode && (
           <footer
             className={cn(
@@ -187,13 +193,6 @@ export function GovernadaShell({ children }: { children: React.ReactNode }) {
           </footer>
         )}
         {!isStudioMode && <GovernadaBottomNav />}
-
-        {/* Discovery Layer � always rendered for context, FAB hidden in studio */}
-        <SpotlightProvider>
-          <DiscoveryHub hideFab={isStudioMode} />
-          {!isStudioMode && <EngagementNudge />}
-          {!isStudioMode && <MilestoneTrigger />}
-        </SpotlightProvider>
       </TierThemeProvider>
     </SegmentProvider>
   );
