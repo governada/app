@@ -27,6 +27,8 @@ import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
 import Image from '@tiptap/extension-image';
+import { TaskList } from '@tiptap/extension-task-list';
+import { TaskItem } from '@tiptap/extension-task-item';
 import Document from '@tiptap/extension-document';
 
 import { SectionBlock, buildSectionDocument, extractSectionContent } from './SectionBlock';
@@ -292,6 +294,17 @@ export function ProposalEditor({
         allowBase64: false,
         HTMLAttributes: {
           class: 'rounded-lg max-w-full my-3',
+        },
+      }),
+      TaskList.configure({
+        HTMLAttributes: {
+          class: 'not-prose space-y-1 my-3',
+        },
+      }),
+      TaskItem.configure({
+        nested: false,
+        HTMLAttributes: {
+          class: 'flex items-start gap-2',
         },
       }),
     ],

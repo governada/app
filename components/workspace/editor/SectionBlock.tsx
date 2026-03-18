@@ -193,6 +193,7 @@ function markdownToContent(text: string): object[] {
   let pendingBulletItems: object[] = [];
   let pendingOrderedItems: object[] = [];
   let pendingBlockquoteLines: string[] = [];
+  let pendingTaskItems: object[] = [];
   let pendingTableRows: object[] | null = null;
   let pendingTableIsHeader = false;
 
@@ -225,6 +226,13 @@ function markdownToContent(text: string): object[] {
     }
   };
 
+  const flushTaskList = () => {
+    if (pendingTaskItems.length > 0) {
+      blocks.push({ type: 'taskList', content: pendingTaskItems });
+      pendingTaskItems = [];
+    }
+  };
+
   const flushBlockquote = () => {
     if (pendingBlockquoteLines.length > 0) {
       const quoteText = pendingBlockquoteLines.join(' ');
@@ -245,6 +253,7 @@ function markdownToContent(text: string): object[] {
     flushParagraph();
     flushBulletList();
     flushOrderedList();
+    flushTaskList();
     flushBlockquote();
   };
 
@@ -310,6 +319,31 @@ function markdownToContent(text: string): object[] {
         ],
       });
       continue;
+    }
+
+    // Task list items: - [x] or - [ ] text
+    const taskMatch = trimmed.match(/^[-*]\s\[([ xX])\]\s+(.+)$/);
+    if (taskMatch) {
+      flushParagraph();
+      flushBulletList();
+      flushOrderedList();
+      pendingTaskItems.push({
+        type: 'taskItem',
+        attrs: { checked: taskMatch[1].toLowerCase() === 'x' },
+        content: [
+          {
+            type: 'paragraph',
+            content: parseInlineMarks(taskMatch[2]),
+          },
+        ],
+      });
+      continue;
+    }
+
+    // If we had pending task items but this isn't one, flush them
+    if (pendingTaskItems.length > 0) {
+      blocks.push({ type: 'taskList', content: pendingTaskItems });
+      pendingTaskItems = [];
     }
 
     // Bullet list items
