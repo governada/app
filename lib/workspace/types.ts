@@ -25,7 +25,7 @@ export const PROPOSAL_TYPE_LABELS: Record<ProposalType, string> = {
   HardForkInitiation: 'Hard Fork Initiation',
   NoConfidence: 'No Confidence',
   NewCommittee: 'New Committee',
-  NewConstitution: 'New Constitution',
+  NewConstitution: 'Constitutional Amendment',
 };
 
 export const PROPOSAL_TYPE_DESCRIPTIONS: Record<ProposalType, string> = {
@@ -35,7 +35,7 @@ export const PROPOSAL_TYPE_DESCRIPTIONS: Record<ProposalType, string> = {
   HardForkInitiation: 'Initiate a hard fork to upgrade the protocol.',
   NoConfidence: 'Express no confidence in the current Constitutional Committee.',
   NewCommittee: 'Propose new members for the Constitutional Committee.',
-  NewConstitution: 'Propose a replacement for the Cardano Constitution.',
+  NewConstitution: 'Propose amendments to the Cardano Constitution.',
 };
 
 // ---------------------------------------------------------------------------

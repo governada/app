@@ -49,8 +49,10 @@ function AuthorWorkspaceInner() {
   const handleCreateDraft = async (proposalType: ProposalType) => {
     if (!stakeAddress) return;
 
-    // Intercept NewConstitution when the amendment editor flag is enabled
-    if (proposalType === 'NewConstitution' && constitutionEditorFlag) {
+    // Intercept NewConstitution when the amendment editor flag is enabled.
+    // constitutionEditorFlag is null while loading, true/false once resolved.
+    // If null (still loading), treat as enabled to avoid racing past to the old flow.
+    if (proposalType === 'NewConstitution' && constitutionEditorFlag !== false) {
       setSelectorOpen(false);
       setAmendmentDialogOpen(true);
       return;
