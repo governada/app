@@ -116,6 +116,8 @@ export function GovernadaShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { t } = useTranslation();
   const isHomepage = pathname === '/';
+  const isStudioMode =
+    pathname === '/workspace/review' || /^\/workspace\/(author|editor)\/[^/]+/.test(pathname);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
@@ -138,36 +140,43 @@ export function GovernadaShell({ children }: { children: React.ReactNode }) {
           <DeepLinkHandler />
         </Suspense>
         <SyncFreshnessBanner />
-        <GovernadaHeader />
-        <GovernadaSidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
-        <EpochContextBar sidebarCollapsed={sidebarCollapsed} />
+        {!isStudioMode && <GovernadaHeader />}
+        {!isStudioMode && (
+          <GovernadaSidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
+        )}
+        {!isStudioMode && <EpochContextBar sidebarCollapsed={sidebarCollapsed} />}
 
         {/* Global constellation globe — subtle glassmorphic background */}
-        <BackgroundGlobe isHomepage={isHomepage} sidebarCollapsed={sidebarCollapsed} />
+        {!isStudioMode && (
+          <BackgroundGlobe isHomepage={isHomepage} sidebarCollapsed={sidebarCollapsed} />
+        )}
 
         <main
           id="main-content"
           className={cn(
-            'relative z-0 min-h-screen pb-16 lg:pb-0 transition-[padding-left] duration-200',
-            sidebarCollapsed ? 'lg:pl-16' : 'lg:pl-60',
+            'relative z-0 min-h-screen transition-[padding-left] duration-200',
+            isStudioMode ? '' : 'pb-16 lg:pb-0',
+            isStudioMode ? '' : sidebarCollapsed ? 'lg:pl-16' : 'lg:pl-60',
           )}
           tabIndex={-1}
         >
           {children}
         </main>
-        <footer
-          className={cn(
-            'relative z-0 border-t border-border/40 py-4 px-4 text-center transition-[padding-left] duration-200',
-            sidebarCollapsed ? 'lg:pl-16' : 'lg:pl-60',
-          )}
-        >
-          <p className="text-xs text-muted-foreground/70">
-            {t(
-              'Governada is an independent community project and is not affiliated with, endorsed by, or associated with the Cardano Foundation, IOG, or EMURGO.',
+        {!isStudioMode && (
+          <footer
+            className={cn(
+              'relative z-0 border-t border-border/40 py-4 px-4 text-center transition-[padding-left] duration-200',
+              sidebarCollapsed ? 'lg:pl-16' : 'lg:pl-60',
             )}
-          </p>
-        </footer>
-        <GovernadaBottomNav />
+          >
+            <p className="text-xs text-muted-foreground/70">
+              {t(
+                'Governada is an independent community project and is not affiliated with, endorsed by, or associated with the Cardano Foundation, IOG, or EMURGO.',
+              )}
+            </p>
+          </footer>
+        )}
+        {!isStudioMode && <GovernadaBottomNav />}
 
         {/* Discovery Layer — lazy-loaded, zero impact on initial render */}
         <SpotlightProvider>
