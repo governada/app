@@ -94,7 +94,7 @@ function SectionBlockView({ node, editor }: SectionBlockViewProps) {
 
       {/* Editor content area */}
       <NodeViewContent
-        className={`prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[60px] px-4 py-3 ${
+        className={`prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[60px] px-4 py-3 prose-headings:font-bold prose-headings:text-foreground prose-h2:text-lg prose-h2:mt-6 prose-h2:mb-3 prose-h3:text-base prose-h3:mt-5 prose-h3:mb-2 prose-h4:text-sm prose-h4:mt-4 prose-h4:mb-2 prose-p:mb-2.5 prose-p:leading-relaxed prose-blockquote:border-l-primary/30 prose-blockquote:text-muted-foreground prose-a:text-primary prose-a:underline ${
           !isEditable ? 'cursor-default' : ''
         }`}
         as="div"
@@ -198,25 +198,13 @@ function markdownToContent(text: string): object[] {
 
   const flushParagraph = () => {
     if (currentParagraph.length > 0) {
-      if (currentParagraph.length === 1) {
-        const text = currentParagraph[0].trim();
+      // Each line becomes its own paragraph for proper visual spacing.
+      // Governance proposals use single newlines between distinct thoughts/sections,
+      // so paragraph-level spacing (margins) is more readable than <br> line breaks.
+      for (const line of currentParagraph) {
+        const text = line.trim();
         if (text) {
           blocks.push({ type: 'paragraph', content: parseInlineMarks(text) });
-        }
-      } else {
-        // Multiple consecutive lines = soft breaks between them
-        const content: object[] = [];
-        for (let i = 0; i < currentParagraph.length; i++) {
-          const lineText = currentParagraph[i].trim();
-          if (lineText) {
-            content.push(...parseInlineMarks(lineText));
-          }
-          if (i < currentParagraph.length - 1) {
-            content.push({ type: 'hardBreak' });
-          }
-        }
-        if (content.length > 0) {
-          blocks.push({ type: 'paragraph', content });
         }
       }
       currentParagraph = [];
