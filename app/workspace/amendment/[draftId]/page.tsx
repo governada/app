@@ -5,17 +5,17 @@ export const dynamic = 'force-dynamic';
 /**
  * Amendment Editor Page — Constitution amendment workspace using Studio shell.
  *
- * Follows the same StudioProvider + StudioHeader/StudioPanel/StudioActionBar
- * pattern as the proposal editor page, but uses ConstitutionEditor as the
- * main editing surface and adds amendment-specific metadata/intel.
- *
- * Supports two entry modes:
- * - Direct: user edits the constitution text in suggest mode
- * - Intent: user describes what they want to change, AI generates amendments
+ * Full studio experience matching the Review studio UX:
+ * - Header with panel toggles, full-width toggle, edit/preview mode switch
+ * - Right panel with Agent, Intel, and Notes tabs (no Vote tab for authors)
+ * - Bottom action bar with panel toggles + explorer compass + status strip
+ * - Edit mode: Tiptap suggest mode with tracked changes
+ * - Preview mode: Read-only view of the constitution with accepted changes applied
  */
 
 import { useState, useCallback, useMemo, useEffect, useRef, type ReactNode } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { cn } from '@/lib/utils';
 import { useDraft, useUpdateDraft } from '@/hooks/useDrafts';
 import { useSegment } from '@/components/providers/SegmentProvider';
 import { useAgent } from '@/hooks/useAgent';
@@ -31,7 +31,6 @@ import {
   injectInlineComment,
 } from '@/components/studio/studioEditorHelpers';
 import { ConstitutionEditor } from '@/components/workspace/editor/ConstitutionEditor';
-import { ProposalEditor } from '@/components/workspace/editor/ProposalEditor';
 import { AgentChatPanel } from '@/components/workspace/agent/AgentChatPanel';
 import { AmendmentMetaStrip } from '@/components/workspace/author/AmendmentMetaStrip';
 import { AmendmentIntelPanel } from '@/components/workspace/author/AmendmentIntelPanel';
@@ -43,15 +42,14 @@ import { proposeChange } from '@/components/workspace/editor/SuggestModePlugin';
 import type { AmendmentChange } from '@/lib/constitution/types';
 import type { AmendmentEditorMode } from '@/lib/workspace/editor/types';
 import type { ProposedComment } from '@/lib/workspace/editor/types';
-import type { ProposalField } from '@/lib/workspace/editor/types';
 import type { Editor } from '@tiptap/core';
 import type { ConstitutionSlashCommandType } from '@/components/workspace/editor/ConstitutionSlashCommands';
 
 // ---------------------------------------------------------------------------
-// AuthorPanelWrapper — thin wrapper that connects StudioPanel to StudioProvider
+// AmendmentPanelWrapper — connects StudioPanel to StudioProvider
 // ---------------------------------------------------------------------------
 
-function AuthorPanelWrapper({
+function AmendmentPanelWrapper({
   agentContent,
   intelContent,
 }: {
@@ -76,16 +74,70 @@ function AuthorPanelWrapper({
 }
 
 // ---------------------------------------------------------------------------
-// AuthorActionBarWrapper — connects action bar to studio context
+// AmendmentHeaderWrapper — connects StudioHeader to StudioProvider
 // ---------------------------------------------------------------------------
 
-function AuthorActionBarWrapper({
-  statusInfo,
-  contextActions,
+function AmendmentHeaderWrapper({
+  title,
+  mode,
+  onModeChange,
+  isOwner,
 }: {
-  statusInfo: ReactNode;
-  contextActions?: ReactNode;
+  title: string;
+  mode: AmendmentEditorMode;
+  onModeChange: (mode: AmendmentEditorMode) => void;
+  isOwner: boolean;
 }) {
+  const { panelOpen, activePanel, togglePanel, isFullWidth, toggleFullWidth } = useStudio();
+
+  return (
+    <StudioHeader
+      backLabel="governada"
+      backHref="/workspace/author"
+      title={title}
+      proposalType="Constitutional Amendment"
+      panelOpen={panelOpen}
+      activePanel={activePanel}
+      onPanelToggle={togglePanel}
+      isFullWidth={isFullWidth}
+      onFullWidthToggle={toggleFullWidth}
+      actions={
+        isOwner ? (
+          <div className="flex items-center rounded-md border border-border bg-muted/30 p-0.5">
+            <button
+              onClick={() => onModeChange('suggest')}
+              className={cn(
+                'px-3 py-1 text-[11px] font-medium rounded-sm transition-colors cursor-pointer',
+                mode === 'suggest'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              Edit
+            </button>
+            <button
+              onClick={() => onModeChange('review')}
+              className={cn(
+                'px-3 py-1 text-[11px] font-medium rounded-sm transition-colors cursor-pointer',
+                mode === 'review'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              Preview
+            </button>
+          </div>
+        ) : undefined
+      }
+    />
+  );
+}
+
+// ---------------------------------------------------------------------------
+// AmendmentActionBarWrapper — connects action bar to StudioProvider
+// ---------------------------------------------------------------------------
+
+function AmendmentActionBarWrapper({ statusInfo }: { statusInfo: ReactNode }) {
   const { panelOpen, activePanel, togglePanel } = useStudio();
 
   return (
@@ -93,7 +145,6 @@ function AuthorActionBarWrapper({
       activePanel={panelOpen ? activePanel : null}
       onPanelToggle={togglePanel}
       statusInfo={statusInfo}
-      contextActions={contextActions}
     />
   );
 }
@@ -109,12 +160,11 @@ function AmendmentEditorPage() {
   const draftId = typeof params.draftId === 'string' ? params.draftId : null;
   const { data, isLoading, error } = useDraft(draftId);
 
-  const [mode] = useState<AmendmentEditorMode>('suggest');
+  const [mode, setMode] = useState<AmendmentEditorMode>('suggest');
   const [changes, setChanges] = useState<AmendmentChange[]>([]);
   const [showIntentPanel, setShowIntentPanel] = useState(searchParams.get('mode') === 'intent');
   const [intentGenerating, setIntentGenerating] = useState(false);
   const constitutionEditorRef = useRef<Editor | null>(null);
-  const proposalEditorRef = useRef<Editor | null>(null);
 
   const { stakeAddress, segment } = useSegment();
   const updateDraft = useUpdateDraft(draftId ?? '');
@@ -128,7 +178,16 @@ function AmendmentEditorPage() {
     : segment === 'cc'
       ? ('cc_member' as const)
       : ('reviewer' as const);
-  const readOnly = !isOwner;
+  const readOnly = !isOwner || mode === 'review';
+
+  // --- Mode change with analytics ---
+  const handleModeChange = useCallback(
+    (next: AmendmentEditorMode) => {
+      posthog.capture('amendment_mode_changed', { proposal_id: draftId, mode: next });
+      setMode(next);
+    },
+    [draftId],
+  );
 
   // --- Agent hook ---
   const {
@@ -156,17 +215,6 @@ function AmendmentEditorPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [existingChanges]);
 
-  // --- Content for ProposalEditor (title/abstract/motivation/rationale) ---
-  const proposalContent = useMemo(
-    () => ({
-      title: draft?.title ?? '',
-      abstract: draft?.abstract ?? '',
-      motivation: draft?.motivation ?? '',
-      rationale: draft?.rationale ?? '',
-    }),
-    [draft?.title, draft?.abstract, draft?.motivation, draft?.rationale],
-  );
-
   // --- Constitution content for agent context ---
   const constitutionContent = useMemo(() => {
     const content: Record<string, string> = {};
@@ -189,21 +237,9 @@ function AmendmentEditorPage() {
     [draft?.typeSpecific, updateDraft],
   );
 
-  // --- Proposal description content change (auto-save) ---
-  const handleProposalContentChange = useCallback(
-    (field: ProposalField, value: string) => {
-      updateDraft.mutate({ [field]: value });
-    },
-    [updateDraft],
-  );
-
-  // --- Editor ready handlers ---
+  // --- Editor ready handler ---
   const handleConstitutionEditorReady = useCallback((editor: Editor) => {
     constitutionEditorRef.current = editor;
-  }, []);
-
-  const handleProposalEditorReady = useCallback((editor: Editor) => {
-    proposalEditorRef.current = editor;
   }, []);
 
   // --- Agent lastComment -> inject into constitution editor ---
@@ -332,10 +368,10 @@ function AmendmentEditorPage() {
 
       // Update draft with generated metadata
       const updates: Record<string, unknown> = {};
-      if (metadata.motivation && !proposalContent.motivation) {
+      if (metadata.motivation) {
         updates.motivation = metadata.motivation;
       }
-      if (metadata.rationale && !proposalContent.rationale) {
+      if (metadata.rationale) {
         updates.rationale = metadata.rationale;
       }
       if (Object.keys(updates).length > 0) {
@@ -355,7 +391,7 @@ function AmendmentEditorPage() {
         }
       }
     },
-    [draftId, proposalContent.motivation, proposalContent.rationale, updateDraft, recordGenealogy],
+    [draftId, updateDraft, recordGenealogy],
   );
 
   // --- Status info ---
@@ -449,19 +485,18 @@ function AmendmentEditorPage() {
 
       <StudioProvider>
         <div className="flex flex-col h-screen">
-          {/* Studio Header */}
-          <StudioHeader
-            backLabel="Back to drafts"
-            backHref="/workspace/author"
+          {/* Studio Header — full controls like Review studio */}
+          <AmendmentHeaderWrapper
             title={draft.title || 'Constitutional Amendment'}
-            proposalType="New Constitution"
+            mode={mode}
+            onModeChange={handleModeChange}
+            isOwner={isOwner}
           />
 
           {/* Main content area */}
           <div className="flex flex-1 min-h-0 overflow-hidden">
             {/* Main editor area (scrollable) */}
             <div className="flex-1 min-w-0 overflow-y-auto">
-              {/* Constitution editor (takes most of the space) */}
               <ConstitutionEditor
                 constitutionNodes={CONSTITUTION_NODES}
                 existingChanges={existingChanges}
@@ -475,33 +510,14 @@ function AmendmentEditorPage() {
                 onDiffReject={handleDiffReject}
                 currentUserId={stakeAddress ?? 'anonymous'}
               />
-
-              {/* Proposal description section (below the constitution editor) */}
-              <div className="lg:ml-56 max-w-3xl mx-auto px-6 pb-6">
-                <div className="border-t border-border mt-6 pt-6">
-                  <h3 className="text-sm font-semibold mb-1">Proposal Description</h3>
-                  <p className="text-xs text-muted-foreground mb-4">
-                    Describe why this amendment is needed. This becomes the CIP-108 metadata
-                    submitted on-chain.
-                  </p>
-                  <ProposalEditor
-                    content={proposalContent}
-                    mode="edit"
-                    readOnly={readOnly}
-                    onContentChange={readOnly ? undefined : handleProposalContentChange}
-                    currentUserId={stakeAddress ?? 'anonymous'}
-                    onEditorReady={handleProposalEditorReady}
-                  />
-                </div>
-              </div>
             </div>
 
             {/* Studio Panel (on-demand right panel) */}
-            <AuthorPanelWrapper agentContent={agentChatNode} intelContent={intelNode} />
+            <AmendmentPanelWrapper agentContent={agentChatNode} intelContent={intelNode} />
           </div>
 
-          {/* Studio Action Bar */}
-          <AuthorActionBarWrapper statusInfo={statusInfo} />
+          {/* Studio Action Bar — panel toggles + status + explorer */}
+          <AmendmentActionBarWrapper statusInfo={statusInfo} />
         </div>
       </StudioProvider>
     </>
