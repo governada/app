@@ -338,24 +338,22 @@ export function AgentChatPanel({
             <div className="text-center space-y-1">
               <p className="text-sm text-muted-foreground">Governance Agent</p>
               <p className="text-xs text-muted-foreground/60 max-w-[240px]">
-                Ask me about this proposal, check constitutional alignment, search for similar
-                proposals, or request edit suggestions.
+                Ask about risks, request a rationale draft, or explore arguments for and against
+                this proposal.
               </p>
             </div>
             <div className="flex flex-wrap gap-1.5 justify-center max-w-[280px]">
               {[
-                'Check constitution',
-                'Find similar proposals',
-                'Improve the abstract',
-                'Summarize community feedback',
+                'What are the key risks of this proposal?',
+                'Summarize the main arguments for and against',
+                'Draft a rationale for voting Yes',
+                'What questions should I ask the proposer?',
               ].map((suggestion) => (
                 <button
                   key={suggestion}
-                  onClick={() => {
-                    setInput(suggestion);
-                    inputRef.current?.focus();
-                  }}
-                  className="text-[11px] px-2.5 py-1 rounded-full border border-border/60 text-muted-foreground hover:text-foreground hover:border-border transition-colors"
+                  onClick={() => sendMessage(suggestion)}
+                  disabled={isStreaming}
+                  className="text-[11px] px-2.5 py-1 rounded-full border border-border/60 text-muted-foreground hover:text-foreground hover:border-border transition-colors disabled:opacity-50"
                 >
                   {suggestion}
                 </button>

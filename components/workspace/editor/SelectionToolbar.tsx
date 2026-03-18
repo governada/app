@@ -14,7 +14,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import type { Editor } from '@tiptap/core';
-import { MessageSquarePlus, Send, X } from 'lucide-react';
+import { MessageSquarePlus, Send, X, Highlighter, Strikethrough, Flag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
@@ -156,6 +156,60 @@ export function SelectionToolbar({
     onCommentCreated?.();
   }, [editor, commentText, commentCategory, currentUserId, currentUserName, onCommentCreated]);
 
+  // -------------------------------------------------------------------------
+  // Quick mark handlers — one-click highlight / redline / flag
+  // -------------------------------------------------------------------------
+
+  const handleQuickMark = useCallback(
+    (type: 'highlight' | 'redline' | 'flag') => {
+      const { from, to } = editor.state.selection;
+      if (from === to) return;
+
+      const categoryMap: Record<string, CommentCategory> = {
+        highlight: 'note',
+        redline: 'concern',
+        flag: 'concern',
+      };
+      const textMap: Record<string, string> = {
+        highlight: '[Highlighted for review]',
+        redline: '[Suggested for deletion]',
+        flag: '[Flagged as concerning]',
+      };
+
+      const commentId = `comment-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const wasEditable = editor.isEditable;
+      if (!wasEditable) editor.setEditable(true);
+
+      editor
+        .chain()
+        .focus()
+        .command(({ tr }) => {
+          const markType = editor.schema.marks.inlineComment;
+          if (!markType) return false;
+          tr.addMark(
+            from,
+            to,
+            markType.create({
+              id: commentId,
+              author: currentUserName,
+              authorId: currentUserId,
+              timestamp: new Date().toISOString(),
+              category: categoryMap[type],
+              text: textMap[type],
+            }),
+          );
+          return true;
+        })
+        .setTextSelection({ from, to })
+        .run();
+
+      if (!wasEditable) editor.setEditable(false);
+      setVisible(false);
+      onCommentCreated?.();
+    },
+    [editor, currentUserId, currentUserName, onCommentCreated],
+  );
+
   const handleCancel = useCallback(() => {
     setShowCommentInput(false);
     setCommentText('');
@@ -176,14 +230,38 @@ export function SelectionToolbar({
     >
       <div className="flex items-center gap-1 rounded-lg border border-border bg-background shadow-lg p-1">
         {!showCommentInput ? (
-          <button
-            onClick={() => setShowCommentInput(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
-            title="Add comment"
-          >
-            <MessageSquarePlus className="h-3.5 w-3.5" />
-            Comment
-          </button>
+          <>
+            <button
+              onClick={() => setShowCommentInput(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
+              title="Add comment"
+            >
+              <MessageSquarePlus className="h-3.5 w-3.5" />
+              Comment
+            </button>
+            <div className="w-px h-4 bg-border" />
+            <button
+              onClick={() => handleQuickMark('highlight')}
+              className="p-1.5 text-amber-400/70 hover:text-amber-400 rounded-md hover:bg-amber-500/10 transition-colors cursor-pointer"
+              title="Highlight"
+            >
+              <Highlighter className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => handleQuickMark('redline')}
+              className="p-1.5 text-rose-400/70 hover:text-rose-400 rounded-md hover:bg-rose-500/10 transition-colors cursor-pointer"
+              title="Suggest deletion (redline)"
+            >
+              <Strikethrough className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => handleQuickMark('flag')}
+              className="p-1.5 text-red-400/70 hover:text-red-400 rounded-md hover:bg-red-500/10 transition-colors cursor-pointer"
+              title="Flag as concerning"
+            >
+              <Flag className="h-3.5 w-3.5" />
+            </button>
+          </>
         ) : (
           <div className="flex flex-col gap-2 p-2 min-w-[280px]">
             {/* Category selector */}
