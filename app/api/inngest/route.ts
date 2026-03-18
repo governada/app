@@ -48,6 +48,8 @@ import { analyzeCcRationales } from '@/inngest/functions/analyze-cc-rationales';
 import { generateCcBriefing } from '@/inngest/functions/generate-cc-briefing';
 import { clusterPerspectives } from '@/inngest/functions/cluster-perspectives';
 import { consolidateFeedbackFn } from '@/inngest/functions/consolidate-feedback';
+import { generateEmbeddings as generateEmbeddingsFn } from '@/inngest/functions/generate-embeddings';
+import { generateUserEmbedding } from '@/inngest/functions/generate-user-embedding';
 export const { GET, POST, PUT } = serve({
   client: inngest,
   functions: [
@@ -97,5 +99,7 @@ export const { GET, POST, PUT } = serve({
     generateCcBriefing,
     clusterPerspectives,
     consolidateFeedbackFn,
+    generateEmbeddingsFn,
+    generateUserEmbedding,
   ],
 });
