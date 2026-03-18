@@ -7,6 +7,7 @@
  */
 
 import { Shield, ListChecks, Users, Clock, FileText } from 'lucide-react';
+import { SaveStatusIndicator } from './SaveStatusIndicator';
 
 interface StatusBarProps {
   constitutional?: { status: 'pass' | 'warning' | 'fail'; flagCount: number };
@@ -14,6 +15,8 @@ interface StatusBarProps {
   community?: { reviewerCount: number; themeCount: number };
   userStatus?: string;
   deadline?: string;
+  /** Whether to show the auto-save status indicator (default: false) */
+  showSaveStatus?: boolean;
 }
 
 const constitutionalColors = {
@@ -28,6 +31,7 @@ export function StatusBar({
   community,
   userStatus,
   deadline,
+  showSaveStatus = false,
 }: StatusBarProps) {
   return (
     <div className="flex items-center gap-4 flex-1">
@@ -69,6 +73,9 @@ export function StatusBar({
           {userStatus}
         </span>
       )}
+
+      {/* Auto-save status */}
+      {showSaveStatus && <SaveStatusIndicator />}
 
       {/* Deadline */}
       {deadline && (
