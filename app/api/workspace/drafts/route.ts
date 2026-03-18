@@ -7,6 +7,7 @@ import { withRouteHandler } from '@/lib/api/withRouteHandler';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { CreateDraftSchema } from '@/lib/api/schemas/workspace';
 import { captureServerEvent } from '@/lib/posthog-server';
+import { logger } from '@/lib/logger';
 import type { ProposalDraft } from '@/lib/workspace/types';
 
 export const dynamic = 'force-dynamic';
@@ -76,7 +77,7 @@ export const POST = withRouteHandler(
         motivation: body.motivation,
         rationale: body.rationale,
         proposal_type: body.proposalType,
-        type_specific: body.typeSpecific ?? null,
+        type_specific: body.typeSpecific ?? {},
         status: 'draft',
         current_version: 1,
       })
@@ -84,6 +85,10 @@ export const POST = withRouteHandler(
       .single();
 
     if (draftError || !draft) {
+      logger.error('[drafts] Failed to create draft', {
+        error: draftError?.message,
+        code: draftError?.code,
+      });
       return NextResponse.json({ error: 'Failed to create draft' }, { status: 500 });
     }
 
@@ -99,7 +104,7 @@ export const POST = withRouteHandler(
         motivation: body.motivation,
         rationale: body.rationale,
         proposalType: body.proposalType,
-        typeSpecific: body.typeSpecific ?? null,
+        typeSpecific: body.typeSpecific ?? {},
       },
     });
 

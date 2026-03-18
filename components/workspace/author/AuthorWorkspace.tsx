@@ -17,12 +17,18 @@ function AuthorWorkspaceInner() {
   const { data, isLoading } = useDrafts(stakeAddress);
   const createDraft = useCreateDraft();
   const [selectorOpen, setSelectorOpen] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   const handleCreateDraft = async (proposalType: ProposalType) => {
     if (!stakeAddress) return;
-    const result = await createDraft.mutateAsync({ stakeAddress, proposalType });
-    setSelectorOpen(false);
-    router.push(`/workspace/author/${result.draft.id}`);
+    setCreateError(null);
+    try {
+      const result = await createDraft.mutateAsync({ stakeAddress, proposalType });
+      setSelectorOpen(false);
+      router.push(`/workspace/author/${result.draft.id}`);
+    } catch {
+      setCreateError('Failed to create draft. Please try again.');
+    }
   };
 
   if (!stakeAddress) {
@@ -48,6 +54,8 @@ function AuthorWorkspaceInner() {
           New Proposal
         </Button>
       </div>
+
+      {createError && <p className="text-sm text-destructive">{createError}</p>}
 
       <DraftsList drafts={data?.drafts ?? []} isLoading={isLoading} />
 
