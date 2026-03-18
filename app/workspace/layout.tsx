@@ -1,10 +1,10 @@
-import { SectionPillBar } from '@/components/governada/SectionPillBar';
+import { WorkspacePillBar } from './WorkspacePillBar';
 import { SectionSpotlightTrigger } from '@/components/discovery/SectionSpotlightTrigger';
 
 export default function WorkspaceLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <SectionPillBar section="home" />
+      <WorkspacePillBar />
       <SectionSpotlightTrigger section="workspace" />
       {children}
     </>

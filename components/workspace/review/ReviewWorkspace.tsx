@@ -1,26 +1,29 @@
 'use client';
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { Bell, CheckCircle2, Vote } from 'lucide-react';
+import { CheckCircle2, Vote } from 'lucide-react';
 import { useSegment } from '@/components/providers/SegmentProvider';
 import { useWallet } from '@/utils/wallet';
 import { useReviewQueue, useQueueState } from '@/hooks/useReviewQueue';
 import { useReviewableDrafts } from '@/hooks/useReviewableDrafts';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
-import {
-  useRevisionNotifications,
-  useMarkNotificationRead,
-} from '@/hooks/useRevisionNotifications';
+import { useRevisionNotifications } from '@/hooks/useRevisionNotifications';
+import { useAgent } from '@/hooks/useAgent';
 import { trackProposalView } from '@/lib/workspace/engagement';
-import { ReviewQueue } from './ReviewQueue';
 import { ReviewActionZone } from './ReviewActionZone';
-import { WorkspaceEmbed } from '@/components/workspace/editor/WorkspaceEmbed';
-import { StatusBar } from '@/components/workspace/layout/StatusBar';
+import { StudioProvider, useStudio } from '@/components/studio/StudioProvider';
+import { StudioHeader } from '@/components/studio/StudioHeader';
+import { StudioActionBar } from '@/components/studio/StudioActionBar';
+import { StudioPanel } from '@/components/studio/StudioPanel';
+import { buildEditorContext, injectInlineComment } from '@/components/studio/studioEditorHelpers';
+import { ProposalEditor, injectProposedEdit } from '@/components/workspace/editor/ProposalEditor';
+import { AgentChatPanel } from '@/components/workspace/agent/AgentChatPanel';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { FeatureGate } from '@/components/FeatureGate';
+import { PROPOSAL_TYPE_LABELS } from '@/lib/workspace/types';
+import type { ProposalType, ReviewQueueItem } from '@/lib/workspace/types';
 import type { VoteChoice } from '@/lib/voting';
-import type { ReviewQueueItem } from '@/lib/workspace/types';
+import type { ProposedEdit, ProposedComment } from '@/lib/workspace/editor/types';
+import type { Editor } from '@tiptap/core';
 import { posthog } from '@/lib/posthog';
 
 interface ReviewWorkspaceProps {
@@ -57,16 +60,174 @@ function draftToQueueItem(draft: import('@/lib/workspace/types').ProposalDraft):
   };
 }
 
+// ---------------------------------------------------------------------------
+// StudioPanelWrapper — manages agent + panel rendering
+// ---------------------------------------------------------------------------
+
+interface StudioPanelWrapperProps {
+  proposalId: string;
+  proposalType: string;
+  userRole: 'proposer' | 'reviewer' | 'cc_member';
+  content: {
+    title: string;
+    abstract: string;
+    motivation: string;
+    rationale: string;
+  };
+  editorRef: React.RefObject<Editor | null>;
+  readOnly: boolean;
+}
+
+function StudioPanelWrapper({
+  proposalId,
+  userRole,
+  content,
+  editorRef,
+  readOnly,
+}: StudioPanelWrapperProps) {
+  const { panelOpen, activePanel, panelWidth, closePanel, togglePanel, setPanelWidth } =
+    useStudio();
+
+  const {
+    sendMessage: agentSendMessage,
+    messages: agentMessages,
+    isStreaming: agentIsStreaming,
+    lastEdit: agentLastEdit,
+    lastComment: agentLastComment,
+    clearLastEdit: agentClearLastEdit,
+    clearLastComment: agentClearLastComment,
+    activeToolCall: agentActiveToolCall,
+    error: agentError,
+  } = useAgent({ proposalId, userRole });
+
+  // --- Agent lastEdit -> inject into editor ---
+  useEffect(() => {
+    if (!agentLastEdit || !editorRef.current) return;
+    injectProposedEdit(editorRef.current, agentLastEdit);
+    agentClearLastEdit();
+  }, [agentLastEdit, agentClearLastEdit, editorRef]);
+
+  // --- Agent lastComment -> apply inline comment ---
+  useEffect(() => {
+    if (!agentLastComment || !editorRef.current) return;
+    injectInlineComment(editorRef.current, agentLastComment);
+    agentClearLastComment();
+  }, [agentLastComment, agentClearLastComment, editorRef]);
+
+  // --- Chat send message with editor context ---
+  const handleChatSendMessage = useCallback(
+    async (message: string) => {
+      const ctx = buildEditorContext(editorRef.current, content, 'review');
+      posthog.capture('workspace_agent_message_sent', {
+        proposal_id: proposalId,
+        mode: 'review',
+        user_role: userRole,
+        has_selection: !!ctx.selectedText,
+      });
+      await agentSendMessage(message, ctx);
+    },
+    [agentSendMessage, content, proposalId, userRole, editorRef],
+  );
+
+  // --- Apply proposed edit from chat panel ---
+  const handleApplyEdit = useCallback(
+    (edit: ProposedEdit) => {
+      if (!editorRef.current) return;
+      injectProposedEdit(editorRef.current, edit);
+    },
+    [editorRef],
+  );
+
+  // --- Apply proposed comment from chat panel ---
+  const handleApplyComment = useCallback(
+    (comment: ProposedComment) => {
+      if (!editorRef.current) return;
+      injectInlineComment(editorRef.current, comment);
+    },
+    [editorRef],
+  );
+
+  return (
+    <StudioPanel
+      isOpen={panelOpen}
+      onClose={closePanel}
+      activeTab={activePanel}
+      onTabChange={(tab) => togglePanel(tab)}
+      width={panelWidth}
+      onWidthChange={setPanelWidth}
+      agentContent={
+        <AgentChatPanel
+          sendMessage={handleChatSendMessage}
+          messages={agentMessages}
+          isStreaming={agentIsStreaming}
+          activeToolCall={agentActiveToolCall}
+          error={agentError}
+          onApplyEdit={readOnly ? undefined : handleApplyEdit}
+          onApplyComment={handleApplyComment}
+        />
+      }
+    />
+  );
+}
+
+// ---------------------------------------------------------------------------
+// StudioActionBarWrapper — connects action bar to studio context
+// ---------------------------------------------------------------------------
+
+interface StudioActionBarWrapperProps {
+  progress: { reviewed: number; total: number };
+  currentVoted?: boolean;
+  currentUrgent?: boolean;
+}
+
+function StudioActionBarWrapper({
+  progress,
+  currentVoted,
+  currentUrgent,
+}: StudioActionBarWrapperProps) {
+  const { panelOpen, activePanel, togglePanel } = useStudio();
+
+  return (
+    <StudioActionBar
+      activePanel={panelOpen ? activePanel : null}
+      onPanelToggle={togglePanel}
+      statusInfo={
+        <span className="flex items-center gap-2 text-xs text-muted-foreground tabular-nums">
+          <span>
+            {progress.reviewed} of {progress.total} reviewed
+          </span>
+          {currentVoted && (
+            <span className="inline-flex items-center gap-1 text-emerald-400">
+              <CheckCircle2 className="h-3 w-3" />
+              <span className="hidden sm:inline">Voted</span>
+            </span>
+          )}
+          {currentUrgent && !currentVoted && (
+            <span className="inline-flex items-center gap-1 text-amber-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+              <span className="hidden sm:inline">Urgent</span>
+            </span>
+          )}
+        </span>
+      }
+    />
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ReviewWorkspace — main component
+// ---------------------------------------------------------------------------
+
 /**
  * ReviewWorkspace — the top-level client component for /workspace/review.
- * Two-column layout: queue rail (left) + Tiptap workspace (right) with
- * agent chat panel replacing the old Notes/Annotations/Journal sidebar.
+ * Uses the Studio shell (StudioHeader, StudioPanel, StudioActionBar) for a
+ * clean, focused review experience. No sidebar, no fullscreen overlay.
  *
- * Accepts an optional `initialProposalKey` (format: "txHash:index") to
- * auto-select a proposal on load (used by deep-links from discovery pages).
+ * Auto-selects the first unreviewed proposal on mount. The editor is centered
+ * at max-w-3xl, with the agent panel available on-demand from the action bar.
  */
 export function ReviewWorkspace({ initialProposalKey }: ReviewWorkspaceProps = {}) {
-  const { segment, drepId, poolId } = useSegment();
+  const { segment, drepId, poolId, stakeAddress } = useSegment();
   const { ownDRepId } = useWallet();
 
   // Determine voter identity
@@ -77,32 +238,59 @@ export function ReviewWorkspace({ initialProposalKey }: ReviewWorkspaceProps = {
   const { data: draftsData } = useReviewableDrafts();
   const { getStatus, setStatus, reviewedCount } = useQueueState(voterId);
 
-  const [activeTab, setActiveTab] = useState('active');
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [draftSelectedIndex, setDraftSelectedIndex] = useState(0);
+  const [selectedIndex, setSelectedIndex] = useState(-1); // -1 = not yet auto-selected
+  const [voteToast, setVoteToast] = useState<{ vote: string; visible: boolean } | null>(null);
   const lastTrackedRef = useRef<string | null>(null);
+  const editorRef = useRef<Editor | null>(null);
 
   const items = useMemo(() => data?.items ?? [], [data?.items]);
-  const selectedItem = items[selectedIndex] ?? null;
 
-  // Convert drafts to queue-compatible items
+  // Convert drafts to queue-compatible items (kept for future use)
   const draftItems = useMemo(() => {
     const drafts = draftsData?.drafts ?? [];
     return drafts.map(draftToQueueItem);
   }, [draftsData?.drafts]);
-  const selectedDraft = draftItems[draftSelectedIndex] ?? null;
 
   // Revision notifications
   const { data: notificationsData } = useRevisionNotifications(!!voterId);
-  const markRead = useMarkNotificationRead();
   const unreadCount = notificationsData?.unreadCount ?? 0;
-  const notifications = notificationsData?.notifications ?? [];
-  const [showNotifications, setShowNotifications] = useState(false);
 
   // Track page view
   useEffect(() => {
     posthog.capture('review_workspace_viewed', { voter_role: voterRole });
   }, [voterRole]);
+
+  // Auto-select first unreviewed item on mount (or from deep-link)
+  useEffect(() => {
+    if (items.length === 0) return;
+
+    // If deep-link, use that
+    if (initialProposalKey) {
+      const [targetTxHash, targetIndexStr] = initialProposalKey.split(':');
+      if (targetTxHash && targetIndexStr) {
+        const targetIndex = parseInt(targetIndexStr, 10);
+        if (!isNaN(targetIndex)) {
+          const matchIdx = items.findIndex(
+            (item) => item.txHash === targetTxHash && item.proposalIndex === targetIndex,
+          );
+          if (matchIdx >= 0) {
+            setSelectedIndex(matchIdx);
+            return;
+          }
+        }
+      }
+    }
+
+    // Auto-select first unreviewed item
+    if (selectedIndex === -1) {
+      const firstUnreviewed = items.findIndex(
+        (item) => getStatus(item.txHash, item.proposalIndex) !== 'voted' && !item.existingVote,
+      );
+      setSelectedIndex(firstUnreviewed >= 0 ? firstUnreviewed : 0);
+    }
+  }, [items, initialProposalKey, selectedIndex, getStatus]);
+
+  const selectedItem = items[selectedIndex] ?? null;
 
   // Track proposal view when selection changes
   useEffect(() => {
@@ -118,21 +306,6 @@ export function ReviewWorkspace({ initialProposalKey }: ReviewWorkspaceProps = {
     );
   }, [selectedItem, voterId, segment]);
 
-  // Auto-select proposal from deep-link (initialProposalKey = "txHash:index")
-  useEffect(() => {
-    if (!initialProposalKey || items.length === 0) return;
-    const [targetTxHash, targetIndexStr] = initialProposalKey.split(':');
-    if (!targetTxHash || !targetIndexStr) return;
-    const targetIndex = parseInt(targetIndexStr, 10);
-    if (isNaN(targetIndex)) return;
-    const matchIdx = items.findIndex(
-      (item) => item.txHash === targetTxHash && item.proposalIndex === targetIndex,
-    );
-    if (matchIdx >= 0) {
-      setSelectedIndex(matchIdx);
-    }
-  }, [initialProposalKey, items]);
-
   // Progress computation
   const progress = useMemo(() => {
     const reviewed = reviewedCount(items);
@@ -144,77 +317,127 @@ export function ReviewWorkspace({ initialProposalKey }: ReviewWorkspaceProps = {
 
   // Navigation callbacks
   const goNext = useCallback(() => {
-    if (activeTab === 'drafts') {
-      setDraftSelectedIndex((prev) => Math.min(prev + 1, draftItems.length - 1));
-    } else {
-      setSelectedIndex((prev) => Math.min(prev + 1, items.length - 1));
-    }
-  }, [activeTab, items.length, draftItems.length]);
+    setSelectedIndex((prev) => Math.min(prev + 1, items.length - 1));
+  }, [items.length]);
 
   const goPrev = useCallback(() => {
-    if (activeTab === 'drafts') {
-      setDraftSelectedIndex((prev) => Math.max(prev - 1, 0));
-    } else {
-      setSelectedIndex((prev) => Math.max(prev - 1, 0));
-    }
-  }, [activeTab]);
-
-  const handleSelect = useCallback((index: number) => {
-    setSelectedIndex(index);
+    setSelectedIndex((prev) => Math.max(prev - 1, 0));
   }, []);
 
-  const handleDraftSelect = useCallback((index: number) => {
-    setDraftSelectedIndex(index);
-  }, []);
-
-  // Vote success handler — called by ReviewActionZone after on-chain vote succeeds
+  // Vote success handler — auto-advances to next unreviewed proposal after 1.5s
   const handleVoteSuccess = useCallback(
     (vote: VoteChoice) => {
       if (!selectedItem) return;
       setStatus(selectedItem.txHash, selectedItem.proposalIndex, 'voted', vote);
+
+      // Show toast
+      setVoteToast({ vote, visible: true });
+      setTimeout(() => setVoteToast(null), 2500);
+
+      // Auto-advance after delay
+      setTimeout(() => {
+        setSelectedIndex((prev) => {
+          // Find next unreviewed item
+          const nextUnreviewed = items.findIndex(
+            (item, idx) =>
+              idx > prev &&
+              getStatus(item.txHash, item.proposalIndex) !== 'voted' &&
+              !item.existingVote,
+          );
+          if (nextUnreviewed >= 0) return nextUnreviewed;
+          // If no more unreviewed, go to next item
+          if (prev < items.length - 1) return prev + 1;
+          return prev;
+        });
+      }, 1500);
     },
-    [selectedItem, setStatus],
+    [selectedItem, setStatus, items, getStatus],
   );
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts (arrow keys)
   useKeyboardShortcuts({
     onNext: goNext,
     onPrev: goPrev,
   });
 
+  // J/K keyboard navigation (disabled in text inputs)
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      // Don't intercept when user is typing
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      if (e.key === 'j' || e.key === 'J') {
+        e.preventDefault();
+        goNext();
+      } else if (e.key === 'k' || e.key === 'K') {
+        e.preventDefault();
+        goPrev();
+      }
+    };
+
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [goNext, goPrev]);
+
   // Derive the agent userRole from segment
   const agentUserRole = segment === 'cc' ? ('cc_member' as const) : ('reviewer' as const);
 
-  // The current active item depends on which tab is active
-  const currentItem = activeTab === 'drafts' ? selectedDraft : selectedItem;
+  // Capture editor instance
+  const handleEditorReady = useCallback((editor: Editor) => {
+    editorRef.current = editor;
+  }, []);
 
-  // Deselect to return to queue-only view
-  const handleBackToQueue = useCallback(() => {
-    if (activeTab === 'drafts') {
-      setDraftSelectedIndex(-1);
-    } else {
-      setSelectedIndex(-1);
-    }
-  }, [activeTab]);
+  // Type label
+  const typeLabel = selectedItem
+    ? (PROPOSAL_TYPE_LABELS[selectedItem.proposalType as ProposalType] ?? selectedItem.proposalType)
+    : '';
+
+  // Segment badge
+  const segmentBadge = useMemo(() => {
+    const badges: Record<string, { label: string; color: string }> = {
+      drep: { label: 'DRep', color: '#6366f1' },
+      spo: { label: 'SPO', color: '#f59e0b' },
+      cc: { label: 'CC', color: '#ef4444' },
+    };
+    return badges[segment] ?? undefined;
+  }, [segment]);
+
+  // Queue jump handler for dots
+  const handleQueueJump = useCallback(
+    (index: number) => {
+      if (index >= 0 && index < items.length) {
+        setSelectedIndex(index);
+      }
+    },
+    [items.length],
+  );
 
   // Loading state
   if (isLoading) {
     return (
-      <div className="flex h-full">
-        <div className="hidden md:block w-72 border-r border-border shrink-0">
-          <div className="p-3 space-y-3">
-            <Skeleton className="h-5 w-full" />
-            {[1, 2, 3, 4].map((i) => (
-              <Skeleton key={i} className="h-14 w-full rounded-lg" />
-            ))}
+      <div className="flex flex-col h-screen">
+        <div className="h-12 border-t-2 border-teal-500 border-b border-b-border bg-background px-4 flex items-center shrink-0">
+          <Skeleton className="h-5 w-24" />
+          <div className="flex-1" />
+          <Skeleton className="h-5 w-32" />
+        </div>
+        <div className="flex-1 flex items-start justify-center pt-12">
+          <div className="max-w-3xl w-full px-6 space-y-4">
+            <Skeleton className="h-8 w-2/3" />
+            <Skeleton className="h-32 w-full rounded-xl" />
+            <Skeleton className="h-24 w-full rounded-xl" />
+            <Skeleton className="h-36 w-full rounded-xl" />
           </div>
         </div>
-        <div className="flex-1 p-6 space-y-4">
-          <Skeleton className="h-8 w-2/3" />
-          <Skeleton className="h-32 w-full rounded-xl" />
-          <Skeleton className="h-24 w-full rounded-xl" />
-          <Skeleton className="h-36 w-full rounded-xl" />
-        </div>
+        <div className="h-12 border-t border-border bg-background shrink-0" />
       </div>
     );
   }
@@ -222,7 +445,7 @@ export function ReviewWorkspace({ initialProposalKey }: ReviewWorkspaceProps = {
   // Error state
   if (error) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex items-center justify-center h-screen">
         <div className="text-center space-y-2">
           <p className="text-sm text-muted-foreground">Failed to load review queue</p>
           <p className="text-xs text-muted-foreground/60">{String(error)}</p>
@@ -234,7 +457,7 @@ export function ReviewWorkspace({ initialProposalKey }: ReviewWorkspaceProps = {
   // No voter ID (not a DRep/SPO)
   if (!voterId) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex items-center justify-center h-screen">
         <div className="text-center space-y-3">
           <Vote className="mx-auto h-8 w-8 text-muted-foreground" />
           <div>
@@ -251,7 +474,7 @@ export function ReviewWorkspace({ initialProposalKey }: ReviewWorkspaceProps = {
   // Empty state
   if (items.length === 0 && draftItems.length === 0) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex items-center justify-center h-screen">
         <div className="text-center space-y-3">
           <div className="mx-auto w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
             <CheckCircle2 className="h-6 w-6 text-emerald-500" />
@@ -267,169 +490,135 @@ export function ReviewWorkspace({ initialProposalKey }: ReviewWorkspaceProps = {
     );
   }
 
-  // Queue rail content — used inside the fullscreen WorkspaceLayout
-  const queueRailContent = (
-    <>
-      {/* Revision notifications badge */}
-      {unreadCount > 0 && (
-        <div className="relative px-3 pt-2">
-          <button
-            onClick={() => setShowNotifications((prev) => !prev)}
-            className="flex w-full items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-foreground hover:bg-amber-500/10 transition-colors"
-          >
-            <Bell className="h-3.5 w-3.5 text-amber-500" />
-            <span>
-              {unreadCount} revised proposal{unreadCount !== 1 ? 's' : ''}
-            </span>
-            <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-white">
-              {unreadCount}
-            </span>
-          </button>
-          {showNotifications && notifications.length > 0 && (
-            <div className="mt-1 rounded-md border border-border bg-background shadow-lg divide-y divide-border max-h-48 overflow-y-auto">
-              {notifications.map((n) => (
-                <button
-                  key={n.id}
-                  onClick={() => {
-                    markRead.mutate(n.id);
-                    const matchIdx = items.findIndex((item) => item.txHash === n.proposalId);
-                    if (matchIdx >= 0) {
-                      setSelectedIndex(matchIdx);
-                    }
-                    setShowNotifications(false);
-                  }}
-                  className="flex w-full flex-col gap-0.5 px-3 py-2 text-left hover:bg-muted/50 transition-colors"
-                >
-                  <span className="text-xs font-medium truncate">Proposal v{n.versionNumber}</span>
-                  <span className="text-[10px] text-muted-foreground">
-                    {n.sectionsChanged.length} section{n.sectionsChanged.length !== 1 ? 's' : ''}{' '}
-                    revised &mdash; tap to review
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-      <FeatureGate
-        flag="review_unified_tabs"
-        fallback={
-          <ReviewQueue
-            items={items}
-            selectedIndex={selectedIndex}
-            onSelect={handleSelect}
-            getStatus={getStatus}
-            progress={progress}
-          />
-        }
-      >
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-          <div className="px-2 pt-2 shrink-0">
-            <TabsList className="w-full">
-              <TabsTrigger value="active" className="flex-1 text-xs">
-                Active Proposals
-                {items.length > 0 && (
-                  <span className="ml-1 text-[10px] text-muted-foreground">({items.length})</span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="drafts" className="flex-1 text-xs">
-                Pre-submission
-                {draftItems.length > 0 && (
-                  <span className="ml-1 text-[10px] text-muted-foreground">
-                    ({draftItems.length})
-                  </span>
-                )}
-              </TabsTrigger>
-            </TabsList>
-          </div>
-          <TabsContent value="active" className="flex-1 min-h-0 mt-0">
-            <ReviewQueue
-              items={items}
-              selectedIndex={selectedIndex}
-              onSelect={handleSelect}
-              getStatus={getStatus}
-              progress={progress}
-            />
-          </TabsContent>
-          <TabsContent value="drafts" className="flex-1 min-h-0 mt-0">
-            {draftItems.length === 0 ? (
-              <div className="px-3 py-8 text-center">
-                <p className="text-xs text-muted-foreground">
-                  No pre-submission drafts awaiting review.
-                </p>
-              </div>
-            ) : (
-              <ReviewQueue
-                items={draftItems}
-                selectedIndex={draftSelectedIndex}
-                onSelect={handleDraftSelect}
-                getStatus={() => 'unreviewed'}
-                progress={{ reviewed: 0, total: draftItems.length }}
-              />
-            )}
-          </TabsContent>
-        </Tabs>
-      </FeatureGate>
-    </>
-  );
-
-  // When a proposal is selected, render the fullscreen workspace overlay
-  if (currentItem) {
-    const isActiveDraft = activeTab === 'drafts';
-    const item = isActiveDraft ? selectedDraft! : selectedItem!;
-    const key = isActiveDraft ? `draft:${item.txHash}` : `${item.txHash}:${item.proposalIndex}`;
-
+  // No selected item yet (shouldn't happen after auto-select, but guard)
+  if (!selectedItem) {
     return (
-      <WorkspaceEmbed
-        key={key}
-        proposalId={item.txHash}
-        content={{
-          title: item.title || '',
-          abstract: item.abstract || '',
-          motivation: item.motivation || '',
-          rationale: item.rationale || '',
-        }}
-        proposalType={item.proposalType}
-        userRole={agentUserRole}
-        readOnly={true}
-        onBack={handleBackToQueue}
-        backLabel="Back to queue"
-        queueRail={queueRailContent}
-        belowEditor={
-          !isActiveDraft ? (
-            <div className="max-w-3xl mx-auto px-6 pb-6">
-              <ReviewActionZone
-                item={selectedItem!}
-                drepId={voterId}
-                onVote={(_txHash, _index, vote) => handleVoteSuccess(vote as VoteChoice)}
-                onNextProposal={goNext}
-                totalProposals={progress.total}
-                votedCount={progress.reviewed}
-              />
-            </div>
-          ) : undefined
-        }
-        statusBar={
-          isActiveDraft ? (
-            <StatusBar userStatus="Pre-submission review" />
-          ) : (
-            <StatusBar
-              completeness={{ done: progress.reviewed, total: progress.total }}
-              userStatus={`Reviewing ${progress.reviewed}/${progress.total}`}
-            />
-          )
-        }
-        showModeSwitch={false}
-      />
+      <div className="flex items-center justify-center h-screen">
+        <Skeleton className="h-8 w-48" />
+      </div>
     );
   }
 
-  // No proposal selected — show the queue as a standalone list view
+  // Queue complete celebration
+  if (progress.reviewed >= progress.total && progress.total > 0) {
+    return (
+      <StudioProvider>
+        <div className="flex flex-col h-screen">
+          <StudioHeader
+            backLabel="governada"
+            backHref="/workspace"
+            queueProgress={{ current: progress.total, total: progress.total }}
+            segmentBadge={segmentBadge}
+          />
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center space-y-4">
+              <div className="mx-auto w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+              </div>
+              <div>
+                <p className="text-lg font-semibold text-foreground">All caught up!</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  You&apos;ve reviewed all {progress.total} proposal
+                  {progress.total !== 1 ? 's' : ''} in the queue.
+                </p>
+              </div>
+              <a
+                href="/workspace"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+              >
+                Back to workspace
+              </a>
+            </div>
+          </div>
+          <StudioActionBarWrapper progress={progress} />
+        </div>
+      </StudioProvider>
+    );
+  }
+
+  // --- Main studio layout ---
+  const itemContent = {
+    title: selectedItem.title || '',
+    abstract: selectedItem.abstract || '',
+    motivation: selectedItem.motivation || '',
+    rationale: selectedItem.rationale || '',
+  };
+
   return (
-    <div className="flex flex-col h-full">
-      <div className="max-w-2xl mx-auto w-full flex-1 min-h-0 overflow-y-auto">
-        {queueRailContent}
+    <StudioProvider>
+      <div className="flex flex-col h-screen">
+        {/* Studio Header */}
+        <StudioHeader
+          backLabel="governada"
+          backHref="/workspace"
+          title={selectedItem.title || 'Untitled'}
+          proposalType={typeLabel}
+          queueProgress={{ current: selectedIndex + 1, total: items.length }}
+          onQueueJump={handleQueueJump}
+          segmentBadge={segmentBadge}
+          notificationCount={unreadCount}
+        />
+
+        {/* Main content area */}
+        <div className="flex flex-1 min-h-0 overflow-hidden">
+          {/* Editor area (scrollable) */}
+          <div className="flex-1 min-w-0 overflow-y-auto">
+            <div className="max-w-3xl mx-auto px-6 py-6">
+              <div
+                key={`proposal-${selectedItem.txHash}-${selectedItem.proposalIndex}`}
+                className="animate-in fade-in duration-150"
+              >
+                <ProposalEditor
+                  content={itemContent}
+                  mode="review"
+                  readOnly={true}
+                  currentUserId={stakeAddress ?? 'anonymous'}
+                  onEditorReady={handleEditorReady}
+                />
+                {/* ReviewActionZone below editor */}
+                <div className="mt-6">
+                  <ReviewActionZone
+                    item={selectedItem}
+                    drepId={voterId}
+                    onVote={(_txHash, _index, vote) => handleVoteSuccess(vote as VoteChoice)}
+                    onNextProposal={goNext}
+                    totalProposals={progress.total}
+                    votedCount={progress.reviewed}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Studio Panel (on-demand right panel) */}
+          <StudioPanelWrapper
+            proposalId={selectedItem.txHash}
+            proposalType={selectedItem.proposalType}
+            userRole={agentUserRole}
+            content={itemContent}
+            editorRef={editorRef}
+            readOnly={true}
+          />
+        </div>
+
+        {/* Studio Action Bar */}
+        <StudioActionBarWrapper
+          progress={progress}
+          currentVoted={
+            !!selectedItem.existingVote ||
+            getStatus(selectedItem.txHash, selectedItem.proposalIndex) === 'voted'
+          }
+          currentUrgent={selectedItem.isUrgent}
+        />
+
+        {/* Vote success toast */}
+        {voteToast?.visible && (
+          <div className="fixed bottom-16 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500/90 text-white text-sm font-medium shadow-lg animate-in slide-in-from-bottom-2 fade-in">
+            <CheckCircle2 className="h-4 w-4" />
+            Vote recorded — {voteToast.vote}
+          </div>
+        )}
       </div>
-    </div>
+    </StudioProvider>
   );
 }
