@@ -18,6 +18,8 @@ import { StudioPanel } from '@/components/studio/StudioPanel';
 import { buildEditorContext, injectInlineComment } from '@/components/studio/studioEditorHelpers';
 import { ProposalEditor, injectProposedEdit } from '@/components/workspace/editor/ProposalEditor';
 import { AgentChatPanel } from '@/components/workspace/agent/AgentChatPanel';
+import { IntelPanel } from '@/components/studio/IntelPanel';
+import { NotesPanel } from '@/components/studio/NotesPanel';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PROPOSAL_TYPE_LABELS } from '@/lib/workspace/types';
 import type { ProposalType, ReviewQueueItem } from '@/lib/workspace/types';
@@ -67,6 +69,7 @@ function draftToQueueItem(draft: import('@/lib/workspace/types').ProposalDraft):
 interface StudioPanelWrapperProps {
   proposalId: string;
   proposalType: string;
+  proposalIndex: number;
   userRole: 'proposer' | 'reviewer' | 'cc_member';
   content: {
     title: string;
@@ -76,14 +79,26 @@ interface StudioPanelWrapperProps {
   };
   editorRef: React.RefObject<Editor | null>;
   readOnly: boolean;
+  interBodyVotes?: {
+    drep: { yes: number; no: number; abstain: number };
+    spo: { yes: number; no: number; abstain: number };
+    cc: { yes: number; no: number; abstain: number };
+  };
+  citizenSentiment?: { support: number; oppose: number; abstain: number; total: number } | null;
+  voterId: string | null;
 }
 
 function StudioPanelWrapper({
   proposalId,
+  proposalType,
+  proposalIndex,
   userRole,
   content,
   editorRef,
   readOnly,
+  interBodyVotes,
+  citizenSentiment,
+  voterId,
 }: StudioPanelWrapperProps) {
   const { panelOpen, activePanel, panelWidth, closePanel, togglePanel, setPanelWidth } =
     useStudio();
@@ -165,6 +180,18 @@ function StudioPanelWrapper({
           onApplyEdit={readOnly ? undefined : handleApplyEdit}
           onApplyComment={handleApplyComment}
         />
+      }
+      intelContent={
+        <IntelPanel
+          proposalId={proposalId}
+          proposalType={proposalType}
+          proposalContent={content}
+          interBodyVotes={interBodyVotes}
+          citizenSentiment={citizenSentiment}
+        />
+      }
+      notesContent={
+        <NotesPanel proposalTxHash={proposalId} proposalIndex={proposalIndex} voterId={voterId} />
       }
     />
   );
@@ -400,6 +427,9 @@ export function ReviewWorkspace({ initialProposalKey }: ReviewWorkspaceProps = {
     ? (PROPOSAL_TYPE_LABELS[selectedItem.proposalType as ProposalType] ?? selectedItem.proposalType)
     : '';
 
+  // Queue labels for tooltip display
+  const queueLabels = useMemo(() => items.map((item) => item.title || 'Untitled'), [items]);
+
   // Segment badge
   const segmentBadge = useMemo(() => {
     const badges: Record<string, { label: string; color: string }> = {
@@ -555,6 +585,9 @@ export function ReviewWorkspace({ initialProposalKey }: ReviewWorkspaceProps = {
           proposalType={typeLabel}
           queueProgress={{ current: selectedIndex + 1, total: items.length }}
           onQueueJump={handleQueueJump}
+          onPrev={selectedIndex > 0 ? goPrev : undefined}
+          onNext={selectedIndex < items.length - 1 ? goNext : undefined}
+          queueLabels={queueLabels}
           segmentBadge={segmentBadge}
           notificationCount={unreadCount}
         />
@@ -594,10 +627,14 @@ export function ReviewWorkspace({ initialProposalKey }: ReviewWorkspaceProps = {
           <StudioPanelWrapper
             proposalId={selectedItem.txHash}
             proposalType={selectedItem.proposalType}
+            proposalIndex={selectedItem.proposalIndex}
             userRole={agentUserRole}
             content={itemContent}
             editorRef={editorRef}
             readOnly={true}
+            interBodyVotes={selectedItem.interBodyVotes}
+            citizenSentiment={selectedItem.citizenSentiment}
+            voterId={voterId ?? null}
           />
         </div>
 
