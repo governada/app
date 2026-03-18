@@ -276,6 +276,7 @@ function WorkspaceEditorPage() {
         userStatus={
           draftStatus === 'draft' ? 'Draft' : (draftStatus?.replace(/_/g, ' ') ?? 'Draft')
         }
+        showSaveStatus
       />
     );
   }, [content, draftStatus, feedbackThemeCount]);

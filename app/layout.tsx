@@ -8,6 +8,7 @@ import { NavDirectionProvider } from '@/components/NavDirectionProvider';
 import { CommandProvider } from '@/components/providers/CommandProvider';
 import { InstallPrompt } from '@/components/InstallPrompt';
 import { OfflineBanner } from '@/components/OfflineBanner';
+import { Toaster } from '@/components/ui/toaster';
 import { GovernadaShell } from '@/components/governada/GovernadaShell';
 import { GovernanceFontProvider } from '@/components/GovernanceFontProvider';
 import { LocaleProvider } from '@/components/providers/LocaleProvider';
@@ -105,6 +106,7 @@ export default function RootLayout({
                   <GovernadaShell>{children}</GovernadaShell>
                 </ModeProvider>
                 <CommandProvider />
+                <Toaster />
                 <InstallPrompt />
                 <OfflineBanner />
               </NavDirectionProvider>

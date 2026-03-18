@@ -36,6 +36,7 @@ import { ConstitutionEditor } from '@/components/workspace/editor/ConstitutionEd
 import { AgentChatPanel } from '@/components/workspace/agent/AgentChatPanel';
 import { AmendmentMetaStrip } from '@/components/workspace/author/AmendmentMetaStrip';
 import { AmendmentIntelPanel } from '@/components/workspace/author/AmendmentIntelPanel';
+import { SaveStatusIndicator } from '@/components/workspace/layout/SaveStatusIndicator';
 import { IntentInputPanel } from '@/components/workspace/author/IntentInputPanel';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CONSTITUTION_NODES, CONSTITUTION_VERSION } from '@/lib/constitution/fullText';
@@ -146,7 +147,12 @@ function AmendmentActionBarWrapper({ statusInfo }: { statusInfo: ReactNode }) {
     <StudioActionBar
       activePanel={panelOpen ? activePanel : null}
       onPanelToggle={togglePanel}
-      statusInfo={statusInfo}
+      statusInfo={
+        <div className="flex items-center gap-3">
+          {statusInfo}
+          <SaveStatusIndicator />
+        </div>
+      }
     />
   );
 }

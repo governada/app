@@ -1,6 +1,9 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useOptimisticMutation } from '@/lib/workspace/mutations';
+import { toastSuccess, toastError } from '@/lib/workspace/toast';
+import { useSaveStatus } from '@/lib/workspace/save-status';
 import type { ProposalDraft, DraftVersion, ConstitutionalCheckResult } from '@/lib/workspace/types';
 import type { Cip108Document } from '@/lib/workspace/types';
 
@@ -82,53 +85,158 @@ export function useDraft(draftId: string | null) {
 // Mutations
 // ---------------------------------------------------------------------------
 
-/** Create a new draft */
+interface CreateDraftVars {
+  stakeAddress: string;
+  proposalType: string;
+  title?: string;
+  abstract?: string;
+  motivation?: string;
+  rationale?: string;
+}
+
+/**
+ * Create a new draft — optimistically inserts a placeholder into the drafts list
+ * so the new card appears instantly before the server round-trip completes.
+ */
 export function useCreateDraft() {
   const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (body: {
-      stakeAddress: string;
-      proposalType: string;
-      title?: string;
-      abstract?: string;
-      motivation?: string;
-      rationale?: string;
-    }) => postJson<{ draft: ProposalDraft }>('/api/workspace/drafts', body),
+
+  return useMutation<{ draft: ProposalDraft }, Error, CreateDraftVars, { previous: unknown }>({
+    mutationFn: (body) => postJson<{ draft: ProposalDraft }>('/api/workspace/drafts', body),
+
+    onMutate: async (vars) => {
+      const queryKey = ['author-drafts', vars.stakeAddress];
+
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData(queryKey);
+
+      const now = new Date().toISOString();
+      const tempDraft: ProposalDraft = {
+        id: `temp-${Date.now()}`,
+        ownerStakeAddress: vars.stakeAddress,
+        proposalType: vars.proposalType as ProposalDraft['proposalType'],
+        title: vars.title ?? 'Untitled Draft',
+        abstract: vars.abstract ?? '',
+        motivation: vars.motivation ?? '',
+        rationale: vars.rationale ?? '',
+        typeSpecific: null,
+        status: 'draft',
+        currentVersion: 1,
+        stageEnteredAt: null,
+        communityReviewStartedAt: null,
+        fcpStartedAt: null,
+        submittedTxHash: null,
+        submittedAnchorUrl: null,
+        submittedAnchorHash: null,
+        submittedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      queryClient.setQueryData(queryKey, (old: { drafts: ProposalDraft[] } | undefined) => ({
+        drafts: [tempDraft, ...(old?.drafts ?? [])],
+      }));
+
+      return { previous };
+    },
+
+    onError: (_err, vars, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(['author-drafts', vars.stakeAddress], context.previous);
+      }
+      toastError('Failed to create draft');
+    },
+
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['author-drafts'] });
+      toastSuccess('Draft created');
+    },
+
+    onSettled: (_data, _err, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['author-drafts', vars.stakeAddress] });
     },
   });
 }
 
-/** Update draft fields (auto-save) */
+/**
+ * Update draft fields (auto-save) — optimistically patches the cached draft
+ * so the editor never flickers. Uses the SaveStatus store instead of toasts
+ * to avoid spamming on every keystroke.
+ */
 export function useUpdateDraft(draftId: string) {
   const queryClient = useQueryClient();
+  const { setSaving, setSaved, setError } = useSaveStatus();
+
   return useMutation({
     mutationFn: (body: Record<string, unknown>) =>
       patchJson<{ draft: ProposalDraft }>(
         `/api/workspace/drafts/${encodeURIComponent(draftId)}`,
         body,
       ),
+
+    onMutate: async (vars) => {
+      setSaving();
+
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['author-draft', draftId] });
+
+      // Snapshot for rollback
+      const previous = queryClient.getQueryData(['author-draft', draftId]);
+
+      // Optimistically patch the single-draft cache
+      queryClient.setQueryData(
+        ['author-draft', draftId],
+        (old: { draft: ProposalDraft; versions: DraftVersion[] } | undefined) => {
+          if (!old) return old;
+          return {
+            ...old,
+            draft: {
+              ...old.draft,
+              ...vars,
+              updatedAt: new Date().toISOString(),
+            },
+          };
+        },
+      );
+
+      return { previous };
+    },
+
+    onError: (_err, _vars, context) => {
+      setError();
+      // Rollback
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(['author-draft', draftId], context.previous);
+      }
+      toastError('Auto-save failed');
+    },
+
     onSuccess: () => {
+      setSaved();
+    },
+
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['author-draft', draftId] });
       queryClient.invalidateQueries({ queryKey: ['author-drafts'] });
     },
   });
 }
 
-/** Save a named version */
+/**
+ * Save a named version — toast feedback on success/error.
+ */
 export function useSaveVersion(draftId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (body: { versionName: string; editSummary?: string }) =>
+  return useOptimisticMutation<
+    { version: DraftVersion },
+    { versionName: string; editSummary?: string }
+  >({
+    mutationFn: (body) =>
       postJson<{ version: DraftVersion }>(
         `/api/workspace/drafts/${encodeURIComponent(draftId)}/version`,
         body,
       ),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['author-draft', draftId] });
-      queryClient.invalidateQueries({ queryKey: ['author-drafts'] });
-    },
+    queryKey: ['author-draft', draftId],
+    successMessage: 'Version saved',
+    errorMessage: 'Failed to save version',
   });
 }
 
