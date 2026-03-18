@@ -2360,6 +2360,8 @@ export type Database = {
           block_time: number;
           created_at: string | null;
           drep_id: string;
+          embedding_originality: number | null;
+          embedding_proposal_relevance: number | null;
           epoch_no: number | null;
           meta_hash: string | null;
           meta_url: string | null;
@@ -2375,6 +2377,8 @@ export type Database = {
           block_time: number;
           created_at?: string | null;
           drep_id: string;
+          embedding_originality?: number | null;
+          embedding_proposal_relevance?: number | null;
           epoch_no?: number | null;
           meta_hash?: string | null;
           meta_url?: string | null;
@@ -2390,6 +2394,8 @@ export type Database = {
           block_time?: number;
           created_at?: string | null;
           drep_id?: string;
+          embedding_originality?: number | null;
+          embedding_proposal_relevance?: number | null;
           epoch_no?: number | null;
           meta_hash?: string | null;
           meta_url?: string | null;
@@ -2425,6 +2431,7 @@ export type Database = {
           effective_participation: number | null;
           effective_participation_v3: number | null;
           effective_participation_v3_raw: number | null;
+          embedding_philosophy_coherence: number | null;
           engagement_quality: number | null;
           engagement_quality_raw: number | null;
           governance_identity: number | null;
@@ -2472,6 +2479,7 @@ export type Database = {
           effective_participation?: number | null;
           effective_participation_v3?: number | null;
           effective_participation_v3_raw?: number | null;
+          embedding_philosophy_coherence?: number | null;
           engagement_quality?: number | null;
           engagement_quality_raw?: number | null;
           governance_identity?: number | null;
@@ -2519,6 +2527,7 @@ export type Database = {
           effective_participation?: number | null;
           effective_participation_v3?: number | null;
           effective_participation_v3_raw?: number | null;
+          embedding_philosophy_coherence?: number | null;
           engagement_quality?: number | null;
           engagement_quality_raw?: number | null;
           governance_identity?: number | null;
@@ -2544,6 +2553,42 @@ export type Database = {
           size_tier?: string | null;
           updated_at?: string | null;
           votes?: Json[] | null;
+        };
+        Relationships: [];
+      };
+      embeddings: {
+        Row: {
+          content_hash: string;
+          created_at: string | null;
+          embedding: string;
+          entity_id: string;
+          entity_type: string;
+          id: string;
+          input_token_count: number | null;
+          model_used: string;
+          updated_at: string | null;
+        };
+        Insert: {
+          content_hash: string;
+          created_at?: string | null;
+          embedding: string;
+          entity_id: string;
+          entity_type: string;
+          id?: string;
+          input_token_count?: number | null;
+          model_used?: string;
+          updated_at?: string | null;
+        };
+        Update: {
+          content_hash?: string;
+          created_at?: string | null;
+          embedding?: string;
+          entity_id?: string;
+          entity_type?: string;
+          id?: string;
+          input_token_count?: number | null;
+          model_used?: string;
+          updated_at?: string | null;
         };
         Relationships: [];
       };
@@ -3934,6 +3979,8 @@ export type Database = {
       proposal_drafts: {
         Row: {
           abstract: string;
+          ai_influence_score: number | null;
+          ai_originality_score: number | null;
           community_review_started_at: string | null;
           created_at: string;
           current_version: number;
@@ -3957,6 +4004,8 @@ export type Database = {
         };
         Insert: {
           abstract?: string;
+          ai_influence_score?: number | null;
+          ai_originality_score?: number | null;
           community_review_started_at?: string | null;
           created_at?: string;
           current_version?: number;
@@ -3980,6 +4029,8 @@ export type Database = {
         };
         Update: {
           abstract?: string;
+          ai_influence_score?: number | null;
+          ai_originality_score?: number | null;
           community_review_started_at?: string | null;
           created_at?: string;
           current_version?: number;
@@ -4722,6 +4773,33 @@ export type Database = {
             referencedColumns: ['id'];
           },
         ];
+      };
+      semantic_similarity_cache: {
+        Row: {
+          computed_at: string | null;
+          entity_id: string;
+          entity_type: string;
+          similar_entity_id: string;
+          similar_entity_type: string;
+          similarity_score: number;
+        };
+        Insert: {
+          computed_at?: string | null;
+          entity_id: string;
+          entity_type: string;
+          similar_entity_id: string;
+          similar_entity_type: string;
+          similarity_score: number;
+        };
+        Update: {
+          computed_at?: string | null;
+          entity_id?: string;
+          entity_type?: string;
+          similar_entity_id?: string;
+          similar_entity_type?: string;
+          similarity_score?: number;
+        };
+        Relationships: [];
       };
       snapshot_completeness_log: {
         Row: {
@@ -5764,7 +5842,23 @@ export type Database = {
       };
     };
     Functions: {
-      [_ in never]: never;
+      embedding_similarity: {
+        Args: { embedding_a: string; embedding_b: string };
+        Returns: number;
+      };
+      match_embeddings: {
+        Args: {
+          match_entity_type: string;
+          match_limit?: number;
+          min_similarity?: number;
+          query_embedding: string;
+        };
+        Returns: {
+          entity_id: string;
+          entity_type: string;
+          similarity: number;
+        }[];
+      };
     };
     Enums: {
       [_ in never]: never;
