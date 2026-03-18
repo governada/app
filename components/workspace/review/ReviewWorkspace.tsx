@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { CheckCircle2, Vote } from 'lucide-react';
+import { CheckCircle2, Clock, AlertTriangle, ExternalLink, Vote } from 'lucide-react';
 import { useSegment } from '@/components/providers/SegmentProvider';
 import { useWallet } from '@/utils/wallet';
 import { useReviewQueue, useQueueState } from '@/hooks/useReviewQueue';
@@ -60,6 +60,106 @@ function draftToQueueItem(draft: import('@/lib/workspace/types').ProposalDraft):
     rationale: draft.rationale || null,
     references: null,
   };
+}
+
+// ---------------------------------------------------------------------------
+// ProposalMetaStrip — key context about the proposal being reviewed
+// ---------------------------------------------------------------------------
+
+function ProposalMetaStrip({ item }: { item: ReviewQueueItem }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mb-4">
+      {/* Type badge (visible on mobile where header hides title) */}
+      <span className="bg-muted/50 text-muted-foreground rounded px-1.5 py-0.5 font-medium">
+        {PROPOSAL_TYPE_LABELS[item.proposalType as ProposalType] ?? item.proposalType}
+      </span>
+
+      {/* Epochs remaining */}
+      {item.epochsRemaining != null && (
+        <span className="flex items-center gap-1">
+          <Clock className="h-3 w-3" />
+          {item.epochsRemaining} epochs remaining
+        </span>
+      )}
+
+      {/* Urgent flag */}
+      {item.isUrgent && (
+        <span className="flex items-center gap-1 text-amber-400">
+          <AlertTriangle className="h-3 w-3" />
+          Urgent
+        </span>
+      )}
+
+      {/* Treasury withdrawal amount */}
+      {item.withdrawalAmount != null && (
+        <span className="flex items-center gap-1 tabular-nums">
+          ₳ {Number(item.withdrawalAmount).toLocaleString()}
+        </span>
+      )}
+
+      {/* Treasury tier */}
+      {item.treasuryTier && (
+        <span className="bg-muted/50 text-muted-foreground rounded px-1.5 py-0.5">
+          {item.treasuryTier}
+        </span>
+      )}
+
+      {/* References */}
+      {item.references && Array.isArray(item.references) && item.references.length > 0 && (
+        <div className="flex items-center gap-1">
+          <ExternalLink className="h-3 w-3" />
+          {item.references.slice(0, 2).map((ref, i) => (
+            <a
+              key={i}
+              href={ref.uri}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              {ref.label || 'Reference'}
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// SectionTOC — floating table of contents for proposal sections
+// ---------------------------------------------------------------------------
+
+const PROPOSAL_SECTIONS = [
+  { id: 'title', label: 'Title' },
+  { id: 'abstract', label: 'Abstract' },
+  { id: 'motivation', label: 'Motivation' },
+  { id: 'rationale', label: 'Rationale' },
+];
+
+function SectionTOC() {
+  const scrollToSection = (sectionId: string) => {
+    const el = document.querySelector(`[data-section-field="${sectionId}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  return (
+    <nav className="hidden xl:block fixed left-4 top-1/3 space-y-1 z-10">
+      <p className="text-[10px] font-medium text-muted-foreground/50 uppercase tracking-wider mb-2">
+        Sections
+      </p>
+      {PROPOSAL_SECTIONS.map((section) => (
+        <button
+          key={section.id}
+          onClick={() => scrollToSection(section.id)}
+          className="block w-full text-left text-xs text-muted-foreground/60 hover:text-foreground transition-colors py-0.5 pl-2 border-l border-transparent hover:border-primary cursor-pointer"
+        >
+          {section.label}
+        </button>
+      ))}
+    </nav>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -267,6 +367,7 @@ export function ReviewWorkspace({ initialProposalKey }: ReviewWorkspaceProps = {
 
   const [selectedIndex, setSelectedIndex] = useState(-1); // -1 = not yet auto-selected
   const [voteToast, setVoteToast] = useState<{ vote: string; visible: boolean } | null>(null);
+  const [editorMode, setEditorMode] = useState<'edit' | 'review' | 'diff'>('review');
   const lastTrackedRef = useRef<string | null>(null);
   const editorRef = useRef<Editor | null>(null);
 
@@ -318,6 +419,11 @@ export function ReviewWorkspace({ initialProposalKey }: ReviewWorkspaceProps = {
   }, [items, initialProposalKey, selectedIndex, getStatus]);
 
   const selectedItem = items[selectedIndex] ?? null;
+
+  // Reset editor mode to 'review' when switching proposals
+  useEffect(() => {
+    setEditorMode('review');
+  }, [selectedIndex]);
 
   // Track proposal view when selection changes
   useEffect(() => {
@@ -590,24 +696,44 @@ export function ReviewWorkspace({ initialProposalKey }: ReviewWorkspaceProps = {
           queueLabels={queueLabels}
           segmentBadge={segmentBadge}
           notificationCount={unreadCount}
+          showModeSwitch={true}
+          mode={editorMode}
+          onModeChange={setEditorMode}
         />
 
         {/* Main content area */}
         <div className="flex flex-1 min-h-0 overflow-hidden">
+          {/* Section TOC (floating left on xl+) */}
+          <SectionTOC />
+
           {/* Editor area (scrollable) */}
           <div className="flex-1 min-w-0 overflow-y-auto">
             <div className="max-w-3xl mx-auto px-6 py-6">
+              {/* Proposal metadata strip */}
+              <ProposalMetaStrip item={selectedItem} />
+
               <div
                 key={`proposal-${selectedItem.txHash}-${selectedItem.proposalIndex}`}
                 className="animate-in fade-in duration-150"
               >
-                <ProposalEditor
-                  content={itemContent}
-                  mode="review"
-                  readOnly={true}
-                  currentUserId={stakeAddress ?? 'anonymous'}
-                  onEditorReady={handleEditorReady}
-                />
+                {editorMode === 'diff' ? (
+                  <div className="rounded-lg border border-border bg-muted/10 p-8 text-center">
+                    <p className="text-sm text-muted-foreground">
+                      No previous version available for comparison.
+                    </p>
+                    <p className="text-xs text-muted-foreground/60 mt-1">
+                      Diff view is available when a proposal has multiple versions.
+                    </p>
+                  </div>
+                ) : (
+                  <ProposalEditor
+                    content={itemContent}
+                    mode="review"
+                    readOnly={true}
+                    currentUserId={stakeAddress ?? 'anonymous'}
+                    onEditorReady={handleEditorReady}
+                  />
+                )}
                 {/* ReviewActionZone below editor */}
                 <div className="mt-6">
                   <ReviewActionZone
