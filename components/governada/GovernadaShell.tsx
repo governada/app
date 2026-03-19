@@ -9,6 +9,8 @@ import { TierThemeProvider } from '@/components/providers/TierThemeProvider';
 import { GovernadaHeader } from './GovernadaHeader';
 import { GovernadaBottomNav } from './GovernadaBottomNav';
 import { GovernadaSidebar } from './GovernadaSidebar';
+import { NavigationRail } from './NavigationRail';
+import { useFeatureFlag } from '@/components/FeatureGate';
 import { SyncFreshnessBanner } from '@/components/SyncFreshnessBanner';
 import { PreviewBanner } from '@/components/preview/PreviewBanner';
 import { FeedbackWidget } from '@/components/preview/FeedbackWidget';
@@ -87,9 +89,11 @@ function DeepLinkHandler() {
 function BackgroundGlobe({
   isHomepage,
   sidebarCollapsed,
+  useRail,
 }: {
   isHomepage: boolean;
   sidebarCollapsed: boolean;
+  useRail?: boolean;
 }) {
   const { segment } = useSegment();
   // Hide the background globe on homepage for anonymous/not-yet-loaded users
@@ -97,8 +101,10 @@ function BackgroundGlobe({
   return (
     <div
       className={cn(
-        'force-dark fixed inset-0 pointer-events-none z-0 transition-[left] duration-200',
-        sidebarCollapsed ? 'lg:left-16' : 'lg:left-60',
+        'force-dark fixed inset-0 pointer-events-none z-0',
+        useRail
+          ? 'lg:left-12'
+          : cn('transition-[left] duration-200', sidebarCollapsed ? 'lg:left-16' : 'lg:left-60'),
       )}
       aria-hidden="true"
     >
@@ -130,6 +136,8 @@ export function GovernadaShell({ children }: { children: React.ReactNode }) {
     pathname === '/workspace/review' ||
     /^\/workspace\/(author|editor|amendment)\/[^/]+/.test(pathname);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const navigationRailFlag = useFeatureFlag('navigation_rail');
+  const navigationRail = navigationRailFlag === true;
 
   useEffect(() => {
     const stored = localStorage.getItem(SIDEBAR_STORAGE_KEY);
@@ -154,13 +162,20 @@ export function GovernadaShell({ children }: { children: React.ReactNode }) {
         <SyncFreshnessBanner />
         <PreviewBanner />
         {!isStudioMode && <GovernadaHeader />}
-        {!isStudioMode && (
-          <GovernadaSidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
-        )}
+        {!isStudioMode &&
+          (navigationRail ? (
+            <NavigationRail />
+          ) : (
+            <GovernadaSidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
+          ))}
 
         {/* Global constellation globe — subtle glassmorphic background */}
         {!isStudioMode && (
-          <BackgroundGlobe isHomepage={isHomepage} sidebarCollapsed={sidebarCollapsed} />
+          <BackgroundGlobe
+            isHomepage={isHomepage}
+            sidebarCollapsed={sidebarCollapsed}
+            useRail={navigationRail}
+          />
         )}
 
         {/* Discovery context wraps main so studio can access it */}
@@ -169,9 +184,16 @@ export function GovernadaShell({ children }: { children: React.ReactNode }) {
             <main
               id="main-content"
               className={cn(
-                'relative z-0 min-h-screen transition-[padding-left] duration-200',
+                'relative z-0 min-h-screen',
                 isStudioMode ? '' : 'pb-16 lg:pb-0',
-                isStudioMode ? '' : sidebarCollapsed ? 'lg:pl-16' : 'lg:pl-60',
+                isStudioMode
+                  ? ''
+                  : navigationRail
+                    ? 'lg:pl-12'
+                    : cn(
+                        'transition-[padding-left] duration-200',
+                        sidebarCollapsed ? 'lg:pl-16' : 'lg:pl-60',
+                      ),
               )}
               tabIndex={-1}
             >
@@ -184,8 +206,13 @@ export function GovernadaShell({ children }: { children: React.ReactNode }) {
         {!isStudioMode && (
           <footer
             className={cn(
-              'relative z-0 border-t border-border/40 py-4 px-4 text-center transition-[padding-left] duration-200',
-              sidebarCollapsed ? 'lg:pl-16' : 'lg:pl-60',
+              'relative z-0 border-t border-border/40 py-4 px-4 text-center',
+              navigationRail
+                ? 'lg:pl-12'
+                : cn(
+                    'transition-[padding-left] duration-200',
+                    sidebarCollapsed ? 'lg:pl-16' : 'lg:pl-60',
+                  ),
             )}
           >
             <p className="text-xs text-muted-foreground/70">
