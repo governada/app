@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { SectionPillBar } from '@/components/governada/SectionPillBar';
+import { SectionTabBar } from '@/components/governada/SectionTabBar';
 import { SectionSpotlightTrigger } from '@/components/discovery/SectionSpotlightTrigger';
 
 export default function WorkspaceLayout({ children }: { children: React.ReactNode }) {
@@ -11,7 +11,7 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
 
   return (
     <>
-      {!isStudioMode && <SectionPillBar section="home" />}
+      {!isStudioMode && <SectionTabBar section="home" />}
       {!isStudioMode && <SectionSpotlightTrigger section="workspace" />}
       {children}
     </>
