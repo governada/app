@@ -68,7 +68,7 @@ export function ReviewTableRow({ variant, draft, proposal, itemProps }: ReviewTa
     <div
       className={cn(
         'group/row relative border-b border-border/50 last:border-b-0 transition-colors',
-        isCompleted ? 'opacity-60 hover:opacity-80' : 'hover:bg-accent/40',
+        isCompleted ? 'opacity-60 hover:opacity-80' : 'hover:bg-accent/70',
       )}
       {...(itemProps ?? {})}
     >

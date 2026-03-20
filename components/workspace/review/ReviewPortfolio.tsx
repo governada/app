@@ -644,7 +644,7 @@ function ReviewTableGroup({
 
       {/* Rows */}
       {expanded && (
-        <div className="border border-border/50 rounded-md overflow-hidden">
+        <div className="border border-border/50 rounded-md overflow-hidden bg-background/40 backdrop-blur-sm">
           {count === 0 ? (
             <div className="px-3 py-3 text-xs text-muted-foreground/60">
               {meta.emptyDescription}

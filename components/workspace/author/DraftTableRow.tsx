@@ -92,7 +92,7 @@ export function DraftTableRow({ draft, column, itemProps }: DraftTableRowProps) 
 
   return (
     <div
-      className="group/row relative border-b border-border/50 last:border-b-0 hover:bg-accent/40 transition-colors"
+      className="group/row relative border-b border-border/50 last:border-b-0 hover:bg-accent/70 transition-colors"
       {...(itemProps ?? {})}
     >
       <Link
