@@ -46,6 +46,12 @@ const STATUS_COLORS: Record<string, string> = {
 
 export type ReviewCardVariant = 'feedback' | 'voting' | 'completed';
 
+const VARIANT_EDGE_COLORS: Record<ReviewCardVariant, string> = {
+  feedback: 'border-l-blue-500',
+  voting: 'border-l-amber-500',
+  completed: 'border-l-muted-foreground/20',
+};
+
 interface ReviewCardProps {
   variant: ReviewCardVariant;
   /** For feedback variant: community draft needing review */
@@ -72,6 +78,17 @@ export function ReviewCard({ variant, draft, proposal, index, itemProps }: Revie
   // Mute completed cards
   const isCompleted = variant === 'completed';
 
+  // Urgency-based edge color override for voting cards
+  const isUrgentVoting =
+    variant === 'voting' && proposal?.epochsRemaining != null && proposal.epochsRemaining <= 3;
+  const isFinalEpochVoting =
+    variant === 'voting' && proposal?.epochsRemaining != null && proposal.epochsRemaining <= 1;
+  const edgeColor = isFinalEpochVoting
+    ? 'border-l-red-500'
+    : isUrgentVoting
+      ? 'border-l-amber-500'
+      : VARIANT_EDGE_COLORS[variant];
+
   return (
     <motion.div
       initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
@@ -84,7 +101,8 @@ export function ReviewCard({ variant, draft, proposal, index, itemProps }: Revie
     >
       <Card
         className={cn(
-          'h-full transition-colors group/card relative',
+          'h-full transition-colors group/card relative border-l-3',
+          edgeColor,
           isCompleted ? 'opacity-60' : 'hover:bg-accent/50',
         )}
         {...(itemProps ?? {})}
@@ -217,7 +235,7 @@ function VotingContent({ proposal }: { proposal: ReviewQueueItem }) {
           </div>
           <div className="h-1.5 w-full rounded-full bg-muted/50 overflow-hidden">
             <div
-              className="h-full rounded-full bg-emerald-500 transition-all"
+              className="h-full rounded-full bg-emerald-500 transition-all voting-progress-live"
               style={{ width: `${yesPct}%` }}
             />
           </div>

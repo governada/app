@@ -73,6 +73,13 @@ const STATUS_LABELS: Record<DraftStatus, string> = {
 
 type ColumnType = 'drafts' | 'inReview' | 'onChain' | 'archived';
 
+const COLUMN_EDGE_COLORS: Record<ColumnType, string> = {
+  drafts: 'border-l-muted-foreground/40',
+  inReview: 'border-l-amber-500',
+  onChain: 'border-l-[var(--compass-teal)]',
+  archived: 'border-l-muted-foreground/20',
+};
+
 // ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
@@ -119,7 +126,10 @@ export function DraftCard({ draft, index, column, itemProps }: DraftCardProps) {
       }}
     >
       <Card
-        className="h-full hover:bg-accent/50 transition-colors group/card relative"
+        className={cn(
+          'h-full hover:bg-accent/50 transition-colors group/card relative border-l-3',
+          COLUMN_EDGE_COLORS[column],
+        )}
         {...(itemProps ?? {})}
       >
         <Link
@@ -167,9 +177,9 @@ export function DraftCard({ draft, index, column, itemProps }: DraftCardProps) {
           </CardContent>
         </Link>
 
-        {/* Quick actions button — positioned absolutely top-right over the card */}
+        {/* Quick actions button — visible on hover (desktop) or always (touch devices) */}
         <div
-          className="absolute top-2 right-2 opacity-0 group-hover/card:opacity-100 focus-within:opacity-100 transition-opacity duration-150"
+          className="absolute top-2 right-2 opacity-100 sm:opacity-0 sm:group-hover/card:opacity-100 focus-within:opacity-100 transition-opacity duration-150"
           onClick={(e) => e.stopPropagation()}
           onKeyDown={(e) => e.stopPropagation()}
         >
