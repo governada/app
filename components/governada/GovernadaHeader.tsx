@@ -484,12 +484,13 @@ export function GovernadaHeader({ compassToggle, compassOpen }: GovernadaHeaderP
           {/* Notification bell dropdown */}
           {connected && isAuthenticated && <NotificationBell unreadCount={unreadCount} />}
 
+          {/* Extra gap before user pill so bell badge doesn't crowd it */}
           {connected && isAuthenticated ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
                   className={cn(
-                    'flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-full transition-colors cursor-pointer',
+                    'flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 ml-1 rounded-full transition-colors cursor-pointer',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
                     hasOverride || hasDimensionOverrides || sandboxCohortId
                       ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 hover:bg-amber-500/25'
