@@ -18,47 +18,56 @@ export default function Icon() {
     >
       <svg viewBox="0 0 100 100" width="26" height="26">
         <path
-          d="M 60 20 A 32 32 0 1 0 73 54"
+          d="M 67 35 A 22 22 0 1 0 73 51"
           fill="none"
           stroke="#4EEAC6"
-          strokeWidth="6"
+          strokeWidth="5"
           strokeLinecap="round"
         />
         <line
           x1="73"
-          y1="54"
-          x2="52"
-          y2="48"
+          y1="51"
+          x2="51"
+          y2="51"
           stroke="#4EEAC6"
-          strokeWidth="4.5"
+          strokeWidth="4"
           strokeLinecap="round"
         />
-        <circle cx="60" cy="20" r="5" fill="#4EEAC6" />
-        <circle cx="38" cy="14" r="5" fill="#4EEAC6" />
-        <circle cx="18" cy="25" r="5" fill="#4EEAC6" />
-        <circle cx="10" cy="46" r="5" fill="#4EEAC6" />
-        <circle cx="18" cy="67" r="5" fill="#4EEAC6" />
-        <circle cx="38" cy="78" r="5" fill="#4EEAC6" />
-        <circle cx="60" cy="73" r="5" fill="#4EEAC6" />
-        <circle cx="73" cy="54" r="5" fill="#4EEAC6" />
-        <circle cx="55" cy="34" r="4.5" fill="#4EEAC6" />
-        <circle cx="52" cy="48" r="5" fill="#4EEAC6" />
+        <circle cx="67" cy="35" r="4.5" fill="#4EEAC6" />
+        <circle cx="51" cy="29" r="4" fill="#4EEAC6" />
+        <circle cx="39" cy="41" r="3.5" fill="#4EEAC6" />
+        <circle cx="29" cy="53" r="4.5" fill="#4EEAC6" />
+        <circle cx="39" cy="62" r="3.5" fill="#4EEAC6" />
+        <circle cx="50" cy="73" r="4.5" fill="#4EEAC6" />
+        <circle cx="66" cy="70" r="4" fill="#4EEAC6" />
+        <circle cx="73" cy="51" r="4.5" fill="#4EEAC6" />
+        <circle cx="61" cy="61" r="4" fill="#4EEAC6" />
+        <circle cx="51" cy="51" r="4" fill="#4EEAC6" />
         <line
-          x1="38"
-          y1="14"
-          x2="55"
-          y2="34"
+          x1="51"
+          y1="29"
+          x2="61"
+          y2="61"
           stroke="#4EEAC6"
-          strokeWidth="3.5"
+          strokeWidth="3"
           strokeLinecap="round"
         />
         <line
-          x1="55"
-          y1="34"
-          x2="52"
-          y2="48"
+          x1="61"
+          y1="61"
+          x2="73"
+          y2="51"
           stroke="#4EEAC6"
-          strokeWidth="3.5"
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+        <line
+          x1="61"
+          y1="61"
+          x2="66"
+          y2="70"
+          stroke="#4EEAC6"
+          strokeWidth="3"
           strokeLinecap="round"
         />
       </svg>
