@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useCallback, useEffect, useRef } from 'react';
+import { useMemo, useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSegment } from '@/components/providers/SegmentProvider';
 import { useWallet } from '@/utils/wallet';
@@ -8,14 +8,25 @@ import { useReviewQueue } from '@/hooks/useReviewQueue';
 import { useReviewableDrafts } from '@/hooks/useReviewableDrafts';
 import { useWorkspaceStore } from '@/lib/workspace/store';
 import { useFocusableList } from '@/hooks/useFocusableList';
+import { useColumnJumpShortcuts } from '@/hooks/useColumnJumpShortcuts';
 import { useFocusStore } from '@/lib/workspace/focus';
 import { commandRegistry } from '@/lib/workspace/commands';
 import { PortfolioSearch } from '@/components/workspace/shared/PortfolioSearch';
+import { PortfolioStats } from '@/components/workspace/shared/PortfolioStats';
+import { TriageSummary } from '@/components/workspace/shared/TriageSummary';
+import type { TriageInsight } from '@/components/workspace/shared/TriageSummary';
 import { ReviewCard } from './ReviewCard';
 import type { ReviewCardVariant } from './ReviewCard';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Vote, FileText, CheckCircle2, MessageSquare } from 'lucide-react';
+import {
+  Vote,
+  FileText,
+  CheckCircle2,
+  MessageSquare,
+  ChevronDown,
+  ChevronRight,
+} from 'lucide-react';
 import type { ProposalDraft, ReviewQueueItem } from '@/lib/workspace/types';
 
 // ---------------------------------------------------------------------------
@@ -110,7 +121,18 @@ export function ReviewPortfolio() {
   // Split on-chain proposals into needs-vote vs completed
   const queueItems = useMemo(() => queueData?.items ?? [], [queueData?.items]);
 
-  const needsVote = useMemo(() => queueItems.filter((item) => !item.existingVote), [queueItems]);
+  const needsVote = useMemo(
+    () =>
+      queueItems
+        .filter((item) => !item.existingVote)
+        .sort((a, b) => {
+          // Urgent items (fewer epochs remaining) surface first
+          const aEpochs = a.epochsRemaining ?? Infinity;
+          const bEpochs = b.epochsRemaining ?? Infinity;
+          return aEpochs - bEpochs;
+        }),
+    [queueItems],
+  );
 
   const completedProposals = useMemo(
     () => queueItems.filter((item) => !!item.existingVote),
@@ -119,6 +141,80 @@ export function ReviewPortfolio() {
 
   // Community drafts needing feedback
   const feedbackDrafts = useMemo(() => draftsData?.drafts ?? [], [draftsData?.drafts]);
+
+  // Count urgent items for stats
+  const urgentCount = useMemo(
+    () => needsVote.filter((p) => p.epochsRemaining != null && p.epochsRemaining <= 3).length,
+    [needsVote],
+  );
+
+  const reviewStats = useMemo(
+    () => [
+      {
+        label: 'need your vote',
+        value: needsVote.length,
+        emphasis: needsVote.length > 0,
+      },
+      {
+        label: 'urgent',
+        value: urgentCount,
+        emphasis: urgentCount > 0,
+        color: urgentCount > 0 ? 'text-red-400' : undefined,
+      },
+      { label: 'need feedback', value: feedbackDrafts.length },
+      { label: 'completed', value: completedProposals.length },
+    ],
+    [needsVote.length, urgentCount, feedbackDrafts.length, completedProposals.length],
+  );
+
+  // Generate triage insights
+  const reviewTriageInsights = useMemo((): TriageInsight[] => {
+    const insights: TriageInsight[] = [];
+
+    // Urgent proposals
+    const urgentItems = needsVote.filter(
+      (p) => p.epochsRemaining != null && p.epochsRemaining <= 1,
+    );
+    if (urgentItems.length > 0) {
+      const first = urgentItems[0];
+      insights.push({
+        text: `"${first.title || 'Untitled'}" expires this epoch — vote now to avoid missing it.`,
+        priority: 10,
+      });
+    } else {
+      const soonItems = needsVote.filter(
+        (p) => p.epochsRemaining != null && p.epochsRemaining <= 3,
+      );
+      if (soonItems.length > 0) {
+        insights.push({
+          text: `${soonItems.length} proposal${soonItems.length > 1 ? 's' : ''} expire${soonItems.length === 1 ? 's' : ''} within 3 epochs.`,
+          priority: 8,
+        });
+      }
+    }
+
+    // Treasury proposals needing vote
+    const treasuryItems = needsVote.filter(
+      (p) => p.withdrawalAmount != null && Number(p.withdrawalAmount) > 0,
+    );
+    if (treasuryItems.length > 0) {
+      const totalAda = treasuryItems.reduce((sum, p) => sum + Number(p.withdrawalAmount ?? 0), 0);
+      insights.push({
+        text: `${treasuryItems.length} treasury proposal${treasuryItems.length > 1 ? 's' : ''} requesting ₳${totalAda.toLocaleString()} total await${treasuryItems.length === 1 ? 's' : ''} your vote.`,
+        priority: 7,
+      });
+    }
+
+    // Feedback drafts needing attention
+    if (feedbackDrafts.length > 0 && insights.length < 2) {
+      insights.push({
+        text: `${feedbackDrafts.length} community draft${feedbackDrafts.length > 1 ? 's' : ''} seeking your feedback.`,
+        priority: 4,
+      });
+    }
+
+    return insights;
+  }, [needsVote, feedbackDrafts]);
 
   // Apply search filter across all columns
   const filteredGroups = useMemo((): ColumnGroups => {
@@ -228,11 +324,18 @@ export function ReviewPortfolio() {
   }, []);
 
   // Compute flat offsets for each column
-  const groupOffsets = {
-    feedback: 0,
-    voting: filteredGroups.feedback.length,
-    completed: filteredGroups.feedback.length + filteredGroups.voting.length,
-  };
+  const groupOffsets = useMemo(
+    () => ({
+      feedback: 0,
+      voting: filteredGroups.feedback.length,
+      completed: filteredGroups.feedback.length + filteredGroups.voting.length,
+    }),
+    [filteredGroups.feedback.length, filteredGroups.voting.length],
+  );
+
+  // Column jump shortcuts (1/2/3)
+  const reviewColumnNames = useMemo(() => ['feedback', 'voting', 'completed'], []);
+  useColumnJumpShortcuts('review-portfolio-list', reviewColumnNames, groupOffsets);
 
   // Loading state
   if (isLoading) {
@@ -312,6 +415,36 @@ export function ReviewPortfolio() {
     );
   }
 
+  // Search returned no results
+  const totalFiltered =
+    filteredGroups.feedback.length + filteredGroups.voting.length + filteredGroups.completed.length;
+  if (reviewFilter.trim() && totalFiltered === 0) {
+    return (
+      <div className="mx-auto max-w-7xl px-4 py-6 space-y-6">
+        <PortfolioHeader />
+        <PortfolioSearch
+          filter={reviewFilter}
+          onFilterChange={setReviewFilter}
+          viewMode={reviewViewMode}
+          onViewModeChange={setReviewViewMode}
+          placeholder="Search proposals..."
+        />
+        <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
+          <FileText className="h-8 w-8 text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground">
+            No results for &ldquo;{reviewFilter.trim()}&rdquo;
+          </p>
+          <button
+            onClick={() => setReviewFilter('')}
+            className="text-xs text-[var(--compass-teal)] hover:underline"
+          >
+            Clear search
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const listProps = getListProps();
 
   return (
@@ -325,6 +458,10 @@ export function ReviewPortfolio() {
         onViewModeChange={setReviewViewMode}
         placeholder="Search proposals..."
       />
+
+      <PortfolioStats stats={reviewStats} />
+
+      <TriageSummary insights={reviewTriageInsights} />
 
       {reviewViewMode === 'kanban' ? (
         <div {...listProps}>
@@ -363,12 +500,13 @@ export function ReviewPortfolio() {
             flatOffset={groupOffsets.voting}
             getItemProps={getItemProps}
           />
-          <ListGroup
-            column="completed"
-            proposals={filteredGroups.completed}
-            flatOffset={groupOffsets.completed}
-            getItemProps={getItemProps}
-          />
+          {filteredGroups.completed.length > 0 && (
+            <CollapsibleCompletedSection
+              proposals={filteredGroups.completed}
+              flatOffset={groupOffsets.completed}
+              getItemProps={getItemProps}
+            />
+          )}
         </div>
       )}
     </div>
@@ -408,7 +546,7 @@ function KanbanColumn({ column, drafts, proposals, flatOffset, getItemProps }: K
   const Icon = meta.icon;
 
   return (
-    <div className="flex flex-col min-w-0">
+    <div className="flex flex-col min-w-0" data-column={column}>
       {/* Column header */}
       <div className="flex items-center gap-2 mb-3 px-1">
         <Icon className="h-4 w-4 text-muted-foreground" />
@@ -470,7 +608,7 @@ function ListGroup({ column, drafts, proposals, flatOffset, getItemProps }: List
   const Icon = meta.icon;
 
   return (
-    <div>
+    <div data-column={column}>
       {/* Group header */}
       <div className="flex items-center gap-2 mb-3 border-b border-border pb-2">
         <Icon className="h-4 w-4 text-muted-foreground" />
@@ -501,6 +639,58 @@ function ListGroup({ column, drafts, proposals, flatOffset, getItemProps }: List
               proposal={proposal}
               index={i + (drafts?.length ?? 0)}
               itemProps={getItemProps(flatOffset + (drafts?.length ?? 0) + i)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Collapsible Completed Section (list mode only — default collapsed)
+// ---------------------------------------------------------------------------
+
+interface CollapsibleCompletedSectionProps {
+  proposals: ReviewQueueItem[];
+  flatOffset: number;
+  getItemProps: (index: number) => Record<string, unknown>;
+}
+
+function CollapsibleCompletedSection({
+  proposals,
+  flatOffset,
+  getItemProps,
+}: CollapsibleCompletedSectionProps) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div data-column="completed">
+      <button
+        onClick={() => setExpanded((prev) => !prev)}
+        className="flex items-center gap-2 mb-3 border-b border-border pb-2 w-full text-left"
+      >
+        {expanded ? (
+          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+        ) : (
+          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+        )}
+        <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+        <span className="text-sm font-medium text-muted-foreground">Completed</span>
+        <Badge variant="secondary" className="text-xs tabular-nums">
+          {proposals.length}
+        </Badge>
+      </button>
+
+      {expanded && (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3" style={{ gap: 'var(--workspace-gap)' }}>
+          {proposals.map((proposal, i) => (
+            <ReviewCard
+              key={`${proposal.txHash}-${proposal.proposalIndex}`}
+              variant="completed"
+              proposal={proposal}
+              index={i}
+              itemProps={getItemProps(flatOffset + i)}
             />
           ))}
         </div>

@@ -4,12 +4,13 @@ import { useMemo, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useWorkspaceStore } from '@/lib/workspace/store';
 import { useFocusableList } from '@/hooks/useFocusableList';
+import { useColumnJumpShortcuts } from '@/hooks/useColumnJumpShortcuts';
 import { useFocusStore } from '@/lib/workspace/focus';
 import { commandRegistry } from '@/lib/workspace/commands';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FileText } from 'lucide-react';
+import { FileText, FileEdit, MessageSquare, Globe, Archive } from 'lucide-react';
 import { DraftCard } from './DraftCard';
 import type { ProposalDraft, DraftStatus } from '@/lib/workspace/types';
 
@@ -40,26 +41,30 @@ const REVIEW_STATUSES: DraftStatus[] = ['community_review', 'response_revision',
 
 const COLUMN_META: Record<
   ColumnType,
-  { label: string; emptyTitle: string; emptyDescription: string }
+  { label: string; icon: typeof FileEdit; emptyTitle: string; emptyDescription: string }
 > = {
   drafts: {
     label: 'Drafts',
+    icon: FileEdit,
     emptyTitle: 'No drafts',
     emptyDescription: 'Start a new proposal or use AI scaffolding to generate a draft.',
   },
   inReview: {
     label: 'In Review',
+    icon: MessageSquare,
     emptyTitle: 'No proposals in review',
     emptyDescription:
       'When a draft is ready, open it for structured community feedback and constitutional review.',
   },
   onChain: {
     label: 'On-Chain',
+    icon: Globe,
     emptyTitle: 'No submitted proposals',
     emptyDescription: 'Proposals that pass community review can be submitted on-chain for voting.',
   },
   archived: {
     label: 'Archived',
+    icon: Archive,
     emptyTitle: 'No archived proposals',
     emptyDescription: 'Archived proposals will appear here.',
   },
@@ -130,6 +135,25 @@ export function PortfolioView({ drafts, isLoading, showArchived }: PortfolioView
     'drafts-list',
     flatList.length,
   );
+
+  // Compute a flat offset for each group to properly index items
+  const groupOffsets = useMemo(
+    () => ({
+      drafts: 0,
+      inReview: groups.drafts.length,
+      onChain: groups.drafts.length + groups.inReview.length,
+      archived: groups.drafts.length + groups.inReview.length + groups.onChain.length,
+    }),
+    [groups.drafts.length, groups.inReview.length, groups.onChain.length],
+  );
+
+  // Column jump shortcuts (1/2/3/4)
+  const columnNames = useMemo(() => {
+    const cols: string[] = ['drafts', 'inReview', 'onChain'];
+    if (showArchived && groups.archived.length > 0) cols.push('archived');
+    return cols;
+  }, [showArchived, groups.archived.length]);
+  useColumnJumpShortcuts('drafts-list', columnNames, groupOffsets);
 
   // Scroll the active card into view when navigating with J/K
   useEffect(() => {
@@ -210,13 +234,23 @@ export function PortfolioView({ drafts, isLoading, showArchived }: PortfolioView
     );
   }
 
-  // Compute a flat offset for each group to properly index items
-  const groupOffsets = {
-    drafts: 0,
-    inReview: groups.drafts.length,
-    onChain: groups.drafts.length + groups.inReview.length,
-    archived: groups.drafts.length + groups.inReview.length + groups.onChain.length,
-  };
+  // Search returned no results
+  if (authorFilter.trim() && filteredDrafts.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
+        <FileText className="h-8 w-8 text-muted-foreground/40" />
+        <p className="text-sm text-muted-foreground">
+          No results for &ldquo;{authorFilter.trim()}&rdquo;
+        </p>
+        <button
+          onClick={() => useWorkspaceStore.getState().setAuthorFilter('')}
+          className="text-xs text-[var(--compass-teal)] hover:underline"
+        >
+          Clear search
+        </button>
+      </div>
+    );
+  }
 
   const listProps = getListProps();
 
@@ -283,11 +317,13 @@ interface KanbanColumnProps {
 
 function KanbanColumn({ column, drafts, flatOffset, getItemProps }: KanbanColumnProps) {
   const meta = COLUMN_META[column];
+  const Icon = meta.icon;
 
   return (
-    <div className="flex flex-col min-w-0">
+    <div className="flex flex-col min-w-0" data-column={column}>
       {/* Column header */}
       <div className="flex items-center gap-2 mb-3 px-1">
+        <Icon className="h-4 w-4 text-muted-foreground" />
         <h3 className="text-sm font-medium text-muted-foreground">{meta.label}</h3>
         <Badge variant="secondary" className="text-xs tabular-nums">
           {drafts.length}
@@ -330,11 +366,13 @@ interface ListGroupProps {
 
 function ListGroup({ column, drafts, flatOffset, getItemProps }: ListGroupProps) {
   const meta = COLUMN_META[column];
+  const Icon = meta.icon;
 
   return (
-    <div>
+    <div data-column={column}>
       {/* Group header */}
       <div className="flex items-center gap-2 mb-3 border-b border-border pb-2">
+        <Icon className="h-4 w-4 text-muted-foreground" />
         <h3 className="text-sm font-medium text-muted-foreground">{meta.label}</h3>
         <Badge variant="secondary" className="text-xs tabular-nums">
           {drafts.length}
