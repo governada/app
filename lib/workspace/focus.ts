@@ -121,7 +121,7 @@ export const useFocusStore = create<FocusStore>()((set, get) => ({
   activeListId: null,
   activeListLength: 0,
   activeIndex: 0,
-  inputMethod: 'keyboard',
+  inputMethod: 'pointer',
 
   // --- Actions ---
   pushFocus: () => {
