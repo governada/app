@@ -3,8 +3,8 @@
 /**
  * CollapsibleSection — Arc Browser-style compress/expand section.
  *
- * Sections default to compressed state (one-line summary).
- * Click to expand and see full content.
+ * Sections default to expanded state (full content visible).
+ * Click to compress to one-line summary.
  * Smooth height animation with reduced-motion fallback.
  */
 
@@ -38,7 +38,7 @@ export function CollapsibleSection({
   title,
   summary,
   sentiment,
-  defaultExpanded = false,
+  defaultExpanded = true,
   children,
   className,
 }: CollapsibleSectionProps) {

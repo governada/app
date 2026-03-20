@@ -159,7 +159,7 @@ export function EntityPreview({ previewStack, children }: EntityPreviewProps) {
                 aria-label={depth === 1 ? 'Back to panel' : 'Back to previous preview'}
               >
                 <ArrowLeft className="h-3.5 w-3.5" />
-                {depth === 1 ? 'Back to Co-Pilot' : `Back`}
+                {depth === 1 ? 'Back to Compass' : `Back`}
               </button>
 
               {/* Breadcrumb trail */}

@@ -38,7 +38,7 @@ export function SectionTabBar({ section: _section }: SectionTabBarProps) {
   };
 
   return (
-    <div className="sticky top-0 md:top-10 z-20 border-b border-border/20 bg-background/80 backdrop-blur-md pt-[env(safe-area-inset-top)] md:pt-0">
+    <div className="sticky top-0 md:top-10 z-20 border-b border-border/10 bg-background/40 backdrop-blur-xl pt-[env(safe-area-inset-top)] md:pt-0">
       <nav
         className="flex items-center gap-1 px-4 lg:px-6 h-10 overflow-x-auto scrollbar-none"
         aria-label="Section navigation"

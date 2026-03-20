@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * IntelligencePanel — Governance Co-Pilot right-side panel.
+ * IntelligencePanel — Governance Compass right-side panel.
  *
  * The crown jewel of the Navigation Renaissance. A collapsible right-side
  * intelligence panel powered by AI-synthesized governance briefings.
@@ -61,7 +61,7 @@ export function IntelligencePanel({ isOpen, onClose, panelWidth }: IntelligenceP
           <div className="flex items-center justify-between px-3 py-2 border-b border-border/10 shrink-0">
             <div className="flex items-center gap-2">
               <BrainCircuit className="h-4 w-4 text-primary/70" aria-hidden="true" />
-              <h2 className="text-xs font-semibold text-foreground/80">Co-Pilot</h2>
+              <h2 className="text-xs font-semibold text-foreground/80">Compass</h2>
             </div>
             <button
               type="button"

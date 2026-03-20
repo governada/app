@@ -196,13 +196,15 @@ export function GovernadaShell({ children }: { children: React.ReactNode }) {
           </Suspense>
           <SyncFreshnessBanner />
           <PreviewBanner />
-          {!isStudioMode && <GovernadaHeader />}
+          {!isStudioMode && (
+            <GovernadaHeader
+              compassToggle={showCopilot ? intelligencePanel.toggle : undefined}
+              compassOpen={panelVisible}
+            />
+          )}
           {!isStudioMode &&
             (navigationRail ? (
-              <NavigationRail
-                onToggleCopilot={showCopilot ? intelligencePanel.toggle : undefined}
-                copilotOpen={panelVisible}
-              />
+              <NavigationRail />
             ) : (
               <GovernadaSidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
             ))}
@@ -243,7 +245,7 @@ export function GovernadaShell({ children }: { children: React.ReactNode }) {
               {!isStudioMode && <MilestoneTrigger />}
             </DiscoveryHub>
           </SpotlightProvider>
-          {/* Governance Co-Pilot Intelligence Panel */}
+          {/* Governance Compass Intelligence Panel */}
           {showCopilot && intelligencePanel.canShowPanel && (
             <IntelligencePanel
               isOpen={intelligencePanel.isOpen}
