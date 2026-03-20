@@ -25,6 +25,7 @@ import {
   UserCog,
   Compass,
 } from 'lucide-react';
+import { GovernadaLogo } from '@/components/ui/GovernadaLogo';
 import { AdminViewAsPicker } from './AdminViewAsPicker';
 import { DepthPromptModal } from './DepthPromptModal';
 import { EpochStrip } from './EpochStrip';
@@ -433,10 +434,11 @@ export function GovernadaHeader({ compassToggle, compassOpen }: GovernadaHeaderP
           <Link
             href="/"
             className={cn(
-              'lg:hidden font-display text-lg font-bold tracking-tight text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded shrink-0',
+              'lg:hidden flex items-center gap-2 font-display text-lg font-bold tracking-tight text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded shrink-0',
               headerTransparent && 'nav-text-shadow',
             )}
           >
+            <GovernadaLogo size={22} />
             governada
           </Link>
           <HeaderBreadcrumbs />
