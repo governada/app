@@ -9,17 +9,55 @@ All code changes compile clean. Execute the full deploy pipeline autonomously. D
 5. **Stage + commit**: `git add <specific-files>` → review with `git diff --cached --name-only` → commit
 6. **Push**: `git push -u origin HEAD`
 7. **PR**: `gh pr create --title "feat: description" --body-file PR_BODY.md --base main` → delete PR_BODY.md
-8. **CI**: `gh pr checks <N> --watch` — if fails, read logs, fix, push, re-monitor (max 3 retries)
-9. **Merge**: `gh pr merge <N> --squash --delete-branch` (or `gh api .../merge` from worktrees)
-10. **Migrations**: Apply pending via Supabase MCP `apply_migration` → `npm run gen:types`
-11. **Deploy monitor**: Wait ~5 min, poll Railway until deployed, verify health endpoint returns 200
-12. **Inngest sync**: PUT `https://governada.io/api/inngest` if functions changed → `npm run inngest:status`
-13. **Smoke test**: Hit new/changed endpoints on `governada.io`, run `npm run smoke-test`
-14. **Analytics**: `npm run posthog:check <event>` if new events
-15. **Update tracking docs**: If this PR adds features, fixes scoring, changes counts (routes, components, functions), or ships a QP/step:
+8. **CI**: `gh pr checks <N> --watch` — if fails, see [CI Failure Recovery](#ci-failure-recovery) below (max 3 retries)
+9. **Pre-merge check**: `bash scripts/pre-merge-check.sh <PR#>`
+10. **Merge**: `gh api repos/governada/governada-app/pulls/<N>/merge -X PUT -f merge_method=squash`
+11. **Migrations**: Apply pending via Supabase MCP `apply_migration` → `npm run gen:types`
+12. **Verify production**: Railway auto-deploys from merge — do NOT watch CI on main or poll Railway logs. Wait ~3 min, then verify health: `curl -s https://governada.io/api/health`. Use `deploy-verifier` subagent in background if preferred.
+13. **Inngest sync**: `curl -X PUT https://governada.io/api/inngest` if functions changed → `npm run inngest:status`
+14. **Smoke test**: Hit new/changed endpoints on `governada.io`, run `npm run smoke-test`
+15. **Analytics**: `npm run posthog:check <event>` if new events
+16. **Update tracking docs**: If this PR adds features, fixes scoring, changes counts (routes, components, functions), or ships a QP/step:
     - Update `docs/strategy/context/build-manifest.md` — check off items, add new `[x]` entries with PR #, update counts
     - Update `CLAUDE.md` if counts changed (Inngest functions, key files, etc.)
     - Commit doc updates in the same PR or as a follow-up commit on main
-16. **Cleanup**: Switch to main, pull, delete local branch (`git branch -d <branch>`), drop any stashes from the branch (`git stash list` → `git stash drop`)
+17. **Cleanup**: Switch to main, pull, delete local branch (`git branch -d <branch>`), drop any stashes from the branch (`git stash list` → `git stash drop`)
 
-**CRITICAL: Do NOT send a completion summary until deploy validation passes. Pushing code is step 6 of 16 — it is not "done."**
+**CRITICAL: Do NOT send a completion summary until deploy validation passes. Pushing code is step 6 of 17 — it is not "done."**
+
+## CI Failure Recovery
+
+When `gh pr checks` reports a failure:
+
+### 1. Get the failed run ID and read the logs
+
+```bash
+# Get the run ID for the latest CI run on this PR
+RUN_ID=$(gh run list --branch $(git branch --show-current) --limit 1 --json databaseId --jq '.[0].databaseId')
+# Show ONLY the failed job logs (not the full run)
+gh run view $RUN_ID --log-failed
+```
+
+### 2. Common failures and fixes
+
+| Failure        | Check                            | Fix                                                                                                                                                  |
+| -------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **format**     | `prettier --check` found issues  | `npx prettier --write <file>`, commit, push                                                                                                          |
+| **lint**       | ESLint errors                    | Read the error, fix the code (unused vars, missing types), commit, push                                                                              |
+| **type-check** | `tsc --noEmit` found type errors | Read the error, fix types, commit, push                                                                                                              |
+| **test**       | Vitest test failure              | Run `npx vitest run <test-file>` locally to reproduce, fix, commit, push                                                                             |
+| **build**      | Next.js build failed             | Usually a `force-dynamic` missing on a page using env vars or Supabase. Check the error for which page, add `export const dynamic = 'force-dynamic'` |
+
+### 3. After fixing
+
+```bash
+git add <fixed-files>
+git commit -m "fix: resolve CI failure (<check-name>)"
+git push
+# CI re-runs automatically on push — watch again:
+gh pr checks <N> --watch
+```
+
+### 4. If stuck after 3 attempts
+
+Escalate to the user with the exact error message. Do not keep pushing speculative fixes.

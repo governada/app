@@ -1,6 +1,6 @@
 Monitor the CI pipeline and Railway deployment until fully validated.
 
-## CI Monitoring
+## Branch CI (before merge)
 
 ```bash
 gh pr checks <pr-number> --watch
@@ -12,16 +12,16 @@ gh run view <run-id> --log-failed
 Branch protection requires ALL of: `type-check`, `lint`, `test`, `build`.
 If CI fails: read the error, fix, commit, push. Max 3 retries before escalating.
 
-## Railway Deploy Monitoring (after merge to main)
+## Post-Merge Verification
 
-Railway auto-deploys on push to main. Docker build takes ~5 min.
-Poll CI on main every 60s until `success`. CI green does NOT mean deployed — budget 5 min after CI passes.
+Railway auto-deploys on push to main independently of CI. Do NOT watch CI on main or poll `railway logs` — verify production directly:
 
-## Post-Deploy Validation (ALL mandatory)
+1. Wait ~3 min after merge for Railway Docker build
+2. Health check: `curl -s https://governada.io/api/health` — expect `"status":"healthy"` (or check sync-level status)
+3. Inngest sync: `curl -X PUT https://governada.io/api/inngest` (if functions changed)
+4. Smoke tests: `npm run smoke-test`
+5. Feature-specific: hit the changed page/endpoint on `governada.io`
 
-1. Health check: `curl -s https://governada.io/api/health` — expect 200
-2. Inngest sync: `curl -X PUT https://governada.io/api/inngest`
-3. Smoke tests: `npm run smoke-test`
-4. Feature-specific: hit the changed page/endpoint on `governada.io`
+Alternatively, launch the `deploy-verifier` subagent in the background after merge — it handles steps 1-5 autonomously.
 
-If ANY check fails: investigate, fix, push follow-up commit. Never report "done" until all 4 pass.
+If ANY check fails: investigate, fix, push follow-up commit. Never report "done" until all checks pass.

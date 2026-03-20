@@ -9,13 +9,13 @@ Implementation is NOT complete until deployed and validated in production. Use `
 1. `npm run preflight` -- fix all failures
 2. Stage files, commit (conventional: `feat:`, `fix:`, `refactor:`, etc.)
 3. `git push -u origin HEAD`
-4. `gh pr create` -- poll CI until green, fix failures
+4. `gh pr create` -- use `gh pr checks <N> --watch` to wait for CI, fix failures
 5. **Pre-merge check**: `bash scripts/pre-merge-check.sh <PR#>` -- blocks if CI is running on main or branch is behind
 6. Merge: `gh api repos/governada/governada-app/pulls/<N>/merge -X PUT -f merge_method=squash`
 7. Apply migrations via Supabase MCP -> `npm run gen:types` if needed
-8. Monitor Railway (`railway logs`, poll ~5 min)
+8. **Verify production** (Railway auto-deploys from merge — do NOT watch CI on main): wait ~3 min, then `curl -s https://governada.io/api/health` until healthy. Use `deploy-verifier` subagent in background if preferred.
 9. PUT `https://governada.io/api/inngest` if Inngest functions changed
-10. Verify endpoints on `governada.io`, run `npm run smoke-test`
+10. `npm run smoke-test`, verify changed endpoints on `governada.io`
 11. Clean up worktree if applicable
 
 ## Hard Constraints
