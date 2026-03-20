@@ -13,7 +13,7 @@
 import { inngest } from '@/lib/inngest';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
-import { alertCritical, emitPostHog, errMsg, capMsg } from '@/lib/sync-utils';
+import { alertCritical, emitPostHog, errMsg, capMsg, SyncLogger } from '@/lib/sync-utils';
 import { cronCheckIn, cronCheckOut } from '@/lib/sentry-cron';
 import {
   prepareDelegatorSnapshot,
@@ -94,6 +94,15 @@ export const syncDataMoat = inngest.createFunction(
             totalSnapshotted,
             delegatorErrors,
           );
+        });
+      } else {
+        // Coverage already sufficient — still write sync_log so health checks
+        // don't report delegator_snapshots as permanently stale
+        await step.run('finalize-delegator-snapshot-noop', async () => {
+          const sb = getSupabaseAdmin();
+          const syncLog = new SyncLogger(sb, 'delegator_snapshots');
+          await syncLog.start();
+          await syncLog.finalize(true, null, { skipped: true, reason: 'coverage_sufficient' });
         });
       }
 
