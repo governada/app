@@ -442,7 +442,7 @@ export function GovernadaHeader({ compassToggle, compassOpen }: GovernadaHeaderP
           <HeaderBreadcrumbs />
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2.5">
           {/* Epoch strip */}
           <EpochStrip />
 

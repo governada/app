@@ -87,7 +87,7 @@ export function NavigationRail() {
   return (
     <TooltipProvider delayDuration={200}>
       <aside
-        className="hidden lg:flex flex-col items-center fixed left-0 top-0 bottom-0 w-12 z-40 border-r border-border/20 bg-background/40 backdrop-blur-xl"
+        className="hidden lg:flex flex-col items-center fixed left-0 top-0 bottom-0 w-12 z-40 border-r border-border/10 bg-background/20 backdrop-blur-md"
         aria-label={t('Main navigation')}
       >
         {/* Logo — top of rail */}
