@@ -18,12 +18,11 @@ import { motion, LayoutGroup, useReducedMotion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useSegment } from '@/components/providers/SegmentProvider';
 import { getSidebarSections, getCurrentSection } from '@/lib/nav/config';
-import { useUnreadNotifications } from '@/hooks/useUnreadNotifications';
 import { useGovernanceDepth } from '@/hooks/useGovernanceDepth';
 import { usePinnedItems, type PinnedEntityType } from '@/hooks/usePinnedItems';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { User, FileText, Building2, Shield, BrainCircuit } from 'lucide-react';
+import { User, FileText, Building2, Shield } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
@@ -67,19 +66,11 @@ const MAX_RAIL_PINS = 4;
 // Component
 // ---------------------------------------------------------------------------
 
-interface NavigationRailProps {
-  /** Callback to toggle the Co-Pilot panel (only present when governance_copilot flag is on) */
-  onToggleCopilot?: () => void;
-  /** Whether the Co-Pilot panel is currently open */
-  copilotOpen?: boolean;
-}
-
-export function NavigationRail({ onToggleCopilot, copilotOpen }: NavigationRailProps = {}) {
+export function NavigationRail() {
   const pathname = usePathname();
   const { t } = useTranslation();
-  const { segment, stakeAddress, drepId, poolId, delegatedDrep, delegatedPool } = useSegment();
+  const { segment, drepId, poolId, delegatedDrep, delegatedPool } = useSegment();
   const { depth } = useGovernanceDepth();
-  const unreadCount = useUnreadNotifications(stakeAddress ?? null);
   const prefersReducedMotion = useReducedMotion();
   const { pinnedItems } = usePinnedItems();
 
@@ -96,12 +87,21 @@ export function NavigationRail({ onToggleCopilot, copilotOpen }: NavigationRailP
   return (
     <TooltipProvider delayDuration={200}>
       <aside
-        className="hidden lg:flex flex-col items-center fixed left-0 top-10 bottom-0 w-12 z-30 border-r border-border/20 bg-background/60 backdrop-blur-xl"
+        className="hidden lg:flex flex-col items-center fixed left-0 top-0 bottom-0 w-12 z-40 border-r border-border/20 bg-background/40 backdrop-blur-xl"
         aria-label={t('Main navigation')}
       >
+        {/* Logo — top of rail */}
+        <Link
+          href="/"
+          className="flex items-center justify-center w-12 h-10 shrink-0 text-foreground hover:bg-accent/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
+          aria-label="Governada home"
+        >
+          <span className="font-display text-sm font-bold tracking-tight">g</span>
+        </Link>
+
         {/* Navigation icons */}
         <nav
-          className="flex flex-col items-center gap-1 pt-3"
+          className="flex flex-col items-center gap-1 pt-1"
           role="navigation"
           aria-label={t('Main navigation')}
         >
@@ -143,10 +143,7 @@ export function NavigationRail({ onToggleCopilot, copilotOpen }: NavigationRailP
                           />
                         ))}
 
-                      {/* Notification badge on You */}
-                      {section.id === 'you' && unreadCount > 0 && (
-                        <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-500" />
-                      )}
+                      {/* Notification badge removed — bell in header handles notifications */}
 
                       {/* Dual-role badge on Workspace */}
                       {section.id === 'workspace' && isDualRole && (
@@ -167,33 +164,6 @@ export function NavigationRail({ onToggleCopilot, copilotOpen }: NavigationRailP
 
         {/* Spacer */}
         <div className="flex-1" />
-
-        {/* Co-Pilot toggle */}
-        {onToggleCopilot && (
-          <div className="flex flex-col items-center pb-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onClick={onToggleCopilot}
-                  className={cn(
-                    'relative w-10 h-10 flex items-center justify-center rounded-lg transition-colors',
-                    'hover:bg-accent/50',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
-                    copilotOpen ? 'text-primary bg-primary/10' : 'text-muted-foreground',
-                  )}
-                  aria-label={copilotOpen ? 'Close intelligence panel' : 'Open intelligence panel'}
-                  aria-pressed={copilotOpen}
-                >
-                  <BrainCircuit className="h-4.5 w-4.5" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="right" sideOffset={8}>
-                {t('Co-Pilot')} &middot; ]
-              </TooltipContent>
-            </Tooltip>
-          </div>
-        )}
 
         {/* Pinned entities */}
         {visiblePins.length > 0 && (

@@ -23,6 +23,7 @@ import {
   X,
   Loader2,
   UserCog,
+  Compass,
 } from 'lucide-react';
 import { AdminViewAsPicker } from './AdminViewAsPicker';
 import { DepthPromptModal } from './DepthPromptModal';
@@ -187,7 +188,12 @@ function truncateImpersonateAddress(addr: string): string {
   return `${addr.slice(0, 8)}...${addr.slice(-8)}`;
 }
 
-export function GovernadaHeader() {
+interface GovernadaHeaderProps {
+  compassToggle?: () => void;
+  compassOpen?: boolean;
+}
+
+export function GovernadaHeader({ compassToggle, compassOpen }: GovernadaHeaderProps = {}) {
   const router = useRouter();
   const { t } = useTranslation();
   const { connected, disconnect, logout, isAuthenticated } = useWallet();
@@ -421,13 +427,13 @@ export function GovernadaHeader() {
           : 'border-b border-border/20 bg-background/60 backdrop-blur-xl',
       )}
     >
-      <div className="mx-auto max-w-7xl flex items-center justify-between h-10 px-4">
-        {/* Logo + breadcrumbs */}
+      <div className="flex items-center justify-between h-10 px-4 lg:pl-14 lg:pr-4">
+        {/* Logo (mobile only) + breadcrumbs */}
         <div className="flex items-center min-w-0">
           <Link
             href="/"
             className={cn(
-              'font-display text-lg font-bold tracking-tight text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded shrink-0',
+              'lg:hidden font-display text-lg font-bold tracking-tight text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded shrink-0',
               headerTransparent && 'nav-text-shadow',
             )}
           >
@@ -455,6 +461,25 @@ export function GovernadaHeader() {
 
           {/* Governance pulse */}
           <GovernancePulse />
+
+          {/* Compass toggle */}
+          {compassToggle && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                'hidden lg:inline-flex h-8 w-8',
+                compassOpen
+                  ? 'text-primary bg-primary/10'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+              onClick={compassToggle}
+              aria-label={compassOpen ? 'Close Compass panel' : 'Open Compass panel'}
+              aria-pressed={compassOpen}
+            >
+              <Compass className="h-4 w-4" />
+            </Button>
+          )}
 
           {/* Notification bell dropdown */}
           {connected && isAuthenticated && <NotificationBell unreadCount={unreadCount} />}
