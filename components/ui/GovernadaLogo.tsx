@@ -24,7 +24,7 @@ export function GovernadaLogo({
 }: GovernadaLogoProps) {
   return (
     <svg
-      viewBox="0 0 100 100"
+      viewBox="22 22 58 58"
       xmlns="http://www.w3.org/2000/svg"
       width={size}
       height={size}
