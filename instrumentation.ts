@@ -9,6 +9,15 @@ export async function register() {
       enabled: !!process.env.NEXT_PUBLIC_SENTRY_DSN,
       tracesSampleRate: 0.25,
     });
+
+    // Graceful shutdown: flush Sentry events before container stops
+    const shutdown = async (signal: string) => {
+      console.log(`[shutdown] ${signal} received — flushing Sentry…`);
+      await Sentry.flush(5000).catch(() => {});
+      process.exit(0);
+    };
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('SIGINT', () => shutdown('SIGINT'));
   }
 
   if (process.env.NEXT_RUNTIME === 'edge') {

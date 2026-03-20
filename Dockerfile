@@ -19,6 +19,8 @@ FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV HOSTNAME=0.0.0.0
+# Cap heap to 512 MB — prevents silent OOM on Railway (1 GB plan)
+ENV NODE_OPTIONS="--max-old-space-size=512"
 
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
@@ -29,4 +31,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
 EXPOSE ${PORT:-3000}
+# Ensure Railway sends SIGTERM (not SIGKILL) for graceful shutdown
+STOPSIGNAL SIGTERM
 CMD ["node", "server.js"]
