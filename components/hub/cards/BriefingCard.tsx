@@ -34,7 +34,7 @@ interface BriefingData {
  * Self-hides when no briefing data is available yet (e.g. first epoch).
  *
  * JTBD: "What happened in governance this epoch?"
- * Links to the full briefing page /governance/health.
+ * Links to the full briefing page /governance/briefing.
  */
 export function BriefingCard() {
   const [expanded, setExpanded] = useState(false);
@@ -119,7 +119,7 @@ export function BriefingCard() {
     >
       {/* Header row — always a link to the full briefing */}
       <a
-        href="/governance/health"
+        href="/governance/briefing"
         aria-label={`Epoch ${data.epoch} briefing — read more`}
         className="block"
         onClick={(e) => {
@@ -199,7 +199,7 @@ export function BriefingCard() {
           )}
 
           <a
-            href="/governance/health"
+            href="/governance/briefing"
             className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
           >
             Full briefing

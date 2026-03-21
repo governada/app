@@ -29,7 +29,7 @@ export function GovernanceConsequenceCard({
       : 'Decisions about Cardano\u2019s treasury are being made right now.';
 
   return (
-    <div className="rounded-xl border border-amber-500/20 bg-amber-950/15 backdrop-blur-md px-4 py-3">
+    <div className="rounded-xl border border-amber-500/20 bg-amber-950/15 backdrop-blur-md px-4 py-3 transition-all duration-200 hover:border-amber-400/40 hover:shadow-lg hover:shadow-amber-500/5 hover:-translate-y-0.5">
       <p className="text-sm leading-relaxed text-amber-200/90">
         {proposalDetail} {delegatorLabel} are already represented.{' '}
         <span className="text-amber-100/80">

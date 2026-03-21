@@ -63,7 +63,7 @@ export function IntelligencePreview() {
   }
 
   return (
-    <div className="rounded-xl border border-white/[0.08] bg-card/15 backdrop-blur-md p-4 space-y-3">
+    <div className="rounded-xl border border-white/[0.08] bg-card/15 backdrop-blur-md p-4 space-y-3 transition-all duration-200 hover:border-primary/60 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5">
       {/* Header */}
       <div className="flex items-center gap-2">
         <Sparkles className="h-4 w-4 text-primary" />
@@ -86,7 +86,7 @@ export function IntelligencePreview() {
           Epoch {data.epoch}
         </Badge>
         <Link
-          href="/governance/health"
+          href="/governance/briefing"
           className="text-xs text-primary/80 hover:text-primary transition-colors flex items-center gap-1"
         >
           See the full briefing

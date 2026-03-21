@@ -120,27 +120,6 @@ export function AnonymousLanding({ pulseData }: AnonymousLandingProps) {
 
         {/* Intelligence preview — real AI headline from latest epoch briefing */}
         <IntelligencePreview />
-
-        {/* Secondary discovery links */}
-        <div className="flex items-center justify-center gap-4 text-xs">
-          <Link
-            href="/governance/health"
-            className="text-muted-foreground/70 hover:text-primary transition-colors"
-            onClick={() => trackFunnel(FUNNEL_EVENTS.EXPLORE_CLICKED, { source: 'landing_health' })}
-          >
-            {t('How is Cardano being managed?')} &rarr;
-          </Link>
-          <span className="text-border">|</span>
-          <Link
-            href="/governance/proposals"
-            className="text-muted-foreground/70 hover:text-primary transition-colors"
-            onClick={() =>
-              trackFunnel(FUNNEL_EVENTS.EXPLORE_CLICKED, { source: 'landing_proposals' })
-            }
-          >
-            {t('What decisions are being made?')} &rarr;
-          </Link>
-        </div>
       </section>
     </div>
   );
