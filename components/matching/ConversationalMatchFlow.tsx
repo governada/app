@@ -7,7 +7,9 @@ import { Button } from '@/components/ui/button';
 import { PillCloud } from './PillCloud';
 import { ConfidenceRing } from './ConfidenceRing';
 import { ConversationalRound } from './ConversationalRound';
+import { MatchResults } from './MatchResults';
 import { useConversationalMatch } from '@/hooks/useConversationalMatch';
+import { saveConversationalProfile } from '@/lib/matchStore';
 import { cn } from '@/lib/utils';
 import type { ConstellationRef } from '@/components/GovernanceConstellation';
 
@@ -98,6 +100,7 @@ export function ConversationalMatchFlow({
     status,
     preview,
     matches,
+    userAlignments,
     personalityLabel,
     identityColor,
     confidence,
@@ -137,9 +140,27 @@ export function ConversationalMatchFlow({
       pushUrlState('results', 'results');
       if (matches) {
         onMatchComplete?.(matches);
+        // Persist conversational profile for later use
+        if (personalityLabel && identityColor && userAlignments) {
+          saveConversationalProfile({
+            personalityLabel,
+            identityColor,
+            alignments: userAlignments,
+            matchResults: matches,
+            timestamp: Date.now(),
+          });
+        }
       }
     }
-  }, [status, flowState, matches, onMatchComplete]);
+  }, [
+    status,
+    flowState,
+    matches,
+    personalityLabel,
+    identityColor,
+    userAlignments,
+    onMatchComplete,
+  ]);
 
   /* ─── Update globe highlights after each answer ────────── */
 
@@ -385,69 +406,26 @@ export function ConversationalMatchFlow({
 
   return (
     <div className="w-full space-y-6">
-      {/* Identity summary */}
-      {personalityLabel && identityColor && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-xl border border-white/[0.08] bg-card/60 p-4 text-center backdrop-blur-xl"
-        >
-          <div
-            className="mx-auto mb-2 h-3 w-3 rounded-full"
-            style={{ backgroundColor: identityColor }}
-          />
-          <p className="text-lg font-semibold text-foreground">{personalityLabel}</p>
-          <p className="text-xs text-muted-foreground">Your governance identity</p>
-        </motion.div>
+      {personalityLabel && identityColor && userAlignments && matches ? (
+        <MatchResults
+          personalityLabel={personalityLabel}
+          identityColor={identityColor}
+          userAlignments={userAlignments}
+          matches={matches}
+          onReset={handleReset}
+          globeRef={globeRef}
+        />
+      ) : (
+        <>
+          {error && <p className="text-center text-sm text-destructive">{error}</p>}
+          <div className="flex justify-center">
+            <Button variant="outline" onClick={handleReset} className="gap-2">
+              <RotateCcw className="h-4 w-4" />
+              Start over
+            </Button>
+          </div>
+        </>
       )}
-
-      {/* Match results list */}
-      {matches && matches.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-sm font-medium text-muted-foreground">Your top matches</h3>
-          {matches.slice(0, 5).map((match, i) => (
-            <motion.div
-              key={match.drepId}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.1 }}
-              className="flex items-center gap-3 rounded-lg border border-white/[0.08] bg-card/40 p-3 backdrop-blur-sm"
-            >
-              <div
-                className="h-8 w-8 rounded-full"
-                style={{ backgroundColor: match.identityColor }}
-              />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-foreground">
-                  {match.drepName ?? match.drepId.slice(0, 16) + '...'}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {Math.round(match.score * 100)}% match
-                  {match.agreeDimensions.length > 0 &&
-                    ` \u00b7 Agree on ${match.agreeDimensions.join(', ')}`}
-                </p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      )}
-
-      {/* No matches fallback */}
-      {matches && matches.length === 0 && (
-        <p className="text-center text-sm text-muted-foreground">
-          No strong matches found. Try again with different priorities.
-        </p>
-      )}
-
-      {error && <p className="text-center text-sm text-destructive">{error}</p>}
-
-      {/* Start over */}
-      <div className="flex justify-center">
-        <Button variant="outline" onClick={handleReset} className="gap-2">
-          <RotateCcw className="h-4 w-4" />
-          Start over
-        </Button>
-      </div>
     </div>
   );
 }
