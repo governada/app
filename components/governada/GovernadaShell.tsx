@@ -187,7 +187,7 @@ export function GovernadaShell({ children }: { children: React.ReactNode }) {
 
           {/* Discovery context wraps main so studio can access it */}
           <SpotlightProvider>
-            <DiscoveryHub hideFab>
+            <DiscoveryHub>
               <main
                 id="main-content"
                 className={cn(
