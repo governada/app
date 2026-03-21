@@ -184,7 +184,7 @@ export function useConversationalMatch() {
           specificity: 0,
           passed: false,
         },
-        status: status === 'idle' ? 'in_progress' : status,
+        status,
         preview,
         timestamp: Date.now(),
       });
