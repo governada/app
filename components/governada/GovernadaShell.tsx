@@ -169,25 +169,24 @@ export function GovernadaShell({ children }: { children: React.ReactNode }) {
           </Suspense>
           <SyncFreshnessBanner />
           <PreviewBanner />
-          {!isStudioMode && (
-            <GovernadaHeader
-              compassToggle={showCopilot ? intelligencePanel.toggle : undefined}
-              compassOpen={panelVisible}
-            />
-          )}
-          {!isStudioMode && <NavigationRail />}
-
-          {/* Global constellation globe — subtle glassmorphic background */}
-          {!isStudioMode && (
-            <BackgroundGlobe
-              isHomepage={isHomepage}
-              governanceTint={temporalAdaptation ? tintColor : undefined}
-            />
-          )}
-
-          {/* Discovery context wraps main so studio can access it */}
+          {/* Discovery context wraps everything so header Compass icon can open the panel */}
           <SpotlightProvider>
-            <DiscoveryHub hideFab>
+            <DiscoveryHub>
+              {!isStudioMode && (
+                <GovernadaHeader
+                  compassToggle={showCopilot ? intelligencePanel.toggle : undefined}
+                  compassOpen={panelVisible}
+                />
+              )}
+              {!isStudioMode && <NavigationRail />}
+
+              {/* Global constellation globe — subtle glassmorphic background */}
+              {!isStudioMode && (
+                <BackgroundGlobe
+                  isHomepage={isHomepage}
+                  governanceTint={temporalAdaptation ? tintColor : undefined}
+                />
+              )}
               <main
                 id="main-content"
                 className={cn(
