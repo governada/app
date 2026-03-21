@@ -52,10 +52,13 @@ import { useCheckin } from '@/hooks/useCheckin';
 import { useEpochHeadline } from '@/hooks/useEpochHeadline';
 import { useDepthConfig } from '@/hooks/useDepthConfig';
 import { DepthGate } from '@/components/providers/DepthGate';
+import { BarChart3 } from 'lucide-react';
 import { CommunityConsensus } from './CommunityConsensus';
 import { DelegationHealthSummary } from './DelegationHealthSummary';
 import { DepthDiscoveryFooter } from './DepthDiscoveryFooter';
 import { GovernancePulse } from './GovernancePulse';
+import { CommunityPulse } from '@/components/intelligence/CommunityPulse';
+import { useFeatureFlag } from '@/components/FeatureGate';
 import { WhatChanged } from '@/components/hub/WhatChanged';
 import { playMilestoneChime } from '@/lib/sounds';
 
@@ -1157,6 +1160,7 @@ function CoverageCelebration() {
 
 export function CitizenHub() {
   const { stakeAddress, delegatedDrep } = useSegment();
+  const communityIntelligenceEnabled = useFeatureFlag('community_intelligence');
 
   // Always-visible hooks: epoch headline + consequence for headline data + checkin
   const { aiHeadline } = useEpochHeadline(!!stakeAddress);
@@ -1264,6 +1268,19 @@ export function CitizenHub() {
       <DepthGate minDepth="engaged">
         <CommunityConsensus />
       </DepthGate>
+
+      {/* ── Community Pulse (engaged+, feature-flagged) ──── */}
+      {communityIntelligenceEnabled && (
+        <DepthGate minDepth="engaged">
+          <Section>
+            <div className="flex items-center gap-2 mb-3">
+              <BarChart3 className="h-4 w-4 text-primary" />
+              <span className="text-sm font-semibold text-foreground">Community Pulse</span>
+            </div>
+            <CommunityPulse />
+          </Section>
+        </DepthGate>
+      )}
 
       {/* ── Subtle depth upsell for users below Engaged ────── */}
       <DepthGate minDepth="engaged" fallback={<DepthDiscoveryFooter />} />

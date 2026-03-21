@@ -7,9 +7,11 @@ import { Button } from '@/components/ui/button';
 import dynamic from 'next/dynamic';
 import { trackFunnel, FUNNEL_EVENTS } from '@/lib/funnel';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { BarChart3 } from 'lucide-react';
 import { GovernanceConsequenceCard } from './GovernanceConsequenceCard';
 import { IntelligencePreview } from './IntelligencePreview';
 import { ConversationalMatchFlow } from '@/components/matching/ConversationalMatchFlow';
+import { CommunityPulse } from '@/components/intelligence/CommunityPulse';
 import { useFeatureFlag } from '@/components/FeatureGate';
 import { cn } from '@/lib/utils';
 import type { ConstellationRef } from '@/components/GovernanceConstellation';
@@ -43,6 +45,7 @@ export function AnonymousLanding({ pulseData }: AnonymousLandingProps) {
   const globeRef = useRef<ConstellationRef>(null);
   const [isMatching, setIsMatching] = useState(false);
   const conversationalMatchingEnabled = useFeatureFlag('conversational_matching');
+  const communityIntelligenceEnabled = useFeatureFlag('community_intelligence');
 
   useEffect(() => {
     trackFunnel(FUNNEL_EVENTS.LANDING_VIEWED);
@@ -170,6 +173,17 @@ export function AnonymousLanding({ pulseData }: AnonymousLandingProps) {
 
         {/* Intelligence preview — real AI headline from latest epoch briefing */}
         <IntelligencePreview />
+
+        {/* Community Pulse — what the Cardano community cares about */}
+        {communityIntelligenceEnabled && (
+          <div className="rounded-xl border border-white/[0.08] bg-card/60 backdrop-blur-sm p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-primary" />
+              <span className="text-sm font-semibold text-foreground">Community Pulse</span>
+            </div>
+            <CommunityPulse />
+          </div>
+        )}
       </section>
     </div>
   );
