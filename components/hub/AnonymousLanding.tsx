@@ -2,13 +2,12 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Users, Compass, Rocket } from 'lucide-react';
+import { ArrowRight, Users, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import dynamic from 'next/dynamic';
 import { trackFunnel, FUNNEL_EVENTS } from '@/lib/funnel';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 import { GovernanceConsequenceCard } from './GovernanceConsequenceCard';
-import { GovernanceClimatePreview } from './GovernanceClimatePreview';
 import { IntelligencePreview } from './IntelligencePreview';
 
 const ConstellationScene = dynamic(
@@ -73,7 +72,7 @@ export function AnonymousLanding({ pulseData }: AnonymousLandingProps) {
 
       {/* CTAs + social proof */}
       <section className="relative z-10 mx-auto w-full max-w-lg px-6 -mt-8 pb-12 space-y-6">
-        {/* Primary CTA — Build your governance team */}
+        {/* Primary CTA — Choose your representative */}
         <div className="flex flex-col gap-3">
           <Button
             asChild
@@ -87,38 +86,6 @@ export function AnonymousLanding({ pulseData }: AnonymousLandingProps) {
               <ArrowRight className="h-5 w-5" />
             </Link>
           </Button>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Button
-              asChild
-              variant="outline"
-              size="lg"
-              className="w-full gap-2"
-              onClick={() =>
-                trackFunnel(FUNNEL_EVENTS.EXPLORE_CLICKED, { source: 'landing_secondary' })
-              }
-            >
-              <Link href="/governance">
-                <Compass className="h-4 w-4" />
-                {t("See What's Happening")}
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              size="lg"
-              className="w-full gap-2"
-              onClick={() =>
-                trackFunnel(FUNNEL_EVENTS.EXPLORE_CLICKED, { source: 'landing_get_started' })
-              }
-            >
-              <Link href="/get-started">
-                <Rocket className="h-4 w-4" />
-                {t('Get Started')}
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
         </div>
 
         {/* Governance consequence card — why governance matters to your ADA */}
@@ -129,14 +96,27 @@ export function AnonymousLanding({ pulseData }: AnonymousLandingProps) {
           />
         )}
 
-        {/* Governance climate preview — one-line interpreted intelligence */}
-        {pulseData && (
-          <GovernanceClimatePreview
-            activeProposals={pulseData.activeProposals}
-            activeDReps={pulseData.activeDReps}
-            totalDelegators={pulseData.totalDelegators}
-          />
-        )}
+        {/* Get Started card — encourage wallet connection */}
+        <Link
+          href="/get-started"
+          className="block rounded-xl border border-white/[0.08] bg-card/15 backdrop-blur-md p-4 space-y-2 transition-all duration-200 hover:border-primary/60 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5"
+          onClick={() =>
+            trackFunnel(FUNNEL_EVENTS.EXPLORE_CLICKED, { source: 'landing_get_started' })
+          }
+        >
+          <div className="flex items-center gap-2">
+            <Wallet className="h-4 w-4 text-primary" />
+            <span className="text-sm font-semibold text-foreground">{t('Get Started')}</span>
+          </div>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            {t(
+              'Connect your wallet to see personalized governance insights, track your delegation, and discover representatives aligned with your values.',
+            )}
+          </p>
+          <span className="inline-flex items-center gap-1 text-xs text-primary/80 hover:text-primary">
+            {t('Learn how')} <ArrowRight className="h-3 w-3" />
+          </span>
+        </Link>
 
         {/* Intelligence preview — real AI headline from latest epoch briefing */}
         <IntelligencePreview />

@@ -15,7 +15,7 @@ import {
   ShieldCheck,
   Scale,
   Layers,
-  Globe,
+  Languages,
   CheckCheck,
   FlaskConical,
   RotateCcw,
@@ -523,7 +523,7 @@ export function GovernadaHeader({ compassToggle, compassOpen }: GovernadaHeaderP
                 </DropdownMenuItem>
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger>
-                    <Globe className="h-4 w-4" />
+                    <Languages className="h-4 w-4" />
                     {t('Language')}
                   </DropdownMenuSubTrigger>
                   <DropdownMenuSubContent>
@@ -804,7 +804,7 @@ export function GovernadaHeader({ compassToggle, compassOpen }: GovernadaHeaderP
                     className="h-8 w-8 text-muted-foreground hover:text-foreground"
                     aria-label={t('Change language')}
                   >
-                    <Globe className="h-4 w-4" />
+                    <Languages className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-44">

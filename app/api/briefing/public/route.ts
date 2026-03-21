@@ -81,7 +81,7 @@ function buildPublicHeadline(
     };
   }
 
-  // Priority 3: Participation stats
+  // Priority 3: Participation stats — public page always spins positive
   if (recap.drep_participation_pct != null) {
     const pct = Math.round(recap.drep_participation_pct);
     if (pct >= 70) {
@@ -91,28 +91,30 @@ function buildPublicHeadline(
         type: 'governance',
       };
     }
-    if (pct < 50 && pct > 0) {
+    // Low/moderate turnout — reframe positively for anonymous visitors.
+    // Hard truths are available behind auth in the full citizen briefing.
+    if (pct > 0) {
       return {
-        title: `Low turnout: only ${pct}% of DReps voted`,
-        description: 'Less than half of representatives participated this epoch',
+        title: `Representatives are shaping Cardano's future`,
+        description: `${pct}% of representatives voted this epoch — governance is in motion`,
         type: 'governance',
       };
     }
   }
 
-  // Priority 4: Expired proposals
-  if (recap.proposals_expired && recap.proposals_expired > 0) {
+  // Priority 4: Proposals submitted (positive framing — community is active)
+  if (recap.proposals_submitted && recap.proposals_submitted > 0) {
     return {
-      title: `${recap.proposals_expired} proposal${recap.proposals_expired > 1 ? 's ran' : ' ran'} out of time`,
-      description: 'Did not reach the required voting threshold before the deadline',
+      title: `${recap.proposals_submitted} new proposal${recap.proposals_submitted > 1 ? 's' : ''} submitted`,
+      description: 'The community is actively proposing changes to Cardano governance',
       type: 'proposal',
     };
   }
 
-  // Quiet epoch fallback
+  // Quiet epoch fallback — positive framing
   return {
-    title: 'A quiet epoch for governance',
-    description: 'No proposals were ratified, expired, or withdrawn this epoch',
+    title: 'Governance is running smoothly',
+    description: 'A stable epoch — the network is governed and secure',
     type: 'governance',
   };
 }

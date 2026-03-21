@@ -5,11 +5,11 @@ import { useTranslation } from '@/lib/i18n/useTranslation';
 
 /**
  * Inline epoch display for the compressed header.
- * Shows epoch number, time remaining, and active proposal count.
+ * Shows epoch number and time remaining.
  * Hidden on screens < 640px.
  */
 export function EpochStrip() {
-  const { epoch, day, totalDays, activeProposalCount } = useEpochContext();
+  const { epoch, day, totalDays } = useEpochContext();
   const { t } = useTranslation();
 
   // Compute hours remaining in the epoch
@@ -24,16 +24,10 @@ export function EpochStrip() {
         ? `${hoursRemaining}h ${t('left')}`
         : t('ending');
 
-  const proposalLabel =
-    activeProposalCount !== null ? `${activeProposalCount} ${t('active')}` : null;
-
   const ariaDescription = [
     `${t('Epoch')} ${epoch}`,
     `${t('Day')} ${day} ${t('of')} ${totalDays}`,
-    proposalLabel ? `${activeProposalCount} ${t('active proposals')}` : null,
-  ]
-    .filter(Boolean)
-    .join(', ');
+  ].join(', ');
 
   return (
     <div
@@ -46,12 +40,6 @@ export function EpochStrip() {
       </span>
       <span className="text-muted-foreground/40">&middot;</span>
       <span>{timeLabel}</span>
-      {proposalLabel && (
-        <>
-          <span className="text-muted-foreground/40">&middot;</span>
-          <span>{proposalLabel}</span>
-        </>
-      )}
     </div>
   );
 }
