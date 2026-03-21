@@ -54,6 +54,12 @@ export interface MatchResult {
   agreeDimensions: string[];
   differDimensions: string[];
   tier: string | null;
+  isBridgeMatch?: boolean;
+}
+
+export interface MatchResults {
+  matches: MatchResult[];
+  bridgeMatch: MatchResult | null;
 }
 
 /* ─── Constants ────────────────────────────────────────── */
@@ -274,15 +280,18 @@ export function buildFullAlignment(partial: Partial<AlignmentScores>): Alignment
 
 /**
  * Execute matching: hybrid 6D alignment + optional semantic similarity.
+ * Accepts optional dimension weights (e.g., { treasuryConservative: 3.0, innovation: 0.3 }).
  */
 export async function executeMatch(
   session: ConversationSession,
   options: {
     useSemantic: boolean;
     limit?: number;
+    weights?: Record<string, number>;
   },
-): Promise<MatchResult[]> {
+): Promise<MatchResults> {
   const limit = options.limit ?? 5;
+  const weights = options.weights;
   const userAlignment = buildFullAlignment(session.extractedAlignment);
 
   const supabase = getSupabaseAdmin();
@@ -295,13 +304,13 @@ export async function executeMatch(
     )
     .not('alignment_treasury_conservative', 'is', null);
 
-  if (!dreps?.length) return [];
+  if (!dreps?.length) return { matches: [], bridgeMatch: null };
 
   // Compute 6D alignment scores for each DRep
   const alignmentResults = dreps.map((d) => {
     const drepAlignments = extractAlignments(d);
-    const distance = euclideanDistance6D(userAlignment, drepAlignments);
-    const alignmentScore = distanceToScore(distance);
+    const distance = weightedEuclideanDistance6D(userAlignment, drepAlignments, weights);
+    const alignmentScore = distanceToScore(distance, weights);
     const dimAgreement = computeDimensionAgreement(userAlignment, drepAlignments);
     const info = d.info as Record<string, unknown> | null;
 
@@ -381,7 +390,13 @@ export async function executeMatch(
 
   // Filter: minimum quality threshold
   const MIN_SCORE = 40;
-  return results.filter((r) => r.score >= MIN_SCORE).slice(0, limit);
+  const filtered = results.filter((r) => r.score >= MIN_SCORE);
+  const topMatches = filtered.slice(0, limit);
+
+  // Find bridge match
+  const bridgeMatch = selectBridgeMatch(filtered, topMatches, alignmentResults, weights);
+
+  return { matches: topMatches, bridgeMatch };
 }
 
 /* ─── Helpers ───────────────────────────────────────────── */
@@ -396,18 +411,141 @@ export function getNextQuestion(session: ConversationSession) {
   return getQuestionForRound(session.rounds.length);
 }
 
-function euclideanDistance6D(a: AlignmentScores, b: AlignmentScores): number {
+/**
+ * Weighted Euclidean distance across 6 alignment dimensions.
+ * When no weights are provided, all dimensions get weight 1.0 (backward compatible).
+ */
+function weightedEuclideanDistance6D(
+  a: AlignmentScores,
+  b: AlignmentScores,
+  weights?: Record<string, number>,
+): number {
   let sum = 0;
   for (const dim of ALL_DIMENSIONS) {
+    const weight = weights?.[dim] ?? 1.0;
     const diff = (a[dim] ?? 50) - (b[dim] ?? 50);
-    sum += diff * diff;
+    sum += diff * diff * weight;
   }
   return Math.sqrt(sum);
 }
 
-function distanceToScore(distance: number): number {
-  const maxDist = 245; // sqrt(6 * 100^2) ≈ 245
+/**
+ * Convert distance to 0-100 score. Max distance scales with weights.
+ */
+function distanceToScore(distance: number, weights?: Record<string, number>): number {
+  // Max possible distance: sqrt(sum(weight_i * 100^2))
+  let maxDistSq = 0;
+  for (const dim of ALL_DIMENSIONS) {
+    const weight = weights?.[dim] ?? 1.0;
+    maxDistSq += weight * 100 * 100;
+  }
+  const maxDist = Math.sqrt(maxDistSq);
   return Math.max(0, Math.round((1 - distance / maxDist) * 100));
 }
 
-export { MAX_ROUNDS, MAX_RAW_TEXT_LENGTH, TOTAL_QUESTIONS };
+/** Min entity score for bridge match candidates */
+const BRIDGE_MIN_ENTITY_SCORE = 60;
+/** Min agree dimensions for a bridge candidate */
+const BRIDGE_MIN_AGREE = 3;
+/** Min differ dimensions for a bridge candidate */
+const BRIDGE_MIN_DIFFER = 1;
+
+/**
+ * Select the best "bridge" match: a DRep that agrees on most dimensions
+ * but meaningfully disagrees on at least one — ideally the user's lowest-weighted dimension.
+ */
+function selectBridgeMatch(
+  allFiltered: MatchResult[],
+  topMatches: MatchResult[],
+  alignmentResults: {
+    drepId: string;
+    drepScore: number;
+    agreeDimensions: string[];
+    differDimensions: string[];
+  }[],
+  weights?: Record<string, number>,
+): MatchResult | null {
+  const topIds = new Set(topMatches.map((m) => m.drepId));
+
+  // Build a lookup for entity scores
+  const entityScoreMap = new Map<string, number>();
+  for (const r of alignmentResults) {
+    entityScoreMap.set(r.drepId, r.drepScore);
+  }
+
+  // Find the lowest-weighted dimension name (for preferring disagreement there)
+  let lowestWeightDim: string | null = null;
+  if (weights) {
+    let minWeight = Infinity;
+    for (const [dim, w] of Object.entries(weights)) {
+      if (w < minWeight) {
+        minWeight = w;
+        lowestWeightDim = dim;
+      }
+    }
+  }
+
+  // Convert dimension key to label for comparison with agree/differDimensions (which use labels)
+  const DIMENSION_LABEL_MAP: Record<string, string> = {};
+  for (const dim of ALL_DIMENSIONS) {
+    // Import-free: reconstruct labels inline to match dimensionAgreement output
+    const label = dim
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/^./, (s) => s.toUpperCase())
+      .trim();
+    DIMENSION_LABEL_MAP[dim] = label;
+  }
+  // Override with known exact labels from dimensionAgreement.ts
+  DIMENSION_LABEL_MAP['treasuryConservative'] = 'Treasury Conservative';
+  DIMENSION_LABEL_MAP['treasuryGrowth'] = 'Treasury Growth';
+  DIMENSION_LABEL_MAP['decentralization'] = 'Decentralization';
+  DIMENSION_LABEL_MAP['security'] = 'Security';
+  DIMENSION_LABEL_MAP['innovation'] = 'Innovation';
+  DIMENSION_LABEL_MAP['transparency'] = 'Transparency';
+
+  const lowestWeightLabel = lowestWeightDim ? DIMENSION_LABEL_MAP[lowestWeightDim] : null;
+
+  let bestCandidate: MatchResult | null = null;
+  let bestBridgeScore = -Infinity;
+
+  for (const candidate of allFiltered) {
+    // Skip top matches
+    if (topIds.has(candidate.drepId)) continue;
+
+    // Entity quality threshold
+    const entityScore = entityScoreMap.get(candidate.drepId) ?? 0;
+    if (entityScore < BRIDGE_MIN_ENTITY_SCORE) continue;
+
+    // Must have enough agree and differ dimensions
+    if (candidate.agreeDimensions.length < BRIDGE_MIN_AGREE) continue;
+    if (candidate.differDimensions.length < BRIDGE_MIN_DIFFER) continue;
+
+    // Bridge score: favor high overall match + disagreement on lowest-weight dimension
+    let bridgeScore = candidate.score;
+
+    // Bonus for disagreeing on the lowest-weighted dimension
+    if (lowestWeightLabel && candidate.differDimensions.includes(lowestWeightLabel)) {
+      bridgeScore += 10;
+    }
+
+    if (bridgeScore > bestBridgeScore) {
+      bestBridgeScore = bridgeScore;
+      bestCandidate = candidate;
+    }
+  }
+
+  if (bestCandidate) {
+    return { ...bestCandidate, isBridgeMatch: true };
+  }
+
+  return null;
+}
+
+export {
+  MAX_ROUNDS,
+  MAX_RAW_TEXT_LENGTH,
+  TOTAL_QUESTIONS,
+  ALL_DIMENSIONS,
+  weightedEuclideanDistance6D as _weightedEuclideanDistance6D,
+  distanceToScore as _distanceToScore,
+};
