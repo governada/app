@@ -3,6 +3,7 @@
 import { Landmark, ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
 import { useTreasuryCurrent, useTreasuryNcl } from '@/hooks/queries';
+import { useWallet } from '@/utils/wallet';
 import { HubCard, HubCardSkeleton, HubCardError, type CardUrgency } from './HubCard';
 
 interface TreasuryCurrentData {
@@ -55,6 +56,7 @@ function formatRunway(months: number): string {
  */
 export function TreasuryPulseCard() {
   const [expanded, setExpanded] = useState(false);
+  const { balanceAda: walletBalanceAda, connected } = useWallet();
 
   const {
     data: currentRaw,
@@ -99,6 +101,10 @@ export function TreasuryPulseCard() {
       `${current.pendingCount} proposal${current.pendingCount !== 1 ? 's' : ''} pending, totaling ₳${formatAda(current.pendingTotalAda)}.`,
     );
   }
+  if (connected && walletBalanceAda && current.balance) {
+    const share = (walletBalanceAda / 37_000_000_000) * current.balance;
+    narrativeParts.push(`Your proportional share: ₳${formatAda(share)}.`);
+  }
   const narrative = narrativeParts.join(' ');
 
   return (
@@ -121,12 +127,12 @@ export function TreasuryPulseCard() {
         {/* Key stats */}
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
           <span className="text-sm font-medium text-foreground">₳{formatAda(current.balance)}</span>
-          {nclPct !== null && (
-            <span className="text-xs text-muted-foreground">&middot; {nclPct}% of budget used</span>
-          )}
           <span className="text-xs text-muted-foreground">
             &middot; {formatRunway(current.runwayMonths)}
           </span>
+          {nclPct !== null && (
+            <span className="text-xs text-muted-foreground">&middot; {nclPct}% of budget used</span>
+          )}
         </div>
 
         {/* Pending count (if any) */}
