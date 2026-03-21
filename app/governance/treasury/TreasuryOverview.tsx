@@ -2,7 +2,8 @@
 
 import { TreasuryHero } from '@/components/treasury/TreasuryHero';
 import { NclUtilizationTrend } from '@/components/treasury/NclUtilizationTrend';
-import { TreasuryEpochFlow } from '@/components/treasury/TreasuryEpochFlow';
+import { TreasuryTimeline } from '@/components/treasury/TreasuryTimeline';
+import { TreasurySection } from '@/components/treasury/TreasurySection';
 import { TreasuryPendingProposals } from '@/components/TreasuryPendingProposals';
 import { TreasuryAccountabilitySection } from '@/components/TreasuryAccountabilitySection';
 import { TreasuryPersonalImpact } from '@/components/treasury/TreasuryPersonalImpact';
@@ -21,6 +22,29 @@ const TreasurySimulator = dynamic(
     loading: () => <div className="h-64 animate-pulse bg-muted rounded-xl" />,
   },
 );
+
+const SpendingTreemap = dynamic(
+  () =>
+    import('@/components/treasury/SpendingTreemap').then((m) => ({
+      default: m.SpendingTreemap,
+    })),
+  {
+    ssr: false,
+    loading: () => <div className="h-64 animate-pulse bg-muted rounded-xl" />,
+  },
+);
+
+const YouDrawIt = dynamic(
+  () =>
+    import('@/components/treasury/YouDrawIt').then((m) => ({
+      default: m.YouDrawIt,
+    })),
+  {
+    ssr: false,
+    loading: () => <div className="h-48 animate-pulse bg-muted rounded-xl" />,
+  },
+);
+
 import { DRepTreasuryTrackRecord } from '@/components/treasury/DRepTreasuryTrackRecord';
 import { SegmentGate } from '@/components/shared/SegmentGate';
 import {
@@ -29,9 +53,10 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { useTreasuryCurrent, useTreasuryNcl, useTreasuryHistory } from '@/hooks/queries';
+import { useTreasuryCurrent, useTreasuryNcl } from '@/hooks/queries';
 import { useSegment } from '@/components/providers/SegmentProvider';
-import type { NclUtilization, IncomeVsOutflow } from '@/lib/treasury';
+import { generateTreasuryNarrative } from '@/lib/treasury';
+import type { NclUtilization } from '@/lib/treasury';
 import { useQuery } from '@tanstack/react-query';
 
 interface TreasuryCurrentData {
@@ -54,13 +79,16 @@ async function fetchJson<T>(url: string): Promise<T> {
 }
 
 /**
- * 4-Level Treasury Overview
+ * Treasury Story — Narrative Overview
  *
- * Level 1 — Verdict: health indicator + inline stats (5-second test)
- * Level 2 — Budget Story: NCL bar + key metrics (the "where")
- * Level 3 — Active Decisions: pending proposals + DRep stance (the "what")
- * Level 4 — Your Impact: personal DRep track record + pending impact (the "you")
- * Deep Dive — Accordions: utilization trend, epoch flow, accountability, simulator
+ * Section 1 — "The State of the Treasury": hero verdict + one-line narrative
+ * Section 2 — "Where the Money Goes": NCL bar + spending treemap
+ * Section 3 — "The Story So Far": event-annotated balance timeline
+ * Section 4 — "What's Being Decided": pending proposals + stance cards
+ * Section 5 — "Test Your Instincts": YouDrawIt interactive challenge
+ * Section 6 — "Did It Work?": accountability section (promoted from accordion)
+ * Section 7 — "Your Impact": personal treasury impact (segment-gated)
+ * Deep Dive — Accordions: NCL utilization trend + simulator (power users)
  */
 export function TreasuryOverview() {
   const { segment, drepId } = useSegment();
@@ -74,10 +102,6 @@ export function TreasuryOverview() {
 
   const { data: rawNcl } = useTreasuryNcl();
   const ncl = (rawNcl as { ncl: NclUtilization | null } | undefined)?.ncl ?? null;
-
-  const { data: rawHistory } = useTreasuryHistory(30);
-  const incomeVsOutflow =
-    (rawHistory as { incomeVsOutflow: IncomeVsOutflow[] } | undefined)?.incomeVsOutflow ?? [];
 
   const { data: rawEffectiveness } = useQuery({
     queryKey: ['treasury-effectiveness'],
@@ -105,30 +129,65 @@ export function TreasuryOverview() {
       }
     : null;
 
+  const narrative = treasury
+    ? generateTreasuryNarrative({
+        balanceAda: balance,
+        trend,
+        effectivenessRate,
+        pendingCount,
+        pendingTotalAda,
+        runwayMonths: runway,
+        ncl,
+      })
+    : null;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* ──────────────────────────────────────────────────────────────
-          LEVEL 1 — THE HERO
-          5-second glanceable verdict + budget bar + key stats.
+          SECTION 1 — "The State of the Treasury"
+          Hero verdict + one-line narrative summary.
          ────────────────────────────────────────────────────────────── */}
-      <TreasuryHero
-        balanceAda={balance}
-        trend={trend}
-        ncl={ncl}
-        effectivenessRate={effectivenessRate}
-        pendingCount={pendingCount}
-        pendingTotalAda={pendingTotalAda}
-        runwayMonths={runway}
-        proportionalShareAda={proportionalShare}
-      />
+      <TreasurySection title="The State of the Treasury">
+        <TreasuryHero
+          balanceAda={balance}
+          trend={trend}
+          ncl={ncl}
+          effectivenessRate={effectivenessRate}
+          pendingCount={pendingCount}
+          pendingTotalAda={pendingTotalAda}
+          runwayMonths={runway}
+          proportionalShareAda={proportionalShare}
+        />
+        {narrative && <p className="text-sm text-muted-foreground leading-relaxed">{narrative}</p>}
+      </TreasurySection>
 
       {/* ──────────────────────────────────────────────────────────────
-          LEVEL 3 — ACTIVE DECISIONS
-          What's being decided right now?
+          SECTION 2 — "Where the Money Goes"
+          NCL budget context + spending treemap (built by another agent).
          ────────────────────────────────────────────────────────────── */}
-      <section>
-        <h2 className="text-lg font-semibold mb-3">Active Decisions</h2>
+      <TreasurySection
+        title="Where the Money Goes"
+        subtitle="How the treasury budget is being allocated this period"
+      >
+        <SpendingTreemap />
+      </TreasurySection>
 
+      {/* ──────────────────────────────────────────────────────────────
+          SECTION 3 — "The Story So Far"
+          Event-annotated balance timeline replacing plain epoch flow.
+         ────────────────────────────────────────────────────────────── */}
+      <TreasurySection
+        title="The Story So Far"
+        subtitle="Treasury balance over time, with key governance events marked"
+      >
+        <TreasuryTimeline />
+      </TreasurySection>
+
+      {/* ──────────────────────────────────────────────────────────────
+          SECTION 4 — "What's Being Decided"
+          Pending proposals + DRep/citizen stance cards.
+         ────────────────────────────────────────────────────────────── */}
+      <TreasurySection title="What's Being Decided">
         {/* DRep stance callout (for DReps: your track record as context) */}
         <SegmentGate show={['drep']}>
           {drepId && (
@@ -151,24 +210,52 @@ export function TreasuryOverview() {
           nclImpact={nclImpact}
           drepVotes={drepVotes}
         />
-      </section>
+      </TreasurySection>
 
       {/* ──────────────────────────────────────────────────────────────
-          LEVEL 4 — YOUR IMPACT
-          How does this affect you personally?
-          Gated to connected users with a DRep.
+          SECTION 5 — "Test Your Instincts"
+          YouDrawIt interactive challenge (built by another agent).
+         ────────────────────────────────────────────────────────────── */}
+      <TreasurySection
+        title="Test Your Instincts"
+        subtitle="Can you predict where the treasury is heading?"
+      >
+        <YouDrawIt />
+      </TreasurySection>
+
+      {/* ──────────────────────────────────────────────────────────────
+          SECTION 6 — "Did It Work?"
+          Accountability promoted from accordion into main flow.
+         ────────────────────────────────────────────────────────────── */}
+      <TreasurySection
+        title="Did It Work?"
+        subtitle={
+          effectivenessRate !== null
+            ? `${effectivenessRate}% of funded projects have delivered`
+            : 'Tracking whether funded projects delivered on their promises'
+        }
+      >
+        <TreasuryAccountabilitySection />
+      </TreasurySection>
+
+      {/* ──────────────────────────────────────────────────────────────
+          SECTION 7 — "Your Impact"
+          Personal treasury impact, gated to connected users.
          ────────────────────────────────────────────────────────────── */}
       <SegmentGate show={['drep', 'citizen']}>
-        <TreasuryPersonalImpact
-          balanceAda={balance}
-          nclRemainingAda={ncl?.remainingAda ?? null}
-          nclAda={ncl?.period.nclAda ?? null}
-          nclUtilizationPct={ncl?.utilizationPct ?? null}
-        />
+        <TreasurySection title="Your Impact">
+          <TreasuryPersonalImpact
+            balanceAda={balance}
+            nclRemainingAda={ncl?.remainingAda ?? null}
+            nclAda={ncl?.period.nclAda ?? null}
+            nclUtilizationPct={ncl?.utilizationPct ?? null}
+          />
+        </TreasurySection>
       </SegmentGate>
 
       {/* ──────────────────────────────────────────────────────────────
-          DEEP DIVE — Analytical depth behind accordions
+          DEEP DIVE — Power user analytical depth
+          Reduced to NCL utilization trend + simulator.
          ────────────────────────────────────────────────────────────── */}
       <Accordion type="multiple" className="space-y-2">
         {ncl && (
@@ -188,43 +275,12 @@ export function TreasuryOverview() {
           </AccordionItem>
         )}
 
-        {incomeVsOutflow.length > 0 && (
-          <AccordionItem
-            value="epoch-flow"
-            className="rounded-xl border border-border/50 bg-card/70 backdrop-blur-md px-5"
-          >
-            <AccordionTrigger className="text-sm font-semibold hover:no-underline">
-              Income vs outflow by epoch
-            </AccordionTrigger>
-            <AccordionContent>
-              <TreasuryEpochFlow data={incomeVsOutflow} />
-            </AccordionContent>
-          </AccordionItem>
-        )}
-
-        <AccordionItem
-          value="accountability"
-          className="rounded-xl border border-border/50 bg-card/70 backdrop-blur-md px-5"
-        >
-          <AccordionTrigger className="text-sm font-semibold hover:no-underline">
-            Did funded projects deliver?
-            {effectivenessRate !== null && (
-              <span className="ml-2 text-xs font-normal text-muted-foreground">
-                {effectivenessRate}% delivered
-              </span>
-            )}
-          </AccordionTrigger>
-          <AccordionContent>
-            <TreasuryAccountabilitySection />
-          </AccordionContent>
-        </AccordionItem>
-
         <AccordionItem
           value="simulator"
           className="rounded-xl border border-border/50 bg-card/70 backdrop-blur-md px-5"
         >
           <AccordionTrigger className="text-sm font-semibold hover:no-underline">
-            How long will the treasury last?
+            Model different futures
           </AccordionTrigger>
           <AccordionContent>
             <TreasurySimulator currentBalance={balance} burnRate={burnRate} currentEpoch={epoch} />
