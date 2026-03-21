@@ -16,7 +16,7 @@ export default function Icon() {
         borderRadius: 6,
       }}
     >
-      <svg viewBox="0 0 100 100" width="26" height="26">
+      <svg viewBox="22 22 58 58" width="26" height="26">
         <path
           d="M 67 35 A 22 22 0 1 0 73 51"
           fill="none"
@@ -44,8 +44,8 @@ export default function Icon() {
         <circle cx="61" cy="61" r="4" fill="#4EEAC6" />
         <circle cx="51" cy="51" r="4" fill="#4EEAC6" />
         <line
-          x1="51"
-          y1="29"
+          x1="67"
+          y1="35"
           x2="61"
           y2="61"
           stroke="#4EEAC6"
@@ -55,7 +55,7 @@ export default function Icon() {
         <line
           x1="61"
           y1="61"
-          x2="73"
+          x2="51"
           y2="51"
           stroke="#4EEAC6"
           strokeWidth="3"

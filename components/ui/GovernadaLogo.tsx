@@ -66,10 +66,10 @@ export function GovernadaLogo({
       <circle cx="61" cy="61" r="4" fill="#4EEAC6" />
       <circle cx="51" cy="51" r="4" fill="#4EEAC6" />
 
-      {/* Internal connection lines */}
+      {/* Internal connection lines — short lines staying in right quadrant */}
       <line
-        x1="51"
-        y1="29"
+        x1="67"
+        y1="35"
         x2="61"
         y2="61"
         stroke="#4EEAC6"
@@ -79,7 +79,7 @@ export function GovernadaLogo({
       <line
         x1="61"
         y1="61"
-        x2="73"
+        x2="51"
         y2="51"
         stroke="#4EEAC6"
         strokeWidth="3"
