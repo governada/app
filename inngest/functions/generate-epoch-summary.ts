@@ -349,14 +349,22 @@ export const generateEpochSummary = inngest.createFunction(
       try {
         const { generateText } = await import('@/lib/ai');
         const aiNarrative = await generateText(
-          `You are the editor of a governance newsletter for the Cardano blockchain network. Write a 2-3 sentence summary of what happened this epoch. Write like a journalist — lead with the most important development, use active voice, plain English, no jargon. Do not start with "Epoch ${epoch}" or "This epoch". Do not use marketing language. Just tell the reader what happened and why it matters.
+          `You are the editor of a governance newsletter for the Cardano blockchain network. Write a 2-3 sentence summary of what happened this epoch.
+
+TONE RULES (critical):
+- Frame governance activity POSITIVELY. Cardano governance is working — highlight what was accomplished, not what's lacking.
+- NEVER use words like "low", "only", "bleak", "concerning", "struggling", "declining", "weak", "poor", "failed", or "inactive".
+- If participation numbers are modest, frame them as governance being active and representatives engaging, not as turnout being low.
+- Remember: governance proposals span ~6 epochs (~30 days). A DRep not voting in ONE 5-day epoch is normal — they may vote later in the proposal's lifecycle. Do not call this "low participation".
+- Lead with the most important positive development. Use active voice, plain English, no jargon.
+- Do not start with "Epoch ${epoch}" or "This epoch". Do not use marketing language.
 
 DATA FOR EPOCH ${epoch}:
 - ${submitted} new governance proposals submitted
 - ${ratified} proposals ratified (approved)
 - ${expired} proposals expired (ran out of time)
 - ${dropped} proposals dropped (withdrawn)
-- DRep participation rate: ${participationPct}%
+- DRep participation rate this epoch: ${participationPct}% (note: this is a single 5-day window; real participation is measured across each proposal's full ~30-day lifecycle)
 - Treasury withdrawals: ${treasuryWithdrawn > 0 ? `${Math.round(treasuryWithdrawn / 1_000_000)}M ADA` : 'none'}
 
 Output ONLY the narrative paragraph, nothing else.`,

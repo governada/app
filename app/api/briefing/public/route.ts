@@ -150,7 +150,7 @@ function buildPublicHeadlines(
 
     const newest = recentlySubmitted[0];
     let description: string;
-    let href = '/governance/proposals';
+    const href = '/governance/proposals';
 
     if (newest?.title && newest.withdrawal_amount && newest.withdrawal_amount > 0) {
       const amt = newest.withdrawal_amount;
@@ -161,10 +161,8 @@ function buildPublicHeadlines(
             ? `${Math.round(amt / 1_000)}K`
             : amt.toLocaleString();
       description = `"${newest.title}" \u2014 requesting ${formatted} ADA from the treasury`;
-      href = `/proposal/${newest.tx_hash}?index=${newest.proposal_index}`;
     } else if (newest?.title) {
       description = `"${newest.title}" \u2014 submitted for community review`;
-      href = `/proposal/${newest.tx_hash}?index=${newest.proposal_index}`;
     } else {
       description = 'The community is actively proposing changes to Cardano governance';
     }
@@ -250,11 +248,11 @@ export const GET = withRouteHandler(async () => {
       .is('ratified_epoch', null)
       .is('expired_epoch', null)
       .is('dropped_epoch', null),
-    // Active DReps only (matches nav bar count)
+    // Active DReps only — uses JSON accessor matching homepage/nav queries
     supabase
       .from('dreps')
       .select('id', { count: 'exact', head: true })
-      .eq('is_active', true),
+      .eq('info->>isActive', 'true'),
     supabase
       .from('treasury_snapshots')
       .select('balance_lovelace')
