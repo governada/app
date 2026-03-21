@@ -987,3 +987,33 @@ export function useCCPredictions() {
     staleTime: 2 * 60 * 1000,
   });
 }
+
+// ── Treasury Spending Categories ──────────────────────────────────────────────
+
+export interface TreasuryCategoriesResponse {
+  categories: {
+    category: string;
+    totalAda: number;
+    proposalCount: number;
+    pctOfTotal: number;
+    proposals: {
+      title: string;
+      amountAda: number;
+      epoch: number;
+      txHash: string;
+      index: number;
+    }[];
+  }[];
+  trend: {
+    epoch: number;
+    categories: Record<string, number>;
+  }[];
+}
+
+export function useTreasuryCategories() {
+  return useQuery<TreasuryCategoriesResponse>({
+    queryKey: ['treasury-categories'],
+    queryFn: () => fetchJson<TreasuryCategoriesResponse>('/api/treasury/categories'),
+    staleTime: 60 * 60 * 1000,
+  });
+}
