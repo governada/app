@@ -133,7 +133,8 @@ export function AnonymousLanding({ pulseData }: AnonymousLandingProps) {
           <div className="text-center">
             <Link
               href="/match"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="text-sm text-white/50 hover:text-white/80 transition-colors"
+              style={{ textShadow: '0 1px 6px rgba(0,0,0,0.6)' }}
             >
               {t('Looking for a stake pool?')}
             </Link>

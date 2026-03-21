@@ -328,15 +328,15 @@ export function ConversationalMatchFlow({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={motionTransition}
-              className="space-y-3"
+              className="space-y-3 rounded-2xl bg-black/40 backdrop-blur-md p-5 border border-white/[0.06]"
             >
-              <p className="text-center text-sm text-muted-foreground">Express yourself freely</p>
+              <p className="text-center text-sm text-white/70">Express yourself freely</p>
 
               <SemanticFastTrack onSubmit={handleSemanticSubmit} isProcessing={isLoading} />
 
               <button
                 onClick={() => setShowFastTrack(false)}
-                className="block mx-auto text-xs text-muted-foreground hover:text-foreground transition-colors"
+                className="block mx-auto text-xs text-white/50 hover:text-white/80 transition-colors"
               >
                 &larr; Back to topic pills
               </button>
@@ -348,9 +348,9 @@ export function ConversationalMatchFlow({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={motionTransition}
-              className="space-y-4"
+              className="space-y-4 rounded-2xl bg-black/40 backdrop-blur-md p-5 border border-white/[0.06]"
             >
-              <p className="text-center text-sm text-muted-foreground">
+              <p className="text-center text-sm text-white/70 font-medium">
                 What matters to you in governance?
               </p>
 
@@ -371,8 +371,8 @@ export function ConversationalMatchFlow({
                   onKeyDown={handleFreeformKeyDown}
                   placeholder={ghostText}
                   className={cn(
-                    'w-full rounded-lg border border-white/10 bg-white/5 px-4 py-3',
-                    'text-sm text-foreground placeholder:text-muted-foreground/50',
+                    'w-full rounded-lg border border-white/[0.12] bg-white/[0.07] px-4 py-3',
+                    'text-sm text-white placeholder:text-white/40',
                     'backdrop-blur-sm transition-colors',
                     'focus:border-primary/40 focus:outline-none focus:ring-1 focus:ring-primary/20',
                   )}
@@ -391,7 +391,7 @@ export function ConversationalMatchFlow({
               {/* Fast-track link */}
               <button
                 onClick={() => setShowFastTrack(true)}
-                className="block mx-auto text-xs text-primary/80 hover:text-primary transition-colors"
+                className="block mx-auto text-xs text-primary/70 hover:text-primary transition-colors"
               >
                 Or express yourself freely &rarr;
               </button>

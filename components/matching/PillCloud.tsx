@@ -88,8 +88,8 @@ export function PillCloud({
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
               SIZE_CLASSES[size],
               isSelected
-                ? 'border-amber-500/60 bg-amber-500/10 text-amber-200 shadow-[0_0_12px_rgba(245,158,11,0.15)]'
-                : 'border-white/10 bg-white/5 text-muted-foreground hover:border-white/20 hover:bg-white/8',
+                ? 'border-amber-500/60 bg-amber-500/15 text-amber-200 shadow-[0_0_12px_rgba(245,158,11,0.15)]'
+                : 'border-white/[0.15] bg-white/[0.08] text-white/80 hover:border-white/25 hover:bg-white/[0.12] hover:text-white/90',
               disabled && 'pointer-events-none opacity-50',
             )}
           >
