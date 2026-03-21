@@ -81,6 +81,7 @@ export const POST = withRouteHandler(
       sessionId?: string;
       selectedOptionIds?: string[];
       rawText?: string;
+      weights?: Record<string, number>;
     };
 
     try {
@@ -206,10 +207,30 @@ export const POST = withRouteHandler(
     /* ── MATCH ───────────────────────────────────── */
 
     if (action === 'match') {
-      const { sessionId } = body;
+      const { sessionId, weights } = body;
 
       if (!sessionId) {
         return NextResponse.json({ error: 'sessionId is required' }, { status: 400 });
+      }
+
+      // Validate weights if provided
+      if (weights !== undefined) {
+        if (typeof weights !== 'object' || weights === null || Array.isArray(weights)) {
+          return NextResponse.json(
+            { error: 'weights must be an object mapping dimension names to numbers' },
+            { status: 400 },
+          );
+        }
+        for (const [key, val] of Object.entries(weights)) {
+          if (typeof val !== 'number' || val <= 0 || val > 10) {
+            return NextResponse.json(
+              {
+                error: `Invalid weight for "${key}": must be a positive number ≤ 10`,
+              },
+              { status: 400 },
+            );
+          }
+        }
       }
 
       const session = await loadSession(sessionId);
@@ -230,9 +251,10 @@ export const POST = withRouteHandler(
       // Check semantic feature flag
       const useSemantic = await getFeatureFlag('conversational_matching_semantic', false);
 
-      const results = await executeMatch(session, {
+      const { matches: results, bridgeMatch } = await executeMatch(session, {
         useSemantic,
         limit: 5,
+        weights,
       });
 
       // Mark session as matched
@@ -249,12 +271,15 @@ export const POST = withRouteHandler(
         roundsCompleted: session.rounds.length,
         qualityPassed: session.qualityGates.passed,
         matchCount: results.length,
+        hasBridgeMatch: !!bridgeMatch,
+        hasWeights: !!weights,
         usedSemantic: useSemantic,
         topMatchScore: results[0]?.score ?? null,
       });
 
       return NextResponse.json({
         matches: results,
+        bridgeMatch: bridgeMatch ?? null,
         userAlignments: userAlignment,
         personalityLabel,
         identityColor,

@@ -33,6 +33,7 @@ interface AnswerResponse {
 
 interface MatchResponse {
   matches: MatchResult[];
+  bridgeMatch: MatchResult | null;
   userAlignments: AlignmentScores;
   personalityLabel: string;
   identityColor: string;
@@ -76,6 +77,8 @@ export interface ConversationalMatchState {
     dimensionalCoverage: number;
   } | null;
   matches: MatchResult[] | null;
+  bridgeMatch: MatchResult | null;
+  weights: Record<string, number> | null;
   userAlignments: AlignmentScores | null;
   personalityLabel: string | null;
   identityColor: string | null;
@@ -147,6 +150,8 @@ export function useConversationalMatch() {
   const [status, setStatus] = useState<ConversationalMatchState['status']>('idle');
   const [preview, setPreview] = useState<ConversationalMatchState['preview']>(null);
   const [matches, setMatches] = useState<MatchResult[] | null>(null);
+  const [bridgeMatch, setBridgeMatch] = useState<MatchResult | null>(null);
+  const [weights, setWeights] = useState<Record<string, number> | null>(null);
   const [userAlignments, setUserAlignments] = useState<AlignmentScores | null>(null);
   const [personalityLabel, setPersonalityLabel] = useState<string | null>(null);
   const [identityColor, setIdentityColor] = useState<string | null>(null);
@@ -220,6 +225,8 @@ export function useConversationalMatch() {
       setStatus(data.status);
       setPreview(null);
       setMatches(null);
+      setBridgeMatch(null);
+      setWeights(null);
       setUserAlignments(null);
       setPersonalityLabel(null);
       setIdentityColor(null);
@@ -280,7 +287,7 @@ export function useConversationalMatch() {
   );
 
   const getMatches = useCallback(
-    async (weights?: { alignment?: number; semantic?: number }) => {
+    async (dimensionWeights?: Record<string, number>) => {
       if (!sessionId) {
         setError('No active session. Please start a new session.');
         return;
@@ -293,6 +300,9 @@ export function useConversationalMatch() {
       setIsLoading(true);
       setError(null);
 
+      // Use explicitly passed weights, or fall back to state weights
+      const effectiveWeights = dimensionWeights ?? weights ?? undefined;
+
       try {
         const res = await fetch(API_ENDPOINT, {
           method: 'POST',
@@ -300,7 +310,7 @@ export function useConversationalMatch() {
           body: JSON.stringify({
             action: 'match',
             sessionId,
-            weights,
+            ...(effectiveWeights ? { weights: effectiveWeights } : {}),
           }),
           signal: controller.signal,
         });
@@ -312,6 +322,7 @@ export function useConversationalMatch() {
 
         const data: MatchResponse = await res.json();
         setMatches(data.matches);
+        setBridgeMatch(data.bridgeMatch ?? null);
         setUserAlignments(data.userAlignments);
         setPersonalityLabel(data.personalityLabel);
         setIdentityColor(data.identityColor);
@@ -325,7 +336,7 @@ export function useConversationalMatch() {
         setIsLoading(false);
       }
     },
-    [sessionId],
+    [sessionId, weights],
   );
 
   const reset = useCallback(() => {
@@ -337,6 +348,8 @@ export function useConversationalMatch() {
     setStatus('idle');
     setPreview(null);
     setMatches(null);
+    setBridgeMatch(null);
+    setWeights(null);
     setUserAlignments(null);
     setPersonalityLabel(null);
     setIdentityColor(null);
@@ -354,6 +367,8 @@ export function useConversationalMatch() {
     status,
     preview,
     matches,
+    bridgeMatch,
+    weights,
     userAlignments,
     personalityLabel,
     identityColor,
@@ -364,6 +379,7 @@ export function useConversationalMatch() {
     startSession,
     submitAnswer,
     getMatches,
+    setWeights,
     reset,
   };
 }

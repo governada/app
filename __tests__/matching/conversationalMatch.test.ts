@@ -7,7 +7,11 @@ import {
   buildFullAlignment,
   getNextQuestion,
   MAX_ROUNDS,
+  ALL_DIMENSIONS,
+  _weightedEuclideanDistance6D as weightedEuclideanDistance6D,
+  _distanceToScore as distanceToScore,
 } from '@/lib/matching/conversationalMatch';
+import type { AlignmentScores } from '@/lib/drepIdentity';
 
 import { getQuestionForRound, TOTAL_QUESTIONS } from '@/lib/matching/conversationalPillGenerator';
 
@@ -427,5 +431,102 @@ describe('confidence with conversational match', () => {
     // Should use quiz source, not conversational
     expect(result.sources.some((s) => s.key === 'quizAnswers')).toBe(true);
     expect(result.sources.some((s) => s.key === 'conversationalMatch')).toBe(false);
+  });
+});
+
+// ── Weighted distance ──
+
+describe('weightedEuclideanDistance6D', () => {
+  const userAlignment: AlignmentScores = {
+    treasuryConservative: 80,
+    treasuryGrowth: 30,
+    decentralization: 70,
+    security: 60,
+    innovation: 90,
+    transparency: 50,
+  };
+
+  const drepAlignment: AlignmentScores = {
+    treasuryConservative: 40,
+    treasuryGrowth: 70,
+    decentralization: 70,
+    security: 60,
+    innovation: 50,
+    transparency: 50,
+  };
+
+  it('returns same distance with no weights as uniform weight 1.0', () => {
+    const distNoWeights = weightedEuclideanDistance6D(userAlignment, drepAlignment);
+    const distUniform = weightedEuclideanDistance6D(userAlignment, drepAlignment, {
+      treasuryConservative: 1.0,
+      treasuryGrowth: 1.0,
+      decentralization: 1.0,
+      security: 1.0,
+      innovation: 1.0,
+      transparency: 1.0,
+    });
+    expect(distNoWeights).toBeCloseTo(distUniform, 5);
+  });
+
+  it('dealbreaker dimension disagreement produces larger distance', () => {
+    // Innovation has 40-point gap (90 vs 50)
+    // Weight innovation as dealbreaker (3x) — should increase distance
+    const distUnweighted = weightedEuclideanDistance6D(userAlignment, drepAlignment);
+    const distDealbreaker = weightedEuclideanDistance6D(userAlignment, drepAlignment, {
+      innovation: 3.0,
+    });
+    expect(distDealbreaker).toBeGreaterThan(distUnweighted);
+  });
+
+  it('nice-to-have dimension disagreement produces smaller distance', () => {
+    // Weight innovation as nice-to-have (0.3x) — should decrease distance
+    const distUnweighted = weightedEuclideanDistance6D(userAlignment, drepAlignment);
+    const distNiceToHave = weightedEuclideanDistance6D(userAlignment, drepAlignment, {
+      innovation: 0.3,
+    });
+    expect(distNiceToHave).toBeLessThan(distUnweighted);
+  });
+
+  it('dealbreaker weight on disagreement scores lower than nice-to-have weight', () => {
+    // Same user vs DRep: score with dealbreaker on innovation < score with niceToHave on innovation
+    const scoreDealbreaker = distanceToScore(
+      weightedEuclideanDistance6D(userAlignment, drepAlignment, { innovation: 3.0 }),
+      { innovation: 3.0 },
+    );
+    const scoreNiceToHave = distanceToScore(
+      weightedEuclideanDistance6D(userAlignment, drepAlignment, { innovation: 0.3 }),
+      { innovation: 0.3 },
+    );
+    expect(scoreDealbreaker).toBeLessThan(scoreNiceToHave);
+  });
+});
+
+// ── distanceToScore backward compatibility ──
+
+describe('distanceToScore', () => {
+  it('returns 100 for zero distance', () => {
+    expect(distanceToScore(0)).toBe(100);
+  });
+
+  it('returns 0 for max distance (no weights)', () => {
+    // Max distance: sqrt(6 * 100^2) ≈ 244.9
+    const maxDist = Math.sqrt(6 * 100 * 100);
+    expect(distanceToScore(maxDist)).toBe(0);
+  });
+
+  it('max distance scales with weights', () => {
+    // With all weights at 3.0, max distance is sqrt(6 * 3.0 * 100^2)
+    const weights = {
+      treasuryConservative: 3.0,
+      treasuryGrowth: 3.0,
+      decentralization: 3.0,
+      security: 3.0,
+      innovation: 3.0,
+      transparency: 3.0,
+    };
+    const maxDist = Math.sqrt(6 * 3.0 * 100 * 100);
+    expect(distanceToScore(maxDist, weights)).toBe(0);
+    // Half of max distance should give ~50
+    expect(distanceToScore(maxDist / 2, weights)).toBe(50);
   });
 });
