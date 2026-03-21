@@ -27,7 +27,8 @@ interface AnnotationEvent {
 }
 
 interface PendingProposal {
-  proposalId: string;
+  txHash: string;
+  index: number;
   title: string;
   withdrawalAda: number;
   enactedEpoch?: number | null;
@@ -93,7 +94,7 @@ export function TreasuryTimeline() {
             ? `${matchingProposal.title.slice(0, 40)}${matchingProposal.title.length > 40 ? '...' : ''}: -₳${formatAda(s.withdrawalsAda)}`
             : `Large withdrawal: -₳${formatAda(s.withdrawalsAda)}`,
           linkHref: matchingProposal
-            ? `/governance/proposals/${matchingProposal.proposalId}`
+            ? `/proposal/${matchingProposal.txHash}/${matchingProposal.index}`
             : undefined,
         });
       }

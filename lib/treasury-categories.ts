@@ -6,7 +6,7 @@
  */
 
 import { createClient } from '@/lib/supabase';
-import { lovelaceToAda } from '@/lib/treasury';
+
 import { logger } from '@/lib/logger';
 
 // ---------------------------------------------------------------------------
@@ -168,7 +168,7 @@ export async function getTreasurySpendingByCategory(): Promise<SpendingCategory[
   let grandTotal = 0;
 
   for (const p of proposals) {
-    const amountAda = p.withdrawal_amount ? lovelaceToAda(p.withdrawal_amount) : 0;
+    const amountAda = p.withdrawal_amount ? Number(p.withdrawal_amount) : 0;
     if (amountAda <= 0) continue;
 
     const key = `${p.tx_hash}-${p.proposal_index}`;
@@ -245,7 +245,7 @@ export async function getSpendingTrend(): Promise<SpendingTrendPoint[]> {
   const epochMap = new Map<number, Record<string, number>>();
 
   for (const p of proposals) {
-    const amountAda = p.withdrawal_amount ? lovelaceToAda(p.withdrawal_amount) : 0;
+    const amountAda = p.withdrawal_amount ? Number(p.withdrawal_amount) : 0;
     if (amountAda <= 0 || !p.enacted_epoch) continue;
 
     const key = `${p.tx_hash}-${p.proposal_index}`;
