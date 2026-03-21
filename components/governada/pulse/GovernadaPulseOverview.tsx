@@ -71,30 +71,51 @@ const TABS: { id: PulseTab; label: string }[] = [
 const VALID_PULSE_TABS = new Set<PulseTab>(TABS.map((t) => t.id));
 
 /* ── Hands-Off: single score + trend arrow ─────────────────────────────────── */
+/* ── Anonymous: enriched health overview with component breakdown + CTA ──── */
 function GHIMinimal() {
-  const { data: rawGhi, isLoading } = useGovernanceHealthIndex(1);
+  const { data: rawGhi, isLoading, isError, refetch } = useGovernanceHealthIndex(5);
   const ghi = rawGhi as
     | {
-        current?: { score: number; band: string };
+        current?: {
+          score: number;
+          band: string;
+          components: { name: string; value: number; weight: number; contribution: number }[];
+        };
         trend?: { direction: string; delta: number };
       }
     | undefined;
 
   if (isLoading) {
     return (
-      <div className="rounded-xl border border-border/50 bg-card/70 backdrop-blur-md p-5 flex items-center gap-4">
-        <div className="h-12 w-12 rounded-full bg-muted/40 animate-pulse" />
-        <div className="space-y-1">
-          <div className="h-4 w-32 bg-muted/40 rounded animate-pulse" />
-          <div className="h-3 w-20 bg-muted/40 rounded animate-pulse" />
+      <div className="space-y-4">
+        <div className="rounded-xl border border-border/50 bg-card/70 backdrop-blur-md p-5 flex items-center gap-4">
+          <div className="h-[80px] w-[80px] rounded-full bg-muted/40 animate-pulse" />
+          <div className="flex-1 space-y-2">
+            <div className="h-4 w-40 bg-muted/40 rounded animate-pulse" />
+            <div className="h-3 w-60 bg-muted/40 rounded animate-pulse" />
+          </div>
         </div>
       </div>
     );
   }
 
-  const score = ghi?.current?.score ?? 0;
-  const band = ghi?.current?.band ?? 'fair';
-  const direction = (ghi?.trend?.direction ?? 'flat') as 'up' | 'down' | 'flat';
+  if (isError || !ghi?.current) {
+    return (
+      <ErrorCard message="Governance Health temporarily unavailable." onRetry={() => refetch()} />
+    );
+  }
+
+  const { score, band, components } = ghi.current;
+  const direction = (ghi.trend?.direction ?? 'flat') as 'up' | 'down' | 'flat';
+  const delta = ghi.trend?.delta ?? 0;
+
+  const BAND_STYLE: Record<string, { text: string; bg: string }> = {
+    strong: { text: 'text-emerald-500', bg: 'bg-emerald-500' },
+    good: { text: 'text-green-500', bg: 'bg-green-500' },
+    fair: { text: 'text-amber-500', bg: 'bg-amber-500' },
+    critical: { text: 'text-rose-500', bg: 'bg-rose-500' },
+  };
+  const style = BAND_STYLE[band] ?? BAND_STYLE.fair;
   const TrendIcon = direction === 'up' ? TrendingUp : direction === 'down' ? TrendingDown : Minus;
   const trendColor =
     direction === 'up'
@@ -103,41 +124,90 @@ function GHIMinimal() {
         ? 'text-rose-500'
         : 'text-muted-foreground';
 
-  const BAND_COLORS: Record<string, string> = {
-    strong: 'text-emerald-500',
-    good: 'text-green-500',
-    fair: 'text-amber-500',
-    critical: 'text-rose-500',
-  };
-  const scoreColor = BAND_COLORS[band] ?? BAND_COLORS.fair;
-
+  // Positive framing: lead with what's working
   const BAND_VERDICTS: Record<string, string> = {
-    strong: 'Governance is thriving. Nothing needs your attention.',
-    good: 'Governance is healthy. No action needed.',
-    fair: 'Governance needs attention. Some areas are underperforming.',
-    critical: 'Governance is struggling. Participation and accountability are low.',
+    strong: 'Governance is thriving — strong participation across all dimensions.',
+    good: 'Governance is healthy — representatives are actively participating.',
+    fair: 'Governance is active and evolving. Some areas have room to grow.',
+    critical: 'Governance is in its early stages. Participation is growing as the system matures.',
   };
   const verdict = BAND_VERDICTS[band] ?? BAND_VERDICTS.fair;
 
+  // Top 4 components by weight
+  const topComponents = [...components].sort((a, b) => b.weight - a.weight).slice(0, 4);
+
   return (
-    <div
-      className="rounded-xl border border-border/50 bg-card/70 backdrop-blur-md p-5"
-      data-discovery="gov-health"
-    >
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-1.5 flex-1 min-w-0">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Governance Health
-          </p>
-          <p className={cn('text-sm font-medium', scoreColor)}>{verdict}</p>
+    <div className="space-y-4" data-discovery="gov-health">
+      {/* Score + verdict */}
+      <div className="rounded-xl border border-border/50 bg-card/70 backdrop-blur-md p-5">
+        <div className="flex items-center gap-4 mb-4">
+          <div className="text-center">
+            <span className={cn('text-3xl font-bold tabular-nums', style.text)}>
+              {Math.round(score)}
+            </span>
+            <span className="text-xs text-muted-foreground">/100</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold">Governance Health</h2>
+              <span
+                className={cn(
+                  'text-xs font-semibold px-2 py-0.5 rounded-full',
+                  style.bg + '/10',
+                  style.text,
+                )}
+              >
+                {band.charAt(0).toUpperCase() + band.slice(1)}
+              </span>
+            </div>
+            <p className="text-sm text-muted-foreground mt-0.5">{verdict}</p>
+            {delta !== 0 && (
+              <span
+                className={cn(
+                  'inline-flex items-center gap-0.5 text-xs font-medium mt-1',
+                  trendColor,
+                )}
+              >
+                <TrendIcon className="h-3 w-3" />
+                {delta > 0 ? '+' : ''}
+                {Math.round(delta * 10) / 10} this epoch
+              </span>
+            )}
+          </div>
         </div>
-        <div className="flex items-baseline gap-1.5 shrink-0">
-          <span className={cn('text-lg font-bold tabular-nums', scoreColor)}>
-            {Math.round(score)}
-          </span>
-          <TrendIcon className={cn('h-3.5 w-3.5', trendColor)} />
+
+        {/* 4-component breakdown */}
+        <div className="grid grid-cols-2 gap-3">
+          {topComponents.map((comp) => (
+            <div key={comp.name} className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground truncate">{comp.name}</span>
+                <span className="text-xs font-medium tabular-nums">{Math.round(comp.value)}</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-muted/40 overflow-hidden">
+                <div
+                  className={cn('h-full rounded-full transition-all', style.bg + '/60')}
+                  style={{ width: `${Math.min(100, comp.value)}%` }}
+                />
+              </div>
+            </div>
+          ))}
         </div>
       </div>
+
+      {/* Compact governance briefing */}
+      <GovernanceBriefing compact />
+
+      {/* CTA */}
+      <Link
+        href="/match"
+        className="group flex items-center justify-between rounded-lg border border-border/40 bg-primary/5 hover:bg-primary/10 px-4 py-2.5 transition-colors"
+      >
+        <span className="text-sm font-medium text-foreground">
+          Want personalized governance insights? Take the quick match quiz
+        </span>
+        <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+      </Link>
     </div>
   );
 }

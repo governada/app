@@ -35,6 +35,12 @@ export interface GovernadaSPOData {
   governanceStatement?: string | null;
   poolStatus?: string | null;
   scoreMomentum?: number | null;
+  alignmentTreasuryConservative?: number | null;
+  alignmentTreasuryGrowth?: number | null;
+  alignmentDecentralization?: number | null;
+  alignmentSecurity?: number | null;
+  alignmentInnovation?: number | null;
+  alignmentTransparency?: number | null;
 }
 
 function formatAda(ada: number): string {
@@ -44,16 +50,17 @@ function formatAda(ada: number): string {
   return String(ada);
 }
 
-/** Returns the top 1-2 governance strengths (scores >= 60) as citizen-friendly labels. */
+/** Returns the top 1-2 differentiating governance strengths as citizen-friendly labels.
+ *  Only shows pillars where the pool genuinely excels (>= 75), sorted by score. */
 export function getPoolStrengths(pool: GovernadaSPOData): string[] {
   const pillars: [string, number][] = [
-    ['Active voter', pool.participationPct ?? 0],
-    ['Thoughtful', pool.deliberationPct ?? 0],
-    ['Reliable', pool.reliabilityPct ?? 0],
-    ['Clear identity', pool.governanceIdentityPct ?? 0],
+    ['Consistent voter', pool.participationPct ?? 0],
+    ['Deep deliberator', pool.deliberationPct ?? 0],
+    ['Always online', pool.reliabilityPct ?? 0],
+    ['Verified operator', pool.governanceIdentityPct ?? 0],
   ];
   return pillars
-    .filter(([, v]) => v >= 60)
+    .filter(([, v]) => v >= 75)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 2)
     .map(([label]) => label);
@@ -62,9 +69,10 @@ export function getPoolStrengths(pool: GovernadaSPOData): string[] {
 interface GovernadaSPOCardProps {
   pool: GovernadaSPOData;
   rank?: number;
+  matchScore?: number;
 }
 
-export function GovernadaSPOCard({ pool, rank }: GovernadaSPOCardProps) {
+export function GovernadaSPOCard({ pool, rank, matchScore }: GovernadaSPOCardProps) {
   const score = pool.governanceScore ?? 0;
   const tier = tierKey(computeTier(score));
   const isProvisional = pool.confidence != null && pool.confidence < 60;
@@ -145,6 +153,20 @@ export function GovernadaSPOCard({ pool, rank }: GovernadaSPOCardProps) {
               <TierBadge tier={tier} />
               {isProvisional && <AlertTriangle className="h-2.5 w-2.5 text-amber-500" />}
             </div>
+            {matchScore != null && (
+              <span
+                className={cn(
+                  'text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded-full mt-1',
+                  matchScore >= 70
+                    ? 'bg-emerald-500/10 text-emerald-400'
+                    : matchScore >= 50
+                      ? 'bg-amber-500/10 text-amber-400'
+                      : 'bg-muted text-muted-foreground',
+                )}
+              >
+                {matchScore}% match
+              </span>
+            )}
           </div>
         </div>
 

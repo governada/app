@@ -213,6 +213,24 @@ export function CCHealthVerdict({ health }: CCHealthVerdictProps) {
               </span>
             )}
           </div>
+
+          {/* Improvement areas */}
+          {health.improvementAreas && health.improvementAreas.length > 0 && (
+            <div className="space-y-1.5 rounded-lg bg-amber-500/5 border border-amber-500/15 px-3 py-2.5">
+              <p className="text-[10px] font-medium text-amber-400/80 uppercase tracking-wider">
+                What would improve this score
+              </p>
+              {health.improvementAreas.map((area, i) => (
+                <p
+                  key={i}
+                  className="flex items-start gap-2 text-xs text-muted-foreground leading-relaxed"
+                >
+                  <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-amber-500/50" />
+                  <span>{area}</span>
+                </p>
+              ))}
+            </div>
+          )}
         </motion.div>
       </div>
     </motion.div>

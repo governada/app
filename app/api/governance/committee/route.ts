@@ -63,16 +63,37 @@ export const GET = withRouteHandler(async () => {
     }
   }
 
-  // Build vote counts per member using cold ID as canonical identity
-  // This ensures votes are properly aggregated across hot key rotations
+  // Build vote counts per member, indexed by BOTH hot_id and cold_id.
+  // Votes may have cc_cold_id=null (hot→cold mapping wasn't built at sync time),
+  // but members typically have cc_cold_id set. Dual-keying ensures lookups succeed
+  // regardless of which ID is canonical on each side.
   const voteMap = new Map<string, { yes: number; no: number; abstain: number }>();
   for (const v of votes ?? []) {
-    const memberId = v.cc_cold_id ?? v.cc_hot_id;
-    const existing = voteMap.get(memberId) || { yes: 0, no: 0, abstain: 0 };
+    // Use a shared counter object so both keys reference the same counts
+    const primaryKey = v.cc_hot_id;
+    const existing = voteMap.get(primaryKey) || { yes: 0, no: 0, abstain: 0 };
     if (v.vote === 'Yes') existing.yes++;
     else if (v.vote === 'No') existing.no++;
     else existing.abstain++;
-    voteMap.set(memberId, existing);
+    voteMap.set(primaryKey, existing);
+    // Also index under cold_id so member lookup by cold_id finds the same counts
+    if (v.cc_cold_id && v.cc_cold_id !== primaryKey) {
+      voteMap.set(v.cc_cold_id, existing);
+    }
+  }
+  // Ensure members with cold_id can find votes indexed only by hot_id:
+  // build a hot→cold mapping from active members and cross-link
+  for (const m of activeMembers ?? []) {
+    if (m.cc_cold_id && m.cc_hot_id) {
+      const hotCounts = voteMap.get(m.cc_hot_id);
+      if (hotCounts && !voteMap.has(m.cc_cold_id)) {
+        voteMap.set(m.cc_cold_id, hotCounts);
+      }
+      const coldCounts = voteMap.get(m.cc_cold_id);
+      if (coldCounts && !voteMap.has(m.cc_hot_id)) {
+        voteMap.set(m.cc_hot_id, coldCounts);
+      }
+    }
   }
 
   // Compute aggregate stats
@@ -204,8 +225,31 @@ export const GET = withRouteHandler(async () => {
       }
     : null;
 
+  // Derive actionable improvement areas from member data
+  const improvementAreas: string[] = [];
+  const nonVoters = members.filter((m) => m.voteCount === 0).length;
+  if (nonVoters > 0) {
+    improvementAreas.push(
+      `${nonVoters} of ${members.length} active members have not voted on any proposal`,
+    );
+  }
+  if (health && health.avgFidelity != null && health.avgFidelity < 60) {
+    improvementAreas.push(
+      `Average constitutional fidelity is ${Math.round(health.avgFidelity)}/100 — stronger reasoning needed`,
+    );
+  }
+  if (avgRationaleRate != null && avgRationaleRate < 50) {
+    improvementAreas.push(`Only ${avgRationaleRate}% of votes include written rationales`);
+  }
+  if (health && health.tensionCount > 2) {
+    improvementAreas.push(`${health.tensionCount} CC–DRep disagreements on recent proposals`);
+  }
+
+  // Attach improvement areas to health for client consumption
+  const healthWithAreas = health ? { ...health, improvementAreas } : health;
+
   return NextResponse.json(
-    { members, health, stats, agreementMatrix, blocs, archetypes, briefing },
+    { members, health: healthWithAreas, stats, agreementMatrix, blocs, archetypes, briefing },
     {
       headers: {
         'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=300',

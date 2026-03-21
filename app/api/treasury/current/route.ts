@@ -15,7 +15,7 @@ export const GET = withRouteHandler(
   async () => {
     const [balance, snapshots, healthScore] = await Promise.all([
       getTreasuryBalance(),
-      getTreasuryTrend(30),
+      getTreasuryTrend(200),
       calculateTreasuryHealthScore(),
     ]);
 
@@ -23,7 +23,7 @@ export const GET = withRouteHandler(
       return NextResponse.json({ error: 'No treasury data available' }, { status: 404 });
     }
 
-    const burnRate = calculateBurnRate(snapshots, 10);
+    const burnRate = calculateBurnRate(snapshots);
     const runwayMonths = calculateRunwayMonths(balance.balanceAda, burnRate);
     const pending = await getPendingTreasuryProposals(balance.balanceAda);
     const totalPendingAda = pending.reduce((s, p) => s + (p.withdrawalAda ?? 0), 0);

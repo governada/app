@@ -28,8 +28,10 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { PeekTrigger } from '@/components/governada/peeks/PeekTrigger';
 import { usePeekTrigger } from '@/components/governada/peeks/PeekDrawerProvider';
+import { useGovernanceDepth } from '@/hooks/useGovernanceDepth';
 import { DiscoverFilterBar } from './DiscoverFilterBar';
 import { DiscoverPagination } from './DiscoverPagination';
+import { MatchAwareDiscoverHero } from './MatchAwareDiscoverHero';
 
 /* ── Constants ──────────────────────────────────────────────────── */
 
@@ -234,6 +236,7 @@ export function GovernadaSPOBrowse() {
     () => (rawPools as GovernadaSPOData[]) ?? [],
     [rawPools],
   );
+  const { isAtLeast } = useGovernanceDepth();
 
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [page, setPage] = useState(0);
@@ -308,6 +311,30 @@ export function GovernadaSPOBrowse() {
           ))}
         </div>
       </div>
+    );
+  }
+
+  // ── Hands-Off: match-aware discovery hero ──────────────────────────
+  if (!isAtLeast('informed')) {
+    const poolEntities = pools.map((p) => ({
+      id: p.poolId,
+      name: p.ticker || p.poolName || `${p.poolId.slice(0, 16)}\u2026`,
+      score: p.governanceScore ?? 0,
+      participationPct: p.participationPct ?? null,
+      alignmentTreasuryConservative: p.alignmentTreasuryConservative,
+      alignmentTreasuryGrowth: p.alignmentTreasuryGrowth,
+      alignmentDecentralization: p.alignmentDecentralization,
+      alignmentSecurity: p.alignmentSecurity,
+      alignmentInnovation: p.alignmentInnovation,
+      alignmentTransparency: p.alignmentTransparency,
+    }));
+    return (
+      <MatchAwareDiscoverHero
+        entityType="spo"
+        entities={poolEntities}
+        isLoading={isLoading}
+        totalCount={pools.length}
+      />
     );
   }
 

@@ -17,13 +17,13 @@ export const GET = withRouteHandler(async (request) => {
     ? parseFloat(searchParams.get('pendingAda')!)
     : undefined;
 
-  const [balance, snapshots] = await Promise.all([getTreasuryBalance(), getTreasuryTrend(30)]);
+  const [balance, snapshots] = await Promise.all([getTreasuryBalance(), getTreasuryTrend(200)]);
 
   if (!balance) {
     return NextResponse.json({ error: 'No treasury data' }, { status: 404 });
   }
 
-  const burnRate = calculateBurnRate(snapshots, 10) * burnAdjust;
+  const burnRate = calculateBurnRate(snapshots) * burnAdjust;
   const avgIncome =
     snapshots.length > 0
       ? snapshots.reduce((s, r) => s + r.reservesIncomeAda, 0) / snapshots.length

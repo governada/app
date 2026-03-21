@@ -85,11 +85,27 @@ export async function getTreasuryTrend(epochs = 30): Promise<TreasurySnapshot[]>
   }));
 }
 
-export function calculateBurnRate(snapshots: TreasurySnapshot[], windowEpochs = 10): number {
+/**
+ * Calculate average burn rate using exponential decay weighting over all snapshots.
+ * Recent epochs are weighted more heavily (half-life = 20 epochs ≈ 100 days).
+ * This produces a more representative burn rate in early governance when spending
+ * is sporadic, compared to the previous fixed 10-epoch window.
+ */
+export function calculateBurnRate(snapshots: TreasurySnapshot[]): number {
   if (snapshots.length < 2) return 0;
-  const recent = snapshots.slice(-windowEpochs);
-  const totalWithdrawals = recent.reduce((sum, s) => sum + s.withdrawalsAda, 0);
-  return totalWithdrawals / recent.length;
+  const HALF_LIFE = 20; // epochs (~100 days)
+  const lambda = Math.LN2 / HALF_LIFE;
+  const latestEpoch = snapshots[snapshots.length - 1].epoch;
+
+  let weightedSum = 0;
+  let totalWeight = 0;
+  for (const s of snapshots) {
+    const age = latestEpoch - s.epoch;
+    const weight = Math.exp(-lambda * age);
+    weightedSum += s.withdrawalsAda * weight;
+    totalWeight += weight;
+  }
+  return totalWeight > 0 ? weightedSum / totalWeight : 0;
 }
 
 export function calculateRunwayMonths(balanceAda: number, burnRatePerEpoch: number): number {
@@ -133,11 +149,11 @@ export interface TreasuryHealthScore {
 }
 
 export async function calculateTreasuryHealthScore(): Promise<TreasuryHealthScore | null> {
-  const snapshots = await getTreasuryTrend(30);
+  const snapshots = await getTreasuryTrend(200);
   if (snapshots.length < 1) return null;
 
   const current = snapshots[snapshots.length - 1];
-  const burnRate = calculateBurnRate(snapshots, 10);
+  const burnRate = calculateBurnRate(snapshots);
   const runwayMonths = calculateRunwayMonths(current.balanceAda, burnRate);
 
   // 1. Balance trend (0-100): is the treasury growing or shrinking?
