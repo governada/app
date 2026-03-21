@@ -40,6 +40,12 @@ export const GET = withRouteHandler(async () => {
         governanceStatement: p.governance_statement ?? null,
         poolStatus: p.pool_status ?? 'registered',
         scoreMomentum: p.score_momentum ?? null,
+        alignmentTreasuryConservative: p.alignment_treasury_conservative ?? null,
+        alignmentTreasuryGrowth: p.alignment_treasury_growth ?? null,
+        alignmentDecentralization: p.alignment_decentralization ?? null,
+        alignmentSecurity: p.alignment_security ?? null,
+        alignmentInnovation: p.alignment_innovation ?? null,
+        alignmentTransparency: p.alignment_transparency ?? null,
       }));
       return { pools };
     }

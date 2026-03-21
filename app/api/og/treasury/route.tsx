@@ -42,7 +42,7 @@ export async function GET() {
       );
     }
 
-    const burnRate = calculateBurnRate(snapshots, 10);
+    const burnRate = calculateBurnRate(snapshots);
     const runway = calculateRunwayMonths(balance.balanceAda, burnRate);
     const score = healthScore?.score ?? 0;
     const balanceStr = formatLargeNumber(balance.balanceAda);

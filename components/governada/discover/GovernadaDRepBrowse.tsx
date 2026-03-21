@@ -37,6 +37,7 @@ import { PeekTrigger } from '@/components/governada/peeks/PeekTrigger';
 import { usePeekTrigger } from '@/components/governada/peeks/PeekDrawerProvider';
 import { DiscoverFilterBar } from './DiscoverFilterBar';
 import { DiscoverPagination } from './DiscoverPagination';
+import { MatchAwareDiscoverHero } from './MatchAwareDiscoverHero';
 import {
   loadMatchProfile,
   alignmentDistance,
@@ -384,6 +385,7 @@ export function GovernadaDRepBrowse(_props: GovernadaDRepBrowseProps) {
   const drepsData = rawData as { allDReps?: EnrichedDRep[] } | undefined;
   const dreps: EnrichedDRep[] = useMemo(() => drepsData?.allDReps ?? [], [drepsData]);
   const { isAtLeast } = useGovernanceDepth();
+  const { delegatedDrepId } = useWallet();
 
   const searchParams = useSearchParams();
   const contentRef = useRef<HTMLDivElement>(null);
@@ -537,9 +539,33 @@ export function GovernadaDRepBrowse(_props: GovernadaDRepBrowseProps) {
     );
   }
 
-  // ── Hands-Off: focused single-DRep card ────────────────────────────────
+  // ── Hands-Off: match-aware discovery or delegation summary ──────────
   if (!isAtLeast('informed')) {
-    return <YourDRepSummary dreps={dreps} />;
+    // Wallet-connected users with a delegation: show their DRep summary
+    if (delegatedDrepId) {
+      return <YourDRepSummary dreps={dreps} />;
+    }
+    // Anonymous / no delegation: show match-aware hero
+    const drepEntities = dreps.map((d) => ({
+      id: d.drepId,
+      name: d.name || d.ticker || d.handle || `${d.drepId.slice(0, 16)}\u2026`,
+      score: d.drepScore ?? 0,
+      participationPct: d.participationRate ?? null,
+      alignmentTreasuryConservative: d.alignmentTreasuryConservative,
+      alignmentTreasuryGrowth: d.alignmentTreasuryGrowth,
+      alignmentDecentralization: d.alignmentDecentralization,
+      alignmentSecurity: d.alignmentSecurity,
+      alignmentInnovation: d.alignmentInnovation,
+      alignmentTransparency: d.alignmentTransparency,
+    }));
+    return (
+      <MatchAwareDiscoverHero
+        entityType="drep"
+        entities={drepEntities}
+        isLoading={isLoading}
+        totalCount={dreps.length}
+      />
+    );
   }
 
   // ── Informed: top DReps by activity + your DRep highlighted ─────────────

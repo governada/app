@@ -25,6 +25,7 @@ export interface CCHealthSummaryResponse {
   totalMembers: number;
   avgFidelity: number | null;
   tensionCount: number;
+  improvementAreas?: string[];
 }
 
 export interface CCCommitteeStats {

@@ -1,9 +1,7 @@
 'use client';
 
-import { TreasuryVerdict } from '@/components/treasury/TreasuryVerdict';
-import { NclBudgetBar } from '@/components/treasury/NclBudgetBar';
+import { TreasuryHero } from '@/components/treasury/TreasuryHero';
 import { NclUtilizationTrend } from '@/components/treasury/NclUtilizationTrend';
-import { TreasuryKeyMetrics } from '@/components/treasury/TreasuryKeyMetrics';
 import { TreasuryEpochFlow } from '@/components/treasury/TreasuryEpochFlow';
 import { TreasuryPendingProposals } from '@/components/TreasuryPendingProposals';
 import { TreasuryAccountabilitySection } from '@/components/TreasuryAccountabilitySection';
@@ -108,11 +106,10 @@ export function TreasuryOverview() {
   return (
     <div className="space-y-6">
       {/* ──────────────────────────────────────────────────────────────
-          LEVEL 1 — THE VERDICT
-          One glanceable health indicator + inline stats.
-          Passes the 5-second test on its own.
+          LEVEL 1 — THE HERO
+          5-second glanceable verdict + budget bar + key stats.
          ────────────────────────────────────────────────────────────── */}
-      <TreasuryVerdict
+      <TreasuryHero
         balanceAda={balance}
         trend={trend}
         ncl={ncl}
@@ -121,33 +118,6 @@ export function TreasuryOverview() {
         pendingTotalAda={pendingTotalAda}
         runwayMonths={runway}
       />
-
-      {/* ──────────────────────────────────────────────────────────────
-          LEVEL 2 — THE BUDGET STORY
-          Where is the money going this period?
-         ────────────────────────────────────────────────────────────── */}
-      <section className="space-y-4">
-        {ncl && (
-          <p className="text-sm text-muted-foreground">
-            The community set a ₳{formatAda(ncl.period.nclAda)} spending limit for epochs{' '}
-            {ncl.period.startEpoch}–{ncl.period.endEpoch}. Here&apos;s how it&apos;s being used.
-          </p>
-        )}
-
-        {ncl && <NclBudgetBar ncl={ncl} />}
-        {!ncl && treasury && (
-          <div className="rounded-xl border border-border/50 bg-card/70 backdrop-blur-md p-5 text-sm text-muted-foreground">
-            No active NCL period. The community has not yet set a spending limit for the current
-            epoch range.
-          </div>
-        )}
-
-        <TreasuryKeyMetrics
-          ncl={ncl}
-          pendingCount={pendingCount}
-          effectivenessRate={effectivenessRate}
-        />
-      </section>
 
       {/* ──────────────────────────────────────────────────────────────
           LEVEL 3 — ACTIVE DECISIONS

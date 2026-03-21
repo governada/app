@@ -328,7 +328,7 @@ export async function assembleProposalBriefInput(
         }
 
         if (trend.length >= 2) {
-          const burnRate = calculateBurnRate(trend, 10);
+          const burnRate = calculateBurnRate(trend);
           if (burnRate > 0 && balance) {
             const runway = calculateRunwayMonths(balance.balanceAda, burnRate);
             parts.push(
