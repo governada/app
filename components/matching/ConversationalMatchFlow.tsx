@@ -11,6 +11,7 @@ import { SemanticFastTrack } from './SemanticFastTrack';
 import { MatchResults } from './MatchResults';
 import { useConversationalMatch } from '@/hooks/useConversationalMatch';
 import { saveConversationalProfile } from '@/lib/matchStore';
+import { sendMatchSignals } from '@/lib/matchSignals';
 import { cn } from '@/lib/utils';
 import type { ConstellationRef } from '@/components/GovernanceConstellation';
 
@@ -163,6 +164,14 @@ export function ConversationalMatchFlow({
             matchResults: matches,
             timestamp: Date.now(),
           });
+
+          // Fire-and-forget: send anonymous match signals for community intelligence
+          sendMatchSignals({
+            selectedTopics,
+            userAlignments,
+            personalityLabel,
+            matches,
+          });
         }
       }
     }
@@ -175,6 +184,7 @@ export function ConversationalMatchFlow({
     personalityLabel,
     identityColor,
     userAlignments,
+    selectedTopics,
     onMatchComplete,
     getMatches,
   ]);

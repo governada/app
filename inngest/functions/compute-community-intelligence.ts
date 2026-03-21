@@ -81,11 +81,116 @@ export const computeCommunityIntelligence = inngest.createFunction(
       return { stored, temperature: temperature.temperature, band: temperature.band };
     });
 
+    // Step 4: Aggregate match preference signals into community pulse
+    const matchPreferencesResult = await step.run('aggregate-match-signals', async () => {
+      const { getSupabaseAdmin } = await import('@/lib/supabase');
+      const supabase = getSupabaseAdmin();
+
+      // Fetch all match_signal snapshots for this epoch
+      const { data: signals, error: fetchError } = await supabase
+        .from('community_intelligence_snapshots')
+        .select('data')
+        .eq('snapshot_type', 'match_signal')
+        .eq('epoch', epoch);
+
+      if (fetchError || !signals || signals.length === 0) {
+        return { stored: false, sessions: 0 };
+      }
+
+      // Aggregate topic frequency
+      const topicFrequency: Record<string, number> = {};
+      const archetypeDistribution: Record<string, number> = {};
+      const importanceProfile: Record<string, Record<string, number>> = {};
+      const alignmentSums = [0, 0, 0, 0, 0, 0];
+      let alignmentCount = 0;
+
+      for (const row of signals) {
+        const d = row.data as {
+          topicSelections?: Record<string, boolean>;
+          importanceWeights?: Record<string, string>;
+          alignmentVector?: number[];
+          archetype?: string;
+        };
+
+        // Topic selections
+        if (d.topicSelections) {
+          for (const [topic, selected] of Object.entries(d.topicSelections)) {
+            if (selected) {
+              topicFrequency[topic] = (topicFrequency[topic] || 0) + 1;
+            }
+          }
+        }
+
+        // Archetype
+        if (d.archetype) {
+          archetypeDistribution[d.archetype] = (archetypeDistribution[d.archetype] || 0) + 1;
+        }
+
+        // Alignment vector centroid
+        if (d.alignmentVector && d.alignmentVector.length === 6) {
+          for (let i = 0; i < 6; i++) {
+            alignmentSums[i] += d.alignmentVector[i];
+          }
+          alignmentCount++;
+        }
+
+        // Importance weights
+        if (d.importanceWeights) {
+          for (const [dim, level] of Object.entries(d.importanceWeights)) {
+            if (!importanceProfile[dim]) importanceProfile[dim] = {};
+            importanceProfile[dim][level] = (importanceProfile[dim][level] || 0) + 1;
+          }
+        }
+      }
+
+      // Compute community centroid
+      const communityCentroid =
+        alignmentCount > 0
+          ? alignmentSums.map((sum) => Math.round(sum / alignmentCount))
+          : [50, 50, 50, 50, 50, 50];
+
+      // Compute topic trends vs previous epoch
+      const { data: prevSnapshot } = await supabase
+        .from('community_intelligence_snapshots')
+        .select('data')
+        .eq('snapshot_type', 'match_preferences')
+        .eq('epoch', epoch - 1)
+        .single();
+
+      const prevTopicFreq =
+        (prevSnapshot?.data as { topicFrequency?: Record<string, number> } | null)
+          ?.topicFrequency ?? {};
+
+      const topicTrends: Record<string, number> = {};
+      for (const topic of Object.keys(topicFrequency)) {
+        topicTrends[topic] = topicFrequency[topic] - (prevTopicFreq[topic] ?? 0);
+      }
+
+      const aggregated = {
+        epoch,
+        totalSessions: signals.length,
+        topicFrequency,
+        topicTrends,
+        archetypeDistribution,
+        communityCentroid,
+        importanceProfile,
+      };
+
+      const stored = await storeCommunitySnapshot(
+        'match_preferences',
+        epoch,
+        aggregated as unknown as Record<string, unknown>,
+      );
+
+      return { stored, sessions: signals.length };
+    });
+
     logger.info('[CommunityIntelligence] Computation complete', {
       epoch,
       mandate: mandateResult,
       divergence: divergenceResult,
       temperature: temperatureResult,
+      matchPreferences: matchPreferencesResult,
     });
 
     return {
@@ -93,6 +198,7 @@ export const computeCommunityIntelligence = inngest.createFunction(
       mandate: mandateResult,
       divergence: divergenceResult,
       temperature: temperatureResult,
+      matchPreferences: matchPreferencesResult,
     };
   },
 );

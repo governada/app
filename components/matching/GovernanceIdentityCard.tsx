@@ -2,10 +2,16 @@
 
 import { motion, useReducedMotion } from 'framer-motion';
 import { Share2, ArrowRight } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { GovernanceRadar } from '@/components/GovernanceRadar';
 import type { AlignmentScores, AlignmentDimension } from '@/lib/drepIdentity';
-import { getDominantDimension, getDimensionLabel } from '@/lib/drepIdentity';
+import {
+  getDominantDimension,
+  getDimensionLabel,
+  getDimensionOrder,
+  alignmentsToArray,
+} from '@/lib/drepIdentity';
 import { cn } from '@/lib/utils';
 
 /* ─── Types ─────────────────────────────────────────────── */
@@ -66,6 +72,113 @@ function getArchetypeDescription(personalityLabel: string, alignments: Alignment
     transparency: 'You demand openness, accountability, and clear governance.',
   };
   return fallbacks[dominant];
+}
+
+/* ─── Where You Fit — community centroid comparison ───── */
+
+interface PulseResponse {
+  totalSessions: number;
+  communityCentroid: number[];
+}
+
+function WhereYouFit({
+  alignments,
+  identityColor,
+}: {
+  alignments: AlignmentScores;
+  identityColor: string;
+}) {
+  const { data } = useQuery<PulseResponse>({
+    queryKey: ['community-pulse-lite'],
+    queryFn: async () => {
+      const res = await fetch('/api/community/pulse');
+      if (!res.ok) throw new Error('Pulse fetch failed');
+      return res.json();
+    },
+    staleTime: 300_000,
+    refetchOnWindowFocus: false,
+  });
+
+  // Only show when we have community data
+  if (!data || data.totalSessions < 3) return null;
+
+  const userVector = alignmentsToArray(alignments);
+  const centroid = data.communityCentroid;
+  const dimensions = getDimensionOrder();
+
+  // Find the user's most distinctive dimension (largest positive deviation from centroid)
+  let topDim: AlignmentDimension = dimensions[0];
+  let topDeviation = 0;
+  for (let i = 0; i < 6; i++) {
+    const dev = Math.abs(userVector[i] - centroid[i]);
+    if (dev > topDeviation) {
+      topDeviation = dev;
+      topDim = dimensions[i];
+    }
+  }
+
+  // Compute percentile approximation: what % of the centroid is below this user's score
+  const userScore = userVector[dimensions.indexOf(topDim)];
+  const centroidScore = centroid[dimensions.indexOf(topDim)];
+  const isAbove = userScore > centroidScore;
+  // Simple approximation: distance from centroid mapped to a percentile
+  const pctDev = Math.min(99, Math.max(1, Math.round(50 + topDeviation / 2)));
+  const percentile = isAbove ? pctDev : 100 - pctDev;
+
+  return (
+    <div className="w-full rounded-lg border border-white/[0.08] bg-white/[0.04] p-3 text-center space-y-2">
+      <p className="text-xs text-white/60">Where you fit</p>
+      <p className="text-sm text-white/90">
+        You&apos;re in the{' '}
+        <span className="font-semibold" style={{ color: identityColor }}>
+          top {100 - percentile}%
+        </span>{' '}
+        of citizens who prioritize <span className="font-medium">{getDimensionLabel(topDim)}</span>
+      </p>
+      {/* Mini centroid comparison bars */}
+      <div className="flex gap-1 justify-center mt-1">
+        {dimensions.map((dim, i) => {
+          const userVal = userVector[i];
+          const centroidVal = centroid[i];
+          return (
+            <div key={dim} className="flex flex-col items-center gap-0.5 w-8">
+              <div className="w-full h-12 bg-white/[0.06] rounded-sm relative overflow-hidden">
+                {/* Centroid bar */}
+                <div
+                  className="absolute bottom-0 left-0 w-1/2 bg-white/20 rounded-sm"
+                  style={{ height: `${centroidVal}%` }}
+                />
+                {/* User bar */}
+                <div
+                  className="absolute bottom-0 right-0 w-1/2 rounded-sm"
+                  style={{
+                    height: `${userVal}%`,
+                    backgroundColor: identityColor,
+                    opacity: 0.7,
+                  }}
+                />
+              </div>
+              <span className="text-[8px] text-white/40 leading-none">
+                {getDimensionLabel(dim).slice(0, 3)}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="flex items-center justify-center gap-3 text-[9px] text-white/40">
+        <span className="flex items-center gap-1">
+          <span className="inline-block w-2 h-2 rounded-sm bg-white/20" /> Community
+        </span>
+        <span className="flex items-center gap-1">
+          <span
+            className="inline-block w-2 h-2 rounded-sm"
+            style={{ backgroundColor: identityColor, opacity: 0.7 }}
+          />{' '}
+          You
+        </span>
+      </div>
+    </div>
+  );
 }
 
 /* ─── Component ─────────────────────────────────────────── */
@@ -146,6 +259,9 @@ export function GovernanceIdentityCard({
         <div className="my-2">
           <GovernanceRadar alignments={alignments} size="medium" animate={false} />
         </div>
+
+        {/* Where you fit — community context */}
+        <WhereYouFit alignments={alignments} identityColor={identityColor} />
 
         {/* Actions */}
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full mt-2">
