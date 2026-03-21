@@ -1,5 +1,6 @@
 'use client';
 
+import { User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatAda } from '@/lib/treasury';
 import type { NclUtilization } from '@/lib/treasury';
@@ -15,6 +16,7 @@ interface TreasuryHeroProps {
   pendingCount: number;
   pendingTotalAda?: number;
   runwayMonths: number;
+  proportionalShareAda?: number;
 }
 
 type VerdictStatus = 'healthy' | 'attention' | 'critical';
@@ -70,6 +72,18 @@ const STATUS_CONFIG = {
 
 /* ── Component ──────────────────────────────────────────────────────── */
 
+function formatRunwayHero(months: number): string {
+  if (months >= 999) return '10yr+';
+  if (months >= 24) return `${Math.floor(months / 12)}yr+`;
+  return `${months}mo`;
+}
+
+function runwayColor(months: number): string {
+  if (months > 24) return 'text-emerald-400';
+  if (months >= 12) return 'text-amber-400';
+  return 'text-red-400';
+}
+
 export function TreasuryHero({
   balanceAda,
   trend,
@@ -78,6 +92,7 @@ export function TreasuryHero({
   pendingCount,
   pendingTotalAda,
   runwayMonths,
+  proportionalShareAda,
 }: TreasuryHeroProps) {
   const status = deriveStatus(ncl, effectivenessRate, trend, runwayMonths);
   const config = STATUS_CONFIG[status];
@@ -95,6 +110,13 @@ export function TreasuryHero({
         config.glow,
       )}
     >
+      {/* ── Runway hero number ─────────────────────────────────── */}
+      {runwayMonths > 0 && (
+        <p className={cn('text-3xl font-bold tabular-nums', runwayColor(runwayMonths))}>
+          {formatRunwayHero(runwayMonths)} runway
+        </p>
+      )}
+
       {/* ── Verdict headline ────────────────────────────────────── */}
       <div className="flex items-center gap-2.5">
         <span className={cn('h-2.5 w-2.5 rounded-full animate-pulse', config.dot)} />
@@ -125,6 +147,14 @@ export function TreasuryHero({
           </span>
         )}
       </div>
+
+      {/* ── Personal share ────────────────────────────────────── */}
+      {proportionalShareAda != null && (
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <User className="h-3 w-3" />
+          <span>Your proportional share: ₳{formatAda(proportionalShareAda)}</span>
+        </div>
+      )}
 
       {/* ── NCL Budget bar (inline) ─────────────────────────────── */}
       {ncl && (

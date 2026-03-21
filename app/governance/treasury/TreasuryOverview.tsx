@@ -32,7 +32,6 @@ import {
 import { useTreasuryCurrent, useTreasuryNcl, useTreasuryHistory } from '@/hooks/queries';
 import { useSegment } from '@/components/providers/SegmentProvider';
 import type { NclUtilization, IncomeVsOutflow } from '@/lib/treasury';
-import { formatAda } from '@/lib/treasury';
 import { useQuery } from '@tanstack/react-query';
 
 interface TreasuryCurrentData {
@@ -65,7 +64,7 @@ async function fetchJson<T>(url: string): Promise<T> {
  */
 export function TreasuryOverview() {
   const { segment, drepId } = useSegment();
-  const { delegatedDrepId } = useWallet();
+  const { delegatedDrepId, balanceAda: walletBalanceAda } = useWallet();
   const effectiveDrepId = segment === 'drep' ? drepId : delegatedDrepId;
   const { data: rawDrepRecord } = useDRepTreasuryRecord(effectiveDrepId);
   const drepVotes = rawDrepRecord?.record?.votes;
@@ -95,6 +94,9 @@ export function TreasuryOverview() {
   const pendingTotalAda = treasury?.pendingTotalAda ?? 0;
   const effectivenessRate = rawEffectiveness?.effectivenessRate ?? null;
 
+  const proportionalShare =
+    walletBalanceAda && balance ? (walletBalanceAda / 37_000_000_000) * balance : undefined;
+
   const nclImpact = ncl
     ? {
         utilizationPct: ncl.utilizationPct,
@@ -117,6 +119,7 @@ export function TreasuryOverview() {
         pendingCount={pendingCount}
         pendingTotalAda={pendingTotalAda}
         runwayMonths={runway}
+        proportionalShareAda={proportionalShare}
       />
 
       {/* ──────────────────────────────────────────────────────────────
