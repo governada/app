@@ -313,6 +313,13 @@ export const syncCcRationales = inngest.createFunction(
           'cc_hot_id, proposal_tx_hash, proposal_index, cited_articles, reasoning_quality_score',
         );
 
+      // Get AI analysis scores (deliberation_quality + boilerplate_score)
+      const { data: aiAnalyses } = await supabase
+        .from('cc_rationale_analysis')
+        .select(
+          'cc_hot_id, proposal_tx_hash, proposal_index, deliberation_quality, boilerplate_score',
+        );
+
       if (!votes?.length || !proposals?.length) return { scored: 0 };
 
       // Build lookups
@@ -365,6 +372,21 @@ export const syncCcRationales = inngest.createFunction(
         }
       }
 
+      // Build AI scores lookup: cc_hot_id → array of {deliberationQuality, boilerplateScore}
+      const memberAiScores = new Map<
+        string,
+        { deliberationQuality: number; boilerplateScore: number | null }[]
+      >();
+      for (const a of aiAnalyses ?? []) {
+        if (a.deliberation_quality == null) continue;
+        const list = memberAiScores.get(a.cc_hot_id) ?? [];
+        list.push({
+          deliberationQuality: a.deliberation_quality,
+          boilerplateScore: a.boilerplate_score ?? null,
+        });
+        memberAiScores.set(a.cc_hot_id, list);
+      }
+
       // Group votes by member
       const memberVotes = new Map<string, CCMemberVoteData[]>();
       for (const v of votes) {
@@ -404,18 +426,20 @@ export const syncCcRationales = inngest.createFunction(
           votes: mvotes,
           proposalMap,
           rationaleMap,
+          aiScores: memberAiScores.get(ccHotId) ?? [],
           totalEligibleProposals: memberEligibleCount || globalEligibleProposals,
         });
 
-        // Update cc_members with Constitutional Fidelity Score
+        // Update cc_members with Constitutional Fidelity Score (4-pillar model)
         const { error } = await supabase.from('cc_members').upsert(
           {
             cc_hot_id: ccHotId,
             fidelity_score: result.score,
             fidelity_grade: result.grade,
             participation_score: result.pillars.participation,
-            rationale_quality_score: result.pillars.reasoningQuality,
-            constitutional_grounding_score: result.pillars.constitutionalGrounding,
+            rationale_provision_rate: result.pillars.rationaleProvision,
+            avg_reasoning_quality: result.pillars.reasoningQuality,
+            constitutional_grounding_score: result.pillars.constitutionalEngagement,
             votes_cast: result.votesCast,
             eligible_proposals: result.eligibleProposals,
             updated_at: new Date().toISOString(),
@@ -432,7 +456,7 @@ export const syncCcRationales = inngest.createFunction(
               fidelity_score: result.score,
               participation_score: result.pillars.participation,
               rationale_quality_score: result.pillars.reasoningQuality,
-              constitutional_grounding_score: result.pillars.constitutionalGrounding,
+              constitutional_grounding_score: result.pillars.constitutionalEngagement,
               votes_cast: result.votesCast,
               eligible_proposals: result.eligibleProposals,
             },

@@ -227,6 +227,12 @@ export const analyzeCcRationales = inngest.createFunction(
               citedArticles,
               expectedArticles,
               priorInterpretations,
+              priorRationaleSummaries: await getPriorRationaleSummaries(
+                supabase,
+                item.cc_hot_id,
+                item.proposal_tx_hash,
+                item.proposal_index,
+              ),
             };
 
             // Run AI analysis
@@ -256,7 +262,9 @@ export const analyzeCcRationales = inngest.createFunction(
                 contradicts_own_precedent: result.contradicts_own_precedent,
                 notable_finding: result.notable_finding,
                 finding_severity: result.finding_severity,
+                boilerplate_score: result.boilerplate_score ?? null,
                 analyzed_at: new Date().toISOString(),
+                model_version: 'claude-sonnet-4-5',
               },
               {
                 onConflict: 'cc_hot_id,proposal_tx_hash,proposal_index',
@@ -568,3 +576,28 @@ export const analyzeCcRationales = inngest.createFunction(
     };
   },
 );
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Fetch 3 most recent rationale summaries for this member (for boilerplate detection). */
+async function getPriorRationaleSummaries(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  ccHotId: string,
+  excludeTxHash: string,
+  excludeIndex: number,
+): Promise<string[]> {
+  const { data } = await supabase
+    .from('cc_rationales')
+    .select('summary, rationale_statement, proposal_tx_hash, proposal_index')
+    .eq('cc_hot_id', ccHotId)
+    .order('fetched_at', { ascending: false })
+    .limit(4); // fetch 4 to allow excluding current
+
+  return (data ?? [])
+    .filter((r) => !(r.proposal_tx_hash === excludeTxHash && r.proposal_index === excludeIndex))
+    .slice(0, 3)
+    .map((r) => [r.summary, r.rationale_statement].filter(Boolean).join(' ').slice(0, 300))
+    .filter((s) => s.length > 0);
+}

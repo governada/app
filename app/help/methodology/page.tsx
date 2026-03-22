@@ -137,19 +137,25 @@ const CC_PILLARS = [
     name: 'Participation',
     weight: Math.round(CC_FIDELITY_WEIGHTS.participation * 100),
     description:
-      'Vote rate on governance actions. Non-participation is the most basic accountability failure for constitutional guardians.',
+      'Vote rate on eligible governance actions during their term. Non-participation is the most basic accountability failure for constitutional guardians.',
   },
   {
-    name: 'Constitutional Grounding',
-    weight: Math.round(CC_FIDELITY_WEIGHTS.constitutionalGrounding * 100),
+    name: 'Rationale Provision',
+    weight: Math.round(CC_FIDELITY_WEIGHTS.rationaleProvision * 100),
     description:
-      'Do they cite relevant constitutional articles when voting? Measures how well CC members ground their decisions in the constitution they are sworn to uphold.',
+      'Do they explain their votes? Measures whether CC members submit CIP-136 rationale documents — a binary signal independent from reasoning quality.',
   },
   {
     name: 'Reasoning Quality',
     weight: Math.round(CC_FIDELITY_WEIGHTS.reasoningQuality * 100),
     description:
-      'How thorough is their reasoning? AI-assessed depth and clarity of rationale provided with each vote. In ambiguous cases, strong reasoning matters most.',
+      'AI-assessed deliberation substance. Scores rationality (evidence + logic), reciprocity (engagement with counterarguments), and clarity. Includes boilerplate detection to prevent gaming. The primary differentiator — hardest to fake.',
+  },
+  {
+    name: 'Constitutional Engagement',
+    weight: Math.round(CC_FIDELITY_WEIGHTS.constitutionalEngagement * 100),
+    description:
+      'Breadth and depth of constitutional article references across all votes. Credits any constitutional citation — does not penalize for citing different articles than expected.',
   },
 ];
 

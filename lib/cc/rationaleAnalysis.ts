@@ -25,6 +25,8 @@ export interface RationaleAnalysisInput {
   citedArticles: string[];
   expectedArticles: string[];
   priorInterpretations: PriorInterpretation[];
+  /** Recent prior rationale summaries for boilerplate detection. */
+  priorRationaleSummaries?: string[];
 }
 
 export interface PriorInterpretation {
@@ -52,6 +54,8 @@ export interface RationaleAnalysisResult {
   contradicts_own_precedent: boolean;
   notable_finding: string | null;
   finding_severity: 'info' | 'noteworthy' | 'concern' | 'critical' | null;
+  /** 0-100: How much of this rationale is copy-pasted from prior submissions. 0=original, 100=verbatim copy. */
+  boilerplate_score: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -95,7 +99,7 @@ ${input.rationaleSummary}
 
 ## Cited Articles
 ${citedBlock}
-
+${input.priorRationaleSummaries?.length ? `\n## This Member's Recent Prior Rationale Summaries (for boilerplate detection)\n${input.priorRationaleSummaries.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n` : ''}
 ## Instructions
 Analyze this rationale and return a JSON object with these fields:
 
@@ -142,6 +146,14 @@ Analyze this rationale and return a JSON object with these fields:
 
 12. **finding_severity**: 'info' | 'noteworthy' | 'concern' | 'critical'
     If notable_finding is null, set this to null.
+
+13. **boilerplate_score** (0-100): How much of this rationale appears to be copy-pasted
+    from the member's prior submissions or generic template text?
+    - 0: Entirely original analysis written specifically for this proposal
+    - 20-40: Some reused phrasing but substantively tailored to this proposal
+    - 50-70: Mostly template text with minor proposal-specific adjustments
+    - 80-100: Verbatim or near-verbatim copy of a prior submission
+    Compare against the prior rationale summaries provided above (if any).
 
 Return ONLY valid JSON matching this schema. No commentary.`;
 }

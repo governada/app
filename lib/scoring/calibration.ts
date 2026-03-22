@@ -434,20 +434,57 @@ export const DELEGATOR_TIERS = [
 // ---------------------------------------------------------------------------
 
 /**
- * CC Constitutional Fidelity pillar weights (must sum to 1.0).
- * Replaces the 5-pillar Transparency Index with a simpler 3-pillar model:
- *   1. Participation (30%)    — Do they vote?
- *   2. Constitutional Grounding (40%) — Do they cite relevant articles?
- *   3. Reasoning Quality (30%) — How thorough is their reasoning?
+ * CC Constitutional Fidelity — 4-pillar model with zero overlap between pillars.
  *
- * Removed: Responsiveness (timeliness), Independence, Community Engagement.
- * Philosophy: "Do they vote in line with the constitution? In ambiguous cases,
- * do they justify their votes enough to back it up?"
+ * Each pillar measures an independent signal:
+ *   1. Participation (25%)             — Do they vote? (on-chain, tenure-scoped)
+ *   2. Rationale Provision (20%)       — Do they explain their votes? (CIP-136 presence)
+ *   3. Reasoning Quality (40%)         — AI-assessed deliberation substance (primary differentiator)
+ *   4. Constitutional Engagement (15%) — Breadth + depth of constitutional article references
+ *
+ * Weight justification:
+ * - Reasoning Quality at 40%: hardest to game, most meaningful — measures actual argument substance
+ * - Participation at 25%: necessary baseline but voting alone doesn't prove quality
+ * - Rationale Provision at 20%: independent binary signal — did they explain at all?
+ * - Constitutional Engagement at 15%: lowest weight, most format-dependent — credits ANY citation
+ *
+ * Philosophy: "Do they fulfill their constitutional guardian role with substance?
+ * This scores PROCESS (did they show up, explain, reason well, engage the constitution)
+ * — never OUTCOME (whether their vote was 'right')."
  */
 export const CC_FIDELITY_WEIGHTS = {
-  participation: 0.3,
-  constitutionalGrounding: 0.4,
-  reasoningQuality: 0.3,
+  participation: 0.25,
+  rationaleProvision: 0.2,
+  reasoningQuality: 0.4,
+  constitutionalEngagement: 0.15,
+} as const;
+
+/** Parameters for the Constitutional Engagement pillar. */
+export const CC_ENGAGEMENT_PARAMS = {
+  /** Number of distinct constitutional articles (Articles I-X). */
+  totalConstitutionalArticles: 10,
+  /** Target average articles per rationale for a perfect depth score. */
+  targetArticlesPerRationale: 3,
+  /** Breadth (unique articles cited across career) weight within the pillar. */
+  breadthWeight: 0.6,
+  /** Depth (avg articles per rationale) weight within the pillar. */
+  depthWeight: 0.4,
+} as const;
+
+/** Grade thresholds — calibrated from real AI score distribution. */
+export const CC_GRADE_THRESHOLDS = {
+  A: 80,
+  B: 65,
+  C: 50,
+  D: 35,
+} as const;
+
+/** Boilerplate detection penalty applied to Reasoning Quality. */
+export const CC_BOILERPLATE_PENALTY = {
+  /** Maximum penalty factor (0.5 = halve the score for 100% boilerplate). */
+  maxPenaltyFactor: 0.5,
+  /** Per-point decay rate: penalty = boilerplate_score * decayRate. */
+  decayRate: 0.005,
 } as const;
 
 // ---------------------------------------------------------------------------

@@ -1396,7 +1396,7 @@ export async function getCCMemberVerdicts(): Promise<CCMemberVerdict[]> {
 
     const PILLAR_LABELS: Record<string, string> = {
       participation: 'Participation',
-      constitutionalGrounding: 'Constitutional Grounding',
+      constitutionalGrounding: 'Constitutional Engagement',
       reasoningQuality: 'Reasoning Quality',
     };
 

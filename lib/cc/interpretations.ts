@@ -160,7 +160,7 @@ interface PillarScores {
 
 const PILLAR_LABELS: Record<keyof PillarScores, string> = {
   participation: 'Participation',
-  constitutionalGrounding: 'Constitutional Grounding',
+  constitutionalGrounding: 'Constitutional Engagement',
   reasoningQuality: 'Reasoning Quality',
 };
 
