@@ -1,4 +1,6 @@
+import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
+import { getFeatureFlag } from '@/lib/featureFlags';
 
 export const metadata: Metadata = {
   title: 'Constitutional Committee — Governada',
@@ -16,6 +18,8 @@ export const metadata: Metadata = {
   },
 };
 
-export default function CommitteeLayout({ children }: { children: React.ReactNode }) {
+export default async function CommitteeLayout({ children }: { children: React.ReactNode }) {
+  const observatoryEnabled = await getFeatureFlag('governance_observatory', false);
+  if (observatoryEnabled) redirect('/governance/observatory?focus=committee');
   return <>{children}</>;
 }

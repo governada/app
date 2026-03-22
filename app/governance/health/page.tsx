@@ -1,7 +1,9 @@
 export const dynamic = 'force-dynamic';
 
+import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
+import { getFeatureFlag } from '@/lib/featureFlags';
 import { PageViewTracker } from '@/components/PageViewTracker';
 import { FunnelExploreTracker } from '@/components/funnel/FunnelExploreTracker';
 import { GovernadaPulseOverview } from '@/components/governada/pulse/GovernadaPulseOverview';
@@ -55,7 +57,10 @@ function HealthFallback() {
   );
 }
 
-export default function HealthPage() {
+export default async function HealthPage() {
+  const observatoryEnabled = await getFeatureFlag('governance_observatory', false);
+  if (observatoryEnabled) redirect('/governance/observatory?focus=health');
+
   return (
     <>
       <PageViewTracker event="governance_health_viewed" />

@@ -39,6 +39,7 @@
  * ai_composed_hub                  — AI-generated one-line insights on Hub cards with temporal ordering (Phase 7)
  * ambient_annotations              — Ambient AI annotations on proposal, DRep, and score pages (Phase 7)
  * community_intelligence            — Community Pulse dashboard (aggregate preference intelligence from matching)
+ * governance_observatory             — Unified Observatory page replacing Treasury/Committee/Health tabs
  *
  * ---------------------------------------------------------------------------
  * RETIRED FLAGS (code checks removed or hardcoded)
