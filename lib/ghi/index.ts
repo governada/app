@@ -34,7 +34,7 @@ export {
 import type { GHIComponent, GHIResult } from './types';
 import { getBand } from './types';
 
-import { GHI_COMPONENT_WEIGHTS } from '@/lib/scoring/calibration';
+import { GHI_COMPONENT_WEIGHTS, CALIBRATION_VERSION } from '@/lib/scoring/calibration';
 
 // ---------------------------------------------------------------------------
 // Weight configuration
@@ -45,7 +45,15 @@ const BASE_WEIGHTS = GHI_COMPONENT_WEIGHTS;
 type ComponentName = keyof typeof BASE_WEIGHTS;
 
 /**
- * When Citizen Engagement is off, redistribute its 10% proportionally.
+ * Compute effective GHI component weights.
+ *
+ * When Citizen Engagement is disabled (default — requires sufficient delegation
+ * snapshot history), its 9% weight is redistributed proportionally across the
+ * remaining 8 components so the total always sums to 1.0.
+ *
+ * This redistribution is proportional (each component keeps its relative share),
+ * not arbitrary. The GHI API response includes actual weights used so consumers
+ * can verify what model is active.
  */
 function getWeights(citizenEngagementEnabled: boolean): Record<ComponentName, number> {
   if (citizenEngagementEnabled) {
@@ -72,6 +80,10 @@ export interface GHIComputeResult extends GHIResult {
   edi?: EDIResult;
   meta?: {
     activeDrepCount?: number;
+    /** Calibration version used for this computation */
+    calibrationVersion?: string;
+    /** Whether Citizen Engagement component is active */
+    citizenEngagementEnabled?: boolean;
   };
 }
 
@@ -157,6 +169,8 @@ export async function computeGHI(): Promise<GHIComputeResult> {
     edi: power.edi,
     meta: {
       activeDrepCount: power.detail?.activeDrepCount,
+      calibrationVersion: CALIBRATION_VERSION.version,
+      citizenEngagementEnabled,
     },
   };
 }

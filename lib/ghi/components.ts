@@ -1,12 +1,16 @@
 /**
  * GHI v2 Component Computations
  *
- * 8 components across 3 categories:
- *   Engagement (35%): DRep Participation (15%), SPO Participation (10%), Citizen Engagement (10%)
- *   Quality (40%):    Deliberation Quality (15%), Governance Effectiveness (15%), CC Constitutional Fidelity (10%)
- *   Resilience (25%): Power Distribution (15%), System Stability (10%)
+ * 9 components across 4 categories (weights from calibration.ts):
+ *   Engagement (32%):     DRep Participation (14%), SPO Participation (9%), Citizen Engagement (9%)
+ *   Quality (37%):        Deliberation Quality (14%), Governance Effectiveness (14%), CC Constitutional Fidelity (9%)
+ *   Resilience (23%):     Power Distribution (14%), System Stability (9%)
+ *   Sustainability (8%):  Treasury Health (8%)
  *
  * Each function returns a raw 0-100 score. Calibration is applied externally.
+ *
+ * All signals measure governance health — no platform infrastructure metrics
+ * are included. This ensures GHI is defensible under public scrutiny.
  */
 
 import { createClient } from '@/lib/supabase';
@@ -613,12 +617,28 @@ export async function computeTreasuryHealth(_input: ComponentInput): Promise<Com
 
 // ---------------------------------------------------------------------------
 // 2I. System Stability (10%)
+//
+// Measures whether governance activity is stable and sustainable.
+// Three pure governance signals — no platform infrastructure metrics.
+//
+// Sub-signals:
+//   1. DRep Retention (50%) — Are DReps staying active epoch-over-epoch?
+//   2. Score Volatility (30%) — Are individual scores stable (not chaotic)?
+//   3. Governance Throughput Stability (20%) — Is the volume of governance
+//      actions (votes cast) consistent across epochs? A healthy governance
+//      system has steady participation, not wild swings.
+//
+// Note: This component previously included "Infrastructure Health" which
+// measured Governada's sync pipeline status. That was removed because it
+// measured platform reliability, not governance health — a self-referential
+// signal that would not survive public scrutiny.
 // ---------------------------------------------------------------------------
 
 export async function computeSystemStability({
   supabase,
+  currentEpoch,
 }: ComponentInput): Promise<ComponentScore> {
-  // --- Sub-signal 1: DRep retention (50%) ---
+  // --- Sub-signal 1: DRep Retention (50%) ---
   const { data: ghiSnaps } = await supabase
     .from('ghi_snapshots')
     .select('epoch_no, components')
@@ -648,7 +668,7 @@ export async function computeSystemStability({
     retentionScore = all.length > 0 ? Math.round((active.length / all.length) * 100) : 50;
   }
 
-  // --- Sub-signal 2: Score volatility (30%) ---
+  // --- Sub-signal 2: Score Volatility (30%) ---
   let volatilityScore = 70; // neutral
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const today = new Date().toISOString().slice(0, 10);
@@ -678,29 +698,53 @@ export async function computeSystemStability({
 
     if (count > 0) {
       const meanAbsDelta = totalAbsDelta / count;
-      // 1 - (meanAbsDelta / 20): lower volatility = higher score
       volatilityScore = Math.min(100, Math.max(0, Math.round((1 - meanAbsDelta / 20) * 100)));
     }
   }
 
-  // --- Sub-signal 3: Infrastructure health (20%) ---
-  let infraScore = 50;
-  const { data: syncHealth } = await supabase.from('v_sync_health').select('*');
+  // --- Sub-signal 3: Governance Throughput Stability (20%) ---
+  // Coefficient of variation (CV) of votes-per-epoch over a 5-epoch window.
+  // CV = 0 → perfectly stable (score 100)
+  // CV ≥ 1.5 → highly volatile (score 0)
+  // Sweet spot: CV < 0.3 = very stable, 0.3-0.7 = moderate, > 1.0 = unstable
+  let throughputStabilityScore = 50; // neutral default
+  const epochWindow = 5;
+  const epochMin = currentEpoch - epochWindow;
 
-  if (syncHealth?.length) {
-    const total = syncHealth.length;
-    const healthy = syncHealth.filter((s) => s.last_success === true).length;
-    infraScore = Math.round((healthy / total) * 100);
+  const { data: epochVotes } = await supabase
+    .from('drep_votes')
+    .select('epoch_no')
+    .gte('epoch_no', epochMin);
+
+  if (epochVotes?.length) {
+    const votesPerEpoch = new Map<number, number>();
+    for (let e = epochMin + 1; e <= currentEpoch; e++) {
+      votesPerEpoch.set(e, 0);
+    }
+    for (const v of epochVotes) {
+      const epoch = v.epoch_no as number;
+      votesPerEpoch.set(epoch, (votesPerEpoch.get(epoch) ?? 0) + 1);
+    }
+
+    const counts = Array.from(votesPerEpoch.values());
+    if (counts.length >= 2) {
+      const mean = counts.reduce((s, c) => s + c, 0) / counts.length;
+      if (mean > 0) {
+        const variance = counts.reduce((s, c) => s + (c - mean) ** 2, 0) / counts.length;
+        const cv = Math.sqrt(variance) / mean;
+        throughputStabilityScore = Math.min(100, Math.max(0, Math.round((1 - cv / 1.5) * 100)));
+      }
+    }
   }
 
-  const raw = retentionScore * 0.5 + volatilityScore * 0.3 + infraScore * 0.2;
+  const raw = retentionScore * 0.5 + volatilityScore * 0.3 + throughputStabilityScore * 0.2;
 
   return {
     raw: Math.min(100, Math.max(0, Math.round(raw))),
     detail: {
       drepRetention: Math.round(retentionScore),
       scoreVolatility: Math.round(volatilityScore),
-      infrastructureHealth: Math.round(infraScore),
+      throughputStability: Math.round(throughputStabilityScore),
     },
   };
 }

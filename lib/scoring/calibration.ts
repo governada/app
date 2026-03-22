@@ -937,10 +937,22 @@ export const GHI_CALIBRATION = {
 /**
  * GHI component weights (must sum to 1.0).
  *
- * Engagement (32%): DRep Participation (14%) + SPO Participation (9%) + Citizen Engagement (9%)
- * Quality (37%): Deliberation Quality (14%) + Governance Effectiveness (14%) + CC Constitutional Fidelity (9%)
- * Resilience (23%): Power Distribution (14%) + System Stability (9%)
- * Sustainability (8%): Treasury Health (8%)
+ * Full model (all components enabled):
+ *   Engagement (32%):     DRep Participation (14%) + SPO Participation (9%) + Citizen Engagement (9%)
+ *   Quality (37%):        Deliberation Quality (14%) + Governance Effectiveness (14%) + CC Constitutional Fidelity (9%)
+ *   Resilience (23%):     Power Distribution (14%) + System Stability (9%)
+ *   Sustainability (8%):  Treasury Health (8%)
+ *
+ * When Citizen Engagement is disabled (feature flag `ghi_citizen_engagement`):
+ *   Its 9% weight is redistributed proportionally across the remaining 8 components.
+ *   Effective weights become (rounded):
+ *     DRep Participation: 15.4%, SPO Participation: 9.9%, Deliberation Quality: 15.4%,
+ *     Governance Effectiveness: 15.4%, CC Fidelity: 9.9%, Power Distribution: 15.4%,
+ *     System Stability: 9.9%, Treasury Health: 8.8%
+ *
+ *   Citizen Engagement requires 5+ epochs of delegation snapshot history to produce
+ *   meaningful scores. It will be enabled once sufficient data accumulates.
+ *   See lib/ghi/index.ts getWeights() for the redistribution logic.
  */
 export const GHI_COMPONENT_WEIGHTS = {
   'DRep Participation': 0.14,
