@@ -7,12 +7,12 @@
  * Lazy-loaded in GovernadaShell for zero impact on initial page load.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { useDiscovery } from '@/hooks/useDiscovery';
 import { posthog } from '@/lib/posthog';
-import { DiscoveryHubContext } from './DiscoveryHubContext';
+import { DiscoveryHubContext, registerOpenHub, unregisterOpenHub } from './DiscoveryHubContext';
 import { CompassPanel } from './CompassPanel';
 
 export function DiscoveryHub({
@@ -36,6 +36,12 @@ export function DiscoveryHub({
       exploration_percent: explorationProgress.percent,
     });
   }, [markHubOpened, segment, explorationProgress.percent]);
+
+  // Register globally so components outside the context tree (header) can open the panel
+  useEffect(() => {
+    registerOpenHub(handleOpen);
+    return () => unregisterOpenHub();
+  }, [handleOpen]);
 
   const handleClose = useCallback(() => {
     setOpen(false);
