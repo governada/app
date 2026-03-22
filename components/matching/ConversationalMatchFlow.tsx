@@ -89,15 +89,17 @@ function useGhostText(intervalMs = 3500): string {
 /* ─── Globe threshold by round ──────────────────────────── */
 
 function getThresholdForRound(round: number): number {
+  // Progressive convergence — each round dramatically narrows the highlighted nodes
+  // Round 1: broad scan (~60% of nodes), Round 4: laser focus (~5% of nodes)
   switch (round) {
     case 1:
-      return 180;
+      return 160;
     case 2:
-      return 120;
+      return 100;
     case 3:
-      return 80;
+      return 60;
     default:
-      return 50;
+      return 35;
   }
 }
 
@@ -386,7 +388,7 @@ export function ConversationalMatchFlow({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={motionTransition}
-              className="space-y-3 rounded-2xl bg-black/40 backdrop-blur-md p-5 border border-white/[0.06]"
+              className="space-y-3 rounded-2xl bg-black/40 backdrop-blur-md p-5 border border-white/[0.06] max-md:-mx-6 max-md:w-[calc(100%+3rem)] max-md:rounded-none max-md:border-x-0"
             >
               <p className="text-center text-sm text-white/70">Express yourself freely</p>
 
@@ -406,7 +408,7 @@ export function ConversationalMatchFlow({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={motionTransition}
-              className="space-y-4 rounded-2xl bg-black/40 backdrop-blur-md p-5 border border-white/[0.06]"
+              className="space-y-4 rounded-2xl bg-black/40 backdrop-blur-md p-5 border border-white/[0.06] max-md:-mx-6 max-md:w-[calc(100%+3rem)] max-md:rounded-none max-md:border-x-0"
             >
               <p className="text-center text-sm text-white/70 font-medium">
                 What matters to you in governance?
@@ -477,7 +479,7 @@ export function ConversationalMatchFlow({
 
   if (flowState === 'matching') {
     return (
-      <div className="w-full space-y-3 max-md:fixed max-md:bottom-0 max-md:left-0 max-md:right-0 max-md:z-30 max-md:bg-background/90 max-md:backdrop-blur-lg max-md:px-4 max-md:pb-[env(safe-area-inset-bottom,12px)] max-md:pt-3 max-md:border-t max-md:border-white/[0.06]">
+      <div className="w-full space-y-3 max-md:rounded-t-2xl max-md:bg-black/50 max-md:backdrop-blur-xl max-md:px-4 max-md:pb-[calc(env(safe-area-inset-bottom,8px)+56px)] max-md:pt-4 max-md:border-t max-md:border-white/[0.08] max-md:-mx-6 max-md:w-[calc(100%+3rem)]">
         <AnimatePresence mode="wait">
           {/* Waiting for first question */}
           {isLoading && !question && (

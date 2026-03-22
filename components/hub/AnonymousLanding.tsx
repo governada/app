@@ -58,27 +58,42 @@ export function AnonymousLanding({ pulseData }: AnonymousLandingProps) {
 
   return (
     <div className="relative flex flex-col min-h-[calc(100vh-4rem)]">
-      {/* Constellation hero */}
+      {/* Constellation hero — fills viewport on mobile during matching */}
       <section
         className={cn(
-          'force-dark relative flex-1 min-h-[50vh] sm:-mt-14 overflow-visible flex items-start sm:items-center justify-center',
+          'force-dark relative sm:-mt-14 overflow-visible flex items-start sm:items-center justify-center',
           'transition-all duration-700',
-          isMatching && 'min-h-[60vh]',
+          isMatching
+            ? 'min-h-[calc(100vh-4rem)] max-md:min-h-[calc(100dvh-4rem)]'
+            : 'flex-1 min-h-[50vh]',
         )}
       >
         <div className="absolute inset-0 overflow-hidden">
           <ConstellationScene ref={globeRef} className="w-full h-full" interactive={false} />
         </div>
 
-        {/* Gradient fade */}
-        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-background to-transparent pointer-events-none" />
+        {/* Gradient fade — only when not matching on mobile */}
+        <div
+          className={cn(
+            'absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-background to-transparent pointer-events-none',
+            'transition-opacity duration-500',
+            isMatching && 'max-md:opacity-0',
+          )}
+        />
 
-        {/* Hero content */}
-        <div className="relative z-10 text-center max-w-lg px-6 pt-16 sm:pt-14">
+        {/* Hero content — text lives in flow, matching flow anchored to bottom on mobile */}
+        <div
+          className={cn(
+            'relative z-10 text-center px-6 pt-16 sm:pt-14 w-full flex flex-col',
+            isMatching
+              ? 'max-w-lg max-md:h-full max-md:justify-between max-md:pt-20 max-md:pb-0'
+              : 'max-w-lg',
+          )}
+        >
           <div
             className={cn(
               'transition-all duration-500',
-              isMatching && 'opacity-0 h-0 overflow-hidden',
+              isMatching && 'opacity-0 max-md:h-0 max-md:overflow-hidden md:h-0 md:overflow-hidden',
             )}
           >
             <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white leading-tight hero-text-shadow">
@@ -96,9 +111,9 @@ export function AnonymousLanding({ pulseData }: AnonymousLandingProps) {
             </p>
           </div>
 
-          {/* Conversational matching pills — inline in hero when flag enabled */}
+          {/* Conversational matching flow */}
           {conversationalMatchingEnabled && (
-            <div className="mt-8">
+            <div className={cn('mt-8', isMatching && 'max-md:mt-auto')}>
               <ConversationalMatchFlow globeRef={globeRef} onMatchStart={handleMatchStart} />
             </div>
           )}
