@@ -45,10 +45,10 @@ const SpotlightProvider = dynamic(
   { ssr: false },
 );
 
-const DiscoveryHub = dynamic(
-  () => import('@/components/discovery/DiscoveryHub').then((m) => ({ default: m.DiscoveryHub })),
-  { ssr: false },
-);
+// DiscoveryHub is a regular import (not lazy) because it wraps the header
+// and provides context for the Compass icon. It's lightweight — just state +
+// context provider. The heavy CompassPanel is inside a Sheet (renders on open).
+import { DiscoveryHub } from '@/components/discovery/DiscoveryHub';
 
 const EngagementNudge = dynamic(
   () =>

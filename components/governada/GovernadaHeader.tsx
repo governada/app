@@ -26,7 +26,7 @@ import {
   Compass,
 } from 'lucide-react';
 import { GovernadaLogo } from '@/components/ui/GovernadaLogo';
-import { useGlobalOpenHub } from '@/components/discovery/DiscoveryHubContext';
+import { useDiscoveryHub } from '@/components/discovery/DiscoveryHubContext';
 import { AdminViewAsPicker } from './AdminViewAsPicker';
 import { DepthPromptModal } from './DepthPromptModal';
 import { EpochStrip } from './EpochStrip';
@@ -198,7 +198,7 @@ interface GovernadaHeaderProps {
 export function GovernadaHeader({ compassToggle, compassOpen }: GovernadaHeaderProps = {}) {
   const router = useRouter();
   const { t } = useTranslation();
-  const globalOpenHub = useGlobalOpenHub();
+  const discovery = useDiscoveryHub();
   const { connected, disconnect, logout, isAuthenticated } = useWallet();
   const {
     segment,
@@ -476,7 +476,7 @@ export function GovernadaHeader({ compassToggle, compassOpen }: GovernadaHeaderP
                 ? 'text-primary bg-primary/10'
                 : 'text-muted-foreground hover:text-foreground',
             )}
-            onClick={compassToggle ?? (() => globalOpenHub?.())}
+            onClick={compassToggle ?? (() => discovery?.openHub())}
             aria-label={compassOpen ? 'Close Compass panel' : 'Open Compass Guide'}
             aria-pressed={compassOpen}
           >
