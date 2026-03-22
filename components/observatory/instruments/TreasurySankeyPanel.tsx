@@ -1,20 +1,51 @@
 'use client';
 
 /**
- * TreasurySankeyPanel — Sankey-style flow visualization of ADA
- * from the treasury through spending categories to proposals.
+ * TreasurySankeyPanel — Two-lens treasury view for the Observatory.
  *
- * Compact mode: stylized CSS/SVG flow with count-up stats.
- * Expanded mode: full Sankey + scroll sections (Phase 4 placeholder).
+ * Compact mode: Reservoir headline + Budget Window NCL bar + top pending proposal.
+ * Expanded mode: Full two-lens layout with Sankey flows, NCL budget detail,
+ *   pending proposals, and interactive tools (Simulator, YouDrawIt).
+ *
+ * Lens 1 "The Reservoir" — total balance, runway, historical spending categories.
+ * Lens 2 "The Budget Window" — NCL utilization, pending proposals, projected impact.
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Wallet, Clock, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import {
+  Wallet,
+  Clock,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Landmark,
+  CircleDollarSign,
+  ChevronDown,
+  ChevronUp,
+  Gauge,
+  Pencil,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useTreasuryCurrent, useTreasuryCategories, useTreasuryNcl } from '@/hooks/queries';
+import {
+  useTreasuryCurrent,
+  useTreasuryCategories,
+  useTreasuryNcl,
+  useTreasuryPending,
+} from '@/hooks/queries';
 import { formatAda } from '@/lib/treasury';
+
+// Lazy-load heavy interactive components only in expanded mode
+const TreasurySimulator = dynamic(
+  () => import('@/components/TreasurySimulator').then((m) => m.TreasurySimulator),
+  { ssr: false },
+);
+const YouDrawIt = dynamic(
+  () => import('@/components/treasury/YouDrawIt').then((m) => m.YouDrawIt),
+  { ssr: false },
+);
 
 // ---------------------------------------------------------------------------
 // Types
@@ -34,18 +65,27 @@ interface CategoryFlow {
   color: string;
 }
 
+interface PendingProposal {
+  txHash: string;
+  index: number;
+  title: string;
+  withdrawalAda: number;
+  pctOfBalance: number;
+  treasuryTier: string;
+  proposedEpoch: number;
+}
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-/** Maps category name prefixes to colors. API returns full names like "Development & Infrastructure". */
 const CATEGORY_COLORS: Record<string, string> = {
-  Development: '#06b6d4', // cyan-500
-  Community: '#10b981', // emerald-500
-  Security: '#f59e0b', // amber-500
-  Research: '#8b5cf6', // violet-500
-  Operations: '#94a3b8', // slate-400
-  Other: '#71717a', // zinc-500
+  Development: '#06b6d4',
+  Community: '#10b981',
+  Security: '#f59e0b',
+  Research: '#8b5cf6',
+  Operations: '#94a3b8',
+  Other: '#71717a',
 };
 
 const CATEGORY_BG_CLASSES: Record<string, string> = {
@@ -57,9 +97,14 @@ const CATEGORY_BG_CLASSES: Record<string, string> = {
   Other: 'bg-zinc-500/15 text-zinc-400',
 };
 
+const TIER_CLASSES: Record<string, string> = {
+  major: 'bg-rose-500/15 text-rose-400',
+  significant: 'bg-amber-500/15 text-amber-400',
+  routine: 'bg-emerald-500/15 text-emerald-400',
+};
+
 const FLOW_ANIM_DURATION = 1.5;
 
-/** Match by prefix — "Development & Infrastructure" → "Development" */
 function matchCategoryKey(category: string): string {
   for (const key of Object.keys(CATEGORY_COLORS)) {
     if (category.startsWith(key)) return key;
@@ -75,14 +120,13 @@ function getCategoryBgClass(category: string): string {
   return CATEGORY_BG_CLASSES[matchCategoryKey(category)] ?? CATEGORY_BG_CLASSES.Other;
 }
 
-/** Short display name for flow labels */
 function shortCategoryName(category: string): string {
   const key = matchCategoryKey(category);
   return key === 'Other' ? category : key;
 }
 
 // ---------------------------------------------------------------------------
-// Animated number (count-up)
+// Animated number
 // ---------------------------------------------------------------------------
 
 function AnimatedAda({
@@ -99,7 +143,7 @@ function AnimatedAda({
 }
 
 // ---------------------------------------------------------------------------
-// SVG Flow Visualization (compact)
+// SVG Flow Visualization
 // ---------------------------------------------------------------------------
 
 const SVG_WIDTH = 480;
@@ -122,35 +166,22 @@ function FlowVisualization({
 }) {
   const flows = useMemo(() => {
     if (!categories.length) return [];
-
-    // Scale category amounts to SVG height
     const totalSpent = categories.reduce((s, c) => s + c.totalAda, 0);
     if (totalSpent === 0) return [];
-
     const usableHeight = SVG_HEIGHT - FLOW_GAP * (categories.length - 1) - 20;
-
     let sourceY = 10;
     let targetY = 10;
-
     return categories.map((cat) => {
       const pct = cat.totalAda / totalSpent;
       const height = Math.max(pct * usableHeight, MIN_FLOW_HEIGHT);
-
       const sY = sourceY;
       const tY = targetY;
       sourceY += height + FLOW_GAP;
       targetY += height + FLOW_GAP;
-
-      // Curved path from source to target
       const sx = SOURCE_X + SOURCE_WIDTH;
       const tx = TARGET_X;
       const cp1x = sx + (tx - sx) * 0.4;
       const cp2x = sx + (tx - sx) * 0.6;
-
-      const pathTop = `M ${sx} ${sY} C ${cp1x} ${sY}, ${cp2x} ${tY}, ${tx} ${tY}`;
-      const pathBottom = `M ${sx} ${sY + height} C ${cp1x} ${sY + height}, ${cp2x} ${tY + height}, ${tx} ${tY + height}`;
-
-      // Build a closed area path
       const areaPath = [
         `M ${sx} ${sY}`,
         `C ${cp1x} ${sY}, ${cp2x} ${tY}, ${tx} ${tY}`,
@@ -158,18 +189,14 @@ function FlowVisualization({
         `C ${cp2x} ${tY + height}, ${cp1x} ${sY + height}, ${sx} ${sY + height}`,
         'Z',
       ].join(' ');
-
       return {
         category: cat.category,
         color: getCategoryColor(cat.category),
         height,
         sourceY: sY,
         targetY: tY,
-        pathTop,
-        pathBottom,
         areaPath,
         totalAda: cat.totalAda,
-        proposalCount: cat.proposalCount,
       };
     });
   }, [categories]);
@@ -202,13 +229,10 @@ function FlowVisualization({
             <stop offset="100%" stopColor={f.color} stopOpacity={0.25} />
           </linearGradient>
         ))}
-        {/* Clip path for playback position reveal */}
         <clipPath id="flow-reveal">
           <rect x={0} y={0} width={SVG_WIDTH * animProgress} height={totalHeight} />
         </clipPath>
       </defs>
-
-      {/* Source block (Treasury) */}
       <rect
         x={SOURCE_X}
         y={flows[0]?.sourceY ?? 10}
@@ -223,8 +247,6 @@ function FlowVisualization({
         rx={4}
         className="fill-amber-500/80"
       />
-
-      {/* Flows */}
       <g clipPath="url(#flow-reveal)">
         {flows.map((f) => (
           <g key={f.category}>
@@ -235,7 +257,6 @@ function FlowVisualization({
               animate={{ opacity: 1 }}
               transition={{ duration: FLOW_ANIM_DURATION, ease: 'easeOut' }}
             />
-            {/* Flow label */}
             <text
               x={(SOURCE_X + SOURCE_WIDTH + TARGET_X) / 2}
               y={f.targetY + f.height / 2 + 3}
@@ -248,8 +269,6 @@ function FlowVisualization({
           </g>
         ))}
       </g>
-
-      {/* Target blocks (per-category) */}
       {flows.map((f) => (
         <rect
           key={`target-${f.category}`}
@@ -267,101 +286,159 @@ function FlowVisualization({
 }
 
 // ---------------------------------------------------------------------------
-// NCL Progress Bar
+// NCL Budget Bar (enhanced)
 // ---------------------------------------------------------------------------
 
-function NclBar({ utilizationPct, position }: { utilizationPct: number; position: number }) {
-  const displayPct = Math.min(utilizationPct * position, 100);
-  const barColor =
-    utilizationPct >= 90 ? 'bg-red-500' : utilizationPct >= 70 ? 'bg-amber-500' : 'bg-emerald-500';
-
-  return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between text-xs">
-        <span className="text-muted-foreground">NCL Utilization</span>
-        <span className="tabular-nums font-medium">{displayPct.toFixed(1)}%</span>
-      </div>
-      <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-        <motion.div
-          className={cn('h-full rounded-full', barColor)}
-          initial={{ width: 0 }}
-          animate={{ width: `${displayPct}%` }}
-          transition={{ duration: FLOW_ANIM_DURATION, ease: 'easeOut' }}
-        />
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Compact Stats Row
-// ---------------------------------------------------------------------------
-
-function StatsRow({
-  balanceAda,
-  pendingCount,
-  trend,
+function NclBudgetBar({
+  ncl,
   position,
+  compact,
 }: {
-  balanceAda: number;
-  pendingCount: number;
-  trend?: string;
+  ncl: {
+    utilizationPct: number;
+    projectedUtilizationPct: number;
+    remainingAda: number;
+    headroomAfterPendingAda: number;
+    enactedWithdrawalsAda: number;
+    pendingWithdrawalsAda: number;
+    period: { nclAda: number; startEpoch: number; endEpoch: number };
+    epochsRemaining: number;
+    periodProgressPct: number;
+    status: string;
+  };
   position: number;
+  compact?: boolean;
 }) {
-  const TrendIcon = trend === 'growing' ? TrendingUp : trend === 'shrinking' ? TrendingDown : Minus;
+  const enactedPct = (ncl.enactedWithdrawalsAda / ncl.period.nclAda) * 100;
+  const pendingPct = (ncl.pendingWithdrawalsAda / ncl.period.nclAda) * 100;
+  const displayEnacted = enactedPct * Math.min(position, 1);
+  const displayPending = pendingPct * Math.min(position, 1);
 
-  const trendColor =
-    trend === 'growing'
+  const statusColor =
+    ncl.status === 'healthy'
       ? 'text-emerald-400'
-      : trend === 'shrinking'
-        ? 'text-red-400'
-        : 'text-muted-foreground';
+      : ncl.status === 'elevated'
+        ? 'text-amber-400'
+        : 'text-rose-400';
 
   return (
-    <div className="flex items-center gap-4 text-sm">
-      {/* Balance */}
-      <div className="flex items-center gap-1.5">
-        <Wallet className="w-3.5 h-3.5 text-amber-400" />
-        <span className="text-muted-foreground">Balance:</span>
-        <span className="font-semibold tabular-nums">
-          <AnimatedAda value={balanceAda} position={position} />
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-muted-foreground flex items-center gap-1.5">
+          <CircleDollarSign className="w-3 h-3" />
+          Budget Window
+          <span className="text-[10px] text-muted-foreground/60">
+            Ep {ncl.period.startEpoch}–{ncl.period.endEpoch}
+          </span>
+        </span>
+        <span className={cn('font-medium', statusColor)}>
+          {formatAda(ncl.remainingAda)} remaining
         </span>
       </div>
 
-      {/* Trend */}
-      <div className={cn('flex items-center gap-1', trendColor)}>
-        <TrendIcon className="w-3 h-3" />
-        <span className="text-xs capitalize">{trend ?? 'stable'}</span>
+      {/* Stacked bar: enacted (solid) + pending (striped) */}
+      <div className="h-2.5 w-full rounded-full bg-muted/50 overflow-hidden relative">
+        {/* Enacted portion */}
+        <motion.div
+          className="absolute inset-y-0 left-0 bg-amber-500 rounded-l-full"
+          initial={{ width: 0 }}
+          animate={{ width: `${displayEnacted}%` }}
+          transition={{ duration: FLOW_ANIM_DURATION, ease: 'easeOut' }}
+        />
+        {/* Pending portion (dashed/striped) */}
+        <motion.div
+          className="absolute inset-y-0 bg-amber-500/40 rounded-r-full"
+          style={{
+            left: `${displayEnacted}%`,
+            backgroundImage:
+              'repeating-linear-gradient(135deg, transparent, transparent 2px, rgba(255,255,255,0.1) 2px, rgba(255,255,255,0.1) 4px)',
+          }}
+          initial={{ width: 0 }}
+          animate={{ width: `${displayPending}%` }}
+          transition={{ duration: FLOW_ANIM_DURATION, ease: 'easeOut', delay: 0.3 }}
+        />
+        {/* Time progress marker */}
+        <div
+          className="absolute top-0 bottom-0 w-px bg-foreground/30"
+          style={{ left: `${ncl.periodProgressPct}%` }}
+          title={`${ncl.epochsRemaining} epochs remaining`}
+        />
       </div>
 
-      {/* Pending */}
-      <div className="flex items-center gap-1.5">
-        <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-        <span className="text-muted-foreground">{pendingCount} pending</span>
-      </div>
+      {/* Legend */}
+      {!compact && (
+        <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-sm bg-amber-500" />
+            Withdrawn: {formatAda(ncl.enactedWithdrawalsAda)}
+          </span>
+          <span className="flex items-center gap-1">
+            <span
+              className="w-2 h-2 rounded-sm bg-amber-500/40"
+              style={{
+                backgroundImage:
+                  'repeating-linear-gradient(135deg, transparent, transparent 1px, rgba(255,255,255,0.15) 1px, rgba(255,255,255,0.15) 2px)',
+              }}
+            />
+            Pending: {formatAda(ncl.pendingWithdrawalsAda)}
+          </span>
+          <span className="ml-auto tabular-nums">{ncl.epochsRemaining} epochs left</span>
+        </div>
+      )}
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Category Legend
+// Pending Proposals List
 // ---------------------------------------------------------------------------
 
-function CategoryLegend({ categories }: { categories: CategoryFlow[] }) {
+function PendingProposalsList({
+  proposals,
+  nclBudget,
+  nclRemaining,
+}: {
+  proposals: PendingProposal[];
+  nclBudget: number;
+  nclRemaining: number;
+}) {
+  if (!proposals.length) return null;
+
   return (
-    <div className="flex flex-wrap gap-2">
-      {categories.map((cat) => (
-        <div
-          key={cat.category}
-          className={cn(
-            'flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium',
-            getCategoryBgClass(cat.category),
-          )}
-        >
-          <span>{cat.category}</span>
-          <span className="opacity-60">{formatAda(cat.totalAda)}</span>
-        </div>
-      ))}
+    <div className="space-y-2">
+      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+        Pending Proposals
+      </p>
+      {proposals.map((p) => {
+        const pctOfBudget = nclBudget > 0 ? (p.withdrawalAda / nclBudget) * 100 : 0;
+        return (
+          <div
+            key={`${p.txHash}-${p.index}`}
+            className="flex items-center gap-3 rounded-lg border border-border/20 bg-card/30 px-3 py-2"
+          >
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium truncate">{p.title}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                {formatAda(p.withdrawalAda)} · {pctOfBudget.toFixed(1)}% of budget
+              </p>
+            </div>
+            <span
+              className={cn(
+                'shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase',
+                TIER_CLASSES[p.treasuryTier] ?? TIER_CLASSES.routine,
+              )}
+            >
+              {p.treasuryTier}
+            </span>
+          </div>
+        );
+      })}
+      {nclRemaining > 0 && (
+        <p className="text-[10px] text-muted-foreground italic">
+          If all pass, {formatAda(nclRemaining)} of {formatAda(nclBudget)} budget remains (
+          {((nclRemaining / nclBudget) * 100).toFixed(0)}%)
+        </p>
+      )}
     </div>
   );
 }
@@ -372,23 +449,11 @@ function CategoryLegend({ categories }: { categories: CategoryFlow[] }) {
 
 function SankeySkeleton() {
   return (
-    <div className="space-y-4 p-4">
-      <div className="flex items-center gap-3">
-        <Skeleton className="h-5 w-5 rounded" />
-        <Skeleton className="h-4 w-32" />
-      </div>
-      <Skeleton className="h-[160px] w-full rounded-lg" />
-      <div className="flex gap-3">
-        <Skeleton className="h-3 w-20 rounded" />
-        <Skeleton className="h-3 w-16 rounded" />
-        <Skeleton className="h-3 w-24 rounded" />
-      </div>
-      <Skeleton className="h-2 w-full rounded-full" />
-      <div className="flex gap-2">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-6 w-20 rounded-full" />
-        ))}
-      </div>
+    <div className="space-y-3 p-3">
+      <Skeleton className="h-4 w-32" />
+      <Skeleton className="h-8 w-24" />
+      <Skeleton className="h-2.5 w-full rounded-full" />
+      <Skeleton className="h-[100px] w-full rounded-lg" />
     </div>
   );
 }
@@ -406,6 +471,9 @@ export function TreasurySankeyPanel({
   const { data: currentData, isLoading: currentLoading } = useTreasuryCurrent();
   const { data: categoriesData, isLoading: categoriesLoading } = useTreasuryCategories();
   const { data: nclData, isLoading: nclLoading } = useTreasuryNcl();
+  const { data: pendingData } = useTreasuryPending();
+  const [showSimulator, setShowSimulator] = useState(false);
+  const [showYouDrawIt, setShowYouDrawIt] = useState(false);
 
   const isLoading = currentLoading || categoriesLoading || nclLoading;
 
@@ -424,21 +492,29 @@ export function TreasurySankeyPanel({
     | undefined;
 
   const balanceAda = treasury?.balance ?? 0;
-  const pendingCount = treasury?.pendingCount ?? 0;
   const epoch = treasury?.epoch ?? 0;
-
-  // Trend comes directly from API
   const trend = treasury?.trend ?? 'stable';
 
-  // NCL data — API wraps in { ncl: ... }
+  // NCL data
   const nclRaw = nclData as { ncl?: Record<string, unknown> } | undefined;
   const ncl = (nclRaw?.ncl ?? null) as {
     utilizationPct: number;
+    projectedUtilizationPct: number;
     remainingAda: number;
-    period: { nclAda: number };
-    status: string;
+    headroomAfterPendingAda: number;
+    enactedWithdrawalsAda: number;
+    pendingWithdrawalsAda: number;
+    period: { nclAda: number; startEpoch: number; endEpoch: number };
     epochsRemaining: number;
+    periodProgressPct: number;
+    status: string;
   } | null;
+
+  // Pending proposals
+  const pending = pendingData as
+    | { proposals: PendingProposal[]; totalAda: number; pctOfTreasury: string }
+    | undefined;
+  const pendingProposals = pending?.proposals ?? [];
 
   // Category flows
   const categoryFlows = useMemo<CategoryFlow[]>(() => {
@@ -455,20 +531,32 @@ export function TreasurySankeyPanel({
       .slice(0, 6);
   }, [categoriesData?.categories]);
 
-  // Effective animation position: in live mode, show everything
   const effectivePosition = isLive ? 1 : position;
+  const TrendIcon = trend === 'growing' ? TrendingUp : trend === 'shrinking' ? TrendingDown : Minus;
+  const trendColor =
+    trend === 'growing'
+      ? 'text-emerald-400'
+      : trend === 'shrinking'
+        ? 'text-red-400'
+        : 'text-muted-foreground';
 
-  if (isLoading) {
-    return <SankeySkeleton />;
-  }
+  if (isLoading) return <SankeySkeleton />;
 
-  return (
-    <div className={cn('space-y-4', expanded ? 'p-4' : 'p-3')}>
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Wallet className="w-4 h-4 text-amber-400" />
-          <h3 className="text-sm font-semibold tracking-tight">Treasury Flow</h3>
+  // ── Compact View ────────────────────────────────────────────────────────
+  if (!expanded) {
+    return (
+      <div className="space-y-3 p-3">
+        {/* Reservoir: balance headline */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <Landmark className="w-3.5 h-3.5 text-amber-400" />
+            <span className="text-lg font-bold tabular-nums">
+              <AnimatedAda value={balanceAda} position={effectivePosition} />
+            </span>
+            <span className={cn('flex items-center gap-0.5 text-xs', trendColor)}>
+              <TrendIcon className="w-3 h-3" />
+            </span>
+          </div>
           {isLive && (
             <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-400">
               <span className="relative flex h-1.5 w-1.5">
@@ -479,57 +567,206 @@ export function TreasurySankeyPanel({
             </span>
           )}
         </div>
-        {expanded && <span className="text-xs text-muted-foreground">Epoch {epoch || '...'}</span>}
+
+        {/* Budget Window: NCL bar */}
+        {ncl && <NclBudgetBar ncl={ncl} position={effectivePosition} compact />}
+
+        {/* Top pending proposal (engagement hook) */}
+        {pendingProposals.length > 0 && (
+          <div className="flex items-center gap-2 text-xs">
+            <Clock className="w-3 h-3 text-muted-foreground shrink-0" />
+            <span className="truncate text-muted-foreground">
+              {pendingProposals.length} pending · {formatAda(pending?.totalAda ?? 0)} requested
+            </span>
+          </div>
+        )}
       </div>
+    );
+  }
 
-      {/* Stats */}
-      <StatsRow
-        balanceAda={balanceAda}
-        pendingCount={pendingCount}
-        trend={trend}
-        position={effectivePosition}
-      />
+  // ── Expanded View ───────────────────────────────────────────────────────
+  return (
+    <div className="space-y-6 p-4">
+      {/* ── LENS 1: The Reservoir ─────────────────────────────────── */}
+      <section className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Landmark className="w-4 h-4 text-amber-400" />
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            The Reservoir
+          </h3>
+          <span className="text-xs text-muted-foreground/60">Epoch {epoch}</span>
+        </div>
 
-      {/* Flow Visualization */}
-      {categoryFlows.length > 0 && (
-        <motion.div
-          initial={prefersReducedMotion ? undefined : { opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.1 }}
-        >
-          <FlowVisualization
-            categories={categoryFlows}
-            position={effectivePosition}
-            prefersReducedMotion={prefersReducedMotion}
-          />
-        </motion.div>
-      )}
+        {/* Big balance + metrics */}
+        <div className="flex items-baseline gap-3">
+          <span className="text-2xl font-bold tabular-nums">
+            <AnimatedAda value={balanceAda} position={effectivePosition} />
+          </span>
+          <span className={cn('flex items-center gap-0.5 text-sm', trendColor)}>
+            <TrendIcon className="w-3.5 h-3.5" />
+            <span className="capitalize">{trend}</span>
+          </span>
+        </div>
 
-      {/* NCL Budget Utilization */}
-      {ncl && <NclBar utilizationPct={ncl.utilizationPct} position={effectivePosition} />}
-
-      {/* Category Legend */}
-      {categoryFlows.length > 0 && <CategoryLegend categories={categoryFlows} />}
-
-      {/* Expanded: runway + key metrics */}
-      {expanded && treasury && (
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="rounded-lg border border-border/30 bg-card/40 p-3">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
-              Runway
-            </p>
-            <p className="text-lg font-bold tabular-nums">
-              {treasury.runwayMonths >= 999 ? '∞' : `${treasury.runwayMonths}mo`}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-lg border border-border/20 bg-card/30 px-3 py-2">
+            <p className="text-[10px] text-muted-foreground">Runway</p>
+            <p className="text-sm font-bold tabular-nums">
+              {treasury && treasury.runwayMonths >= 999 ? '∞' : `${treasury?.runwayMonths ?? 0}mo`}
             </p>
           </div>
-          <div className="rounded-lg border border-border/30 bg-card/40 p-3">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
-              Health
-            </p>
-            <p className="text-lg font-bold tabular-nums">{treasury.healthScore}/100</p>
+          <div className="rounded-lg border border-border/20 bg-card/30 px-3 py-2">
+            <p className="text-[10px] text-muted-foreground">Treasury Health</p>
+            <p className="text-sm font-bold tabular-nums">{treasury?.healthScore ?? 0}/100</p>
           </div>
         </div>
-      )}
+
+        {/* Spending categories flow */}
+        {categoryFlows.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+              Historical Spending
+            </p>
+            <FlowVisualization
+              categories={categoryFlows}
+              position={effectivePosition}
+              prefersReducedMotion={prefersReducedMotion}
+            />
+            <div className="flex flex-wrap gap-1.5">
+              {categoryFlows.map((cat) => (
+                <span
+                  key={cat.category}
+                  className={cn(
+                    'text-[10px] font-medium px-2 py-0.5 rounded-full',
+                    getCategoryBgClass(cat.category),
+                  )}
+                >
+                  {shortCategoryName(cat.category)}: {formatAda(cat.totalAda)}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* Divider */}
+      <div className="border-t border-border/20" />
+
+      {/* ── LENS 2: The Budget Window ─────────────────────────────── */}
+      <section className="space-y-3">
+        <div className="flex items-center gap-2">
+          <CircleDollarSign className="w-4 h-4 text-amber-400" />
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Budget Window
+          </h3>
+          {ncl && (
+            <span className="text-xs text-muted-foreground/60">
+              {formatAda(ncl.period.nclAda)} · Ep {ncl.period.startEpoch}–{ncl.period.endEpoch}
+            </span>
+          )}
+        </div>
+
+        {ncl && <NclBudgetBar ncl={ncl} position={effectivePosition} />}
+
+        {/* Budget metrics */}
+        {ncl && (
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-lg border border-border/20 bg-card/30 px-2.5 py-1.5 text-center">
+              <p className="text-[10px] text-muted-foreground">Utilized</p>
+              <p className="text-sm font-bold tabular-nums">
+                {ncl.projectedUtilizationPct.toFixed(1)}%
+              </p>
+              <p className="text-[9px] text-muted-foreground">if all pass</p>
+            </div>
+            <div className="rounded-lg border border-border/20 bg-card/30 px-2.5 py-1.5 text-center">
+              <p className="text-[10px] text-muted-foreground">Headroom</p>
+              <p className="text-sm font-bold tabular-nums">
+                {formatAda(ncl.headroomAfterPendingAda)}
+              </p>
+              <p className="text-[9px] text-muted-foreground">after pending</p>
+            </div>
+            <div className="rounded-lg border border-border/20 bg-card/30 px-2.5 py-1.5 text-center">
+              <p className="text-[10px] text-muted-foreground">Window</p>
+              <p className="text-sm font-bold tabular-nums">{ncl.epochsRemaining} ep</p>
+              <p className="text-[9px] text-muted-foreground">remaining</p>
+            </div>
+          </div>
+        )}
+
+        {/* Pending proposals */}
+        <PendingProposalsList
+          proposals={pendingProposals}
+          nclBudget={ncl?.period.nclAda ?? 0}
+          nclRemaining={ncl?.headroomAfterPendingAda ?? 0}
+        />
+      </section>
+
+      {/* Divider */}
+      <div className="border-t border-border/20" />
+
+      {/* ── Interactive Tools ─────────────────────────────────────── */}
+      <section className="space-y-2">
+        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+          Explore
+        </p>
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              setShowSimulator((prev) => !prev);
+              setShowYouDrawIt(false);
+            }}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+              showSimulator
+                ? 'bg-primary/15 text-primary'
+                : 'bg-muted/50 text-muted-foreground hover:text-foreground',
+            )}
+          >
+            <Gauge className="w-3.5 h-3.5" />
+            Runway Simulator
+            {showSimulator ? (
+              <ChevronUp className="w-3 h-3" />
+            ) : (
+              <ChevronDown className="w-3 h-3" />
+            )}
+          </button>
+          <button
+            onClick={() => {
+              setShowYouDrawIt((prev) => !prev);
+              setShowSimulator(false);
+            }}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+              showYouDrawIt
+                ? 'bg-primary/15 text-primary'
+                : 'bg-muted/50 text-muted-foreground hover:text-foreground',
+            )}
+          >
+            <Pencil className="w-3.5 h-3.5" />
+            Draw Your Forecast
+            {showYouDrawIt ? (
+              <ChevronUp className="w-3 h-3" />
+            ) : (
+              <ChevronDown className="w-3 h-3" />
+            )}
+          </button>
+        </div>
+
+        {showSimulator && (
+          <div className="mt-2">
+            <TreasurySimulator
+              currentBalance={balanceAda}
+              burnRate={treasury?.burnRatePerEpoch ?? 0}
+              currentEpoch={epoch}
+            />
+          </div>
+        )}
+        {showYouDrawIt && (
+          <div className="mt-2">
+            <YouDrawIt />
+          </div>
+        )}
+      </section>
     </div>
   );
 }
