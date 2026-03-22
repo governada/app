@@ -45,6 +45,23 @@ export interface DRepProfileData {
   delegatorCount: number;
   metadataHashVerified: boolean;
   brokenUris?: Set<string>;
+  /** Unix seconds when the profile was last updated on-chain, or null if unknown. */
+  updatedAt: number | null;
+}
+
+/**
+ * Delegation snapshot data for a single DRep across epochs.
+ * Used to compute delegation health signals (retention, diversity, growth).
+ */
+export interface DelegationSnapshotData {
+  /** Delegator counts per epoch, ordered by epoch ascending. */
+  epochs: {
+    epoch: number;
+    delegatorCount: number;
+    totalPowerLovelace: number;
+    newDelegators: number | null;
+    lostDelegators: number | null;
+  }[];
 }
 
 export interface DRepScoreResult {

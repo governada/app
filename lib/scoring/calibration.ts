@@ -415,8 +415,7 @@ export const SPO_PILLAR_CALIBRATION = {
 
 /**
  * Absolute delegator count tiers for Community Presence scoring.
- * Replaces percentile-based delegator ranking (zero-sum) with absolute
- * thresholds (every DRep can reach 100 by growing their community).
+ * V3.2: Used as FALLBACK when delegation snapshot history is unavailable.
  * Tiers are evaluated highest-first; first match wins.
  */
 export const DELEGATOR_TIERS = [
@@ -428,6 +427,50 @@ export const DELEGATOR_TIERS = [
   { min: 1, score: 20 },
   { min: 0, score: 0 },
 ] as const;
+
+/**
+ * V3.2 Delegation Health configuration.
+ * Replaces simple delegator count tiers with three health signals
+ * when snapshot history is available.
+ */
+export const DELEGATION_HEALTH = {
+  /** Sub-signal weights (must sum to 1.0). */
+  weights: {
+    retention: 0.33,
+    diversity: 0.33,
+    organicGrowth: 0.34,
+  },
+  /** Minimum number of epoch snapshots required to use health signals. */
+  minSnapshotsForHealth: 2,
+  /** Number of epochs to average for organic growth rate. */
+  growthWindowEpochs: 5,
+  /** Organic growth scoring curve: new delegators per epoch → score. */
+  growthCurve: [
+    { minGrowth: 10, score: 100 },
+    { minGrowth: 5, score: 85 },
+    { minGrowth: 2, score: 70 },
+    { minGrowth: 1, score: 55 },
+    { minGrowth: 0, score: 40 },
+  ],
+  /** Fallback diversity score when ADA amounts unavailable: min(100, count * 2). */
+  diversityFallbackMultiplier: 2,
+  /** Neutral score for growth when <2 snapshots available. */
+  neutralGrowthScore: 50,
+} as const;
+
+/**
+ * V3.2 Profile Staleness decay configuration.
+ * Applies temporal decay to profile quality score based on
+ * how recently the profile was updated on-chain.
+ */
+export const PROFILE_STALENESS = {
+  /** Days before decay starts. */
+  freshDays: 180,
+  /** Days at which decay reaches the floor. */
+  staleDays: 360,
+  /** Minimum staleness factor (never fully penalize). */
+  floor: 0.5,
+} as const;
 
 // ---------------------------------------------------------------------------
 // CC Constitutional Fidelity Score

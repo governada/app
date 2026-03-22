@@ -21,6 +21,7 @@ export {
   type ProposalVotingSummary,
   type DRepProfileData,
   type DRepScoreResult,
+  type DelegationSnapshotData,
 } from './types';
 
 // SPO Score V3
