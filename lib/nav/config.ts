@@ -30,8 +30,6 @@ import {
   FileText,
   Users,
   Building2,
-  Wallet,
-  Activity,
   Vote,
   ScrollText,
   BarChart3,
@@ -42,11 +40,11 @@ import {
   BadgeCheck,
   BookOpen,
   MessageSquare,
-  Shield,
   Rocket,
   Link2,
   PenLine,
   Briefcase,
+  Telescope,
 } from 'lucide-react';
 import type { UserSegment } from '@/components/providers/SegmentProvider';
 import { type GovernanceDepth, getTunerLevel } from '@/lib/governanceTuner';
@@ -193,14 +191,12 @@ export const GOVERNANCE_ITEMS: NavItem[] = [
     sublabelKey: 'gov.activeDreps',
   },
   { href: '/governance/pools', label: 'Pools', icon: Building2, sublabelKey: 'gov.activePools' },
-  { href: '/governance/committee', label: 'Committee', icon: Shield, sublabelKey: 'gov.ccMembers' },
   {
-    href: '/governance/treasury',
-    label: 'Treasury',
-    icon: Wallet,
-    sublabelKey: 'gov.treasuryBalance',
+    href: '/governance/observatory',
+    label: 'Observatory',
+    icon: Telescope,
+    sublabelKey: 'gov.ghiScore',
   },
-  { href: '/governance/health', label: 'Health', icon: Activity, sublabelKey: 'gov.ghiScore' },
 ];
 
 /** Base You items — all authenticated personas */

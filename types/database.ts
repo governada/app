@@ -3561,6 +3561,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      observatory_narratives: {
+        Row: {
+          committee: string | null;
+          epoch: number;
+          generated_at: string;
+          health: string | null;
+          id: number;
+          treasury: string | null;
+          unified: string | null;
+        };
+        Insert: {
+          committee?: string | null;
+          epoch: number;
+          generated_at?: string;
+          health?: string | null;
+          id?: never;
+          treasury?: string | null;
+          unified?: string | null;
+        };
+        Update: {
+          committee?: string | null;
+          epoch?: number;
+          generated_at?: string;
+          health?: string | null;
+          id?: never;
+          treasury?: string | null;
+          unified?: string | null;
+        };
+        Relationships: [];
+      };
       pca_results: {
         Row: {
           components: number;

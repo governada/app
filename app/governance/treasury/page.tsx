@@ -1,7 +1,9 @@
 export const dynamic = 'force-dynamic';
 
+import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
+import { getFeatureFlag } from '@/lib/featureFlags';
 import { PageViewTracker } from '@/components/PageViewTracker';
 import { TreasuryOverview } from './TreasuryOverview';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -70,7 +72,10 @@ function TreasuryFallback() {
   );
 }
 
-export default function TreasuryPage() {
+export default async function TreasuryPage() {
+  const observatoryEnabled = await getFeatureFlag('governance_observatory', false);
+  if (observatoryEnabled) redirect('/governance/observatory?focus=treasury');
+
   return (
     <>
       <PageViewTracker event="governance_treasury_viewed" />
