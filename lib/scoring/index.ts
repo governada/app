@@ -47,10 +47,16 @@ export {
   computeDRepConfidence,
   getDRepTierCap,
   getDRepConfidenceByVotes,
+  getSpoTierCap,
+  getSpoConfidenceByVotes,
   dampenPercentile,
   percentileNormalizeWeighted,
-  CONFIDENCE_TIER_THRESHOLD,
 } from './confidence';
+export {
+  computeSybilConfidencePenalty,
+  applySybilPenalty,
+  type SybilConfidenceFlag,
+} from './sybilPenalty';
 export {
   computeParticipationAttribution,
   generateRecommendations,

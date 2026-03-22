@@ -16,6 +16,7 @@ import { computeConfidence } from '@/lib/scoring/confidence';
 import { detectSybilPairs } from '@/lib/scoring/sybilDetection';
 import { getExtendedImportanceWeight } from '@/lib/scoring';
 import { getFeatureFlag } from '@/lib/featureFlags';
+import { CURRENT_SPO_SCORE_VERSION } from '@/lib/scoring/versioning';
 import { logger } from '@/lib/logger';
 
 interface SpoProposalRow {
@@ -269,7 +270,27 @@ export const syncSpoScores = inngest.createFunction(
           poolVoteMap.get(v.pool_id)!.set(proposalKey, v.vote as 'Yes' | 'No' | 'Abstain');
         }
 
-        // Compute V3 Deliberation Quality scores
+        // Compute SPO majority per proposal (by simple vote count, for dissent scoring)
+        const spoMajorityByProposal = new Map<string, 'Yes' | 'No' | null>();
+        {
+          const proposalVoteCounts = new Map<string, { yes: number; no: number }>();
+          for (const votes of poolVotes.values()) {
+            for (const v of votes) {
+              if (v.vote === 'Abstain') continue;
+              const cur = proposalVoteCounts.get(v.proposalKey) ?? { yes: 0, no: 0 };
+              if (v.vote === 'Yes') cur.yes++;
+              else cur.no++;
+              proposalVoteCounts.set(v.proposalKey, cur);
+            }
+          }
+          for (const [key, counts] of proposalVoteCounts) {
+            if (counts.yes === counts.no)
+              spoMajorityByProposal.set(key, null); // tied
+            else spoMajorityByProposal.set(key, counts.yes > counts.no ? 'Yes' : 'No');
+          }
+        }
+
+        // Compute V3.2 Deliberation Quality scores
         const deliberationVotes = new Map<
           string,
           Array<{
@@ -280,6 +301,7 @@ export const syncSpoScores = inngest.createFunction(
             proposalType: string;
             importanceWeight: number;
             hasRationale: boolean;
+            spoMajorityVote?: 'Yes' | 'No' | null;
           }>
         >();
         for (const [poolId, votes] of poolVotes) {
@@ -293,6 +315,7 @@ export const syncSpoScores = inngest.createFunction(
               proposalType: v.proposalType,
               importanceWeight: v.importanceWeight,
               hasRationale: v.hasRationale,
+              spoMajorityVote: spoMajorityByProposal.get(v.proposalKey) ?? null,
             })),
           );
         }
@@ -348,6 +371,7 @@ export const syncSpoScores = inngest.createFunction(
             socialLinks: Array.isArray(meta?.social_links) ? meta!.social_links : [],
             metadataHashVerified: meta?.metadata_hash_verified ?? false,
             delegatorCount: meta?.delegator_count ?? 0,
+            voteCount: poolVotes.get(poolId)?.length ?? 0,
           });
         }
 
@@ -484,6 +508,7 @@ export const syncSpoScores = inngest.createFunction(
             alignment_security: align.security ?? null,
             alignment_innovation: align.innovation ?? null,
             alignment_transparency: align.transparency ?? null,
+            score_version: CURRENT_SPO_SCORE_VERSION,
             updated_at: new Date().toISOString(),
           };
         });
@@ -517,6 +542,7 @@ export const syncSpoScores = inngest.createFunction(
           confidence: s.confidence,
           rationale_rate: null,
           vote_count: poolVotes.get(poolId)?.length ?? 0,
+          score_version: CURRENT_SPO_SCORE_VERSION,
         }));
 
         if (scoreSnapshots.length > 0) {
@@ -949,20 +975,23 @@ export const syncSpoScores = inngest.createFunction(
       const tiersEnabled = await getFeatureFlag('score_tiers', false);
       if (!tiersEnabled) return { tierChanges: 0 };
 
-      const { computeTier, detectTierChange } = await import('@/lib/scoring/tiers');
+      const { computeTierWithCap, detectTierChange, computeTier } =
+        await import('@/lib/scoring/tiers');
+      const { getSpoTierCap } = await import('@/lib/scoring/confidence');
       const supabase = getSupabaseAdmin();
 
       const { data: currentPools } = await supabase
         .from('pools')
-        .select('pool_id, governance_score, current_tier, confidence')
+        .select('pool_id, governance_score, current_tier, confidence, vote_count')
         .gt('vote_count', 0);
 
       const tierChangeInserts: Record<string, unknown>[] = [];
 
       for (const pool of currentPools || []) {
         const newScore = pool.governance_score ?? 0;
-        const confidence = pool.confidence ?? undefined;
-        const newTier = computeTier(newScore, confidence);
+        const voteCount = pool.vote_count ?? 0;
+        const tierCap = getSpoTierCap(voteCount);
+        const newTier = computeTierWithCap(newScore, tierCap);
         const oldTier = pool.current_tier ?? computeTier(0);
 
         if (oldTier !== newTier) {
