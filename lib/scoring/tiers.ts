@@ -53,17 +53,13 @@ export interface TierChange {
 }
 
 /**
- * Compute tier from score, optionally gated by confidence.
- * If confidence < CONFIDENCE_TIER_THRESHOLD, caps tier at Emerging (SPO behavior).
- * For DReps, use computeTierWithCap() which supports graduated caps.
+ * Compute tier from score.
+ * V3.2: The optional `confidence` parameter is deprecated — use
+ * computeTierWithCap() with getSpoTierCap() or getDRepTierCap() for
+ * graduated confidence gating.
  */
-export function computeTier(score: number, confidence?: number): TierName {
+export function computeTier(score: number, _confidence?: number): TierName {
   const clamped = Math.max(0, Math.min(100, Math.round(score)));
-
-  // Confidence gate: low-confidence entities max out at Emerging
-  if (confidence !== undefined && confidence < 60) {
-    return 'Emerging';
-  }
 
   for (let i = TIERS.length - 1; i >= 0; i--) {
     if (clamped >= TIERS[i].min) return TIERS[i].name;

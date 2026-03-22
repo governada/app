@@ -19,7 +19,8 @@ import { computeConfidence, percentileNormalizeWeighted } from '@/lib/scoring/co
 import { detectSybilPairs } from '@/lib/scoring/sybilDetection';
 import { computeSpoGovernanceIdentity } from '@/lib/scoring/spoGovernanceIdentity';
 import type { SpoProfileData } from '@/lib/scoring/spoGovernanceIdentity';
-import { computeTier } from '@/lib/scoring/tiers';
+import { computeTier, computeTierWithCap } from '@/lib/scoring/tiers';
+import { getSpoTierCap } from '@/lib/scoring/confidence';
 
 const NOW = Math.floor(Date.now() / 1000);
 
@@ -105,86 +106,46 @@ describe('SPO Score V3', () => {
       expect(result.size).toBe(0);
     });
 
-    it('scores higher with rationale', () => {
-      const withRationale = computeSpoDeliberationQuality(
-        new Map([
-          [
-            'pool1',
-            [
-              {
-                proposalKey: 'p1',
-                vote: 'Yes' as const,
-                blockTime: NOW - 86400,
-                proposalBlockTime: NOW - 2 * 86400,
-                proposalType: 'TreasuryWithdrawals',
-                importanceWeight: 2,
-                hasRationale: true,
-              },
-              {
-                proposalKey: 'p2',
-                vote: 'No' as const,
-                blockTime: NOW - 86400 * 3,
-                proposalBlockTime: NOW - 86400 * 5,
-                proposalType: 'HardForkInitiation',
-                importanceWeight: 3,
-                hasRationale: true,
-              },
-              {
-                proposalKey: 'p3',
-                vote: 'Yes' as const,
-                blockTime: NOW - 86400 * 6,
-                proposalBlockTime: NOW - 86400 * 10,
-                proposalType: 'InfoAction',
-                importanceWeight: 1,
-                hasRationale: true,
-              },
-            ],
-          ],
-        ]),
-        new Set(['TreasuryWithdrawals', 'HardForkInitiation', 'InfoAction']),
+    it('scores higher with vote diversity (V3.2)', () => {
+      const TYPES = new Set(['TreasuryWithdrawals', 'HardForkInitiation', 'ParameterChange']);
+
+      // Diverse voter: mix of Yes/No across types
+      const diverseVotes = Array.from({ length: 6 }, (_, i) => ({
+        proposalKey: `p${i}`,
+        vote: (['Yes', 'No', 'Yes', 'No', 'Yes', 'No'] as const)[i],
+        blockTime: NOW - i * 86400,
+        proposalBlockTime: NOW - (i + 2) * 86400,
+        proposalType: ['TreasuryWithdrawals', 'HardForkInitiation', 'ParameterChange'][i % 3],
+        importanceWeight: 2,
+        hasRationale: false,
+        spoMajorityVote: 'Yes' as const,
+      }));
+
+      // Rubber-stamper: all Yes votes on one type
+      const rubberStampVotes = Array.from({ length: 6 }, (_, i) => ({
+        proposalKey: `p${i}`,
+        vote: 'Yes' as const,
+        blockTime: NOW - i * 86400,
+        proposalBlockTime: NOW - (i + 2) * 86400,
+        proposalType: 'TreasuryWithdrawals',
+        importanceWeight: 2,
+        hasRationale: false,
+        spoMajorityVote: 'Yes' as const,
+      }));
+
+      const diverseScore = computeSpoDeliberationQuality(
+        new Map([['pool1', diverseVotes]]),
+        TYPES,
         NOW,
       );
 
-      const withoutRationale = computeSpoDeliberationQuality(
-        new Map([
-          [
-            'pool1',
-            [
-              {
-                proposalKey: 'p1',
-                vote: 'Yes' as const,
-                blockTime: NOW - 86400,
-                proposalBlockTime: NOW - 2 * 86400,
-                proposalType: 'TreasuryWithdrawals',
-                importanceWeight: 2,
-                hasRationale: false,
-              },
-              {
-                proposalKey: 'p2',
-                vote: 'No' as const,
-                blockTime: NOW - 86400 * 3,
-                proposalBlockTime: NOW - 86400 * 5,
-                proposalType: 'HardForkInitiation',
-                importanceWeight: 3,
-                hasRationale: false,
-              },
-              {
-                proposalKey: 'p3',
-                vote: 'Yes' as const,
-                blockTime: NOW - 86400 * 6,
-                proposalBlockTime: NOW - 86400 * 10,
-                proposalType: 'InfoAction',
-                importanceWeight: 1,
-                hasRationale: false,
-              },
-            ],
-          ],
-        ]),
-        new Set(['TreasuryWithdrawals', 'HardForkInitiation', 'InfoAction']),
+      const stampScore = computeSpoDeliberationQuality(
+        new Map([['pool1', rubberStampVotes]]),
+        TYPES,
         NOW,
       );
 
-      expect(withRationale.get('pool1')!).toBeGreaterThan(withoutRationale.get('pool1')!);
+      expect(diverseScore.get('pool1')!).toBeGreaterThan(stampScore.get('pool1')!);
     });
   });
 
@@ -321,6 +282,7 @@ describe('SPO Score V3', () => {
         ],
         metadataHashVerified: true,
         delegatorCount: 100,
+        voteCount: 10,
       };
 
       const sparse: SpoProfileData = {
@@ -333,6 +295,7 @@ describe('SPO Score V3', () => {
         socialLinks: [],
         metadataHashVerified: false,
         delegatorCount: 5,
+        voteCount: 0,
       };
 
       const profiles = new Map([
@@ -345,16 +308,28 @@ describe('SPO Score V3', () => {
     });
   });
 
-  describe('computeTier with confidence', () => {
-    it('caps at Emerging when confidence is below 60', () => {
-      expect(computeTier(85, 30)).toBe('Emerging');
+  describe('computeTier with graduated confidence (V3.2)', () => {
+    it('caps at Emerging for SPO with 3 votes', () => {
+      const cap = getSpoTierCap(3);
+      expect(computeTierWithCap(85, cap)).toBe('Emerging');
     });
 
-    it('assigns normal tier when confidence >= 60', () => {
-      expect(computeTier(85, 80)).toBe('Diamond');
+    it('caps at Bronze for SPO with 7 votes', () => {
+      const cap = getSpoTierCap(7);
+      expect(computeTierWithCap(85, cap)).toBe('Bronze');
     });
 
-    it('assigns normal tier when confidence is undefined', () => {
+    it('caps at Silver for SPO with 12 votes', () => {
+      const cap = getSpoTierCap(12);
+      expect(computeTierWithCap(85, cap)).toBe('Silver');
+    });
+
+    it('assigns normal tier for SPO with 16 votes (no cap)', () => {
+      const cap = getSpoTierCap(16);
+      expect(computeTierWithCap(85, cap)).toBe('Diamond');
+    });
+
+    it('legacy computeTier still works for backward compat', () => {
       expect(computeTier(85)).toBe('Diamond');
     });
   });

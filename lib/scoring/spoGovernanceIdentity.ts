@@ -5,11 +5,14 @@
  * V3.1 changes:
  * - Governance statement uses keyword quality checklist instead of pure character count
  * - Community Presence replaced by Delegation Responsiveness (delegator retention after votes)
- * - Falls back to absolute delegator count tiers (not percentile) when insufficient retention data
+ *
+ * V3.2 changes:
+ * - Removed delegator count fallback (leaked pool size into governance scoring). Neutral 50 when insufficient retention data.
+ * - Governance statement points gated behind vote counts to prevent gaming via metadata-only.
+ * - computeCommunityPresence() removed entirely.
  */
 
 import { isValidatedSocialLink } from '@/utils/display';
-import { DELEGATOR_TIERS } from './calibration';
 
 const SUB_WEIGHTS = { poolIdentityQuality: 0.6, delegationResponsiveness: 0.4 };
 
@@ -40,6 +43,7 @@ export interface SpoProfileData {
   socialLinks: Array<{ uri: string; label?: string }>;
   metadataHashVerified: boolean;
   delegatorCount: number;
+  voteCount: number;
   brokenUris?: Set<string>;
 }
 
@@ -51,7 +55,7 @@ export interface DelegationRetentionData {
 
 /**
  * Compute raw Governance Identity scores (0-100) for all SPOs.
- * Uses delegation responsiveness when available, falls back to absolute delegator count tiers.
+ * Uses delegation responsiveness when available, falls back to neutral 50.
  */
 export function computeSpoGovernanceIdentity(
   profiles: Map<string, SpoProfileData>,
@@ -68,8 +72,8 @@ export function computeSpoGovernanceIdentity(
       // Delegation responsiveness: retention rate after governance activity
       communityScore = computeDelegationResponsiveness(responsiveness);
     } else {
-      // Fallback: absolute delegator count tiers
-      communityScore = computeCommunityPresence(profile.delegatorCount);
+      // V3.2: neutral score when insufficient retention data (no pool-size leak)
+      communityScore = 50;
     }
 
     const raw =
@@ -96,8 +100,12 @@ function computePoolIdentityQuality(profile: SpoProfileData): number {
   if (profile.ticker && profile.ticker.length > 0) score += 10;
   if (profile.poolName && profile.poolName.length > 2) score += 10;
 
-  // Governance statement: keyword quality checklist (max 20)
-  score += scoreGovernanceStatement(profile.governanceStatement, profile.poolDescription);
+  // Governance statement: keyword quality checklist with vote gates (max 20)
+  score += scoreGovernanceStatement(
+    profile.governanceStatement,
+    profile.poolDescription,
+    profile.voteCount,
+  );
 
   // Pool description: tiered by length (max 15)
   score += tierScore(profile.poolDescription, [
@@ -142,28 +150,53 @@ function computePoolIdentityQuality(profile: SpoProfileData): number {
 }
 
 /**
- * Governance statement quality checklist (max 20 points):
- * - Present and non-empty: 5 pts
- * - >100 characters: 5 pts
- * - Contains >= 3 governance keywords: 5 pts
- * - Content distinct from pool description (Jaccard > 0.5): 5 pts
+ * Governance statement quality checklist (max 20 points).
+ * V3.2: most tiers gated behind vote counts to prevent gaming via metadata-only.
+ *
+ * - Present AND >= 1 vote: 5 pts
+ * - >100 chars AND >= 3 votes: 5 pts
+ * - >= 3 governance keywords AND unique from description AND >= 5 votes: 5 pts
+ * - Content distinct from pool description (Jaccard < 0.5): 5 pts (no vote gate)
  */
 function scoreGovernanceStatement(
   statement: string | null | undefined,
   description: string | null | undefined,
+  voteCount: number,
 ): number {
   if (!statement?.trim()) return 0;
   const trimmed = statement.trim();
-  let pts = 5; // present
+  let pts = 0;
 
-  if (trimmed.length > 100) pts += 5;
+  // Present AND at least 1 vote: 5 pts
+  if (voteCount >= 1) pts += 5;
 
-  // Keyword check
+  // >100 chars AND at least 3 votes: 5 pts
+  if (trimmed.length > 100 && voteCount >= 3) pts += 5;
+
+  // Keyword + uniqueness combo AND at least 5 votes: 5 pts
   const lower = trimmed.toLowerCase();
   const matchedKeywords = GOVERNANCE_KEYWORDS.filter((kw) => lower.includes(kw));
-  if (matchedKeywords.length >= 3) pts += 5;
+  if (matchedKeywords.length >= 3 && voteCount >= 5) {
+    // Also require uniqueness from description for this tier
+    if (description?.trim()) {
+      const stmtWords = new Set(lower.split(/\s+/).filter((w) => w.length > 3));
+      const descWords = new Set(
+        description
+          .trim()
+          .toLowerCase()
+          .split(/\s+/)
+          .filter((w) => w.length > 3),
+      );
+      const intersection = [...stmtWords].filter((w) => descWords.has(w)).length;
+      const union = new Set([...stmtWords, ...descWords]).size;
+      const jaccard = union > 0 ? intersection / union : 0;
+      if (jaccard < 0.5) pts += 5;
+    } else {
+      pts += 5; // no description to compare against, give credit
+    }
+  }
 
-  // Uniqueness check: Jaccard distance from description
+  // Uniqueness check (no vote gate): Jaccard distance from description
   if (description?.trim()) {
     const stmtWords = new Set(lower.split(/\s+/).filter((w) => w.length > 3));
     const descWords = new Set(
@@ -195,17 +228,6 @@ function computeDelegationResponsiveness(data: DelegationRetentionData): number 
   // Score: 100% retention = 100, 90% = 90, etc.
   // Allow growth beyond 100% (capped at 100 score)
   return clamp(Math.round(rate * 100));
-}
-
-/**
- * Community Presence fallback: absolute delegator count tiers.
- * Not zero-sum — every SPO can reach 100 by growing their community.
- */
-function computeCommunityPresence(delegatorCount: number): number {
-  for (const tier of DELEGATOR_TIERS) {
-    if (delegatorCount >= tier.min) return tier.score;
-  }
-  return 0;
 }
 
 interface Tier {

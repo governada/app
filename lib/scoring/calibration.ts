@@ -258,6 +258,9 @@ export const DREP_CONFIDENCE = {
 
 /**
  * SPO Confidence computation parameters.
+ *
+ * V3.2: Graduated tier caps matching DRep architecture.
+ * Replaces the binary tierThreshold with vote-count-based caps.
  */
 export const SPO_CONFIDENCE = {
   /** Vote count decay: 80% at ~15 votes. */
@@ -268,8 +271,14 @@ export const SPO_CONFIDENCE = {
   typeCoverageThreshold: 0.6,
   /** Factor weights (must sum to 1.0). */
   weights: { vote: 0.5, span: 0.3, type: 0.2 },
-  /** Minimum confidence for tier above Emerging. */
-  tierThreshold: 60,
+  /** Graduated tier caps matching DRep architecture. */
+  tierCaps: [
+    { maxVotes: 5, confidence: 50, maxTier: 'Emerging' as const },
+    { maxVotes: 10, confidence: 75, maxTier: 'Bronze' as const },
+    { maxVotes: 15, confidence: 90, maxTier: 'Silver' as const },
+  ],
+  fullConfidenceVotes: 15,
+  fullConfidence: 100,
 } as const;
 
 /**
@@ -303,6 +312,42 @@ export const SPO_RELIABILITY_PARAMS = {
   tenureDecayEpochs: 30,
   /** Minimum active epochs for consistency calculation. */
   consistencyMinEpochs: 3,
+} as const;
+
+/**
+ * SPO Deliberation Quality sub-component weights.
+ * V3.2: Replaces broken rationale-based scoring with voting behavior signals.
+ */
+export const SPO_DELIBERATION_WEIGHTS = {
+  voteDiversity: 0.35,
+  dissent: 0.3,
+  typeBreadth: 0.2,
+  coverageEntropy: 0.15,
+} as const;
+
+/**
+ * SPO abstain penalty for vote diversity.
+ * SPOs with >60% abstain rate get penalized — abstaining on everything
+ * is not meaningful governance participation.
+ */
+export const SPO_ABSTAIN_PENALTY = {
+  /** Abstain rate above this threshold triggers penalty */
+  threshold: 0.6,
+  /** Minimum factor (floor) to prevent total zeroing */
+  minFactor: 0.3,
+} as const;
+
+/**
+ * Sybil Confidence Penalty — reduces confidence (not raw score) for pools
+ * with unresolved sybil flags. Graduated by severity.
+ */
+export const SYBIL_CONFIDENCE_PENALTY = {
+  /** Standard penalty for single unresolved sybil flag */
+  standard: 25,
+  /** High-confidence sybil (>98% agreement) */
+  highConfidence: 40,
+  /** Multiple distinct sybil partners flagged */
+  multiPartner: 50,
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -673,8 +718,8 @@ export const SPO_PILLAR_CALIBRATION = {
 
 /**
  * Absolute delegator count tiers for Community Presence scoring.
- * V3.2: Used as FALLBACK when delegation snapshot history is unavailable.
  * Tiers are evaluated highest-first; first match wins.
+ * // Note: SPO identity no longer uses delegator tiers as of V3.2. Still used by DRep identity.
  */
 export const DELEGATOR_TIERS = [
   { min: 250, score: 100 },

@@ -3,7 +3,7 @@
  * Measures how reliable an entity's score is based on available evidence.
  *
  * Effects:
- * - Confidence < threshold caps tier (graduated for DReps, binary for SPOs)
+ * - Confidence caps tier via graduated vote-count thresholds (DReps and SPOs)
  * - Low-confidence entities contribute less to percentile distribution
  * - Confidence dampening pulls low-data percentile scores toward the median
  * - UI renders low-confidence scores with a "provisional" marker
@@ -174,5 +174,30 @@ export function percentileNormalizeWeighted(
   return percentiles;
 }
 
-/** Minimum confidence required for tier assignment above Emerging. */
-export const CONFIDENCE_TIER_THRESHOLD = SPO_CONFIDENCE.tierThreshold;
+// ---------------------------------------------------------------------------
+// SPO Graduated Confidence (V3.2)
+// ---------------------------------------------------------------------------
+
+/**
+ * Get the maximum tier allowed for an SPO based on their vote count.
+ * Uses graduated thresholds from SPO_CONFIDENCE.tierCaps.
+ *
+ * Returns null if no cap applies (full confidence).
+ */
+export function getSpoTierCap(voteCount: number): TierName | null {
+  for (const cap of SPO_CONFIDENCE.tierCaps) {
+    if (voteCount < cap.maxVotes) return cap.maxTier;
+  }
+  return null; // No cap for fullConfidenceVotes+
+}
+
+/**
+ * Get SPO confidence level based on vote count (graduated).
+ * Simpler alternative to computeConfidence() for tier cap decisions.
+ */
+export function getSpoConfidenceByVotes(voteCount: number): number {
+  for (const cap of SPO_CONFIDENCE.tierCaps) {
+    if (voteCount < cap.maxVotes) return cap.confidence;
+  }
+  return SPO_CONFIDENCE.fullConfidence;
+}
