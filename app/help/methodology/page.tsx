@@ -37,7 +37,7 @@ const DREP_PILLARS = [
       'Measures the depth of governance participation through three layers: rationale provision rate (40%), AI-assessed rationale quality with dissent-substance modifier (40%), and deliberation signal (20%) combining rationale diversity and coverage breadth.',
     layers: [
       'Provision Rate (40%) — importance-weighted % of votes with rationale',
-      'Rationale Quality (40%) — AI-scored across 5 dimensions (specificity, reasoning depth, constitutional grounding, coherence, proposal relevance). Outcome-blind: same quality earns the same score regardless of vote direction. DReps who vote against the majority AND provide quality rationale (score ≥60) receive a 1.2x bonus on that vote.',
+      'Rationale Quality (40%) — AI-scored across 3 dimensions (specificity, reasoning depth, proposal awareness). Outcome-blind: same quality earns the same score regardless of vote direction. DReps who vote against the majority AND provide quality rationale (score ≥60) receive a 1.2x bonus on that vote.',
       'Deliberation Signal (20%) — rationale diversity (60%): penalizes copy-paste rationales across votes; coverage breadth (40%): governance surface coverage weighted by proposal availability',
     ],
   },
@@ -454,6 +454,81 @@ export default function MethodologyPage() {
               calibrate and welcome community feedback on scoring accuracy.
             </p>
           </div>
+        </section>
+
+        {/* AI Rationale Quality Rubric */}
+        <section className="space-y-6">
+          <SectionAnchor id="rationale-rubric" />
+          <h2 className="text-xl font-bold">AI Rationale Quality Rubric</h2>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Each vote rationale is independently assessed on three dimensions. The composite
+            rationale quality score is the average of these three sub-scores, clamped to
+            0&ndash;100. Scoring is outcome-blind: a well-reasoned &ldquo;No&rdquo; scores the same
+            as a well-reasoned &ldquo;Yes.&rdquo;
+          </p>
+          <div className="overflow-x-auto rounded-xl border border-border/50 bg-card/70 backdrop-blur-md">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border/50">
+                  <th className="px-4 py-3 text-left font-semibold text-foreground">Dimension</th>
+                  <th className="px-4 py-3 text-left font-semibold text-foreground">
+                    What it measures
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold text-foreground">
+                    High score (70+)
+                  </th>
+                  <th className="px-4 py-3 text-left font-semibold text-foreground">
+                    Low score (&lt;30)
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="text-muted-foreground text-xs leading-relaxed">
+                <tr className="border-b border-border/30">
+                  <td className="px-4 py-3 font-medium text-foreground">Specificity</td>
+                  <td className="px-4 py-3">
+                    References to specific proposal details, numbers, stakeholders, or technical
+                    parameters
+                  </td>
+                  <td className="px-4 py-3 italic">
+                    &ldquo;This proposal requests 500K ADA for the Midnight integration, which
+                    aligns with CIP-0094 requirements&rdquo;
+                  </td>
+                  <td className="px-4 py-3 italic">
+                    &ldquo;I support this proposal because it seems good for the ecosystem&rdquo;
+                  </td>
+                </tr>
+                <tr className="border-b border-border/30">
+                  <td className="px-4 py-3 font-medium text-foreground">Reasoning Depth</td>
+                  <td className="px-4 py-3">
+                    Cause-effect reasoning explaining WHY the voter reached their conclusion
+                  </td>
+                  <td className="px-4 py-3 italic">
+                    &ldquo;Voting No because the 12-month delivery timeline conflicts with the
+                    Chang+1 hard fork schedule, creating a dependency risk&rdquo;
+                  </td>
+                  <td className="px-4 py-3 italic">&ldquo;I vote Yes&rdquo;</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-medium text-foreground">Proposal Awareness</td>
+                  <td className="px-4 py-3">
+                    Evidence the voter read and understood the specific proposal
+                  </td>
+                  <td className="px-4 py-3 italic">
+                    &ldquo;The team&rsquo;s track record on Fund 11 Project X (delivered on time,
+                    4.2/5 community rating) gives confidence in execution&rdquo;
+                  </td>
+                  <td className="px-4 py-3 italic">
+                    Generic text that could apply to any proposal
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            <strong className="text-foreground">Important:</strong> Vote direction never affects
+            quality assessment. A well-reasoned dissenting vote scores identically to a
+            well-reasoned supporting vote.
+          </p>
         </section>
 
         {/* DRep Scoring */}

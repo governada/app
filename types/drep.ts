@@ -69,6 +69,10 @@ export interface VoteRecord {
   rationaleUrl: string | null;
   rationaleText: string | null;
   rationaleAiSummary: string | null;
+  /** AI sub-dimension scores (0-100 each, null if not yet scored) */
+  rationaleSpecificity: number | null;
+  rationaleReasoningDepth: number | null;
+  rationaleProposalAwareness: number | null;
   voteType: 'Governance' | 'Catalyst';
   proposalType: string | null;
   treasuryTier: string | null;

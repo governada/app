@@ -26,6 +26,9 @@ function makeVoteRow(overrides: Partial<DRepVoteRow> = {}): DRepVoteRow {
     meta_url: null,
     meta_hash: null,
     rationale_quality: null,
+    rationale_specificity: null,
+    rationale_reasoning_depth: null,
+    rationale_proposal_awareness: null,
     ...overrides,
   };
 }
