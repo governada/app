@@ -1,7 +1,7 @@
-import { redirect } from 'next/navigation';
+import { ImmersiveMatchPage } from '@/components/matching/ImmersiveMatchPage';
 
 export const dynamic = 'force-dynamic';
 
 export default function MatchPage() {
-  redirect('/');
+  return <ImmersiveMatchPage />;
 }

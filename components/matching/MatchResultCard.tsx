@@ -91,6 +91,23 @@ export function MatchResultCard({
     isBridge,
   });
 
+  // Compute signature: the dimension where this DRep's score most exceeds the user's
+  // This highlights what makes them uniquely strong for this citizen
+  const perDimFull = computePerDimensionAgreement(userAlignments, match.alignments);
+  const strongestDim = perDimFull.reduce((best, cur) => {
+    const curStrength = match.alignments[cur.dim] ?? 50;
+    const bestStrength = match.alignments[best.dim] ?? 50;
+    // Prefer dimensions where DRep has a strong stance AND agrees with user
+    const curScore = cur.status === 'agree' ? curStrength : curStrength * 0.5;
+    const bestScore = best.status === 'agree' ? bestStrength : bestStrength * 0.5;
+    return curScore > bestScore ? cur : best;
+  });
+  const signatureLabel = isBridge
+    ? null
+    : rank === 1
+      ? `Top match — strongest on ${strongestDim.label}`
+      : `Stands out on ${strongestDim.label}`;
+
   // Pulse globe node when card first appears
   useEffect(() => {
     if (!hasPulsed.current && globeRef?.current) {
@@ -201,8 +218,18 @@ export function MatchResultCard({
           </div>
         )}
 
+        {/* Signature — what makes this DRep uniquely relevant */}
+        {signatureLabel && (
+          <p
+            className="text-[10px] font-medium mt-1.5 ml-10"
+            style={{ color: match.identityColor }}
+          >
+            {signatureLabel}
+          </p>
+        )}
+
         {/* One-sentence narrative */}
-        <p className="text-xs text-muted-foreground mt-2 ml-10 line-clamp-2">{narrative}</p>
+        <p className="text-xs text-muted-foreground mt-1 ml-10 line-clamp-2">{narrative}</p>
 
         {/* Semantic match indicator */}
         {match.matchingRationales && match.matchingRationales.length > 0 && (

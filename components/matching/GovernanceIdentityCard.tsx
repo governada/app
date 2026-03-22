@@ -1,7 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Share2, ArrowRight } from 'lucide-react';
+import { Share2, ChevronDown } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { GovernanceRadar } from '@/components/GovernanceRadar';
@@ -76,14 +77,14 @@ function getArchetypeDescription(personalityLabel: string, alignments: Alignment
   return fallbacks[dominant];
 }
 
-/* ─── Where You Fit — community centroid comparison ───── */
+/* ─── Where You Fit — compact one-liner ─────────────────── */
 
 interface PulseResponse {
   totalSessions: number;
   communityCentroid: number[];
 }
 
-function WhereYouFit({
+function WhereYouFitCompact({
   alignments,
   identityColor,
 }: {
@@ -101,14 +102,12 @@ function WhereYouFit({
     refetchOnWindowFocus: false,
   });
 
-  // Only show when we have community data
   if (!data || data.totalSessions < 3) return null;
 
   const userVector = alignmentsToArray(alignments);
   const centroid = data.communityCentroid;
   const dimensions = getDimensionOrder();
 
-  // Find the user's most distinctive dimension (largest positive deviation from centroid)
   let topDim: AlignmentDimension = dimensions[0];
   let topDeviation = 0;
   for (let i = 0; i < 6; i++) {
@@ -119,73 +118,32 @@ function WhereYouFit({
     }
   }
 
-  // Compute percentile approximation: what % of the centroid is below this user's score
   const userScore = userVector[dimensions.indexOf(topDim)];
   const centroidScore = centroid[dimensions.indexOf(topDim)];
   const isAbove = userScore > centroidScore;
-  // Simple approximation: distance from centroid mapped to a percentile
   const pctDev = Math.min(99, Math.max(1, Math.round(50 + topDeviation / 2)));
   const percentile = isAbove ? pctDev : 100 - pctDev;
 
   return (
-    <div className="w-full rounded-lg border border-white/[0.08] bg-white/[0.04] p-3 text-center space-y-2">
-      <p className="text-xs text-white/60">Where you fit</p>
-      <p className="text-sm text-white/90">
-        You&apos;re in the{' '}
-        <span className="font-semibold" style={{ color: identityColor }}>
-          top {100 - percentile}%
-        </span>{' '}
-        of citizens who prioritize <span className="font-medium">{getDimensionLabel(topDim)}</span>
-      </p>
-      {/* Mini centroid comparison bars */}
-      <div className="flex gap-1 justify-center mt-1">
-        {dimensions.map((dim, i) => {
-          const userVal = userVector[i];
-          const centroidVal = centroid[i];
-          return (
-            <div key={dim} className="flex flex-col items-center gap-0.5 w-8">
-              <div className="w-full h-12 bg-white/[0.06] rounded-sm relative overflow-hidden">
-                {/* Centroid bar */}
-                <div
-                  className="absolute bottom-0 left-0 w-1/2 bg-white/20 rounded-sm"
-                  style={{ height: `${centroidVal}%` }}
-                />
-                {/* User bar */}
-                <div
-                  className="absolute bottom-0 right-0 w-1/2 rounded-sm"
-                  style={{
-                    height: `${userVal}%`,
-                    backgroundColor: identityColor,
-                    opacity: 0.7,
-                  }}
-                />
-              </div>
-              <span className="text-[8px] text-white/40 leading-none">
-                {getDimensionLabel(dim).slice(0, 3)}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-      <div className="flex items-center justify-center gap-3 text-[9px] text-white/40">
-        <span className="flex items-center gap-1">
-          <span className="inline-block w-2 h-2 rounded-sm bg-white/20" /> Community
-        </span>
-        <span className="flex items-center gap-1">
-          <span
-            className="inline-block w-2 h-2 rounded-sm"
-            style={{ backgroundColor: identityColor, opacity: 0.7 }}
-          />{' '}
-          You
-        </span>
-      </div>
-    </div>
+    <p className="text-xs text-white/60">
+      Top{' '}
+      <span className="font-semibold" style={{ color: identityColor }}>
+        {100 - percentile}%
+      </span>{' '}
+      for {getDimensionLabel(topDim)}
+    </p>
   );
 }
 
-/* ─── Alignment Evolution Section ───────────────────────── */
+/* ─── Expanded Details (radar + evolution) ──────────────── */
 
-function AlignmentEvolutionSection() {
+function ExpandedDetails({
+  alignments,
+  identityColor,
+}: {
+  alignments: AlignmentScores;
+  identityColor: string;
+}) {
   const history = loadAlignmentHistory();
   const { data: pulse } = useQuery<PulseResponse>({
     queryKey: ['community-pulse-lite'],
@@ -198,18 +156,73 @@ function AlignmentEvolutionSection() {
     refetchOnWindowFocus: false,
   });
 
-  if (history.length === 0) return null;
+  const userVector = alignmentsToArray(alignments);
+  const centroid = pulse?.communityCentroid;
+  const dimensions = getDimensionOrder();
 
   return (
-    <div className="w-full rounded-lg border border-white/[0.08] bg-white/[0.04] p-3">
-      <AlignmentEvolution
-        history={history.map((h) => ({
-          alignments: h.alignments as unknown as Record<string, number>,
-          archetype: h.archetype,
-          epoch: h.epoch,
-        }))}
-        communityCentroid={pulse?.communityCentroid}
-      />
+    <div className="space-y-3 pt-3 border-t border-white/[0.08]">
+      {/* Mini radar */}
+      <div className="flex justify-center">
+        <GovernanceRadar alignments={alignments} size="medium" animate={false} />
+      </div>
+
+      {/* Community comparison bars */}
+      {centroid && (
+        <div className="space-y-1.5">
+          <div className="flex gap-1 justify-center">
+            {dimensions.map((dim, i) => {
+              const userVal = userVector[i];
+              const centroidVal = centroid[i];
+              return (
+                <div key={dim} className="flex flex-col items-center gap-0.5 w-8">
+                  <div className="w-full h-10 bg-white/[0.06] rounded-sm relative overflow-hidden">
+                    <div
+                      className="absolute bottom-0 left-0 w-1/2 bg-white/20 rounded-sm"
+                      style={{ height: `${centroidVal}%` }}
+                    />
+                    <div
+                      className="absolute bottom-0 right-0 w-1/2 rounded-sm"
+                      style={{
+                        height: `${userVal}%`,
+                        backgroundColor: identityColor,
+                        opacity: 0.7,
+                      }}
+                    />
+                  </div>
+                  <span className="text-[8px] text-white/40 leading-none">
+                    {getDimensionLabel(dim).slice(0, 3)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex items-center justify-center gap-3 text-[9px] text-white/40">
+            <span className="flex items-center gap-1">
+              <span className="inline-block w-2 h-2 rounded-sm bg-white/20" /> Community
+            </span>
+            <span className="flex items-center gap-1">
+              <span
+                className="inline-block w-2 h-2 rounded-sm"
+                style={{ backgroundColor: identityColor, opacity: 0.7 }}
+              />{' '}
+              You
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Alignment evolution */}
+      {history.length > 0 && (
+        <AlignmentEvolution
+          history={history.map((h) => ({
+            alignments: h.alignments as unknown as Record<string, number>,
+            archetype: h.archetype,
+            epoch: h.epoch,
+          }))}
+          communityCentroid={pulse?.communityCentroid}
+        />
+      )}
     </div>
   );
 }
@@ -223,6 +236,7 @@ export function GovernanceIdentityCard({
   onShare,
   onContinue,
 }: GovernanceIdentityCardProps) {
+  const [expanded, setExpanded] = useState(false);
   const [r, g, b] = hexToRgb(identityColor);
   const description = getArchetypeDescription(personalityLabel, alignments);
   const dominantLabel = getDimensionLabel(getDominantDimension(alignments));
@@ -230,18 +244,18 @@ export function GovernanceIdentityCard({
 
   return (
     <motion.div
-      initial={prefersReducedMotion ? false : { opacity: 0, y: 40 }}
+      initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={
         prefersReducedMotion ? { duration: 0 } : { type: 'spring', stiffness: 300, damping: 28 }
       }
       className={cn(
         'relative w-full rounded-2xl border bg-black/60 backdrop-blur-xl',
-        'p-6 md:p-8 overflow-hidden',
+        'p-5 overflow-hidden',
       )}
       style={{
         borderColor: `rgba(${r}, ${g}, ${b}, 0.4)`,
-        boxShadow: `0 0 30px rgba(${r}, ${g}, ${b}, 0.3)`,
+        boxShadow: `0 0 20px rgba(${r}, ${g}, ${b}, 0.2)`,
       }}
     >
       {/* Entrance glow pulse */}
@@ -252,77 +266,80 @@ export function GovernanceIdentityCard({
           animate={{ opacity: 0 }}
           transition={{ duration: 1.5, ease: 'easeOut' }}
           style={{
-            boxShadow: `inset 0 0 60px rgba(${r}, ${g}, ${b}, 0.25)`,
+            boxShadow: `inset 0 0 40px rgba(${r}, ${g}, ${b}, 0.2)`,
           }}
         />
       )}
 
-      <div
-        className="relative z-10 flex flex-col items-center text-center gap-4"
-        aria-live="assertive"
-      >
-        {/* Preamble */}
-        <p className="text-xs text-muted-foreground uppercase tracking-[0.2em]">
-          Your Governance Identity
-        </p>
-
-        {/* Archetype name */}
-        <h2
-          className="font-display text-3xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-tight"
-          style={{ color: identityColor }}
-        >
-          {personalityLabel}
-        </h2>
-
-        {/* Rich description */}
-        <p className="text-sm md:text-base text-white/80 max-w-md leading-relaxed">{description}</p>
-
-        {/* Dominant dimension badge */}
-        <span
-          className="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium"
-          style={{
-            backgroundColor: `rgba(${r}, ${g}, ${b}, 0.12)`,
-            color: identityColor,
-          }}
-        >
-          Strongest dimension: {dominantLabel}
-        </span>
-
-        {/* Mini radar */}
-        <div className="my-2">
-          <GovernanceRadar alignments={alignments} size="medium" animate={false} />
+      <div className="relative z-10 space-y-3" aria-live="assertive">
+        {/* Top row: archetype name + community percentile */}
+        <div className="text-center">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] mb-1">
+            Your Governance Identity
+          </p>
+          <h2
+            className="font-display text-2xl sm:text-3xl font-bold tracking-tight leading-tight"
+            style={{ color: identityColor }}
+          >
+            {personalityLabel}
+          </h2>
         </div>
 
-        {/* Where you fit — community context */}
-        <WhereYouFit alignments={alignments} identityColor={identityColor} />
+        {/* Description — compact */}
+        <p className="text-sm text-white/75 text-center leading-relaxed max-w-sm mx-auto">
+          {description}
+        </p>
 
-        {/* Alignment evolution — shown when user has history */}
-        <AlignmentEvolutionSection />
+        {/* Badges row: dominant dimension + community position */}
+        <div className="flex items-center justify-center gap-2 flex-wrap">
+          <span
+            className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-medium"
+            style={{
+              backgroundColor: `rgba(${r}, ${g}, ${b}, 0.12)`,
+              color: identityColor,
+            }}
+          >
+            {dominantLabel}
+          </span>
+          <WhereYouFitCompact alignments={alignments} identityColor={identityColor} />
+        </div>
 
-        {/* Actions */}
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full mt-2">
+        {/* Expand/collapse for detailed view */}
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="flex items-center justify-center gap-1 w-full text-[11px] text-white/50 hover:text-white/80 transition-colors"
+        >
+          {expanded ? 'Less detail' : 'See your alignment'}
+          <ChevronDown className={cn('h-3 w-3 transition-transform', expanded && 'rotate-180')} />
+        </button>
+
+        {expanded && <ExpandedDetails alignments={alignments} identityColor={identityColor} />}
+
+        {/* Actions — compact row */}
+        <div className="flex items-center justify-center gap-2">
           {onShare && (
             <Button
               variant="outline"
+              size="sm"
               onClick={onShare}
               aria-label="Share your governance identity"
-              className="gap-2 min-h-[44px] w-full sm:w-auto"
+              className="gap-1.5 h-8 text-xs"
             >
-              <Share2 className="h-4 w-4" />
-              Share your governance identity
+              <Share2 className="h-3 w-3" />
+              Share
             </Button>
           )}
           {onContinue && (
             <Button
+              size="sm"
               onClick={onContinue}
-              className="gap-2 min-h-[44px] w-full sm:w-auto"
+              className="gap-1.5 h-8 text-xs"
               style={{
                 backgroundColor: identityColor,
                 color: '#fff',
               }}
             >
               See your matches
-              <ArrowRight className="h-4 w-4" />
             </Button>
           )}
         </div>

@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { AlignmentScores } from '@/lib/drepIdentity';
-import type { QualityGates, MatchResult } from '@/lib/matching/conversationalMatch';
+import type { QualityGates, MatchResult, SpoMatchResult } from '@/lib/matching/conversationalMatch';
 
 /* ─── Types ─────────────────────────────────────────────── */
 
@@ -34,6 +34,7 @@ interface AnswerResponse {
 interface MatchResponse {
   matches: MatchResult[];
   bridgeMatch: MatchResult | null;
+  spoMatches: SpoMatchResult[];
   userAlignments: AlignmentScores;
   personalityLabel: string;
   identityColor: string;
@@ -141,6 +142,23 @@ function deriveConfidence(gates: QualityGates): number {
   return Math.round(coverageScore + specificityScore);
 }
 
+/* ─── Error helpers ─────────────────────────────────────── */
+
+/** Parse API errors into user-friendly messages. Handles rate limiting (429). */
+async function parseApiError(res: Response): Promise<string> {
+  if (res.status === 429) {
+    const retryAfter = res.headers.get('Retry-After');
+    const minutes = retryAfter ? Math.ceil(Number(retryAfter) / 60) : undefined;
+    return minutes
+      ? `You've been exploring a lot! Please wait ${minutes} minute${minutes === 1 ? '' : 's'} before trying again.`
+      : "You've been exploring a lot! Please wait a few minutes before trying again.";
+  }
+  const data = await res.json().catch(() => ({}));
+  return (
+    (data as { error?: string }).error || `Something went wrong (${res.status}). Please try again.`
+  );
+}
+
 /* ─── Hook ──────────────────────────────────────────────── */
 
 export function useConversationalMatch() {
@@ -152,6 +170,7 @@ export function useConversationalMatch() {
   const [preview, setPreview] = useState<ConversationalMatchState['preview']>(null);
   const [matches, setMatches] = useState<MatchResult[] | null>(null);
   const [bridgeMatch, setBridgeMatch] = useState<MatchResult | null>(null);
+  const [spoMatches, setSpoMatches] = useState<SpoMatchResult[]>([]);
   const [weights, setWeights] = useState<Record<string, number> | null>(null);
   const [userAlignments, setUserAlignments] = useState<AlignmentScores | null>(null);
   const [personalityLabel, setPersonalityLabel] = useState<string | null>(null);
@@ -159,6 +178,7 @@ export function useConversationalMatch() {
   const [usedSemantic, setUsedSemantic] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const passRef = useRef(0); // Tracks which pass we're on (0 = first, 1+ = continue refining)
 
   const abortRef = useRef<AbortController | null>(null);
 
@@ -198,7 +218,7 @@ export function useConversationalMatch() {
     }
   }, [sessionId, round, question, qualityGates, status, preview]);
 
-  const startSession = useCallback(async () => {
+  const startSession = useCallback(async (topicHints?: string[]) => {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -210,13 +230,16 @@ export function useConversationalMatch() {
       const res = await fetch(API_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'start' }),
+        body: JSON.stringify({
+          action: 'start',
+          ...(topicHints?.length ? { topicHints } : {}),
+          ...(passRef.current > 0 ? { pass: passRef.current } : {}),
+        }),
         signal: controller.signal,
       });
 
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || `Server error: ${res.status}`);
+        throw new Error(await parseApiError(res));
       }
 
       const data: StartResponse = await res.json();
@@ -228,6 +251,7 @@ export function useConversationalMatch() {
       setPreview(null);
       setMatches(null);
       setBridgeMatch(null);
+      setSpoMatches([]);
       setWeights(null);
       setUserAlignments(null);
       setPersonalityLabel(null);
@@ -268,8 +292,7 @@ export function useConversationalMatch() {
         });
 
         if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.error || `Server error: ${res.status}`);
+          throw new Error(await parseApiError(res));
         }
 
         const data: AnswerResponse = await res.json();
@@ -318,13 +341,13 @@ export function useConversationalMatch() {
         });
 
         if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.error || `Server error: ${res.status}`);
+          throw new Error(await parseApiError(res));
         }
 
         const data: MatchResponse = await res.json();
         setMatches(data.matches);
         setBridgeMatch(data.bridgeMatch ?? null);
+        setSpoMatches(data.spoMatches ?? []);
         setUserAlignments(data.userAlignments);
         setPersonalityLabel(data.personalityLabel);
         setIdentityColor(data.identityColor);
@@ -344,6 +367,8 @@ export function useConversationalMatch() {
 
   const reset = useCallback(() => {
     abortRef.current?.abort();
+    // Increment pass so "continue refining" gets follow-up questions
+    passRef.current += 1;
     setSessionId(null);
     setRound(0);
     setQuestion(null);
@@ -372,6 +397,7 @@ export function useConversationalMatch() {
     preview,
     matches,
     bridgeMatch,
+    spoMatches,
     weights,
     userAlignments,
     personalityLabel,

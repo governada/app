@@ -278,6 +278,12 @@ export const GlobeConstellation = forwardRef<
       // Compute the rotated target position for particles
       const [x, y, z] = rotateAroundY(node.position, rotationAngleRef.current);
 
+      // Ensure node is on the visible side (prevent camera clipping through globe)
+      const dist = Math.sqrt(x * x + y * y + z * z);
+      const nx = dist > 0 ? x / dist : 0;
+      const ny = dist > 0 ? y / dist : 0;
+      const nz = dist > 0 ? z / dist : 1;
+
       // Pulse the node and activate fly-to particles
       setSceneState((prev) => ({
         ...prev,
@@ -287,11 +293,21 @@ export const GlobeConstellation = forwardRef<
         flyToActive: true,
       }));
 
-      // Fly to the node — close and personal
-      await cameraControlsRef.current.setLookAt(x * 1.3, y * 1.3, z * 1.3 + 2.5, x, y, z, true);
+      // Fly to the node — position camera outside the globe looking at the node
+      // Camera at ~1.8x node distance, offset slightly above for drama
+      const camDist = Math.max(dist * 1.8, 8);
+      await cameraControlsRef.current.setLookAt(
+        nx * camDist,
+        ny * camDist + 1.5,
+        nz * camDist + 2,
+        x,
+        y,
+        z,
+        true,
+      );
 
-      // Hold the pulse a bit longer than normal
-      await sleep(1500);
+      // Hold the dramatic lock — give user time to register the "found you" moment
+      await sleep(2500);
       setSceneState((prev) => ({
         ...prev,
         pulseId: null,
@@ -1263,14 +1279,23 @@ function ScanningRing({ active, progress }: { active: boolean; progress: number 
   const matRef = useRef<THREE.MeshBasicMaterial>(null);
   const targetOpacity = useRef(0);
 
+  // Scale ring down as camera zooms in — prevents ugly line at close range
+  // progress 0 → scale 1 (radius 8.5), progress 1 → scale 0.65 (radius ~5.5)
+  const ringScale = 1 - progress * 0.35;
+
   useFrame((_, delta) => {
     if (!meshRef.current || !matRef.current) return;
     // Continuous rotation on Z-axis tilted differently from globe
     meshRef.current.rotation.z += delta * 0.036; // ~3x globe speed
     meshRef.current.rotation.x += delta * 0.008; // slight tumble
 
-    // Smooth opacity transition
-    const desired = active ? 0.2 + progress * 0.15 : 0;
+    // Smooth scale transition
+    const s = ringScale;
+    meshRef.current.scale.set(s, s, s);
+
+    // Smooth opacity transition — fade out at high zoom (progress > 0.8)
+    const fadeOut = progress > 0.8 ? 1 - (progress - 0.8) / 0.2 : 1;
+    const desired = active ? (0.2 + progress * 0.15) * fadeOut : 0;
     targetOpacity.current += (desired - targetOpacity.current) * Math.min(1, delta * 3);
     matRef.current.opacity = targetOpacity.current;
   });
