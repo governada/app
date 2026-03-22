@@ -177,6 +177,7 @@ export function ConversationalMatchFlow({
     status,
     preview,
     matches,
+    spoMatches,
     userAlignments,
     personalityLabel,
     identityColor,
@@ -292,18 +293,25 @@ export function ConversationalMatchFlow({
 
   /* ─── Start matching flow ──────────────────────────────── */
 
-  const handleInitialInteraction = useCallback(async () => {
-    if (hasStartedRef.current) return;
-    hasStartedRef.current = true;
+  const handleInitialInteraction = useCallback(
+    async (extraTopics?: string[]) => {
+      if (hasStartedRef.current) return;
+      hasStartedRef.current = true;
 
-    hapticFeedback('light');
-    onMatchStart?.();
-    setFlowState('matching');
-    pushUrlState('matching', 'matching');
-    posthog.capture('match_flow_started');
+      hapticFeedback('light');
+      onMatchStart?.();
+      setFlowState('matching');
+      pushUrlState('matching', 'matching');
+      posthog.capture('match_flow_started');
 
-    await startSession();
-  }, [onMatchStart, startSession]);
+      // Merge any extra topics (from the triggering pill tap) with already-selected topics
+      const allTopics = new Set(selectedTopics);
+      if (extraTopics) extraTopics.forEach((t) => allTopics.add(t));
+      const topicHints = allTopics.size > 0 ? Array.from(allTopics) : undefined;
+      await startSession(topicHints);
+    },
+    [onMatchStart, startSession, selectedTopics],
+  );
 
   /* ─── Topic pill toggle ────────────────────────────────── */
 
@@ -322,9 +330,9 @@ export function ConversationalMatchFlow({
         return next;
       });
 
-      // Auto-start on first pill tap
+      // Auto-start on first pill tap — pass the tapped topic so question order adapts
       if (!hasStartedRef.current) {
-        handleInitialInteraction();
+        handleInitialInteraction([id]);
       }
     },
     [handleInitialInteraction],
@@ -359,10 +367,11 @@ export function ConversationalMatchFlow({
         onMatchStart?.();
         setFlowState('matching');
         pushUrlState('matching', 'matching');
-        await startSession();
+        const topicHints = selectedTopics.size > 0 ? Array.from(selectedTopics) : undefined;
+        await startSession(topicHints);
       }
     },
-    [onMatchStart, startSession],
+    [onMatchStart, startSession, selectedTopics],
   );
 
   /* ─── Conversational round answer ──────────────────────── */
@@ -400,9 +409,10 @@ export function ConversationalMatchFlow({
     setPendingSemanticText(null);
     pushUrlState('matching', 'matching');
     globeRef.current?.clearMatches();
-    // Start a fresh session to allow more rounds
-    await startSession();
-  }, [reset, globeRef, startSession]);
+    // Start a fresh session — preserve topic context for question ordering
+    const topicHints = selectedTopics.size > 0 ? Array.from(selectedTopics) : undefined;
+    await startSession(topicHints);
+  }, [reset, globeRef, startSession, selectedTopics]);
 
   /* ─── Render: Idle state ───────────────────────────────── */
 
@@ -472,7 +482,7 @@ export function ConversationalMatchFlow({
                 />
                 {freeformText.trim().length >= 10 && (
                   <button
-                    onClick={handleInitialInteraction}
+                    onClick={() => handleInitialInteraction()}
                     className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md bg-primary/20 p-1.5 text-primary transition-colors hover:bg-primary/30"
                     aria-label="Start matching"
                   >
@@ -499,7 +509,17 @@ export function ConversationalMatchFlow({
           </div>
         )}
 
-        {error && <p className="text-center text-sm text-destructive">{error}</p>}
+        {error && (
+          <div className="flex flex-col items-center gap-2 py-2">
+            <p className="text-center text-sm text-destructive">{error}</p>
+            <button
+              onClick={handleReset}
+              className="text-xs text-primary/70 hover:text-primary transition-colors"
+            >
+              Try again
+            </button>
+          </div>
+        )}
       </div>
     );
   }
@@ -570,7 +590,17 @@ export function ConversationalMatchFlow({
           </div>
         )}
 
-        {error && <p className="text-center text-sm text-destructive">{error}</p>}
+        {error && (
+          <div className="flex flex-col items-center gap-2 py-2">
+            <p className="text-center text-sm text-destructive">{error}</p>
+            <button
+              onClick={handleReset}
+              className="text-xs text-primary/70 hover:text-primary transition-colors"
+            >
+              Try again
+            </button>
+          </div>
+        )}
       </div>
     );
   }
@@ -585,12 +615,23 @@ export function ConversationalMatchFlow({
           identityColor={identityColor}
           userAlignments={userAlignments}
           matches={matches}
+          spoMatches={spoMatches}
           onReset={handleReset}
           globeRef={globeRef}
         />
       ) : (
         <>
-          {error && <p className="text-center text-sm text-destructive">{error}</p>}
+          {error && (
+            <div className="flex flex-col items-center gap-2 py-2">
+              <p className="text-center text-sm text-destructive">{error}</p>
+              <button
+                onClick={handleReset}
+                className="text-xs text-primary/70 hover:text-primary transition-colors"
+              >
+                Try again
+              </button>
+            </div>
+          )}
           <div className="flex justify-center">
             <Button variant="outline" onClick={handleReset} className="gap-2">
               <RotateCcw className="h-4 w-4" />

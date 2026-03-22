@@ -82,6 +82,8 @@ export const POST = withRouteHandler(
       selectedOptionIds?: string[];
       rawText?: string;
       weights?: Record<string, number>;
+      topicHints?: string[];
+      pass?: number;
     };
 
     try {
@@ -103,7 +105,12 @@ export const POST = withRouteHandler(
 
     if (action === 'start') {
       const sessionId = randomUUID();
-      const session = createSession(sessionId);
+      // Accept topicHints from initial pill selection to reorder questions
+      const topicHints = Array.isArray(body.topicHints)
+        ? body.topicHints.filter((t): t is string => typeof t === 'string').slice(0, 10)
+        : undefined;
+      const pass = typeof body.pass === 'number' && body.pass > 0 ? Math.min(body.pass, 5) : 0;
+      const session = createSession(sessionId, topicHints, pass);
       const firstQuestion = getNextQuestion(session);
 
       if (!firstQuestion) {
@@ -251,7 +258,11 @@ export const POST = withRouteHandler(
       // Check semantic feature flag
       const useSemantic = await getFeatureFlag('conversational_matching_semantic', false);
 
-      const { matches: results, bridgeMatch } = await executeMatch(session, {
+      const {
+        matches: results,
+        bridgeMatch,
+        spoMatches,
+      } = await executeMatch(session, {
         useSemantic,
         limit: 5,
         weights,
@@ -280,6 +291,7 @@ export const POST = withRouteHandler(
       return NextResponse.json({
         matches: results,
         bridgeMatch: bridgeMatch ?? null,
+        spoMatches: spoMatches ?? [],
         userAlignments: userAlignment,
         personalityLabel,
         identityColor,
@@ -293,7 +305,7 @@ export const POST = withRouteHandler(
   },
   {
     rateLimit: {
-      max: 10,
+      max: 60,
       window: 3600, // 1 hour
       key: (req) => {
         const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';

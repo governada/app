@@ -2,14 +2,15 @@
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, ExternalLink } from 'lucide-react';
 import { posthog } from '@/lib/posthog';
 import { Button } from '@/components/ui/button';
 import { GovernanceIdentityCard } from './GovernanceIdentityCard';
 import { MatchResultCard } from './MatchResultCard';
 import type { AlignmentScores } from '@/lib/drepIdentity';
-import type { MatchResult } from '@/lib/matching/conversationalMatch';
+import type { MatchResult, SpoMatchResult } from '@/lib/matching/conversationalMatch';
 import type { ConstellationRef } from '@/components/GovernanceConstellation';
+import { cn } from '@/lib/utils';
 
 /* ─── Types ─────────────────────────────────────────────── */
 
@@ -18,6 +19,7 @@ interface MatchResultsProps {
   identityColor: string;
   userAlignments: AlignmentScores;
   matches: MatchResult[];
+  spoMatches?: SpoMatchResult[];
   onReset: () => void;
   onDelegate?: (drepId: string) => void;
   globeRef?: React.RefObject<ConstellationRef | null>;
@@ -25,25 +27,61 @@ interface MatchResultsProps {
 
 /* ─── Helpers ───────────────────────────────────────────── */
 
-/**
- * Pick the best "bridge" match: the match with the lowest score
- * but highest disagreement on at least one dimension.
- * Falls back to the last match if no clear bridge exists.
- */
 function pickBridgeMatch(matches: MatchResult[]): MatchResult | null {
   if (matches.length < 4) return null;
-
-  // Candidates: matches ranked 4+ (skip top 3)
   const candidates = matches.slice(3);
-
-  // Sort by most differ dimensions descending, then lowest score
   const sorted = [...candidates].sort((a, b) => {
     const differDiff = b.differDimensions.length - a.differDimensions.length;
     if (differDiff !== 0) return differDiff;
     return a.score - b.score;
   });
-
   return sorted[0] ?? null;
+}
+
+/* ─── SPO Match Card (compact) ──────────────────────────── */
+
+function SpoMatchCard({ spo, rank }: { spo: SpoMatchResult; rank: number }) {
+  const displayName = spo.ticker
+    ? `[${spo.ticker}] ${spo.poolName ?? ''}`
+    : (spo.poolName ?? spo.poolId.slice(0, 16) + '...');
+
+  return (
+    <a
+      href={`/pool/${encodeURIComponent(spo.poolId)}`}
+      className={cn(
+        'flex items-center gap-3 rounded-lg border border-white/[0.08] bg-card/40 backdrop-blur-sm',
+        'px-4 py-3 transition-colors hover:border-violet-500/30',
+      )}
+    >
+      {/* Rank */}
+      <span
+        className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
+        style={{ backgroundColor: spo.identityColor }}
+      >
+        {rank}
+      </span>
+
+      {/* Name + vote count */}
+      <div className="flex-1 min-w-0">
+        <span className="font-medium text-sm text-foreground truncate block">{displayName}</span>
+        {spo.voteCount > 0 && (
+          <span className="text-[10px] text-muted-foreground">
+            {spo.voteCount} governance vote{spo.voteCount !== 1 ? 's' : ''}
+          </span>
+        )}
+      </div>
+
+      {/* Score */}
+      <span
+        className="font-display text-lg font-bold tabular-nums shrink-0"
+        style={{ color: spo.identityColor }}
+      >
+        {Math.round(spo.score)}%
+      </span>
+
+      <ExternalLink className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+    </a>
+  );
 }
 
 /* ─── Component ─────────────────────────────────────────── */
@@ -53,11 +91,11 @@ export function MatchResults({
   identityColor,
   userAlignments,
   matches,
+  spoMatches,
   onReset,
   onDelegate,
   globeRef,
 }: MatchResultsProps) {
-  const [showMatches, setShowMatches] = useState(false);
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const prefersReducedMotion = useReducedMotion();
 
@@ -75,10 +113,6 @@ export function MatchResults({
       });
     }
   }, [personalityLabel, identityColor]);
-
-  const handleContinue = useCallback(() => {
-    setShowMatches(true);
-  }, []);
 
   const handleShare = useCallback(() => {
     posthog.capture('match_identity_shared');
@@ -107,71 +141,86 @@ export function MatchResults({
   );
 
   return (
-    <div className="w-full space-y-6">
-      {/* Identity card — always visible */}
+    <div className="w-full space-y-5">
+      {/* Identity card — compact */}
       <GovernanceIdentityCard
         personalityLabel={personalityLabel}
         identityColor={identityColor}
         alignments={userAlignments}
         onShare={handleShare}
-        onContinue={!showMatches ? handleContinue : undefined}
       />
 
-      {/* Match result cards — revealed after "See your matches" */}
-      {showMatches && (
+      {/* DRep match result cards — immediately visible */}
+      <motion.div
+        initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.4, delay: 0.2 }}
+        className="space-y-4"
+      >
+        <h3 className="text-sm font-medium text-muted-foreground">Your DRep matches</h3>
+
+        {topMatches.map((match, i) => (
+          <MatchResultCard
+            key={match.drepId}
+            match={match}
+            rank={i + 1}
+            userAlignments={userAlignments}
+            expanded={expandedIndex === i}
+            onExpand={() => handleExpand(i, false)}
+            onDelegate={onDelegate ? (drepId) => handleDelegate(drepId, i + 1) : undefined}
+            globeRef={globeRef}
+          />
+        ))}
+
+        {bridgeMatch && (
+          <MatchResultCard
+            key={`bridge-${bridgeMatch.drepId}`}
+            match={bridgeMatch}
+            rank={4}
+            isBridge
+            userAlignments={userAlignments}
+            expanded={expandedIndex === 99}
+            onExpand={() => handleExpand(99, true)}
+            onDelegate={onDelegate ? (drepId) => handleDelegate(drepId, 4) : undefined}
+            globeRef={globeRef}
+          />
+        )}
+
+        {matches.length === 0 && (
+          <p className="text-center text-sm text-muted-foreground py-4">
+            No strong DRep matches found. Try again with different priorities.
+          </p>
+        )}
+      </motion.div>
+
+      {/* SPO matches — separate section */}
+      {spoMatches && spoMatches.length > 0 && (
         <motion.div
-          initial={prefersReducedMotion ? false : { opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.3 }}
-          className="space-y-4"
+          initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.4, delay: 0.4 }}
+          className="space-y-3"
         >
-          <h3 className="text-sm font-medium text-muted-foreground">Your top matches</h3>
-
-          {/* Top 3 matches */}
-          {topMatches.map((match, i) => (
-            <MatchResultCard
-              key={match.drepId}
-              match={match}
-              rank={i + 1}
-              userAlignments={userAlignments}
-              expanded={expandedIndex === i}
-              onExpand={() => handleExpand(i, false)}
-              onDelegate={onDelegate ? (drepId) => handleDelegate(drepId, i + 1) : undefined}
-              globeRef={globeRef}
-            />
-          ))}
-
-          {/* Bridge match */}
-          {bridgeMatch && (
-            <MatchResultCard
-              key={`bridge-${bridgeMatch.drepId}`}
-              match={bridgeMatch}
-              rank={4}
-              isBridge
-              userAlignments={userAlignments}
-              expanded={expandedIndex === 99}
-              onExpand={() => handleExpand(99, true)}
-              onDelegate={onDelegate ? (drepId) => handleDelegate(drepId, 4) : undefined}
-              globeRef={globeRef}
-            />
-          )}
-
-          {/* No matches fallback */}
-          {matches.length === 0 && (
-            <p className="text-center text-sm text-muted-foreground py-4">
-              No strong matches found. Try again with different priorities.
+          <div>
+            <h3 className="text-sm font-medium text-muted-foreground">Your stake pool matches</h3>
+            <p className="text-[11px] text-muted-foreground/70 mt-0.5">
+              SPOs aligned with your governance values
             </p>
-          )}
-
-          {/* Bottom CTAs */}
-          <div className="flex flex-col items-center gap-3 pt-4">
-            <Button variant="outline" onClick={onReset} className="gap-2 min-h-[44px]">
-              <RotateCcw className="h-4 w-4" />
-              Continue refining
-            </Button>
           </div>
+
+          {spoMatches.map((spo, i) => (
+            <SpoMatchCard key={spo.poolId} spo={spo} rank={i + 1} />
+          ))}
         </motion.div>
       )}
+
+      {/* Bottom CTAs */}
+      <div className="flex flex-col items-center gap-3 pt-2">
+        <Button variant="outline" onClick={onReset} className="gap-2 min-h-[44px]">
+          <RotateCcw className="h-4 w-4" />
+          Continue refining
+        </Button>
+      </div>
     </div>
   );
 }

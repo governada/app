@@ -33,6 +33,8 @@ export interface ConversationSession {
   extractedAlignment: Partial<AlignmentScores>;
   qualityGates: QualityGates;
   status: 'in_progress' | 'ready_to_match' | 'matched';
+  topicHints?: string[];
+  pass?: number; // 0 = first pass, 1+ = continue refining (uses follow-up questions)
 }
 
 export interface QualityGates {
@@ -57,9 +59,23 @@ export interface MatchResult {
   isBridgeMatch?: boolean;
 }
 
+export interface SpoMatchResult {
+  poolId: string;
+  poolName: string | null;
+  ticker: string | null;
+  score: number;
+  alignments: AlignmentScores;
+  identityColor: string;
+  agreeDimensions: string[];
+  differDimensions: string[];
+  governanceScore: number;
+  voteCount: number;
+}
+
 export interface MatchResults {
   matches: MatchResult[];
   bridgeMatch: MatchResult | null;
+  spoMatches: SpoMatchResult[];
 }
 
 /* ─── Constants ────────────────────────────────────────── */
@@ -87,7 +103,11 @@ const ALL_DIMENSIONS: AlignmentDimension[] = [
 /**
  * Create a new conversational matching session.
  */
-export function createSession(id: string): ConversationSession {
+export function createSession(
+  id: string,
+  topicHints?: string[],
+  pass: number = 0,
+): ConversationSession {
   return {
     id,
     rounds: [],
@@ -100,6 +120,8 @@ export function createSession(id: string): ConversationSession {
       passed: false,
     },
     status: 'in_progress',
+    topicHints,
+    pass,
   };
 }
 
@@ -116,7 +138,12 @@ export function processAnswer(
   if (session.rounds.length >= MAX_ROUNDS) return session;
 
   const roundIndex = session.rounds.length;
-  const questionSet = getQuestionForRound(roundIndex);
+  const questionSet = getQuestionForRound(
+    roundIndex,
+    undefined,
+    session.topicHints,
+    session.pass ?? 0,
+  );
   if (!questionSet) return session;
 
   // Sanitize raw text
@@ -304,7 +331,7 @@ export async function executeMatch(
     )
     .not('alignment_treasury_conservative', 'is', null);
 
-  if (!dreps?.length) return { matches: [], bridgeMatch: null };
+  if (!dreps?.length) return { matches: [], bridgeMatch: null, spoMatches: [] };
 
   // Compute 6D alignment scores for each DRep
   const alignmentResults = dreps.map((d) => {
@@ -388,15 +415,121 @@ export async function executeMatch(
   // Sort by combined score, then entity quality score
   results.sort((a, b) => b.score - a.score);
 
-  // Filter: minimum quality threshold
+  // Filter: minimum quality threshold + exclude unnamed entities (hex IDs are bad UX)
   const MIN_SCORE = 40;
-  const filtered = results.filter((r) => r.score >= MIN_SCORE);
+  const filtered = results.filter((r) => r.score >= MIN_SCORE && r.drepName);
   const topMatches = filtered.slice(0, limit);
 
   // Find bridge match
   const bridgeMatch = selectBridgeMatch(filtered, topMatches, alignmentResults, weights);
 
-  return { matches: topMatches, bridgeMatch };
+  // ── SPO Matching ──────────────────────────────────────
+  const spoMatches = await matchSpos(supabase, userAlignment, weights);
+
+  return { matches: topMatches, bridgeMatch, spoMatches };
+}
+
+/* ─── SPO Matching ─────────────────────────────────────── */
+
+/**
+ * Match SPOs using the same 6D alignment as DReps.
+ * Queries the latest epoch's alignment snapshots.
+ */
+async function matchSpos(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  userAlignment: AlignmentScores,
+  weights?: Record<string, number>,
+): Promise<SpoMatchResult[]> {
+  try {
+    // Get latest epoch with SPO data
+    const { data: maxEpoch } = await supabase
+      .from('spo_alignment_snapshots')
+      .select('epoch_no')
+      .order('epoch_no', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const epoch = maxEpoch?.epoch_no;
+    if (!epoch) return [];
+
+    // Fetch SPO alignments for latest epoch
+    const { data: alignments } = await supabase
+      .from('spo_alignment_snapshots')
+      .select(
+        'pool_id, alignment_treasury_conservative, alignment_treasury_growth, alignment_decentralization, alignment_security, alignment_innovation, alignment_transparency',
+      )
+      .eq('epoch_no', epoch)
+      .not('alignment_treasury_conservative', 'is', null);
+
+    if (!alignments?.length) return [];
+
+    // Fetch SPO scores + metadata
+    const { data: scores } = await supabase
+      .from('spo_score_snapshots')
+      .select('pool_id, governance_score, vote_count')
+      .eq('epoch_no', epoch);
+
+    const scoreMap = new Map(
+      (scores ?? []).map((s) => [
+        s.pool_id,
+        { governanceScore: Number(s.governance_score) || 0, voteCount: Number(s.vote_count) || 0 },
+      ]),
+    );
+
+    // Fetch pool metadata (name, ticker) from pools table
+    const poolIds = alignments.map((a) => a.pool_id);
+    const { data: poolMeta } = await supabase
+      .from('pools')
+      .select('pool_id, pool_name, ticker')
+      .in('pool_id', poolIds);
+
+    const metaMap = new Map(
+      (poolMeta ?? []).map((p) => [
+        p.pool_id,
+        { name: (p.pool_name as string) || null, ticker: (p.ticker as string) || null },
+      ]),
+    );
+
+    // Score each SPO
+    const spoResults = alignments.map((row) => {
+      const spoAlignments: AlignmentScores = {
+        treasuryConservative: Number(row.alignment_treasury_conservative) || 50,
+        treasuryGrowth: Number(row.alignment_treasury_growth) || 50,
+        decentralization: Number(row.alignment_decentralization) || 50,
+        security: Number(row.alignment_security) || 50,
+        innovation: Number(row.alignment_innovation) || 50,
+        transparency: Number(row.alignment_transparency) || 50,
+      };
+
+      const distance = weightedEuclideanDistance6D(userAlignment, spoAlignments, weights);
+      const score = distanceToScore(distance, weights);
+      const dimAgreement = computeDimensionAgreement(userAlignment, spoAlignments);
+      const meta = metaMap.get(row.pool_id);
+      const scoreInfo = scoreMap.get(row.pool_id);
+
+      return {
+        poolId: row.pool_id as string,
+        poolName: meta?.name ?? null,
+        ticker: meta?.ticker ?? null,
+        score,
+        alignments: spoAlignments,
+        identityColor: getIdentityColor(getDominantDimension(spoAlignments)).hex,
+        agreeDimensions: dimAgreement.agreeDimensions,
+        differDimensions: dimAgreement.differDimensions,
+        governanceScore: scoreInfo?.governanceScore ?? 0,
+        voteCount: scoreInfo?.voteCount ?? 0,
+      };
+    });
+
+    // Filter: named pools with minimum score, sorted by match score
+    return spoResults
+      .filter((s) => s.score >= 40 && (s.poolName || s.ticker))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3);
+  } catch {
+    // SPO matching failure is non-fatal
+    return [];
+  }
 }
 
 /* ─── Helpers ───────────────────────────────────────────── */
@@ -408,7 +541,12 @@ export async function executeMatch(
 export function getNextQuestion(session: ConversationSession) {
   if (session.status !== 'in_progress') return null;
   if (session.rounds.length >= MAX_ROUNDS) return null;
-  return getQuestionForRound(session.rounds.length);
+  return getQuestionForRound(
+    session.rounds.length,
+    undefined,
+    session.topicHints,
+    session.pass ?? 0,
+  );
 }
 
 /**

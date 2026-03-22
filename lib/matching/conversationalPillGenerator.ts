@@ -142,16 +142,197 @@ const QUESTIONS: QuestionSet[] = [
 ];
 
 /**
+ * Follow-up questions for "Continue refining" — different scenarios testing the same dimensions.
+ * Used on pass 2+ so users never see the same questions twice.
+ */
+const FOLLOWUP_QUESTIONS: QuestionSet[] = [
+  // Follow-up: Treasury scenario
+  {
+    question: 'A proposal requests 5M ADA for a risky but promising DeFi project. Your call?',
+    targetDimensions: ['treasuryConservative', 'treasuryGrowth'],
+    pills: [
+      {
+        id: 'fu-treasury-reject',
+        text: 'Too risky — protect the treasury from speculative bets',
+        alignmentHint: { treasuryConservative: 90, treasuryGrowth: 15 },
+      },
+      {
+        id: 'fu-treasury-fund',
+        text: 'Fund it — this is exactly the kind of moonshot we need',
+        alignmentHint: { treasuryConservative: 15, treasuryGrowth: 90 },
+      },
+      {
+        id: 'fu-treasury-partial',
+        text: 'Partial funding with milestones — reduce risk, keep upside',
+        alignmentHint: { treasuryConservative: 65, treasuryGrowth: 55 },
+      },
+      {
+        id: 'fu-treasury-defer',
+        text: 'Let DReps debate it — I trust the governance process',
+        alignmentHint: { treasuryConservative: 50, treasuryGrowth: 50, transparency: 65 },
+      },
+    ],
+  },
+  // Follow-up: Technical scenario
+  {
+    question:
+      "A hard fork is proposed to add smart contract features. It hasn't been fully audited.",
+    targetDimensions: ['security', 'innovation'],
+    pills: [
+      {
+        id: 'fu-tech-wait',
+        text: 'Wait for the audit — never compromise chain safety',
+        alignmentHint: { security: 90, innovation: 20 },
+      },
+      {
+        id: 'fu-tech-proceed',
+        text: 'Ship it — the features are needed now, audit can follow',
+        alignmentHint: { security: 20, innovation: 90 },
+      },
+      {
+        id: 'fu-tech-testnet',
+        text: 'Deploy to testnet first — real-world testing reveals more than audits',
+        alignmentHint: { security: 70, innovation: 65 },
+      },
+      {
+        id: 'fu-tech-community',
+        text: 'Let the SPOs decide — they run the infrastructure',
+        alignmentHint: { security: 60, innovation: 50, decentralization: 75 },
+      },
+    ],
+  },
+  // Follow-up: Governance scenario
+  {
+    question:
+      'A well-known whale is buying votes to pass self-serving proposals. What should happen?',
+    targetDimensions: ['transparency', 'decentralization'],
+    pills: [
+      {
+        id: 'fu-gov-expose',
+        text: 'Expose it publicly — sunlight is the best disinfectant',
+        alignmentHint: { transparency: 90, decentralization: 65 },
+      },
+      {
+        id: 'fu-gov-limit',
+        text: 'Cap voting power — no single entity should dominate',
+        alignmentHint: { decentralization: 90, transparency: 60 },
+      },
+      {
+        id: 'fu-gov-allow',
+        text: "It's their ADA — governance should tolerate all strategies",
+        alignmentHint: { transparency: 30, decentralization: 30 },
+      },
+      {
+        id: 'fu-gov-protocol',
+        text: 'Fix it in the protocol — build incentives that prevent capture',
+        alignmentHint: { security: 70, decentralization: 75, innovation: 60 },
+      },
+    ],
+  },
+  // Follow-up: Trade-off scenario
+  {
+    question: "Cardano is falling behind competitors. What's the best response?",
+    targetDimensions: [
+      'treasuryConservative',
+      'treasuryGrowth',
+      'decentralization',
+      'security',
+      'innovation',
+      'transparency',
+    ],
+    pills: [
+      {
+        id: 'fu-tradeoff-spend',
+        text: 'Spend aggressively — outpace them with funded innovation',
+        alignmentHint: { treasuryGrowth: 90, innovation: 85, treasuryConservative: 10 },
+      },
+      {
+        id: 'fu-tradeoff-differentiate',
+        text: 'Double down on what makes us different — governance and security',
+        alignmentHint: { security: 85, transparency: 80, decentralization: 75 },
+      },
+      {
+        id: 'fu-tradeoff-patience',
+        text: 'Stay the course — fundamentals matter more than hype',
+        alignmentHint: { treasuryConservative: 80, security: 75, innovation: 30 },
+      },
+      {
+        id: 'fu-tradeoff-community',
+        text: 'Empower the community — grassroots growth beats top-down',
+        alignmentHint: { decentralization: 85, transparency: 70, treasuryGrowth: 55 },
+      },
+    ],
+  },
+];
+
+/**
+ * Map topic slugs (from the topic pill cloud) to alignment dimensions.
+ * Used to reorder questions so the first question matches the user's interest.
+ */
+const TOPIC_TO_DIMENSIONS: Record<string, string[]> = {
+  treasury: ['treasuryConservative', 'treasuryGrowth'],
+  'developer-funding': ['treasuryConservative', 'treasuryGrowth'],
+  innovation: ['security', 'innovation'],
+  security: ['security', 'innovation'],
+  transparency: ['transparency', 'decentralization'],
+  decentralization: ['transparency', 'decentralization'],
+  'community-growth': ['transparency', 'decentralization'],
+  constitutional: ['transparency', 'decentralization'],
+};
+
+/**
+ * Build a question order based on topic hints.
+ * Moves the question whose targetDimensions best match the selected topics to the front.
+ * Trade-off question (index 3) always stays last.
+ */
+function buildQuestionOrder(
+  topicHints?: string[],
+  questionBank: QuestionSet[] = QUESTIONS,
+): QuestionSet[] {
+  if (!topicHints || topicHints.length === 0) return questionBank;
+
+  // Collect relevant dimensions from topic hints
+  const relevantDims = new Set<string>();
+  for (const topic of topicHints) {
+    const slug = topic.replace(/^topic-/, '');
+    const dims = TOPIC_TO_DIMENSIONS[slug];
+    if (dims) dims.forEach((d) => relevantDims.add(d));
+  }
+
+  if (relevantDims.size === 0) return questionBank;
+
+  // Separate trade-off question (always last) from orderable questions
+  const tradeoff = questionBank[questionBank.length - 1];
+  const orderable = questionBank.slice(0, -1);
+
+  // Score each orderable question by overlap with relevant dimensions
+  const scored = orderable.map((q) => {
+    const overlap = q.targetDimensions.filter((d) => relevantDims.has(d)).length;
+    return { q, overlap };
+  });
+
+  // Sort: highest overlap first, preserve original order for ties
+  scored.sort((a, b) => b.overlap - a.overlap);
+
+  return [...scored.map((s) => s.q), tradeoff];
+}
+
+/**
  * Get the question set for a given round number (0-indexed).
- * Returns the static question for that round.
- * previousAnswers parameter reserved for future adaptive question selection.
+ * When topicHints are provided, reorders questions so the first question
+ * matches the user's selected topic pill(s).
+ * When pass > 0 (continue refining), uses follow-up questions instead.
  */
 export function getQuestionForRound(
   roundNumber: number,
   _previousAnswers?: unknown[],
+  topicHints?: string[],
+  pass: number = 0,
 ): QuestionSet | null {
-  if (roundNumber < 0 || roundNumber >= QUESTIONS.length) return null;
-  return QUESTIONS[roundNumber];
+  const questionBank = pass > 0 ? FOLLOWUP_QUESTIONS : QUESTIONS;
+  const ordered = buildQuestionOrder(topicHints, questionBank);
+  if (roundNumber < 0 || roundNumber >= ordered.length) return null;
+  return ordered[roundNumber];
 }
 
 /** Total number of available questions. */
