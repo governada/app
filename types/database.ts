@@ -2091,6 +2091,7 @@ export type Database = {
           feedback_themes: string[];
           id: string;
           impact_score: number | null;
+          reviewed_at_version: number | null;
           reviewer_stake_address: string;
           reviewer_user_id: string | null;
           value_score: number | null;
@@ -2104,6 +2105,7 @@ export type Database = {
           feedback_themes?: string[];
           id?: string;
           impact_score?: number | null;
+          reviewed_at_version?: number | null;
           reviewer_stake_address: string;
           reviewer_user_id?: string | null;
           value_score?: number | null;
@@ -2117,6 +2119,7 @@ export type Database = {
           feedback_themes?: string[];
           id?: string;
           impact_score?: number | null;
+          reviewed_at_version?: number | null;
           reviewer_stake_address?: string;
           reviewer_user_id?: string | null;
           value_score?: number | null;
@@ -2540,6 +2543,8 @@ export type Database = {
           score: number | null;
           score_momentum: number | null;
           size_tier: string | null;
+          spotlight_narrative: string | null;
+          spotlight_narrative_generated_at: string | null;
           updated_at: string | null;
           votes: Json[] | null;
         };
@@ -2588,6 +2593,8 @@ export type Database = {
           score?: number | null;
           score_momentum?: number | null;
           size_tier?: string | null;
+          spotlight_narrative?: string | null;
+          spotlight_narrative_generated_at?: string | null;
           updated_at?: string | null;
           votes?: Json[] | null;
         };
@@ -2636,6 +2643,8 @@ export type Database = {
           score?: number | null;
           score_momentum?: number | null;
           size_tier?: string | null;
+          spotlight_narrative?: string | null;
+          spotlight_narrative_generated_at?: string | null;
           updated_at?: string | null;
           votes?: Json[] | null;
         };
@@ -3329,6 +3338,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      matching_topics: {
+        Row: {
+          alignment_hints: Json | null;
+          created_at: string | null;
+          display_text: string;
+          enabled: boolean | null;
+          epoch_introduced: number | null;
+          id: string;
+          selection_count: number | null;
+          slug: string;
+          source: string;
+          trending: boolean | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          alignment_hints?: Json | null;
+          created_at?: string | null;
+          display_text: string;
+          enabled?: boolean | null;
+          epoch_introduced?: number | null;
+          id?: string;
+          selection_count?: number | null;
+          slug: string;
+          source?: string;
+          trending?: boolean | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          alignment_hints?: Json | null;
+          created_at?: string | null;
+          display_text?: string;
+          enabled?: boolean | null;
+          epoch_introduced?: number | null;
+          id?: string;
+          selection_count?: number | null;
+          slug?: string;
+          source?: string;
+          trending?: boolean | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
       metadata_archive: {
         Row: {
           cip_standard: string | null;
@@ -3682,6 +3733,8 @@ export type Database = {
           retiring_epoch: number | null;
           score_momentum: number | null;
           social_links: Json | null;
+          spotlight_narrative: string | null;
+          spotlight_narrative_generated_at: string | null;
           ticker: string | null;
           updated_at: string | null;
           vote_count: number | null;
@@ -3726,6 +3779,8 @@ export type Database = {
           retiring_epoch?: number | null;
           score_momentum?: number | null;
           social_links?: Json | null;
+          spotlight_narrative?: string | null;
+          spotlight_narrative_generated_at?: string | null;
           ticker?: string | null;
           updated_at?: string | null;
           vote_count?: number | null;
@@ -3770,6 +3825,8 @@ export type Database = {
           retiring_epoch?: number | null;
           score_momentum?: number | null;
           social_links?: Json | null;
+          spotlight_narrative?: string | null;
+          spotlight_narrative_generated_at?: string | null;
           ticker?: string | null;
           updated_at?: string | null;
           vote_count?: number | null;
@@ -4581,6 +4638,42 @@ export type Database = {
         };
         Relationships: [];
       };
+      proposal_team_approvals: {
+        Row: {
+          approved_at: string | null;
+          draft_id: string;
+          id: string;
+          team_member_id: string;
+        };
+        Insert: {
+          approved_at?: string | null;
+          draft_id: string;
+          id?: string;
+          team_member_id: string;
+        };
+        Update: {
+          approved_at?: string | null;
+          draft_id?: string;
+          id?: string;
+          team_member_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'proposal_team_approvals_draft_id_fkey';
+            columns: ['draft_id'];
+            isOneToOne: false;
+            referencedRelation: 'proposal_drafts';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'proposal_team_approvals_team_member_id_fkey';
+            columns: ['team_member_id'];
+            isOneToOne: false;
+            referencedRelation: 'proposal_team_members';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       proposal_team_invites: {
         Row: {
           created_at: string;
@@ -4621,42 +4714,6 @@ export type Database = {
             columns: ['team_id'];
             isOneToOne: false;
             referencedRelation: 'proposal_teams';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      proposal_team_approvals: {
-        Row: {
-          id: string;
-          draft_id: string;
-          team_member_id: string;
-          approved_at: string;
-        };
-        Insert: {
-          id?: string;
-          draft_id: string;
-          team_member_id: string;
-          approved_at?: string;
-        };
-        Update: {
-          id?: string;
-          draft_id?: string;
-          team_member_id?: string;
-          approved_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'proposal_team_approvals_draft_id_fkey';
-            columns: ['draft_id'];
-            isOneToOne: false;
-            referencedRelation: 'proposal_drafts';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'proposal_team_approvals_team_member_id_fkey';
-            columns: ['team_member_id'];
-            isOneToOne: false;
-            referencedRelation: 'proposal_team_members';
             referencedColumns: ['id'];
           },
         ];

@@ -2,7 +2,8 @@
 
 import { useState, useMemo, useRef, useCallback, useDeferredValue } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useFeatureFlag } from '@/components/FeatureGate';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -57,6 +58,15 @@ import {
   getIdentityColor,
 } from '@/lib/drepIdentity';
 import type { AlignmentScores } from '@/lib/drepIdentity';
+import { SpotlightTheater } from '@/components/spotlight/SpotlightTheater';
+import { SpotlightDRepCard } from '@/components/spotlight/SpotlightDRepCard';
+import { ViewModeToggle } from '@/components/spotlight/ViewModeToggle';
+import { SolonDiscoveryPanel } from '@/components/spotlight/SolonDiscoveryPanel';
+import { ConstellationCTA } from '@/components/spotlight/ConstellationCTA';
+import { ConstellationBrowse } from '@/components/spotlight/ConstellationBrowse';
+import { useSpotlightTracking, useSpotlightViewMode } from '@/hooks/useSpotlightTracking';
+import { useSpotlightNarrative } from '@/hooks/useSpotlightNarratives';
+import type { SpotlightEntity } from '@/components/spotlight/types';
 
 const TIER_CHIPS: { value: string; label: string; tooltip?: string }[] = [
   { value: 'All', label: 'All' },
@@ -580,6 +590,37 @@ export function GovernadaDRepBrowse(_props: GovernadaDRepBrowseProps) {
     };
   }, [matchProfile, filtered]);
 
+  // ── Spotlight mode integration ──────────────────────────────────────
+  const spotlightEnabled = useFeatureFlag('spotlight_browse');
+  const solonEnabled = useFeatureFlag('solon_discovery');
+  const constellationEnabled = useFeatureFlag('constellation_browse');
+  const [spotlightViewMode, setSpotlightViewMode] = useSpotlightViewMode();
+  const spotlightTracking = useSpotlightTracking('drep');
+  const [showConstellation, setShowConstellation] = useState(false);
+  const router = useRouter();
+
+  // Build spotlight queue from filtered DReps
+  const spotlightQueue: SpotlightEntity[] = useMemo(() => {
+    const sorted = [...filtered].sort((a, b) => (b.drepScore ?? 0) - (a.drepScore ?? 0));
+    return sorted.map((d) => ({
+      entityType: 'drep' as const,
+      id: d.drepId,
+      data: d,
+    }));
+  }, [filtered]);
+
+  const renderSpotlightCard = useCallback((entity: SpotlightEntity, isTracked: boolean) => {
+    if (entity.entityType !== 'drep') return null;
+    return <SpotlightDRepCard drep={entity.data} isTracked={isTracked} />;
+  }, []);
+
+  const handleSpotlightDetails = useCallback(
+    (entity: SpotlightEntity) => {
+      router.push(`/drep/${entity.id}`);
+    },
+    [router],
+  );
+
   if (isLoading) {
     return (
       <div className="space-y-2 pt-4">
@@ -590,13 +631,50 @@ export function GovernadaDRepBrowse(_props: GovernadaDRepBrowseProps) {
     );
   }
 
-  // ── Hands-Off: match-aware discovery or delegation summary ──────────
+  // ── Spotlight mode for anonymous/hands-off users ────────────────────
   if (!isAtLeast('informed')) {
-    // Wallet-connected users with a delegation: show their DRep summary
+    if (spotlightEnabled && spotlightViewMode === 'spotlight') {
+      return (
+        <div className="space-y-4 pt-2">
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-bold tracking-tight">Explore Representatives</h1>
+            <ViewModeToggle mode={spotlightViewMode} onChange={setSpotlightViewMode} hideTable />
+          </div>
+
+          {solonEnabled && <SolonDiscoveryPanel entityType="drep" entityCount={dreps.length} />}
+
+          {showConstellation && constellationEnabled ? (
+            <ConstellationBrowse
+              trackedIds={spotlightTracking.trackedIds}
+              onNodeSelect={(id) => router.push(`/drep/${id}`)}
+              onClose={() => setShowConstellation(false)}
+            />
+          ) : (
+            <>
+              <SpotlightTheater
+                queue={spotlightQueue}
+                entityType="drep"
+                sort="score"
+                renderCard={renderSpotlightCard}
+                onDetails={handleSpotlightDetails}
+              />
+
+              {constellationEnabled && spotlightTracking.trackedCount >= 3 && (
+                <ConstellationCTA
+                  trackedCount={spotlightTracking.trackedCount}
+                  onClick={() => setShowConstellation(true)}
+                />
+              )}
+            </>
+          )}
+        </div>
+      );
+    }
+
+    // Fallback: existing hands-off experience
     if (delegatedDrepId) {
       return <YourDRepSummary dreps={dreps} />;
     }
-    // Anonymous / no delegation: show match-aware hero
     const drepEntities = dreps.map((d) => ({
       id: d.drepId,
       name: d.name || d.ticker || d.handle || `${d.drepId.slice(0, 16)}\u2026`,

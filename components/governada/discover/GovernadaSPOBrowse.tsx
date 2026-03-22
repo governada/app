@@ -36,6 +36,16 @@ import { CompassGuide } from '@/components/governada/shared/CompassGuide';
 import { InsightCard } from '@/components/governada/shared/InsightCard';
 import { PersonalTeaser } from '@/components/governada/shared/PersonalTeaser';
 import { AdvisorPanel } from '@/components/governada/shared/AdvisorPanel';
+import { useRouter } from 'next/navigation';
+import { useFeatureFlag } from '@/components/FeatureGate';
+import { SpotlightTheater } from '@/components/spotlight/SpotlightTheater';
+import { SpotlightSPOCard } from '@/components/spotlight/SpotlightSPOCard';
+import { ViewModeToggle } from '@/components/spotlight/ViewModeToggle';
+import { SolonDiscoveryPanel } from '@/components/spotlight/SolonDiscoveryPanel';
+import { ConstellationCTA } from '@/components/spotlight/ConstellationCTA';
+import { ConstellationBrowse } from '@/components/spotlight/ConstellationBrowse';
+import { useSpotlightTracking, useSpotlightViewMode } from '@/hooks/useSpotlightTracking';
+import type { SpotlightEntity } from '@/components/spotlight/types';
 
 /* ── Constants ──────────────────────────────────────────────────── */
 
@@ -304,6 +314,38 @@ export function GovernadaSPOBrowse() {
   // Determine if search hit the "governance-active only" boundary
   const searchHasResults = !deferredSearch.trim() || filtered.length > 0;
 
+  // ── Spotlight mode ──────────────────────────────────────────────────
+  const spotlightEnabled = useFeatureFlag('spotlight_browse');
+  const solonEnabled = useFeatureFlag('solon_discovery');
+  const constellationEnabled = useFeatureFlag('constellation_browse');
+  const [spotlightViewMode, setSpotlightViewMode] = useSpotlightViewMode();
+  const spotlightTracking = useSpotlightTracking('spo');
+  const [showConstellation, setShowConstellation] = useState(false);
+  const router = useRouter();
+
+  const spotlightQueue: SpotlightEntity[] = useMemo(() => {
+    const sorted = [...filtered].sort(
+      (a, b) => (b.governanceScore ?? 0) - (a.governanceScore ?? 0),
+    );
+    return sorted.map((p) => ({
+      entityType: 'spo' as const,
+      id: p.poolId,
+      data: p,
+    }));
+  }, [filtered]);
+
+  const renderSpotlightCard = useCallback((entity: SpotlightEntity, isTracked: boolean) => {
+    if (entity.entityType !== 'spo') return null;
+    return <SpotlightSPOCard pool={entity.data} isTracked={isTracked} />;
+  }, []);
+
+  const handleSpotlightDetails = useCallback(
+    (entity: SpotlightEntity) => {
+      router.push(`/pool/${entity.id}`);
+    },
+    [router],
+  );
+
   if (isLoading) {
     return (
       <div className="space-y-4 pt-4">
@@ -318,8 +360,44 @@ export function GovernadaSPOBrowse() {
     );
   }
 
-  // ── Hands-Off: match-aware discovery hero ──────────────────────────
+  // ── Spotlight for anonymous/hands-off users ────────────────────────
   if (!isAtLeast('informed')) {
+    if (spotlightEnabled && spotlightViewMode === 'spotlight') {
+      return (
+        <div className="space-y-4 pt-2">
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-bold tracking-tight">Explore Stake Pools</h1>
+            <ViewModeToggle mode={spotlightViewMode} onChange={setSpotlightViewMode} hideTable />
+          </div>
+          {solonEnabled && <SolonDiscoveryPanel entityType="spo" entityCount={pools.length} />}
+          {showConstellation && constellationEnabled ? (
+            <ConstellationBrowse
+              trackedIds={spotlightTracking.trackedIds}
+              onNodeSelect={(id) => router.push(`/pool/${id}`)}
+              onClose={() => setShowConstellation(false)}
+            />
+          ) : (
+            <>
+              <SpotlightTheater
+                queue={spotlightQueue}
+                entityType="spo"
+                sort="score"
+                renderCard={renderSpotlightCard}
+                onDetails={handleSpotlightDetails}
+              />
+              {constellationEnabled && spotlightTracking.trackedCount >= 3 && (
+                <ConstellationCTA
+                  trackedCount={spotlightTracking.trackedCount}
+                  onClick={() => setShowConstellation(true)}
+                />
+              )}
+            </>
+          )}
+        </div>
+      );
+    }
+
+    // Fallback: existing hands-off
     const poolEntities = pools.map((p) => ({
       id: p.poolId,
       name: p.ticker || p.poolName || `${p.poolId.slice(0, 16)}\u2026`,
