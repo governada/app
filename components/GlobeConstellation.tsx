@@ -48,6 +48,9 @@ interface SceneState {
   animating: boolean;
   matchedNodeIds: Set<string>;
   matchIntensities: Map<string, number>;
+  scanProgress: number; // 0-1, derived from matching threshold convergence
+  flyToTarget: [number, number, number] | null;
+  flyToActive: boolean;
 }
 
 // Earth-like axial tilt: 23.4 degrees
@@ -77,6 +80,9 @@ export const GlobeConstellation = forwardRef<
     animating: false,
     matchedNodeIds: new Set(),
     matchIntensities: new Map(),
+    scanProgress: 0,
+    flyToTarget: null,
+    flyToActive: false,
   });
   const [quality, setQuality] = useState<'low' | 'mid' | 'high'>('high');
 
@@ -202,11 +208,15 @@ export const GlobeConstellation = forwardRef<
         }
       }
 
+      // Compute scanning progress from threshold (160=start, 35=end)
+      const scanProgress = Math.max(0, Math.min(1, (160 - threshold) / 125));
+
       setSceneState((prev) => ({
         ...prev,
         matchedNodeIds: matched,
         matchIntensities: intensities,
         dimmed: matched.size > 0,
+        scanProgress,
       }));
 
       // Progressive camera zoom — closer as threshold narrows ("Xavier's room" convergence)
@@ -265,16 +275,30 @@ export const GlobeConstellation = forwardRef<
       // Stop rotation completely
       rotationSpeedRef.current = 0;
 
-      // Pulse the node
-      setSceneState((prev) => ({ ...prev, pulseId: drepId, animating: true }));
+      // Compute the rotated target position for particles
+      const [x, y, z] = rotateAroundY(node.position, rotationAngleRef.current);
+
+      // Pulse the node and activate fly-to particles
+      setSceneState((prev) => ({
+        ...prev,
+        pulseId: drepId,
+        animating: true,
+        flyToTarget: [x, y, z],
+        flyToActive: true,
+      }));
 
       // Fly to the node — close and personal
-      const [x, y, z] = rotateAroundY(node.position, rotationAngleRef.current);
       await cameraControlsRef.current.setLookAt(x * 1.3, y * 1.3, z * 1.3 + 2.5, x, y, z, true);
 
       // Hold the pulse a bit longer than normal
       await sleep(1500);
-      setSceneState((prev) => ({ ...prev, pulseId: null, animating: false }));
+      setSceneState((prev) => ({
+        ...prev,
+        pulseId: null,
+        animating: false,
+        flyToActive: false,
+        flyToTarget: null,
+      }));
     },
 
     clearMatches: () => {
@@ -283,6 +307,9 @@ export const GlobeConstellation = forwardRef<
         matchedNodeIds: new Set(),
         matchIntensities: new Map(),
         dimmed: false,
+        scanProgress: 0,
+        flyToTarget: null,
+        flyToActive: false,
       }));
       rotationSpeedRef.current = DEFAULT_ROTATION_SPEED;
       cameraControlsRef.current?.setLookAt(...INITIAL_CAMERA, ...INITIAL_TARGET, true);
@@ -333,8 +360,20 @@ export const GlobeConstellation = forwardRef<
             speedRef={rotationSpeedRef}
           >
             <InnerGlow />
-            <GlobeAtmosphere radius={8.1} color="#4488cc" intensity={0.8} />
-            <GlobeAtmosphere radius={8.5} color="#2244aa" intensity={0.3} />
+            <GlobeAtmosphere
+              radius={8.1}
+              color="#4488cc"
+              warmColor="#cc8844"
+              intensity={0.8}
+              matchProgress={sceneState.scanProgress}
+            />
+            <GlobeAtmosphere
+              radius={8.5}
+              color="#2244aa"
+              warmColor="#aa6622"
+              intensity={0.3}
+              matchProgress={sceneState.scanProgress}
+            />
             <GlobeWireframe radius={8} opacity={0.04} />
             <ConstellationNodes
               nodes={sceneState.nodes}
@@ -348,9 +387,26 @@ export const GlobeConstellation = forwardRef<
             />
             <ConstellationEdges edges={sceneState.edges} dimmed={sceneState.dimmed} />
             {quality !== 'low' && (
+              <MatchedEdgeGlow
+                nodes={sceneState.nodes}
+                matchedNodeIds={sceneState.matchedNodeIds}
+                matchIntensities={sceneState.matchIntensities}
+              />
+            )}
+            {quality !== 'low' && (
+              <ScanningRing
+                active={sceneState.matchedNodeIds.size > 0}
+                progress={sceneState.scanProgress}
+              />
+            )}
+            {quality !== 'low' && (
               <NetworkPulses edges={sceneState.edges} dimmed={sceneState.dimmed} />
             )}
           </TiltedGlobeGroup>
+
+          {quality !== 'low' && (
+            <FlyToParticles target={sceneState.flyToTarget} active={sceneState.flyToActive} />
+          )}
 
           {quality !== 'low' && (
             <EffectComposer>
@@ -409,18 +465,27 @@ void main() {
 function GlobeAtmosphere({
   radius,
   color,
+  warmColor,
   intensity,
+  matchProgress = 0,
 }: {
   radius: number;
   color: string;
+  warmColor?: string;
   intensity: number;
+  matchProgress?: number;
 }) {
+  const lerpedColor = useMemo(() => {
+    if (!warmColor || matchProgress <= 0) return new THREE.Color(color);
+    return new THREE.Color(color).lerp(new THREE.Color(warmColor), matchProgress);
+  }, [color, warmColor, matchProgress]);
+
   const uniforms = useMemo(
     () => ({
-      uColor: { value: new THREE.Color(color) },
+      uColor: { value: lerpedColor },
       uIntensity: { value: intensity },
     }),
-    [color, intensity],
+    [lerpedColor, intensity],
   );
 
   return (
@@ -1106,6 +1171,236 @@ function NetworkPulses({ edges, dimmed }: { edges: ConstellationEdge3D[]; dimmed
         <bufferAttribute attach="attributes-aSize" args={[buffers.sizes, 1]} />
         <bufferAttribute attach="attributes-aAlpha" args={[buffers.alphas, 1]} />
         <bufferAttribute attach="attributes-aPulseColor" args={[buffers.pulseColors, 3]} />
+      </bufferGeometry>
+      <shaderMaterial
+        vertexShader={PULSE_VERT}
+        fragmentShader={PULSE_FRAG}
+        transparent
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+        toneMapped={false}
+      />
+    </points>
+  );
+}
+
+// --- Matched edge glow (amber energy between matched nodes) ---
+
+function MatchedEdgeGlow({
+  nodes,
+  matchedNodeIds,
+  matchIntensities,
+}: {
+  nodes: ConstellationNode3D[];
+  matchedNodeIds: Set<string>;
+  matchIntensities: Map<string, number>;
+}) {
+  const matRef = useRef<THREE.LineBasicMaterial>(null);
+
+  const matchedEdges = useMemo(() => {
+    if (matchedNodeIds.size === 0) return null;
+    // Build edges between nearby matched nodes (within distance 4)
+    const matched = nodes.filter((n) => matchedNodeIds.has(n.id));
+    if (matched.length < 2) return null;
+
+    const positions: number[] = [];
+    const intensityArr: number[] = [];
+    const maxEdges = 80; // cap for performance
+    let count = 0;
+
+    for (let i = 0; i < matched.length && count < maxEdges; i++) {
+      for (let j = i + 1; j < matched.length && count < maxEdges; j++) {
+        const a = matched[i];
+        const b = matched[j];
+        const dx = a.position[0] - b.position[0];
+        const dy = a.position[1] - b.position[1];
+        const dz = a.position[2] - b.position[2];
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (dist > 4) continue;
+        positions.push(...a.position, ...b.position);
+        const avg = ((matchIntensities.get(a.id) ?? 0) + (matchIntensities.get(b.id) ?? 0)) / 2;
+        intensityArr.push(avg);
+        count++;
+      }
+    }
+    if (positions.length === 0) return null;
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    return {
+      geometry: geo,
+      avgIntensity: intensityArr.reduce((a, b) => a + b, 0) / intensityArr.length,
+    };
+  }, [nodes, matchedNodeIds, matchIntensities]);
+
+  useFrame(({ clock }) => {
+    if (!matRef.current || !matchedEdges) return;
+    const t = clock.getElapsedTime();
+    const pulse = 0.05 + matchedEdges.avgIntensity * 0.3 * (0.5 + 0.5 * Math.sin(t * 2));
+    matRef.current.opacity = pulse;
+  });
+
+  if (!matchedEdges) return null;
+
+  return (
+    <lineSegments geometry={matchedEdges.geometry}>
+      <lineBasicMaterial
+        ref={matRef}
+        color={MATCH_COLOR}
+        transparent
+        opacity={0.1}
+        toneMapped={false}
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+      />
+    </lineSegments>
+  );
+}
+
+// --- Scanning sweep ring (radar-like ring during matching) ---
+
+function ScanningRing({ active, progress }: { active: boolean; progress: number }) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const matRef = useRef<THREE.MeshBasicMaterial>(null);
+  const targetOpacity = useRef(0);
+
+  useFrame((_, delta) => {
+    if (!meshRef.current || !matRef.current) return;
+    // Continuous rotation on Z-axis tilted differently from globe
+    meshRef.current.rotation.z += delta * 0.036; // ~3x globe speed
+    meshRef.current.rotation.x += delta * 0.008; // slight tumble
+
+    // Smooth opacity transition
+    const desired = active ? 0.2 + progress * 0.15 : 0;
+    targetOpacity.current += (desired - targetOpacity.current) * Math.min(1, delta * 3);
+    matRef.current.opacity = targetOpacity.current;
+  });
+
+  // Lerp color from teal toward amber as progress increases
+  const color = useMemo(() => {
+    const teal = new THREE.Color('#2dd4bf');
+    const amber = new THREE.Color('#f59e0b');
+    return teal.clone().lerp(amber, progress * 0.6);
+  }, [progress]);
+
+  return (
+    <mesh ref={meshRef} rotation={[Math.PI / 3, 0, 0]}>
+      <torusGeometry args={[8.5, 0.02 + progress * 0.02, 8, 64]} />
+      <meshBasicMaterial
+        ref={matRef}
+        color={color}
+        transparent
+        opacity={0}
+        toneMapped={false}
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+      />
+    </mesh>
+  );
+}
+
+// --- Fly-to particle trail (streams from camera to target on final match) ---
+
+const FLY_PARTICLE_COUNT = 30;
+
+function FlyToParticles({
+  target,
+  active,
+}: {
+  target: [number, number, number] | null;
+  active: boolean;
+}) {
+  const geoRef = useRef<THREE.BufferGeometry>(null);
+  const startTimesRef = useRef(new Float32Array(FLY_PARTICLE_COUNT));
+  const activatedRef = useRef(false);
+  const cameraStartRef = useRef<[number, number, number]>([0, 3, 14]);
+
+  // On activation, capture camera position and stagger start times
+  useEffect(() => {
+    if (active && target) {
+      activatedRef.current = true;
+      for (let i = 0; i < FLY_PARTICLE_COUNT; i++) {
+        startTimesRef.current[i] = -1; // will be set in first frame
+      }
+    } else {
+      activatedRef.current = false;
+    }
+  }, [active, target]);
+
+  useFrame(({ camera, clock }) => {
+    const geo = geoRef.current;
+    if (!geo || !target || !activatedRef.current) return;
+
+    const positions = geo.getAttribute('position') as THREE.BufferAttribute | null;
+    const alphas = geo.getAttribute('aAlpha') as THREE.BufferAttribute | null;
+    if (!positions || !alphas) return;
+
+    const now = clock.getElapsedTime();
+
+    // Capture camera start on first frame
+    if (startTimesRef.current[0] < 0) {
+      cameraStartRef.current = [camera.position.x, camera.position.y, camera.position.z];
+      for (let i = 0; i < FLY_PARTICLE_COUNT; i++) {
+        startTimesRef.current[i] = now + i * 0.03; // 30ms stagger
+      }
+    }
+
+    const [sx, sy, sz] = cameraStartRef.current;
+    const [tx, ty, tz] = target;
+    let anyActive = false;
+
+    for (let i = 0; i < FLY_PARTICLE_COUNT; i++) {
+      const elapsed = now - startTimesRef.current[i];
+      if (elapsed < 0) {
+        // Not started yet
+        positions.setXYZ(i, sx, sy, sz);
+        alphas.setX(i, 0);
+        anyActive = true;
+        continue;
+      }
+
+      const t = Math.min(elapsed / 0.8, 1); // 800ms travel
+      // Ease-in-out
+      const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
+      positions.setXYZ(i, sx + (tx - sx) * eased, sy + (ty - sy) * eased, sz + (tz - sz) * eased);
+
+      // Fade: ramp up then fade out
+      const alpha = t < 0.2 ? t / 0.2 : t > 0.7 ? (1 - t) / 0.3 : 1;
+      alphas.setX(i, alpha * 0.8);
+
+      if (t < 1) anyActive = true;
+    }
+
+    positions.needsUpdate = true;
+    alphas.needsUpdate = true;
+
+    // Auto-deactivate when all particles are done
+    if (!anyActive) {
+      activatedRef.current = false;
+    }
+  });
+
+  const buffers = useMemo(() => {
+    const positions = new Float32Array(FLY_PARTICLE_COUNT * 3);
+    const sizes = new Float32Array(FLY_PARTICLE_COUNT).fill(0.06);
+    const alphas = new Float32Array(FLY_PARTICLE_COUNT).fill(0);
+    const colors = new Float32Array(FLY_PARTICLE_COUNT * 3);
+    const matchCol = new THREE.Color(MATCH_COLOR);
+    for (let i = 0; i < FLY_PARTICLE_COUNT; i++) {
+      colors[i * 3] = matchCol.r * 2.5;
+      colors[i * 3 + 1] = matchCol.g * 2.5;
+      colors[i * 3 + 2] = matchCol.b * 2.5;
+    }
+    return { positions, sizes, alphas, colors };
+  }, []);
+
+  return (
+    <points frustumCulled={false}>
+      <bufferGeometry ref={geoRef}>
+        <bufferAttribute attach="attributes-position" args={[buffers.positions, 3]} />
+        <bufferAttribute attach="attributes-aSize" args={[buffers.sizes, 1]} />
+        <bufferAttribute attach="attributes-aAlpha" args={[buffers.alphas, 1]} />
+        <bufferAttribute attach="attributes-aPulseColor" args={[buffers.colors, 3]} />
       </bufferGeometry>
       <shaderMaterial
         vertexShader={PULSE_VERT}

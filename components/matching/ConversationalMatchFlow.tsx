@@ -86,6 +86,26 @@ function useGhostText(intervalMs = 3500): string {
   return GHOST_TEXTS[index];
 }
 
+/* ─── Haptic feedback (mobile vibration at key moments) ─── */
+
+function hapticFeedback(pattern: 'light' | 'medium' | 'heavy' | 'success') {
+  if (typeof navigator === 'undefined' || !navigator.vibrate) return;
+  switch (pattern) {
+    case 'light':
+      navigator.vibrate(10);
+      break;
+    case 'medium':
+      navigator.vibrate(25);
+      break;
+    case 'heavy':
+      navigator.vibrate([30, 50, 30]);
+      break;
+    case 'success':
+      navigator.vibrate([20, 80, 20, 80, 40]);
+      break;
+  }
+}
+
 /* ─── Globe threshold by round ──────────────────────────── */
 
 function getThresholdForRound(round: number): number {
@@ -196,9 +216,11 @@ export function ConversationalMatchFlow({
   useEffect(() => {
     if (status === 'ready_to_match' && flowState === 'matching' && !hasAutoMatchedRef.current) {
       hasAutoMatchedRef.current = true;
+      hapticFeedback('heavy');
       getMatches();
     }
     if (status === 'matched' && flowState !== 'results') {
+      hapticFeedback('success');
       // Fly to the top match node before revealing results — the "found you" moment
       if (matches && matches.length > 0 && globeRef.current?.flyToMatch) {
         globeRef.current.flyToMatch(matches[0].drepId).catch(() => {});
@@ -274,6 +296,7 @@ export function ConversationalMatchFlow({
     if (hasStartedRef.current) return;
     hasStartedRef.current = true;
 
+    hapticFeedback('light');
     onMatchStart?.();
     setFlowState('matching');
     pushUrlState('matching', 'matching');
@@ -360,6 +383,7 @@ export function ConversationalMatchFlow({
         selectedIds.length > 0 && combinedText ? 'both' : combinedText ? 'text' : 'pill';
       posthog.capture('match_round_completed', { round, method });
 
+      hapticFeedback('medium');
       submitAnswer(selectedIds, combinedText || undefined);
     },
     [submitAnswer, pendingSemanticText, round],

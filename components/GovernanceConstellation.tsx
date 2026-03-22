@@ -245,6 +245,16 @@ export const GovernanceConstellation = forwardRef<ConstellationRef, Constellatio
         }
       },
 
+      flyToMatch: async (drepId: string) => {
+        const node = sceneState.nodes.find((n) => n.id === drepId || n.fullId === drepId);
+        if (!node || !cameraControlsRef.current) return;
+        setSceneState((prev) => ({ ...prev, pulseId: drepId, animating: true }));
+        const [x, y, z] = rotateAroundZ(node.position, rotationAngleRef.current);
+        await cameraControlsRef.current.setLookAt(x, y, z + 5, x, y, z, true);
+        await sleep(1500);
+        setSceneState((prev) => ({ ...prev, pulseId: null, animating: false }));
+      },
+
       clearMatches: () => {
         setSceneState((prev) => ({
           ...prev,
