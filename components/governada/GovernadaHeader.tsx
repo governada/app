@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { GovernadaLogo } from '@/components/ui/GovernadaLogo';
 import { useDiscoveryHub } from '@/components/discovery/DiscoveryHubContext';
+import { useScrollDirection } from '@/hooks/useScrollDirection';
 import { AdminViewAsPicker } from './AdminViewAsPicker';
 import { DepthPromptModal } from './DepthPromptModal';
 import { EpochStrip } from './EpochStrip';
@@ -421,16 +422,22 @@ export function GovernadaHeader({ compassToggle, compassOpen }: GovernadaHeaderP
 
   const headerTransparent = !scrolled;
 
+  // Mobile: scroll-direction-aware show/hide (X/Twitter pattern)
+  const scrollDirection = useScrollDirection(10);
+  const mobileHidden = scrollDirection === 'down';
+
   return (
     <header
       className={cn(
-        'sticky top-0 z-50 hidden md:block transition-[background-color,border-color,backdrop-filter] duration-300',
+        'sticky top-0 z-50 transition-all duration-300',
+        // Mobile: always rendered, slides up/down based on scroll direction
+        mobileHidden ? '-translate-y-full md:translate-y-0' : 'translate-y-0',
         headerTransparent
           ? 'bg-transparent'
           : 'border-b border-border/20 bg-background/60 backdrop-blur-xl',
       )}
     >
-      <div className="flex items-center justify-between h-10 px-4 lg:pl-14 lg:pr-4">
+      <div className="flex items-center justify-between h-10 px-4 lg:pl-14 lg:pr-4 pt-[env(safe-area-inset-top)] md:pt-0">
         {/* Logo (mobile only) + breadcrumbs */}
         <div className="flex items-center min-w-0">
           <Link
@@ -466,12 +473,12 @@ export function GovernadaHeader({ compassToggle, compassOpen }: GovernadaHeaderP
           {/* Governance pulse */}
           <GovernancePulse />
 
-          {/* Compass toggle — always visible */}
+          {/* Compass toggle — visible on all breakpoints */}
           <Button
             variant="ghost"
             size="icon"
             className={cn(
-              'hidden lg:inline-flex h-8 w-8',
+              'inline-flex h-8 w-8',
               compassOpen
                 ? 'text-primary bg-primary/10'
                 : 'text-muted-foreground hover:text-foreground',

@@ -9,6 +9,7 @@ import { getPillBarItems } from '@/lib/nav/config';
 import { useGovernanceDepth } from '@/hooks/useGovernanceDepth';
 import { useSidebarMetrics } from '@/hooks/useSidebarMetrics';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { useScrollDirection } from '@/hooks/useScrollDirection';
 
 interface SectionTabBarProps {
   section: string;
@@ -26,6 +27,10 @@ export function SectionTabBar({ section: _section }: SectionTabBarProps) {
   const { depth } = useGovernanceDepth();
   const metrics = useSidebarMetrics();
   const prefersReducedMotion = useReducedMotion();
+  const scrollDirection = useScrollDirection(10);
+  // On mobile, the header slides away on scroll-down. Subnav needs to be at
+  // top-0 when header is hidden, top-10 (40px) when header is visible.
+  const mobileHeaderVisible = scrollDirection !== 'down';
 
   const items = getPillBarItems(pathname, segment, { drepId, poolId, depth });
 
@@ -38,7 +43,13 @@ export function SectionTabBar({ section: _section }: SectionTabBarProps) {
   };
 
   return (
-    <div className="sticky top-0 md:top-10 z-20 border-b border-border/10 bg-background/40 backdrop-blur-xl pt-[env(safe-area-inset-top)] md:pt-0">
+    <div
+      className={cn(
+        'sticky z-20 border-b border-border/10 bg-background/40 backdrop-blur-xl transition-[top] duration-300 md:pt-0',
+        // Mobile: follow header visibility. Desktop: always below header.
+        mobileHeaderVisible ? 'top-10 md:top-10' : 'top-0 md:top-10',
+      )}
+    >
       <nav
         className="flex items-center gap-1 px-4 lg:px-6 h-10 overflow-x-auto scrollbar-none [mask-image:linear-gradient(to_right,transparent_0%,black_16px,black_calc(100%-16px),transparent_100%)]"
         aria-label="Section navigation"
