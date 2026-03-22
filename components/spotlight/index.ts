@@ -1,0 +1,20 @@
+// Spotlight Theater — barrel export
+export { SpotlightTheater } from './SpotlightTheater';
+export { SpotlightDRepCard } from './SpotlightDRepCard';
+export { SpotlightSPOCard } from './SpotlightSPOCard';
+export { SpotlightProposalCard } from './SpotlightProposalCard';
+export { ViewModeToggle } from './ViewModeToggle';
+export { AnimatedScore } from './AnimatedScore';
+export { AnimatedAlignmentRing } from './AnimatedAlignmentRing';
+export { TierStamp } from './TierStamp';
+export { SwipeHandler } from './SwipeHandler';
+export { SpotlightBackground } from './SpotlightBackground';
+export { SpotlightControls } from './SpotlightControls';
+export { SpotlightProgress } from './SpotlightProgress';
+export { SpotlightBreathe } from './SpotlightBreathe';
+export { SolonDiscoveryPanel } from './SolonDiscoveryPanel';
+export { SolonSuggestedPrompts } from './SolonSuggestedPrompts';
+export { ConstellationBrowse } from './ConstellationBrowse';
+export { ConstellationCTA } from './ConstellationCTA';
+export { ConstellationLegend } from './ConstellationLegend';
+export * from './types';

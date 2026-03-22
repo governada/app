@@ -23,6 +23,14 @@ import type { BrowseProposal } from './ProposalCard';
 import { DiscoverFilterBar } from './DiscoverFilterBar';
 import { DiscoverPagination } from './DiscoverPagination';
 import { usePeekTrigger } from '@/components/governada/peeks/PeekDrawerProvider';
+import { useRouter } from 'next/navigation';
+import { useFeatureFlag } from '@/components/FeatureGate';
+import { SpotlightTheater } from '@/components/spotlight/SpotlightTheater';
+import { SpotlightProposalCard } from '@/components/spotlight/SpotlightProposalCard';
+import { ViewModeToggle } from '@/components/spotlight/ViewModeToggle';
+import { SolonDiscoveryPanel } from '@/components/spotlight/SolonDiscoveryPanel';
+import { useSpotlightTracking, useSpotlightViewMode } from '@/hooks/useSpotlightTracking';
+import type { SpotlightEntity } from '@/components/spotlight/types';
 
 const STATUS_FILTERS = ['All', 'Open', 'Ratified', 'Enacted', 'Expired', 'Dropped'];
 const TYPE_FILTERS = [
@@ -254,6 +262,43 @@ export function ProposalsBrowse() {
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const pageItems = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
+  // ── Spotlight mode ──────────────────────────────────────────────────
+  const spotlightEnabled = useFeatureFlag('spotlight_browse');
+  const solonEnabled = useFeatureFlag('solon_discovery');
+  const [spotlightViewMode, setSpotlightViewMode] = useSpotlightViewMode();
+  const spotlightTracking = useSpotlightTracking('proposal');
+  const router = useRouter();
+
+  const spotlightQueue: SpotlightEntity[] = useMemo(() => {
+    return filtered.map((p) => ({
+      entityType: 'proposal' as const,
+      id: `${p.txHash}-${p.index}`,
+      data: p,
+    }));
+  }, [filtered]);
+
+  const renderSpotlightCard = useCallback(
+    (entity: SpotlightEntity, isTracked: boolean) => {
+      if (entity.entityType !== 'proposal') return null;
+      return (
+        <SpotlightProposalCard
+          proposal={entity.data}
+          currentEpoch={currentEpoch}
+          isTracked={isTracked}
+        />
+      );
+    },
+    [currentEpoch],
+  );
+
+  const handleSpotlightDetails = useCallback(
+    (entity: SpotlightEntity) => {
+      if (entity.entityType !== 'proposal') return;
+      router.push(`/proposal/${entity.data.txHash}/${entity.data.index}`);
+    },
+    [router],
+  );
+
   if (isLoading) {
     return (
       <div className="space-y-3 pt-4">
@@ -264,8 +309,28 @@ export function ProposalsBrowse() {
     );
   }
 
-  // ── Hands-Off: compact status summary only ──────────────────────────────
+  // ── Spotlight for hands-off users ──────────────────────────────────
   if (depthConfig.proposalDetail === 'headline' && !isAtLeast('informed')) {
+    if (spotlightEnabled && spotlightViewMode === 'spotlight') {
+      return (
+        <div className="space-y-4 pt-2">
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-bold tracking-tight">Explore Proposals</h1>
+            <ViewModeToggle mode={spotlightViewMode} onChange={setSpotlightViewMode} hideTable />
+          </div>
+          {solonEnabled && (
+            <SolonDiscoveryPanel entityType="proposal" entityCount={proposals.length} />
+          )}
+          <SpotlightTheater
+            queue={spotlightQueue}
+            entityType="proposal"
+            sort="score"
+            renderCard={renderSpotlightCard}
+            onDetails={handleSpotlightDetails}
+          />
+        </div>
+      );
+    }
     return <ProposalStatusSummary proposals={proposals} />;
   }
 
