@@ -4,8 +4,8 @@ import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { PageViewTracker } from '@/components/PageViewTracker';
 import { ObservatoryLayout } from '@/components/observatory/ObservatoryLayout';
+import { ObservatoryErrorBoundary } from '@/components/observatory/ObservatoryErrorBoundary';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FeatureGate } from '@/components/FeatureGate';
 import { AdvisorPanel } from '@/components/governada/shared/AdvisorPanel';
 
 export const metadata: Metadata = {
@@ -81,9 +81,11 @@ export default function ObservatoryPage() {
     <>
       <PageViewTracker event="governance_observatory_viewed" />
       <div className="container mx-auto space-y-0">
-        <Suspense fallback={<ObservatoryFallback />}>
-          <ObservatoryLayout />
-        </Suspense>
+        <ObservatoryErrorBoundary>
+          <Suspense fallback={<ObservatoryFallback />}>
+            <ObservatoryLayout />
+          </Suspense>
+        </ObservatoryErrorBoundary>
         <div className="px-4 pb-6">
           <AdvisorPanel />
         </div>
