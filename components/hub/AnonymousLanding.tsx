@@ -61,12 +61,12 @@ export function AnonymousLanding({ pulseData }: AnonymousLandingProps) {
       {/* Constellation hero */}
       <section
         className={cn(
-          'force-dark relative flex-1 min-h-[50vh] sm:-mt-14 overflow-hidden flex items-center justify-center',
+          'force-dark relative flex-1 min-h-[50vh] sm:-mt-14 overflow-visible flex items-start sm:items-center justify-center',
           'transition-all duration-700',
           isMatching && 'min-h-[60vh]',
         )}
       >
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 overflow-hidden">
           <ConstellationScene ref={globeRef} className="w-full h-full" interactive={false} />
         </div>
 
@@ -74,7 +74,7 @@ export function AnonymousLanding({ pulseData }: AnonymousLandingProps) {
         <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-background to-transparent pointer-events-none" />
 
         {/* Hero content */}
-        <div className="relative z-10 text-center max-w-lg px-6 sm:pt-14">
+        <div className="relative z-10 text-center max-w-lg px-6 pt-16 sm:pt-14">
           <div
             className={cn(
               'transition-all duration-500',
