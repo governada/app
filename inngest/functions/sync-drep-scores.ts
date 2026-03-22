@@ -22,6 +22,7 @@ import {
   type ProposalScoringContext,
   type ProposalVotingSummary,
   type DRepProfileData,
+  type DelegationSnapshotData,
 } from '@/lib/scoring';
 import { batchUpsert, SyncLogger, errMsg, emitPostHog, capMsg } from '@/lib/sync-utils';
 import { logger } from '@/lib/logger';
@@ -64,7 +65,7 @@ export const syncDrepScores = inngest.createFunction(
           await Promise.all([
             supabase
               .from('dreps')
-              .select('id, info, metadata, metadata_hash_verified, anchor_hash')
+              .select('id, info, metadata, metadata_hash_verified, anchor_hash, updated_at')
               .range(0, 99999),
             supabase
               .from('proposals')
@@ -231,12 +232,54 @@ export const syncDrepScores = inngest.createFunction(
           const info = (row.info || {}) as Record<string, unknown>;
           const delegatorCount = (info.delegatorCount as number) || 0;
 
+          // Parse updated_at to unix seconds for staleness calculation
+          let updatedAtSeconds: number | null = null;
+          if (row.updated_at) {
+            const parsed = new Date(row.updated_at).getTime();
+            if (!isNaN(parsed)) updatedAtSeconds = Math.floor(parsed / 1000);
+          }
+
           profiles.set(row.id, {
             drepId: row.id,
             metadata: row.metadata || null,
             delegatorCount,
             metadataHashVerified: row.metadata_hash_verified || false,
+            updatedAt: updatedAtSeconds,
           });
+        }
+
+        // Load delegation snapshot history for health signals
+        const delegationSnapshots = new Map<string, DelegationSnapshotData>();
+        {
+          const { data: snapRows } = await supabase
+            .from('delegation_snapshots')
+            .select(
+              'drep_id, epoch, delegator_count, total_power_lovelace, new_delegators, lost_delegators',
+            )
+            .order('epoch', { ascending: true })
+            .range(0, 99999);
+
+          if (snapRows?.length) {
+            // Group by drep_id
+            const grouped = new Map<string, DelegationSnapshotData['epochs']>();
+            for (const r of snapRows) {
+              if (!grouped.has(r.drep_id)) grouped.set(r.drep_id, []);
+              grouped.get(r.drep_id)!.push({
+                epoch: r.epoch,
+                delegatorCount: r.delegator_count,
+                totalPowerLovelace: Number(r.total_power_lovelace) || 0,
+                newDelegators: r.new_delegators,
+                lostDelegators: r.lost_delegators,
+              });
+            }
+            for (const [drepId, epochs] of grouped) {
+              delegationSnapshots.set(drepId, { epochs });
+            }
+            logger.info('[scoring] Loaded delegation snapshots', {
+              dreps: delegationSnapshots.size,
+              totalRows: snapRows.length,
+            });
+          }
         }
 
         timing.step2_build_maps_ms = Date.now() - s2;
@@ -265,7 +308,7 @@ export const syncDrepScores = inngest.createFunction(
           drepEpochData,
         );
 
-        const rawIdentity = computeGovernanceIdentity(profiles);
+        const rawIdentity = computeGovernanceIdentity(profiles, delegationSnapshots, nowSeconds);
 
         timing.step3_compute_pillars_ms = Date.now() - s3;
 
@@ -419,6 +462,61 @@ export const syncDrepScores = inngest.createFunction(
           },
           { onConflict: 'snapshot_type,epoch_no,snapshot_date' },
         );
+
+        // Upsert current epoch delegation snapshots
+        {
+          const snapshotInserts: Record<string, unknown>[] = [];
+          for (const [drepId, profile] of profiles) {
+            // Find previous epoch snapshot for this DRep
+            const prevSnap = delegationSnapshots.get(drepId);
+            const prevEpoch = prevSnap?.epochs?.[prevSnap.epochs.length - 1];
+
+            let newDelegators: number | null = null;
+            let lostDelegators: number | null = null;
+
+            if (prevEpoch && prevEpoch.epoch < currentEpoch) {
+              // Estimate new/lost from count difference
+              const diff = profile.delegatorCount - prevEpoch.delegatorCount;
+              if (diff >= 0) {
+                newDelegators = diff;
+                lostDelegators = 0;
+              } else {
+                newDelegators = 0;
+                lostDelegators = Math.abs(diff);
+              }
+            }
+
+            // Get total delegated power from info
+            const info = (drepRows?.find((r) => r.id === drepId)?.info || {}) as Record<
+              string,
+              unknown
+            >;
+            const totalPower = (info.votingPower as number) || 0;
+
+            snapshotInserts.push({
+              drep_id: drepId,
+              epoch: currentEpoch,
+              delegator_count: profile.delegatorCount,
+              total_power_lovelace: totalPower,
+              new_delegators: newDelegators,
+              lost_delegators: lostDelegators,
+            });
+          }
+
+          if (snapshotInserts.length > 0) {
+            await batchUpsert(
+              supabase,
+              'delegation_snapshots',
+              snapshotInserts,
+              'epoch,drep_id',
+              'Delegation snapshots',
+            );
+            logger.info('[scoring] Upserted delegation snapshots', {
+              count: snapshotInserts.length,
+              epoch: currentEpoch,
+            });
+          }
+        }
 
         timing.step6_persist_ms = Date.now() - s6;
 

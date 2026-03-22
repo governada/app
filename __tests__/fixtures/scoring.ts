@@ -107,6 +107,7 @@ export function makeProfile(overrides: Partial<DRepProfileData> = {}): DRepProfi
     },
     delegatorCount: 50,
     metadataHashVerified: true,
+    updatedAt: null,
     ...overrides,
   };
 }
@@ -117,6 +118,7 @@ export function makeEmptyProfile(drepId: string): DRepProfileData {
     metadata: null,
     delegatorCount: 0,
     metadataHashVerified: false,
+    updatedAt: null,
   };
 }
 
