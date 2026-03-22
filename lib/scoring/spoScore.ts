@@ -97,7 +97,7 @@ export function computeSpoScores(
     const giRaw = identityScores.get(poolId) ?? 0;
 
     // Absolute calibration — no confidence dampening on quality scores.
-    // Confidence only gates tier assignment (via CONFIDENCE_TIER_THRESHOLD).
+    // Confidence only gates tier assignment (via graduated tier caps).
     let pCal = Math.round(calibrate(pRaw, SPO_PILLAR_CALIBRATION.participation));
     let dCal = Math.round(calibrate(dRaw, SPO_PILLAR_CALIBRATION.deliberation));
     let rlCal = Math.round(calibrate(rlRaw, SPO_PILLAR_CALIBRATION.reliability));

@@ -4,7 +4,13 @@ vi.mock('@/utils/display', () => ({
   isValidatedSocialLink: () => true,
 }));
 
-import { computeSpoDeliberationQuality } from '@/lib/scoring/spoDeliberationQuality';
+import {
+  computeSpoDeliberationQuality,
+  computeSpoVoteDiversity,
+  computeSpoDissentRate,
+  computeSpoTypeBreadth,
+  computeCoverageEntropy,
+} from '@/lib/scoring/spoDeliberationQuality';
 import type { SpoDeliberationVoteData } from '@/lib/scoring/spoDeliberationQuality';
 
 const NOW = Math.floor(Date.now() / 1000);
@@ -32,61 +38,14 @@ const ALL_TYPES = new Set([
   'NewConstitution',
 ]);
 
-describe('computeSpoDeliberationQuality', () => {
-  // ── Rationale provision (40%) ──
+describe('computeSpoDeliberationQuality (V3.2)', () => {
+  // ── Vote Diversity (35%) ──
 
-  it('scores higher with rationale provision', () => {
-    const withRationale = computeSpoDeliberationQuality(
-      new Map([
-        [
-          'pool1',
-          Array.from({ length: 6 }, (_, i) =>
-            makeDelibVote({
-              proposalKey: `p${i}`,
-              hasRationale: true,
-              blockTime: NOW - i * ONE_DAY,
-              proposalBlockTime: NOW - (i + 2) * ONE_DAY,
-              proposalType: ['TreasuryWithdrawals', 'ParameterChange', 'HardForkInitiation'][i % 3],
-            }),
-          ),
-        ],
-      ]),
-      ALL_TYPES,
-      NOW,
-    );
-
-    const withoutRationale = computeSpoDeliberationQuality(
-      new Map([
-        [
-          'pool2',
-          Array.from({ length: 6 }, (_, i) =>
-            makeDelibVote({
-              proposalKey: `p${i}`,
-              hasRationale: false,
-              blockTime: NOW - i * ONE_DAY,
-              proposalBlockTime: NOW - (i + 2) * ONE_DAY,
-              proposalType: ['TreasuryWithdrawals', 'ParameterChange', 'HardForkInitiation'][i % 3],
-            }),
-          ),
-        ],
-      ]),
-      ALL_TYPES,
-      NOW,
-    );
-
-    expect(withRationale.get('pool1')!).toBeGreaterThan(withoutRationale.get('pool2')!);
-  });
-
-  // ── Vote timing distribution (30%) — stddev sweet spot at ~3 days ──
-
-  it('rewards natural timing variance over bot-like uniformity', () => {
-    // Natural human timing: varied days-to-vote
-    const naturalVotes = Array.from({ length: 8 }, (_, i) =>
+  it('penalizes rubber-stamping (all Yes votes)', () => {
+    const allYes = Array.from({ length: 8 }, (_, i) =>
       makeDelibVote({
         proposalKey: `p${i}`,
-        blockTime: NOW - (10 - i) * ONE_DAY,
-        // Varied response times: 1, 3, 2, 5, 1, 4, 2, 3 days after proposal
-        proposalBlockTime: NOW - (10 - i) * ONE_DAY - [1, 3, 2, 5, 1, 4, 2, 3][i] * ONE_DAY,
+        vote: 'Yes',
         proposalType: [
           'TreasuryWithdrawals',
           'ParameterChange',
@@ -96,12 +55,10 @@ describe('computeSpoDeliberationQuality', () => {
       }),
     );
 
-    // Bot-like timing: exact same response time every time
-    const botVotes = Array.from({ length: 8 }, (_, i) =>
+    const mixed = Array.from({ length: 8 }, (_, i) =>
       makeDelibVote({
         proposalKey: `p${i}`,
-        blockTime: NOW - (10 - i) * ONE_DAY,
-        proposalBlockTime: NOW - (10 - i) * ONE_DAY - ONE_DAY, // always exactly 1 day
+        vote: i % 3 === 0 ? 'No' : 'Yes',
         proposalType: [
           'TreasuryWithdrawals',
           'ParameterChange',
@@ -111,67 +68,126 @@ describe('computeSpoDeliberationQuality', () => {
       }),
     );
 
-    const naturalScore = computeSpoDeliberationQuality(
-      new Map([['natural', naturalVotes]]),
-      ALL_TYPES,
-      NOW,
-    );
-    const botScore = computeSpoDeliberationQuality(new Map([['bot', botVotes]]), ALL_TYPES, NOW);
-
-    // Natural should score higher on timing component
-    expect(naturalScore.get('natural')!).toBeGreaterThanOrEqual(botScore.get('bot')!);
+    const allYesScore = computeSpoVoteDiversity(allYes);
+    const mixedScore = computeSpoVoteDiversity(mixed);
+    expect(mixedScore).toBeGreaterThan(allYesScore);
   });
 
-  // ── Proposal coverage entropy (30%) — Shannon ──
+  it('applies abstain penalty when >60% abstain', () => {
+    // 7 abstains + 1 Yes + 1 No + 1 Yes = 70% abstain
+    const highAbstain = Array.from({ length: 10 }, (_, i) =>
+      makeDelibVote({
+        proposalKey: `p${i}`,
+        vote: i < 7 ? 'Abstain' : i < 9 ? 'Yes' : 'No',
+        proposalType: ['TreasuryWithdrawals', 'ParameterChange'][i % 2],
+      }),
+    );
+
+    // 2 abstains + 4 Yes + 4 No = 20% abstain
+    const lowAbstain = Array.from({ length: 10 }, (_, i) =>
+      makeDelibVote({
+        proposalKey: `p${i}`,
+        vote: i < 2 ? 'Abstain' : i < 6 ? 'Yes' : 'No',
+        proposalType: ['TreasuryWithdrawals', 'ParameterChange'][i % 2],
+      }),
+    );
+
+    const highScore = computeSpoVoteDiversity(highAbstain);
+    const lowScore = computeSpoVoteDiversity(lowAbstain);
+    expect(lowScore).toBeGreaterThan(highScore);
+  });
+
+  // ── Dissent Rate (30%) ──
+
+  it('rewards moderate dissent (15-40%)', () => {
+    // 25% dissent: 2 No against Yes majority, 6 Yes
+    const moderateDissent = Array.from({ length: 8 }, (_, i) =>
+      makeDelibVote({
+        proposalKey: `p${i}`,
+        vote: i < 2 ? 'No' : 'Yes',
+        spoMajorityVote: 'Yes',
+        proposalType: ['TreasuryWithdrawals', 'ParameterChange'][i % 2],
+      }),
+    );
+
+    // 0% dissent: all follow majority
+    const zeroDissent = Array.from({ length: 8 }, (_, i) =>
+      makeDelibVote({
+        proposalKey: `p${i}`,
+        vote: 'Yes',
+        spoMajorityVote: 'Yes',
+        proposalType: ['TreasuryWithdrawals', 'ParameterChange'][i % 2],
+      }),
+    );
+
+    const moderateScore = computeSpoDissentRate(moderateDissent);
+    const zeroScore = computeSpoDissentRate(zeroDissent);
+    expect(moderateScore).toBeGreaterThan(zeroScore);
+  });
+
+  it('returns neutral 50 when majority data unavailable', () => {
+    const noMajority = Array.from({ length: 8 }, (_, i) => makeDelibVote({ proposalKey: `p${i}` }));
+    const score = computeSpoDissentRate(noMajority);
+    expect(score).toBe(50);
+  });
+
+  // ── Type Breadth (20%) ──
 
   it('rewards diverse proposal type coverage', () => {
-    // Diverse: votes on 4 different types
-    const diverseVotes = Array.from({ length: 8 }, (_, i) =>
+    const diverse = Array.from({ length: 8 }, (_, i) =>
       makeDelibVote({
         proposalKey: `p${i}`,
-        proposalType: [
-          'TreasuryWithdrawals',
-          'ParameterChange',
-          'HardForkInitiation',
-          'InfoAction',
-        ][i % 4],
-        blockTime: NOW - i * ONE_DAY,
-        proposalBlockTime: NOW - (i + 2) * ONE_DAY,
+        proposalType: [...ALL_TYPES][i % ALL_TYPES.size],
       }),
     );
 
-    // Narrow: only votes on one type
-    const narrowVotes = Array.from({ length: 8 }, (_, i) =>
+    const narrow = Array.from({ length: 8 }, (_, i) =>
       makeDelibVote({
         proposalKey: `p${i}`,
         proposalType: 'TreasuryWithdrawals',
-        blockTime: NOW - i * ONE_DAY,
-        proposalBlockTime: NOW - (i + 2) * ONE_DAY,
       }),
     );
 
-    const diverseScore = computeSpoDeliberationQuality(
-      new Map([['diverse', diverseVotes]]),
-      ALL_TYPES,
-      NOW,
+    expect(computeSpoTypeBreadth(diverse, ALL_TYPES)).toBeGreaterThan(
+      computeSpoTypeBreadth(narrow, ALL_TYPES),
     );
-    const narrowScore = computeSpoDeliberationQuality(
-      new Map([['narrow', narrowVotes]]),
-      ALL_TYPES,
-      NOW,
-    );
-
-    expect(diverseScore.get('diverse')!).toBeGreaterThan(narrowScore.get('narrow')!);
   });
 
-  // ── Empty input ──
+  // ── Coverage Entropy (15%) ──
+
+  it('rewards balanced proposal type distribution', () => {
+    // Balanced: 2 votes per type
+    const balanced = Array.from({ length: 8 }, (_, i) =>
+      makeDelibVote({
+        proposalKey: `p${i}`,
+        proposalType: [
+          'TreasuryWithdrawals',
+          'ParameterChange',
+          'HardForkInitiation',
+          'InfoAction',
+        ][i % 4],
+      }),
+    );
+
+    // Skewed: 7 on one type, 1 on another
+    const skewed = [
+      ...Array.from({ length: 7 }, (_, i) =>
+        makeDelibVote({ proposalKey: `p${i}`, proposalType: 'TreasuryWithdrawals' }),
+      ),
+      makeDelibVote({ proposalKey: 'p7', proposalType: 'ParameterChange' }),
+    ];
+
+    expect(computeCoverageEntropy(balanced, ALL_TYPES)).toBeGreaterThan(
+      computeCoverageEntropy(skewed, ALL_TYPES),
+    );
+  });
+
+  // ── Composite ──
 
   it('returns empty map for no pools', () => {
     const result = computeSpoDeliberationQuality(new Map(), ALL_TYPES, NOW);
     expect(result.size).toBe(0);
   });
-
-  // ── Scores bounded 0-100 ──
 
   it('produces scores in 0-100 range', () => {
     const pools = new Map<string, SpoDeliberationVoteData[]>();
@@ -181,10 +197,9 @@ describe('computeSpoDeliberationQuality', () => {
         Array.from({ length: 10 }, (_, i) =>
           makeDelibVote({
             proposalKey: `p${i}`,
-            hasRationale: i % 2 === 0,
-            blockTime: NOW - i * 2 * ONE_DAY,
-            proposalBlockTime: NOW - (i * 2 + 3) * ONE_DAY,
+            vote: (['Yes', 'No', 'Yes', 'Abstain', 'No'] as const)[i % 5],
             proposalType: ['TreasuryWithdrawals', 'ParameterChange', 'HardForkInitiation'][i % 3],
+            spoMajorityVote: 'Yes',
           }),
         ),
       );
@@ -196,7 +211,4 @@ describe('computeSpoDeliberationQuality', () => {
       expect(score).toBeLessThanOrEqual(100);
     }
   });
-
-  // ── Engagement consistency (CV of votes-per-epoch) ──
-  // This is tested indirectly through the integration test in spo-score-v3.test.ts
 });
