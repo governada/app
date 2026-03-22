@@ -174,7 +174,11 @@ export function GovernadaShell({ children }: { children: React.ReactNode }) {
             <DiscoveryHub>
               {!isStudioMode && (
                 <GovernadaHeader
-                  compassToggle={showCopilot ? intelligencePanel.toggle : undefined}
+                  compassToggle={
+                    showCopilot && intelligencePanel.canShowPanel
+                      ? intelligencePanel.toggle
+                      : undefined
+                  }
                   compassOpen={panelVisible}
                 />
               )}
