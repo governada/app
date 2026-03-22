@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Navigation2, Sparkles, ArrowRight, Info } from 'lucide-react';
+import { ScrollText, Sparkles, ArrowRight, Info } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { fadeInUp } from '@/lib/animations';
@@ -39,120 +39,122 @@ interface CompassGuideProps {
 }
 
 // ---------------------------------------------------------------------------
-// Solon's narratives per page x progression
-// Solon speaks as a warm, authoritative governance mentor — first person,
-// conversational, knowledgeable. Like a trusted advisor who genuinely cares
-// about helping you navigate governance.
+// Seneca's narratives per page x progression
+//
+// Voice: Stoic philosopher and political advisor. Measured, direct, uses
+// questions to guide thinking. Practical wisdom over platitudes. The kind
+// of advisor who tells you a hard truth wrapped in an observation.
+// Occasionally quotes himself (as Seneca would).
 // ---------------------------------------------------------------------------
 
-const SOLON_NARRATIVES: Record<
+const SENECA_NARRATIVES: Record<
   PageKey,
   Record<CompassProgression, { text: string; cta?: { label: string; href: string } }>
 > = {
   proposals: {
     first_visit: {
-      text: "These are the decisions shaping Cardano right now. Each proposal below represents a community choice — from treasury spending to protocol changes. I've been tracking how representatives are voting. Let me walk you through what's happening.",
+      text: 'Every decision you see below will shape Cardano for years. Some will allocate millions in treasury funds. Others will change how the protocol itself works. The question worth asking: who is deciding on your behalf, and do they share your values?',
     },
     exploring: {
-      text: "You've been looking around — good. These votes are where governance gets real. Want to know which representatives would vote the way you would? I can figure that out in about 60 seconds.",
+      text: "You've been observing — that's wise. But observation without participation is spectatorship, not governance. I can tell you in 60 seconds which representatives would vote the way you think.",
       cta: { label: 'Find out', href: '/match' },
     },
     quiz_completed: {
-      text: "Your matched representatives are actively voting on these proposals. I can show you exactly how their positions align with your priorities — connect your wallet and I'll make it personal.",
+      text: "Your values are mapped. Your matched representatives are voting on these proposals right now. Connect your wallet and I'll show you whether they're representing you well — or whether you should reconsider.",
       cta: { label: 'Connect your wallet', href: '/get-started' },
     },
     connected: {
-      text: "Here's what's being decided right now. I'm watching for anything that affects your delegation.",
+      text: "These are today's open decisions. I'll tell you if anything here conflicts with your stated values.",
     },
   },
   representatives: {
     first_visit: {
-      text: "DReps are the elected voices of Cardano governance — they vote on proposals on behalf of people like you. Below you'll find their track records, voting patterns, and stated positions. Take your time browsing.",
+      text: "These are the people who vote on Cardano's future. Some have voted on every proposal. Others have disappeared after registering. Below you'll find their records — not their promises, their actions. Judge accordingly.",
     },
     exploring: {
-      text: "Now that you've seen how governance works, let me help you find your match. I can compare your governance values against every active representative in about 60 seconds.",
+      text: '"It is not that we have a short time to live, but that we waste a great deal of it." You\'ve been browsing — let me save you time. Tell me your governance values and I\'ll show you who actually matches.',
       cta: { label: 'Match me', href: '/match' },
     },
     quiz_completed: {
-      text: "I've ranked these representatives by how well they match your values. Connect your wallet and I'll show you the full picture — alignment across all 6 governance dimensions, not just the top-line score.",
+      text: "I've ranked these representatives against your values. But a match score only tells part of the story. Connect your wallet and I'll show you the full alignment — where you agree, where you differ, and why it matters.",
       cta: { label: 'See full alignment', href: '/get-started' },
     },
     connected: {
-      text: "Your representatives and their latest activity. I'll flag anything that shifts your alignment.",
+      text: "Your representatives and their recent actions. I'll flag any votes that diverge from your stated priorities.",
     },
   },
   pools: {
     first_visit: {
-      text: "Stake pools do more than produce blocks — many actively vote on governance proposals. Below you'll see which pools put governance participation alongside staking rewards.",
+      text: 'Most people choose stake pools for returns alone. But some pools also vote on governance — meaning your staking choice is also a governance choice, whether you intended it or not. Worth knowing which pools take that responsibility seriously.',
     },
     exploring: {
-      text: 'Some of these pools might earn you rewards AND vote your governance values. I can match you to pools that align with what you care about — takes about a minute.',
+      text: "What if you could earn staking rewards from a pool that also votes your values? That's not idealism — it's available right now. Let me match you.",
       cta: { label: 'Find aligned pools', href: '/match' },
     },
     quiz_completed: {
-      text: "Your governance profile is mapped. I've found pools that match your values and earn staking rewards. Connect your wallet to see the full comparison.",
+      text: "I've identified pools that align with your governance values and participate actively. Connect your wallet to compare them against your current pool — you might be leaving representation on the table.",
       cta: { label: 'Compare pools', href: '/get-started' },
     },
     connected: {
-      text: "Governance-active pools and their voting participation. I'll note any that match your values.",
+      text: "Governance-active pools. I'll note any that better match your values than your current delegation.",
     },
   },
   committee: {
     first_visit: {
-      text: "The Constitutional Committee is Cardano's safeguard. These members review every proposal for constitutional compliance before it can take effect. Below is their track record — who's voting, who's reasoning well, and where the gaps are.",
+      text: "The Constitutional Committee exists for one reason: to ensure no proposal violates Cardano's founding principles. Below is their record — who participates, who reasons well, and who has yet to cast a single vote. Accountability starts with visibility.",
     },
     exploring: {
-      text: "You've been exploring how decisions get made. The committee is the final check — they ensure every proposal respects Cardano's constitution. Connect your wallet and I'll show you how their decisions ripple into your delegation.",
+      text: '"No one is free who is a slave to their ignorance." You\'ve been learning how governance works. The committee is the last safeguard — connect your wallet and I\'ll show you how their rulings ripple into your delegation.',
       cta: { label: 'See your impact', href: '/get-started' },
     },
     quiz_completed: {
-      text: "You understand the governance landscape. Connect your wallet and I'll show you how committee decisions affect the proposals your matched representatives are voting on.",
-      cta: { label: 'Connect to see', href: '/get-started' },
+      text: "You understand the governance structure. Connect your wallet and I'll trace how committee decisions affect the proposals your matched representatives are voting on — the chain of accountability matters.",
+      cta: { label: 'Connect to trace', href: '/get-started' },
     },
     connected: {
-      text: "Constitutional Committee activity. I'll alert you if any rulings affect proposals relevant to your delegation.",
+      text: "Committee activity and constitutional rulings. I'll alert you to any decisions that affect your delegation chain.",
     },
   },
   treasury: {
     first_visit: {
-      text: "Cardano's treasury funds the ecosystem's growth — billions of ADA allocated by community vote. Every withdrawal requires approval through governance. Below you'll see where the money is going and how long the runway lasts.",
+      text: "This is Cardano's common wealth — billions of ADA held in trust for the ecosystem. Every withdrawal requires community approval. The question isn't just how much is left, but whether what's been spent has delivered. Look at the numbers below and decide for yourself.",
     },
     exploring: {
-      text: 'This is where governance gets tangible — real ADA, real spending. I can show you how treasury decisions impact your specific delegation. Want to see the numbers?',
+      text: '"Wealth consists not in having great possessions, but in having few wants." Still — it helps to know how the treasury affects your stake. Connect your wallet and I\'ll make it concrete.',
       cta: { label: 'Show me', href: '/get-started' },
     },
     quiz_completed: {
-      text: "Your governance values include treasury priorities. Connect your wallet and I'll break down how current spending aligns with what you care about.",
-      cta: { label: 'See your treasury view', href: '/get-started' },
+      text: "Your governance values include views on treasury spending. Connect your wallet and I'll break down whether current allocations align with what you believe the treasury should fund.",
+      cta: { label: 'See treasury alignment', href: '/get-started' },
     },
     connected: {
-      text: "Treasury activity and spending allocation. I'm tracking anything that affects your delegation.",
+      text: "Treasury flows and runway projections. I'm watching for spending patterns that conflict with your priorities.",
     },
   },
   health: {
     first_visit: {
-      text: "This is the big picture — how well Cardano's governance is actually functioning. Participation rates, voting concentration, deliberation quality. Think of it as a health check for democracy itself.",
+      text: "This is governance examined — not as it should be, but as it is. Participation rates, power concentration, deliberation quality. A democracy that doesn't measure itself cannot improve. These metrics tell you whether the system is healthy or merely operational.",
     },
     exploring: {
-      text: "You've been exploring the landscape. This dashboard shows whether the system is healthy — are enough people participating? Is power concentrated or distributed? Connect your wallet and I'll show you your place in the picture.",
+      text: "You've explored the pieces. This dashboard shows whether they add up to a functioning democracy. Connect your wallet and I'll show you where you fit in these numbers — participant or bystander.",
       cta: { label: 'Find your place', href: '/get-started' },
     },
     quiz_completed: {
-      text: "You know your governance values. Connect your wallet and I'll show you how your participation — or lack of it — fits into these health metrics.",
-      cta: { label: 'See your role', href: '/get-started' },
+      text: '"We suffer more in imagination than in reality." The health metrics here are real. Connect your wallet and I\'ll show you how your participation — active or absent — contributes to these scores.',
+      cta: { label: 'See your contribution', href: '/get-started' },
     },
     connected: {
-      text: "Overall governance health. I'll flag any shifts that affect your delegation or participation score.",
+      text: "System health at a glance. I'll flag any governance metric that shifts meaningfully between epochs.",
     },
   },
 };
 
 // ---------------------------------------------------------------------------
-// Solon tooltip text
+// Seneca tooltip text
 // ---------------------------------------------------------------------------
 
-const SOLON_TOOLTIP =
-  'Named after Solon of Athens (c.\u00A0630\u2013560\u00A0BC) \u2014 the lawmaker who laid the foundations of Athenian democracy.';
+const SENECA_TOOLTIP =
+  'Inspired by Seneca the Younger (c.\u00A04\u00A0BC\u2013AD\u00A065) \u2014 Stoic philosopher, statesman, and advisor whose letters on wisdom and governance remain influential two millennia later.';
 
 // ---------------------------------------------------------------------------
 // Component
@@ -170,21 +172,18 @@ export function CompassGuide({
   const discovery = useDiscoveryHub();
 
   useEffect(() => {
-    // Track the page view and derive progression
     trackCompassPageView(page);
     const state: CompassState = getCompassState();
     setProgression(getCompassProgression(state));
     setMounted(true);
   }, [page]);
 
-  // Don't render until we've read localStorage to avoid flash
   if (!mounted) return null;
 
-  // Resolve content: prefer server briefing, fall back to Solon's static narratives
-  const solon = SOLON_NARRATIVES[page][progression];
-  const narrative = briefing?.narrative ?? solon.text;
+  const seneca = SENECA_NARRATIVES[page][progression];
+  const narrative = briefing?.narrative ?? seneca.text;
   const headline = briefing?.headline ?? null;
-  const cta = solon.cta;
+  const cta = seneca.cta;
 
   return (
     <motion.div
@@ -196,18 +195,18 @@ export function CompassGuide({
       {/* Header */}
       <div className="flex items-center gap-2">
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 shrink-0">
-          <Navigation2 className="h-3.5 w-3.5 text-primary" />
+          <ScrollText className="h-3.5 w-3.5 text-primary" />
         </div>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
               <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider cursor-help">
-                Solon
+                Seneca
                 <Info className="h-3 w-3 text-muted-foreground/40" />
               </span>
             </TooltipTrigger>
-            <TooltipContent side="top" sideOffset={4} className="max-w-[240px]">
-              {SOLON_TOOLTIP}
+            <TooltipContent side="top" sideOffset={4} className="max-w-[260px]">
+              {SENECA_TOOLTIP}
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -216,10 +215,10 @@ export function CompassGuide({
       {/* Headline (only when briefing provides one) */}
       {headline && <p className="text-base font-semibold leading-snug">{headline}</p>}
 
-      {/* Main narrative */}
-      <p className="text-sm text-muted-foreground leading-relaxed">{narrative}</p>
+      {/* Main narrative — Seneca's voice */}
+      <p className="text-sm text-muted-foreground leading-relaxed italic">{narrative}</p>
 
-      {/* Contextual CTA — unique per page, woven into Solon's narrative */}
+      {/* Contextual CTA — unique per page */}
       {cta && (
         <Link
           href={cta.href}
@@ -243,14 +242,14 @@ export function CompassGuide({
         </div>
       )}
 
-      {/* Ask Solon link */}
+      {/* Ask Seneca link */}
       {discovery && (
         <button
           onClick={() => discovery.openHub()}
           className="flex items-center gap-1 text-[10px] text-primary/60 hover:text-primary transition-colors"
         >
-          <Navigation2 className="h-3 w-3" />
-          Ask Solon
+          <ScrollText className="h-3 w-3" />
+          Ask Seneca
         </button>
       )}
     </motion.div>

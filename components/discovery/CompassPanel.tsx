@@ -1,29 +1,30 @@
 'use client';
 
 /**
- * CompassPanel — Unified discovery + contextual guidance + AI advisor panel.
+ * CompassPanel — Seneca, your governance advisor.
  *
- * Replaces the old DiscoveryPanel with a merged experience:
- * 1. Header with Compass branding + progress ring
- * 2. "For You Right Now" — single most relevant action
- * 3. "Continue Exploring" — compact feature checklist
- * 4. Milestones — recent achievement pills
- * 5. Advisor — always-visible chat at the bottom
+ * A conversational panel that feels like talking to a Stoic philosopher
+ * who happens to know everything about Cardano governance.
+ *
+ * Structure:
+ * 1. Header — Seneca branding + context
+ * 2. Seneca's opening remark — contextual, page-aware, in character
+ * 3. Suggestion chips — discoverable actions framed as Seneca's advice
+ * 4. Conversation thread — the primary experience
+ * 5. Input — always visible at bottom
  */
 
 import { useState, useCallback, useRef, useEffect, type FormEvent } from 'react';
 import Link from 'next/link';
 import {
-  Navigation2,
+  ScrollText,
   CheckCircle2,
-  Circle,
-  Play,
   ChevronRight,
-  Trophy,
   Sparkles,
   Lock,
   ArrowUp,
   Info,
+  MessageCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -39,33 +40,108 @@ import { posthog } from '@/lib/posthog';
 
 const MAX_MESSAGES_PER_DAY = 10;
 
-const PAGE_LABELS: Record<string, string> = {
-  governance: 'Governance Overview',
-  dreps: 'Representatives',
-  proposals: 'Proposals',
-  treasury: 'Treasury',
-  spos: 'Stake Pool Operators',
-  match: 'Governance Match',
-  workspace: 'Workspace',
-  you: 'Your Profile',
-  help: 'Help',
+const SENECA_TOOLTIP =
+  'Inspired by Seneca the Younger (c.\u00A04\u00A0BC\u2013AD\u00A065) \u2014 Stoic philosopher, statesman, and advisor whose letters on governance remain influential two millennia later.';
+
+// ---------------------------------------------------------------------------
+// Seneca's opening remarks — contextual, in character
+// ---------------------------------------------------------------------------
+
+const SENECA_GREETINGS: Record<string, string> = {
+  governance:
+    "Welcome. Cardano's governance has been active — let me catch you up on what matters.",
+  proposals:
+    "These decisions will shape Cardano for years. Want me to walk you through what's at stake?",
+  dreps:
+    'Choosing a representative is choosing who speaks for you. I can help you find one whose actions — not just words — align with yours.',
+  treasury:
+    '"Wealth consists not in having great possessions, but in having few wants." Still, this treasury belongs to everyone. Ask me anything about how it\'s being spent.',
+  spos: 'Your staking choice is also a governance choice. Let me show you which pools take both responsibilities seriously.',
+  match:
+    "Good — you want to know where you stand. Answer honestly, and I'll show you who actually matches your values.",
+  you: "Let's look at your governance footprint. Are you participating, or merely observing?",
+  help: "I'm here. What would you like to understand about governance?",
 };
+
+const SENECA_DEFAULT_GREETING =
+  "I've been studying Cardano's governance closely. Ask me anything — proposals, representatives, treasury, or your own participation.";
+
+const SENECA_ANONYMOUS_GREETING =
+  "I'm Seneca — your governance advisor. I can help you understand proposals, find representatives who share your values, and navigate the treasury. Connect your wallet to unlock the full conversation, or start with the match quiz below.";
+
+// ---------------------------------------------------------------------------
+// Suggestion chips — framed as Seneca's advice
+// ---------------------------------------------------------------------------
+
+interface Suggestion {
+  label: string;
+  href?: string;
+  tourId?: string;
+  startRoute?: string;
+  action?: 'quiz' | 'wallet';
+}
+
+function getSuggestions(
+  currentPage: string | undefined,
+  progression: ReturnType<typeof getCompassProgression>,
+  tours: { id: string; label: string; startRoute: string; section?: string }[],
+  toursCompleted: string[],
+): Suggestion[] {
+  const suggestions: Suggestion[] = [];
+
+  // Page-specific tour
+  if (currentPage) {
+    const pageTour = tours.find((t) => !toursCompleted.includes(t.id) && t.section === currentPage);
+    if (pageTour) {
+      suggestions.push({
+        label: `Show me around ${currentPage === 'dreps' ? 'Representatives' : currentPage}`,
+        tourId: pageTour.id,
+        startRoute: pageTour.startRoute,
+      });
+    }
+  }
+
+  // Quiz suggestion
+  if (progression === 'first_visit' || progression === 'exploring') {
+    suggestions.push({
+      label: 'Find my governance match',
+      href: '/match',
+      action: 'quiz',
+    });
+  }
+
+  // Wallet suggestion
+  if (progression === 'quiz_completed') {
+    suggestions.push({
+      label: 'Connect to see my full profile',
+      action: 'wallet',
+    });
+  }
+
+  // Contextual suggestions based on page
+  if (currentPage === 'proposals') {
+    suggestions.push({ label: 'Explain the active proposals', href: '/governance/proposals' });
+  } else if (currentPage === 'dreps') {
+    suggestions.push({ label: "Who's rising this epoch?", href: '/governance/representatives' });
+  } else if (currentPage === 'treasury') {
+    suggestions.push({ label: 'How long will the treasury last?', href: '/governance/treasury' });
+  }
+
+  return suggestions.slice(0, 3);
+}
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 interface CompassPanelProps {
-  /** Which page the user is currently on */
   currentPage?: string;
-  /** Callback to start a tour (closes panel, navigates, starts tour) */
   onStartTour: (tourId: string, startRoute: string) => void;
-  /** Close the panel */
   onClose: () => void;
 }
 
 // ---------------------------------------------------------------------------
-// Streaming dots indicator
+// StreamingDots
 // ---------------------------------------------------------------------------
 
 function StreamingDots() {
@@ -84,8 +160,7 @@ function StreamingDots() {
 
 export function CompassPanel({ currentPage, onStartTour, onClose }: CompassPanelProps) {
   const { segment } = useSegment();
-  const { state, featuresByCategory, tours, explorationProgress, markFeatureExplored } =
-    useDiscovery();
+  const { state, tours, explorationProgress } = useDiscovery();
 
   const compassState = getCompassState();
   const progression = getCompassProgression(compassState);
@@ -101,54 +176,41 @@ export function CompassPanel({ currentPage, onStartTour, onClose }: CompassPanel
 
   const isAnonymous = segment === 'anonymous' || !segment;
 
-  // Auto-scroll advisor messages
+  // Auto-scroll messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Update remaining count after sending
   useEffect(() => {
     setRemaining(getRemainingMessages());
   }, [messages.length]);
 
-  // --- Progress ring ---
-  const radius = 20;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (explorationProgress.percent / 100) * circumference;
+  // Seneca's opening — contextual to page
+  const greeting = isAnonymous
+    ? SENECA_ANONYMOUS_GREETING
+    : (currentPage && SENECA_GREETINGS[currentPage]) || SENECA_DEFAULT_GREETING;
 
-  // --- Page subtitle ---
-  const pageLabel = currentPage ? PAGE_LABELS[currentPage] : undefined;
-  const subtitle = pageLabel ? `You're exploring ${pageLabel}` : 'Your governance companion';
+  // Suggestions
+  const suggestions = isAnonymous
+    ? [
+        { label: 'Find my governance match', href: '/match', action: 'quiz' as const },
+        { label: 'What is governance?', href: '/governance/health' },
+      ]
+    : getSuggestions(currentPage, progression, tours, state.toursCompleted);
 
-  // --- "For You Right Now" logic: pick single most relevant action ---
-  const forYouAction = getForYouAction(currentPage, state, tours, progression);
+  // Progress
+  const progressPercent = explorationProgress.percent;
 
-  // --- Feature list: split into explored vs unexplored ---
-  const allFeatures = featuresByCategory.flatMap((cat) =>
-    cat.features.map((f) => ({ ...f, categoryLabel: cat.label })),
-  );
-  const exploredFeatures = allFeatures.filter((f) => state.featuresExplored.includes(f.id));
-  const unexploredFeatures = allFeatures.filter((f) => !state.featuresExplored.includes(f.id));
-
-  // --- Handlers ---
-  const handleFeatureClick = useCallback(
-    (featureId: string) => {
-      markFeatureExplored(featureId);
-      posthog.capture('discovery_feature_clicked', { feature_id: featureId });
-      onClose();
-    },
-    [markFeatureExplored, onClose],
-  );
-
+  // Handlers
   const handleTourStart = useCallback(
     (tourId: string, startRoute: string) => {
-      posthog.capture('discovery_tour_started', { tour_id: tourId, source: 'compass' });
+      posthog.capture('discovery_tour_started', { tour_id: tourId, source: 'seneca' });
       onStartTour(tourId, startRoute);
     },
     [onStartTour],
   );
 
-  function handleAdvisorSubmit(e: FormEvent) {
+  function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const text = inputValue.trim();
     if (!text || isStreaming) return;
@@ -158,218 +220,142 @@ export function CompassPanel({ currentPage, onStartTour, onClose }: CompassPanel
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* ── 1. Header ── */}
+      {/* ── Header ── */}
       <div className="flex items-center gap-3 px-5 pt-5 pb-4 border-b border-border/30">
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <Navigation2 className="h-5 w-5 text-teal-400 shrink-0" />
-          <div className="min-w-0">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <h2 className="inline-flex items-center gap-1 text-base font-semibold cursor-help">
-                    Solon
-                    <Info className="h-3 w-3 text-muted-foreground/40" />
-                  </h2>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" sideOffset={4} className="max-w-[240px]">
-                  Named after Solon of Athens (c.{'\u00A0'}630–560{'\u00A0'}BC) — the lawmaker who
-                  laid the foundations of Athenian democracy.
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <p className="text-xs text-muted-foreground truncate">{subtitle}</p>
-          </div>
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 shrink-0">
+          <ScrollText className="h-4.5 w-4.5 text-primary" />
         </div>
-        {/* Progress ring */}
-        <div className="relative h-11 w-11 shrink-0">
-          <svg viewBox="0 0 48 48" className="-rotate-90" aria-hidden="true">
-            <circle
-              cx="24"
-              cy="24"
-              r={radius}
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              className="text-muted/20"
-            />
-            <circle
-              cx="24"
-              cy="24"
-              r={radius}
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeDasharray={circumference}
-              strokeDashoffset={strokeDashoffset}
-              strokeLinecap="round"
-              className="text-teal-400 transition-all duration-500"
-            />
-          </svg>
-          <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold tabular-nums">
-            {explorationProgress.percent}%
+        <div className="flex-1 min-w-0">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <h2 className="inline-flex items-center gap-1 text-base font-semibold cursor-help">
+                  Seneca
+                  <Info className="h-3 w-3 text-muted-foreground/40" />
+                </h2>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" sideOffset={4} className="max-w-[260px]">
+                {SENECA_TOOLTIP}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <p className="text-xs text-muted-foreground">Your governance advisor</p>
+        </div>
+        {/* Compact progress indicator */}
+        {progressPercent > 0 && progressPercent < 100 && (
+          <span className="text-[10px] text-muted-foreground/60 tabular-nums shrink-0">
+            {progressPercent}% explored
           </span>
-        </div>
+        )}
+        {progressPercent === 100 && (
+          <span className="inline-flex items-center gap-1 text-[10px] text-emerald-500 shrink-0">
+            <CheckCircle2 className="h-3 w-3" />
+            Explored
+          </span>
+        )}
       </div>
 
-      {/* ── Scrollable middle content ── */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5 scrollbar-hide">
-        {/* ── 2. For You Right Now ── */}
-        {forYouAction && (
-          <div>
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-              For You Right Now
-            </h3>
-            <ForYouCard action={forYouAction} onTourStart={handleTourStart} onClose={onClose} />
+      {/* ── Conversation area ── */}
+      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3 scrollbar-hide">
+        {/* Seneca's opening remark — always shown, acts as the "first message" */}
+        <div className="flex gap-3">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 shrink-0 mt-0.5">
+            <ScrollText className="h-3.5 w-3.5 text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-muted-foreground leading-relaxed italic">{greeting}</p>
+          </div>
+        </div>
+
+        {/* Suggestion chips — Seneca's recommendations */}
+        {suggestions.length > 0 && messages.length === 0 && (
+          <div className="flex flex-wrap gap-2 pl-10">
+            {suggestions.map((s, i) => (
+              <SuggestionChip
+                key={i}
+                suggestion={s}
+                onTourStart={handleTourStart}
+                onClose={onClose}
+              />
+            ))}
           </div>
         )}
 
-        {/* ── 3. Continue Exploring ── */}
-        {unexploredFeatures.length > 0 && (
-          <div>
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-              Continue Exploring
-            </h3>
-
-            {/* Explored summary */}
-            {exploredFeatures.length > 0 && (
-              <p className="text-xs text-muted-foreground/60 mb-2">
-                <CheckCircle2 className="inline h-3 w-3 text-emerald-500 mr-1" />
-                {exploredFeatures.length} explored
-              </p>
+        {/* Conversation messages */}
+        {messages.map((msg, idx) => (
+          <div key={idx} className={cn('flex gap-3', msg.role === 'user' && 'flex-row-reverse')}>
+            {msg.role === 'assistant' && (
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 shrink-0 mt-0.5">
+                <ScrollText className="h-3.5 w-3.5 text-primary" />
+              </div>
             )}
-
-            {/* Unexplored features — compact rows */}
-            <div className="space-y-0.5">
-              {unexploredFeatures.map((feature) => (
-                <Link
-                  key={feature.id}
-                  href={feature.href}
-                  onClick={() => handleFeatureClick(feature.id)}
-                  className="flex items-center gap-2.5 rounded-lg px-3 py-2 transition-colors hover:bg-primary/5"
-                >
-                  <Circle className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
-                  <span className="text-sm font-medium truncate">{feature.label}</span>
-                </Link>
-              ))}
+            <div
+              className={cn(
+                'max-w-[85%] rounded-xl px-3.5 py-2 text-sm leading-relaxed',
+                msg.role === 'user' ? 'bg-teal-600 text-white' : 'text-muted-foreground italic',
+              )}
+            >
+              {msg.content ||
+                (isStreaming && idx === messages.length - 1 ? <StreamingDots /> : null)}
+              {msg.role === 'assistant' &&
+                msg.content.length > 0 &&
+                isStreaming &&
+                idx === messages.length - 1 && (
+                  <span className="ml-1 inline-block">
+                    <StreamingDots />
+                  </span>
+                )}
             </div>
           </div>
-        )}
+        ))}
+        <div ref={messagesEndRef} />
 
-        {/* ── 4. Milestones ── */}
-        {state.milestonesShown.length > 0 && (
-          <div>
-            <h3 className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-              <Trophy className="h-3.5 w-3.5" />
-              Milestones
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              {state.milestonesShown.slice(-3).map((id) => (
-                <span
-                  key={id}
-                  className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-amber-500/10 text-amber-500 border border-amber-500/20"
-                >
-                  <Trophy className="h-3 w-3" />
-                  {id.replace(/-/g, ' ').replace(/^first /, '')}
-                </span>
-              ))}
-            </div>
+        {/* Clear conversation */}
+        {messages.length >= 2 && !isStreaming && (
+          <div className="flex justify-center">
+            <button
+              type="button"
+              onClick={() => {
+                clearMessages();
+                setInputValue('');
+                inputRef.current?.focus();
+              }}
+              className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+            >
+              Clear conversation
+            </button>
           </div>
         )}
       </div>
 
-      {/* ── 5. Advisor section (sticky bottom) ── */}
+      {/* ── Input area (sticky bottom) ── */}
       <div className="border-t border-border/30 shrink-0">
-        {/* Advisor header */}
-        <div className="flex items-center gap-2 px-4 py-2">
-          <Sparkles className="h-3.5 w-3.5 text-teal-400 shrink-0" />
-          <span className="text-xs font-medium text-muted-foreground flex-1">
-            Governance Advisor
-          </span>
-          <span className="rounded-full bg-teal-500/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-teal-400">
-            Beta
-          </span>
-        </div>
+        {error && (
+          <div className="px-5 py-1.5">
+            <p className="text-xs text-red-400">{error}</p>
+          </div>
+        )}
 
         {isAnonymous ? (
-          /* Locked teaser for anonymous users */
-          <div className="px-4 pb-3">
-            <div className="flex items-center gap-2 rounded-lg bg-muted/30 px-3 py-2.5 text-sm text-muted-foreground/60">
+          <div className="px-5 py-3">
+            <Link
+              href="/get-started"
+              className="flex items-center gap-2 rounded-lg bg-muted/30 px-3 py-2.5 text-sm text-muted-foreground/60 hover:bg-muted/50 transition-colors"
+            >
               <Lock className="h-4 w-4 shrink-0" />
-              <span>Connect wallet to ask questions</span>
-            </div>
+              <span>Connect wallet to continue the conversation</span>
+            </Link>
           </div>
         ) : (
           <>
-            {/* Messages area */}
-            {messages.length > 0 && (
-              <div className="max-h-[200px] overflow-y-auto px-4 py-2 border-t border-border/20">
-                <div className="flex flex-col gap-2">
-                  {messages.map((msg, idx) => (
-                    <div
-                      key={idx}
-                      className={cn('flex', msg.role === 'user' ? 'justify-end' : 'justify-start')}
-                    >
-                      <div
-                        className={cn(
-                          'max-w-[85%] rounded-lg px-3 py-1.5 text-sm',
-                          msg.role === 'user'
-                            ? 'bg-teal-600 text-white'
-                            : 'bg-muted/50 text-foreground',
-                        )}
-                      >
-                        {msg.content ||
-                          (isStreaming && idx === messages.length - 1 ? <StreamingDots /> : null)}
-                        {msg.role === 'assistant' &&
-                          msg.content.length > 0 &&
-                          isStreaming &&
-                          idx === messages.length - 1 && (
-                            <span className="ml-1 inline-block">
-                              <StreamingDots />
-                            </span>
-                          )}
-                      </div>
-                    </div>
-                  ))}
-                  <div ref={messagesEndRef} />
-                </div>
-
-                {/* Clear conversation */}
-                {messages.length >= 2 && !isStreaming && (
-                  <div className="mt-1 flex justify-center">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        clearMessages();
-                        setInputValue('');
-                        inputRef.current?.focus();
-                      }}
-                      className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground transition-colors"
-                    >
-                      Clear conversation
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Error display */}
-            {error && (
-              <div className="px-4 py-1.5">
-                <p className="text-xs text-red-400">{error}</p>
-              </div>
-            )}
-
-            {/* Input */}
-            <form
-              onSubmit={handleAdvisorSubmit}
-              className="flex items-center gap-2 px-4 py-2.5 border-t border-border/20"
-            >
+            <form onSubmit={handleSubmit} className="flex items-center gap-2 px-5 py-3">
+              <MessageCircle className="h-4 w-4 text-muted-foreground/40 shrink-0" />
               <input
                 ref={inputRef}
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                placeholder="Ask any governance question..."
+                placeholder="Ask Seneca anything..."
                 disabled={isStreaming}
                 className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none disabled:opacity-50"
               />
@@ -388,9 +374,8 @@ export function CompassPanel({ currentPage, onStartTour, onClose }: CompassPanel
               </button>
             </form>
 
-            {/* Rate limit footer */}
-            <div className="px-4 pb-2">
-              <p className="text-[10px] text-muted-foreground/50">
+            <div className="px-5 pb-2">
+              <p className="text-[10px] text-muted-foreground/40">
                 {remaining}/{MAX_MESSAGES_PER_DAY} questions remaining today
               </p>
             </div>
@@ -402,160 +387,47 @@ export function CompassPanel({ currentPage, onStartTour, onClose }: CompassPanel
 }
 
 // ---------------------------------------------------------------------------
-// "For You Right Now" action types + logic
+// SuggestionChip
 // ---------------------------------------------------------------------------
 
-type ForYouActionType = 'tour' | 'quiz' | 'wallet' | 'insight';
-
-interface ForYouAction {
-  type: ForYouActionType;
-  label: string;
-  description: string;
-  tourId?: string;
-  startRoute?: string;
-  href?: string;
-}
-
-interface MiniTourLike {
-  id: string;
-  label: string;
-  startRoute: string;
-  section?: string;
-}
-
-function getForYouAction(
-  currentPage: string | undefined,
-  state: { toursCompleted: string[]; featuresExplored: string[] },
-  tours: MiniTourLike[],
-  progression: ReturnType<typeof getCompassProgression>,
-): ForYouAction | null {
-  // Priority 1: Page-specific uncompleted tour
-  if (currentPage) {
-    const pageTour = tours.find(
-      (t) =>
-        !state.toursCompleted.includes(t.id) &&
-        ('section' in t ? t.section === currentPage : false),
-    );
-    if (pageTour) {
-      return {
-        type: 'tour',
-        label: `Take a quick tour of ${PAGE_LABELS[currentPage] ?? currentPage}`,
-        description: 'See what you can do here',
-        tourId: pageTour.id,
-        startRoute: pageTour.startRoute,
-      };
-    }
-  }
-
-  // Priority 1b: Any uncompleted tour
-  const anyTour = tours.find((t) => !state.toursCompleted.includes(t.id));
-  if (anyTour) {
-    return {
-      type: 'tour',
-      label: anyTour.label,
-      description: 'Take a guided tour',
-      tourId: anyTour.id,
-      startRoute: anyTour.startRoute,
-    };
-  }
-
-  // Priority 2: Quiz not completed
-  if (progression === 'first_visit' || progression === 'exploring') {
-    return {
-      type: 'quiz',
-      label: 'Find your governance match in 60 seconds',
-      description: 'Discover DReps aligned with your values',
-      href: '/match',
-    };
-  }
-
-  // Priority 3: Quiz done, wallet not connected
-  if (progression === 'quiz_completed') {
-    return {
-      type: 'wallet',
-      label: 'Connect to see your full governance profile',
-      description: 'Unlock personalized insights and delegation',
-    };
-  }
-
-  // Priority 4: Connected — contextual insight
-  if (progression === 'connected') {
-    return {
-      type: 'insight',
-      label: 'Ask the Compass about anything on this page',
-      description: 'Your AI advisor is ready below',
-    };
-  }
-
-  return null;
-}
-
-// ---------------------------------------------------------------------------
-// ForYouCard component
-// ---------------------------------------------------------------------------
-
-interface ForYouCardProps {
-  action: ForYouAction;
+function SuggestionChip({
+  suggestion,
+  onTourStart,
+  onClose,
+}: {
+  suggestion: Suggestion;
   onTourStart: (tourId: string, startRoute: string) => void;
   onClose: () => void;
-}
-
-function ForYouCard({ action, onTourStart, onClose }: ForYouCardProps) {
-  const iconMap: Record<ForYouActionType, typeof Play> = {
-    tour: Play,
-    quiz: ChevronRight,
-    wallet: ChevronRight,
-    insight: Sparkles,
-  };
-  const Icon = iconMap[action.type];
-
-  if (action.type === 'tour' && action.tourId && action.startRoute) {
+}) {
+  if (suggestion.tourId && suggestion.startRoute) {
     return (
       <button
-        onClick={() => onTourStart(action.tourId!, action.startRoute!)}
-        className="flex items-center gap-3 w-full rounded-lg px-3 py-3 text-left transition-colors hover:bg-teal-500/5 border border-teal-500/20 bg-teal-500/5"
+        onClick={() => onTourStart(suggestion.tourId!, suggestion.startRoute!)}
+        className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 transition-colors"
       >
-        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-teal-500/10 shrink-0">
-          <Icon className="h-3.5 w-3.5 text-teal-400" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate">{action.label}</p>
-          <p className="text-xs text-muted-foreground truncate">{action.description}</p>
-        </div>
-        <ChevronRight className="h-4 w-4 text-teal-400 shrink-0" />
+        {suggestion.label}
+        <ChevronRight className="h-3 w-3" />
       </button>
     );
   }
 
-  if (action.href) {
+  if (suggestion.href) {
     return (
       <Link
-        href={action.href}
+        href={suggestion.href}
         onClick={onClose}
-        className="flex items-center gap-3 w-full rounded-lg px-3 py-3 transition-colors hover:bg-teal-500/5 border border-teal-500/20 bg-teal-500/5"
+        className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 transition-colors"
       >
-        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-teal-500/10 shrink-0">
-          <Icon className="h-3.5 w-3.5 text-teal-400" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate">{action.label}</p>
-          <p className="text-xs text-muted-foreground truncate">{action.description}</p>
-        </div>
-        <ChevronRight className="h-4 w-4 text-teal-400 shrink-0" />
+        {suggestion.label}
+        <ChevronRight className="h-3 w-3" />
       </Link>
     );
   }
 
-  // Wallet CTA or insight — just a visual card (no link)
   return (
-    <div className="flex items-center gap-3 w-full rounded-lg px-3 py-3 border border-teal-500/20 bg-teal-500/5">
-      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-teal-500/10 shrink-0">
-        <Icon className="h-3.5 w-3.5 text-teal-400" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{action.label}</p>
-        <p className="text-xs text-muted-foreground truncate">{action.description}</p>
-      </div>
-    </div>
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary">
+      <Sparkles className="h-3 w-3" />
+      {suggestion.label}
+    </span>
   );
 }

@@ -484,7 +484,7 @@ export function GovernadaHeader({ compassToggle, compassOpen }: GovernadaHeaderP
                 : 'text-muted-foreground hover:text-foreground',
             )}
             onClick={compassToggle ?? (() => discovery?.openHub())}
-            aria-label={compassOpen ? 'Close Solon panel' : 'Open Solon'}
+            aria-label={compassOpen ? 'Close Seneca panel' : 'Open Seneca'}
             aria-pressed={compassOpen}
           >
             <Compass className="h-4 w-4" />
