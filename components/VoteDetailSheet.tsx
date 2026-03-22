@@ -210,6 +210,15 @@ export function VoteDetailSheet({
                   className="text-sm text-foreground/90 leading-relaxed"
                 />
               </div>
+              {(vote.rationaleSpecificity != null ||
+                vote.rationaleReasoningDepth != null ||
+                vote.rationaleProposalAwareness != null) && (
+                <div className="flex gap-3 mt-2 text-[10px] text-muted-foreground">
+                  <span>Specificity: {vote.rationaleSpecificity ?? '\u2014'}</span>
+                  <span>Reasoning: {vote.rationaleReasoningDepth ?? '\u2014'}</span>
+                  <span>Awareness: {vote.rationaleProposalAwareness ?? '\u2014'}</span>
+                </div>
+              )}
             </div>
           )}
 

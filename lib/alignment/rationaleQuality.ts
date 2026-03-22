@@ -89,7 +89,7 @@ export async function scoreRationalesBatch(
           ? Math.max(0, Math.min(100, Math.round(aiResult.score)))
           : heuristicScore(input.rationaleText);
 
-        return { input, score };
+        return { input, score, aiResult };
       }),
     );
 
@@ -98,11 +98,14 @@ export async function scoreRationalesBatch(
       proposal_tx_hash: string;
       proposal_index: number;
       rationale_quality: number;
+      rationale_specificity: number | null;
+      rationale_reasoning_depth: number | null;
+      rationale_proposal_awareness: number | null;
     }[] = [];
 
     for (const result of scores) {
       if (result.status === 'fulfilled') {
-        const { input, score } = result.value;
+        const { input, score, aiResult } = result.value;
         const key = `${input.drepId}-${input.proposalTxHash}-${input.proposalIndex}`;
         results.set(key, score);
         updates.push({
@@ -110,6 +113,15 @@ export async function scoreRationalesBatch(
           proposal_tx_hash: input.proposalTxHash,
           proposal_index: input.proposalIndex,
           rationale_quality: score,
+          rationale_specificity: aiResult
+            ? Math.max(0, Math.min(100, Math.round(aiResult.specificity)))
+            : null,
+          rationale_reasoning_depth: aiResult
+            ? Math.max(0, Math.min(100, Math.round(aiResult.reasoning_depth)))
+            : null,
+          rationale_proposal_awareness: aiResult
+            ? Math.max(0, Math.min(100, Math.round(aiResult.proposal_awareness)))
+            : null,
         });
       }
     }
@@ -119,7 +131,12 @@ export async function scoreRationalesBatch(
         updates.map((u) =>
           supabase
             .from('drep_votes')
-            .update({ rationale_quality: u.rationale_quality })
+            .update({
+              rationale_quality: u.rationale_quality,
+              rationale_specificity: u.rationale_specificity,
+              rationale_reasoning_depth: u.rationale_reasoning_depth,
+              rationale_proposal_awareness: u.rationale_proposal_awareness,
+            })
             .eq('drep_id', u.drep_id)
             .eq('proposal_tx_hash', u.proposal_tx_hash)
             .eq('proposal_index', u.proposal_index),

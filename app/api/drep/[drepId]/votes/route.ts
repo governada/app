@@ -21,7 +21,9 @@ export const GET = withRouteHandler(async (request, { requestId }) => {
 
   const { data: votes, error } = await supabase
     .from('drep_votes')
-    .select('proposal_tx_hash, proposal_index, vote, epoch_no, block_time, rationale_quality')
+    .select(
+      'proposal_tx_hash, proposal_index, vote, epoch_no, block_time, rationale_quality, rationale_specificity, rationale_reasoning_depth, rationale_proposal_awareness',
+    )
     .eq('drep_id', drepId)
     .order('block_time', { ascending: false });
 

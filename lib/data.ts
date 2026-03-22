@@ -502,6 +502,9 @@ export interface DRepVoteRow {
   meta_url: string | null;
   meta_hash: string | null;
   rationale_quality: number | null;
+  rationale_specificity: number | null;
+  rationale_reasoning_depth: number | null;
+  rationale_proposal_awareness: number | null;
 }
 
 /**
