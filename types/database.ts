@@ -1144,8 +1144,10 @@ export type Database = {
         Row: {
           analyzed_at: string | null;
           articles_analyzed: Json | null;
+          boilerplate_score: number | null;
           cc_hot_id: string;
           clarity_score: number | null;
+          confidence: number | null;
           contradicts_own_precedent: boolean | null;
           deliberation_quality: number | null;
           finding_severity: string | null;
@@ -1164,8 +1166,10 @@ export type Database = {
         Insert: {
           analyzed_at?: string | null;
           articles_analyzed?: Json | null;
+          boilerplate_score?: number | null;
           cc_hot_id: string;
           clarity_score?: number | null;
+          confidence?: number | null;
           contradicts_own_precedent?: boolean | null;
           deliberation_quality?: number | null;
           finding_severity?: string | null;
@@ -1184,8 +1188,10 @@ export type Database = {
         Update: {
           analyzed_at?: string | null;
           articles_analyzed?: Json | null;
+          boilerplate_score?: number | null;
           cc_hot_id?: string;
           clarity_score?: number | null;
+          confidence?: number | null;
           contradicts_own_precedent?: boolean | null;
           deliberation_quality?: number | null;
           finding_severity?: string | null;
@@ -2397,6 +2403,7 @@ export type Database = {
           reliability_v3_raw: number | null;
           score: number;
           score_momentum: number | null;
+          score_version: string | null;
           snapshot_date: string;
         };
         Insert: {
@@ -2418,6 +2425,7 @@ export type Database = {
           reliability_v3_raw?: number | null;
           score?: number;
           score_momentum?: number | null;
+          score_version?: string | null;
           snapshot_date?: string;
         };
         Update: {
@@ -2439,6 +2447,7 @@ export type Database = {
           reliability_v3_raw?: number | null;
           score?: number;
           score_momentum?: number | null;
+          score_version?: string | null;
           snapshot_date?: string;
         };
         Relationships: [];
@@ -2541,6 +2550,8 @@ export type Database = {
           metadata_hash_verified: boolean | null;
           participation_rate: number | null;
           profile_completeness: number | null;
+          profile_last_changed_at: string | null;
+          profile_metadata_hash: string | null;
           rationale_rate: number | null;
           reliability_longest_gap: number | null;
           reliability_recency: number | null;
@@ -2551,6 +2562,7 @@ export type Database = {
           reliability_v3_raw: number | null;
           score: number | null;
           score_momentum: number | null;
+          score_version: string | null;
           size_tier: string | null;
           spotlight_narrative: string | null;
           spotlight_narrative_generated_at: string | null;
@@ -2591,6 +2603,8 @@ export type Database = {
           metadata_hash_verified?: boolean | null;
           participation_rate?: number | null;
           profile_completeness?: number | null;
+          profile_last_changed_at?: string | null;
+          profile_metadata_hash?: string | null;
           rationale_rate?: number | null;
           reliability_longest_gap?: number | null;
           reliability_recency?: number | null;
@@ -2601,6 +2615,7 @@ export type Database = {
           reliability_v3_raw?: number | null;
           score?: number | null;
           score_momentum?: number | null;
+          score_version?: string | null;
           size_tier?: string | null;
           spotlight_narrative?: string | null;
           spotlight_narrative_generated_at?: string | null;
@@ -2641,6 +2656,8 @@ export type Database = {
           metadata_hash_verified?: boolean | null;
           participation_rate?: number | null;
           profile_completeness?: number | null;
+          profile_last_changed_at?: string | null;
+          profile_metadata_hash?: string | null;
           rationale_rate?: number | null;
           reliability_longest_gap?: number | null;
           reliability_recency?: number | null;
@@ -2651,6 +2668,7 @@ export type Database = {
           reliability_v3_raw?: number | null;
           score?: number | null;
           score_momentum?: number | null;
+          score_version?: string | null;
           size_tier?: string | null;
           spotlight_narrative?: string | null;
           spotlight_narrative_generated_at?: string | null;
@@ -3771,6 +3789,7 @@ export type Database = {
           reliability_raw: number | null;
           retiring_epoch: number | null;
           score_momentum: number | null;
+          score_version: string | null;
           social_links: Json | null;
           spotlight_narrative: string | null;
           spotlight_narrative_generated_at: string | null;
@@ -3817,6 +3836,7 @@ export type Database = {
           reliability_raw?: number | null;
           retiring_epoch?: number | null;
           score_momentum?: number | null;
+          score_version?: string | null;
           social_links?: Json | null;
           spotlight_narrative?: string | null;
           spotlight_narrative_generated_at?: string | null;
@@ -3863,6 +3883,7 @@ export type Database = {
           reliability_raw?: number | null;
           retiring_epoch?: number | null;
           score_momentum?: number | null;
+          score_version?: string | null;
           social_links?: Json | null;
           spotlight_narrative?: string | null;
           spotlight_narrative_generated_at?: string | null;
@@ -5179,6 +5200,39 @@ export type Database = {
           },
         ];
       };
+      scoring_methodology_changelog: {
+        Row: {
+          changes: Json;
+          entity_type: string;
+          id: number;
+          migration_notes: string | null;
+          pillar_weights: Json | null;
+          released_at: string | null;
+          summary: string;
+          version: string;
+        };
+        Insert: {
+          changes?: Json;
+          entity_type: string;
+          id?: number;
+          migration_notes?: string | null;
+          pillar_weights?: Json | null;
+          released_at?: string | null;
+          summary: string;
+          version: string;
+        };
+        Update: {
+          changes?: Json;
+          entity_type?: string;
+          id?: number;
+          migration_notes?: string | null;
+          pillar_weights?: Json | null;
+          released_at?: string | null;
+          summary?: string;
+          version?: string;
+        };
+        Relationships: [];
+      };
       semantic_similarity_cache: {
         Row: {
           computed_at: string | null;
@@ -5353,6 +5407,7 @@ export type Database = {
           reliability_pct: number | null;
           reliability_raw: number | null;
           score_momentum: number | null;
+          score_version: string | null;
           snapshot_at: string | null;
           vote_count: number | null;
         };
@@ -5373,6 +5428,7 @@ export type Database = {
           reliability_pct?: number | null;
           reliability_raw?: number | null;
           score_momentum?: number | null;
+          score_version?: string | null;
           snapshot_at?: string | null;
           vote_count?: number | null;
         };
@@ -5393,6 +5449,7 @@ export type Database = {
           reliability_pct?: number | null;
           reliability_raw?: number | null;
           score_momentum?: number | null;
+          score_version?: string | null;
           snapshot_at?: string | null;
           vote_count?: number | null;
         };
