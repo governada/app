@@ -2456,7 +2456,10 @@ export type Database = {
           power_source: string | null;
           proposal_index: number;
           proposal_tx_hash: string;
+          rationale_proposal_awareness: number | null;
           rationale_quality: number | null;
+          rationale_reasoning_depth: number | null;
+          rationale_specificity: number | null;
           vote: string;
           vote_tx_hash: string;
           voting_power_lovelace: number | null;
@@ -2473,7 +2476,10 @@ export type Database = {
           power_source?: string | null;
           proposal_index: number;
           proposal_tx_hash: string;
+          rationale_proposal_awareness?: number | null;
           rationale_quality?: number | null;
+          rationale_reasoning_depth?: number | null;
+          rationale_specificity?: number | null;
           vote: string;
           vote_tx_hash: string;
           voting_power_lovelace?: number | null;
@@ -2490,7 +2496,10 @@ export type Database = {
           power_source?: string | null;
           proposal_index?: number;
           proposal_tx_hash?: string;
+          rationale_proposal_awareness?: number | null;
           rationale_quality?: number | null;
+          rationale_reasoning_depth?: number | null;
+          rationale_specificity?: number | null;
           vote?: string;
           vote_tx_hash?: string;
           voting_power_lovelace?: number | null;

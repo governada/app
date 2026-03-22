@@ -11,7 +11,7 @@ const EXPLAINERS: Record<ScoreType, { pillars: string; summary: string }> = {
     pillars:
       'Engagement Quality (40%) · Participation (25%) · Reliability (25%) · Governance Identity (10%)',
     summary:
-      'Higher scores mean this DRep votes consistently, explains their reasoning with quality rationales, and maintains an active governance presence.',
+      'Higher scores mean this DRep votes consistently, explains their reasoning with quality rationales (AI-assessed on specificity, reasoning depth, and proposal awareness), and maintains an active governance presence.',
   },
   spo: {
     pillars: 'Participation (35%) · Deliberation (25%) · Reliability (25%) · Identity (15%)',
