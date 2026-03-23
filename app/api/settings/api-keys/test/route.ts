@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { withRouteHandler, type RouteContext } from '@/lib/api/withRouteHandler';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { decryptApiKey } from '@/lib/ai/encryption';
+import { generateTextWithModel, MODELS } from '@/lib/ai';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,14 +41,11 @@ export const POST = withRouteHandler(
 
     try {
       if (provider === 'anthropic') {
-        const { default: Anthropic } = await import('@anthropic-ai/sdk');
-        const client = new Anthropic({ apiKey });
-        const message = await client.messages.create({
-          model: 'claude-sonnet-4-5',
-          max_tokens: 5,
-          messages: [{ role: 'user', content: 'ping' }],
+        const { text } = await generateTextWithModel('ping', MODELS.FAST, {
+          maxTokens: 5,
+          apiKey,
         });
-        return NextResponse.json({ success: true, model: message.model });
+        return NextResponse.json({ success: true, model: text !== null ? MODELS.FAST : null });
       }
 
       // OpenAI placeholder — validate by calling models endpoint

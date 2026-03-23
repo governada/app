@@ -10,6 +10,7 @@ import { captureServerEvent } from '@/lib/posthog-server';
 import { createClient } from '@/lib/supabase';
 import { withRouteHandler } from '@/lib/api/withRouteHandler';
 import { RationaleDraftSchema } from '@/lib/api/schemas/governance';
+import { generateText } from '@/lib/ai';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -18,11 +19,6 @@ export const POST = withRouteHandler(
   async (request: NextRequest) => {
     const { drepId, voterRole, proposalTitle, proposalAbstract, proposalType, aiSummary } =
       RationaleDraftSchema.parse(await request.json());
-
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: 'AI features not configured' }, { status: 503 });
-    }
 
     let voterContext = '';
     let voterLabel = 'DRep (Delegated Representative)';
@@ -72,16 +68,8 @@ export const POST = withRouteHandler(
       .filter(Boolean)
       .join('\n');
 
-    const { default: Anthropic } = await import('@anthropic-ai/sdk');
-    const anthropic = new Anthropic({ apiKey });
-
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1024,
-      messages: [
-        {
-          role: 'user',
-          content: `You are helping a Cardano ${voterLabel} write a CIP-100 compatible voting rationale for a governance proposal.
+    const draft = await generateText(
+      `You are helping a Cardano ${voterLabel} write a CIP-100 compatible voting rationale for a governance proposal.
 
 PROPOSAL:
 ${proposalContext}
@@ -96,11 +84,12 @@ Write a professional, structured voting rationale draft. The voter will review a
 Keep it concise (under 300 words), factual, and neutral in tone. Do not make assumptions about the voter's choice. Reference the voter's stated objectives where relevant to help them frame their position.
 
 Output only the rationale text, no preamble.`,
-        },
-      ],
-    });
+      { model: 'FAST', maxTokens: 1024 },
+    );
 
-    const draft = message.content[0].type === 'text' ? message.content[0].text : '';
+    if (draft === null) {
+      return NextResponse.json({ error: 'AI features not configured' }, { status: 503 });
+    }
 
     captureServerEvent('rationale_ai_drafted', { voter_id: drepId, voter_role: voterRole }, drepId);
 

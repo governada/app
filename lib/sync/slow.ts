@@ -7,6 +7,7 @@
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { logger as log } from '@/lib/logger';
 import { SyncLogger, errMsg, emitPostHog, batchUpsert } from '@/lib/sync-utils';
+import { generateText } from '@/lib/ai';
 import { blake2bHex } from 'blakejs';
 import { fetchDRepVotingPowerHistory, fetchDRepInfo } from '@/utils/koios';
 import { getProposalPriority } from '@/utils/proposalPriority';
@@ -164,8 +165,6 @@ async function runRationalePipeline(supabase: SupabaseClient) {
 async function runAiSummaries(supabase: SupabaseClient) {
   if (!process.env.ANTHROPIC_API_KEY) return { proposals: 0, rationales: 0, skipped: true };
 
-  const { default: Anthropic } = await import('@anthropic-ai/sdk');
-  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   let proposalSummaries = 0;
   let rationaleSummaries = 0;
 
@@ -183,17 +182,10 @@ async function runAiSummaries(supabase: SupabaseClient) {
       const amountCtx = row.withdrawal_amount
         ? `\nWithdrawal Amount: ${Number(row.withdrawal_amount).toLocaleString()} ADA`
         : '';
-      const msg = await anthropic.messages.create({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 80,
-        messages: [
-          {
-            role: 'user',
-            content: `Summarize this Cardano governance proposal in 1-2 short sentences for a casual ADA holder. Plain language, no jargon. Neutral tone. No URLs or hashes. Your entire response must be 160 characters or fewer.\n\nTitle: ${row.title || 'Untitled'}\nType: ${row.proposal_type}${amountCtx}\nDescription: ${(row.abstract || '').slice(0, 2000)}`,
-          },
-        ],
-      });
-      const raw = msg.content[0]?.type === 'text' ? msg.content[0].text.trim() : null;
+      const raw = await generateText(
+        `Summarize this Cardano governance proposal in 1-2 short sentences for a casual ADA holder. Plain language, no jargon. Neutral tone. No URLs or hashes. Your entire response must be 160 characters or fewer.\n\nTitle: ${row.title || 'Untitled'}\nType: ${row.proposal_type}${amountCtx}\nDescription: ${(row.abstract || '').slice(0, 2000)}`,
+        { model: 'FAST', maxTokens: 80 },
+      );
       const summary = raw ? truncateToWordBoundary(stripUrls(raw), 160) : null;
       if (summary) {
         proposalUpdates.push({
@@ -251,17 +243,10 @@ async function runAiSummaries(supabase: SupabaseClient) {
         const title =
           titles.get(`${row.proposal_tx_hash}-${row.proposal_index}`) || 'this proposal';
         const dir = dirs.get(row.vote_tx_hash) || 'voted';
-        const msg = await anthropic.messages.create({
-          model: 'claude-sonnet-4-5',
-          max_tokens: 80,
-          messages: [
-            {
-              role: 'user',
-              content: `Summarize this DRep's rationale for voting ${dir} on "${title}" in 1-2 neutral sentences. Plain language, no editorializing. No URLs or hashes. Your entire response must be 160 characters or fewer.\n\nRationale: ${(row.rationale_text || '').slice(0, 1500)}`,
-            },
-          ],
-        });
-        const raw = msg.content[0]?.type === 'text' ? msg.content[0].text.trim() : null;
+        const raw = await generateText(
+          `Summarize this DRep's rationale for voting ${dir} on "${title}" in 1-2 neutral sentences. Plain language, no editorializing. No URLs or hashes. Your entire response must be 160 characters or fewer.\n\nRationale: ${(row.rationale_text || '').slice(0, 1500)}`,
+          { model: 'FAST', maxTokens: 80 },
+        );
         const summary = raw ? truncateToWordBoundary(stripUrls(raw), 160) : null;
         if (summary) {
           rationaleUpdates.push({ vote_tx_hash: row.vote_tx_hash, ai_summary: summary });

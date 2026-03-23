@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withRouteHandler } from '@/lib/api/withRouteHandler';
 import { ConstitutionalCheckSchema } from '@/lib/api/schemas/workspace';
 import { captureServerEvent } from '@/lib/posthog-server';
+import { generateText, MODELS } from '@/lib/ai';
 import type { ConstitutionalCheckResult, ConstitutionalFlag } from '@/lib/workspace/types';
 
 export const dynamic = 'force-dynamic';
@@ -14,11 +15,6 @@ export const maxDuration = 30;
 export const POST = withRouteHandler(
   async (request: NextRequest) => {
     const body = ConstitutionalCheckSchema.parse(await request.json());
-
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: 'AI features not configured' }, { status: 503 });
-    }
 
     const proposalContext = [
       `Title: ${body.title}`,
@@ -33,16 +29,8 @@ export const POST = withRouteHandler(
       .filter(Boolean)
       .join('\n\n');
 
-    const { default: Anthropic } = await import('@anthropic-ai/sdk');
-    const anthropic = new Anthropic({ apiKey });
-
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2048,
-      messages: [
-        {
-          role: 'user',
-          content: `You are a Cardano constitutional compliance analyst. Analyze the following governance proposal against the Cardano Constitution. For each potential conflict or concern, cite the specific article and section, explain the concern, and rate severity as info/warning/critical.
+    const rawText = await generateText(
+      `You are a Cardano constitutional compliance analyst. Analyze the following governance proposal against the Cardano Constitution. For each potential conflict or concern, cite the specific article and section, explain the concern, and rate severity as info/warning/critical.
 
 Return ONLY valid JSON — an array of objects with this shape:
 [{"article": "Article X", "section": "Section Y (optional)", "concern": "explanation", "severity": "info|warning|critical"}]
@@ -51,17 +39,18 @@ If the proposal has no constitutional concerns, return an empty array: []
 
 PROPOSAL:
 ${proposalContext}`,
-        },
-      ],
-    });
+      { model: 'FAST', maxTokens: 2048 },
+    );
 
-    const rawText = message.content[0].type === 'text' ? message.content[0].text : '[]';
+    if (rawText === null) {
+      return NextResponse.json({ error: 'AI features not configured' }, { status: 503 });
+    }
 
     // Parse the response — extract JSON from the text
     let flags: ConstitutionalFlag[] = [];
     try {
       // Try to find JSON array in the response
-      const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+      const jsonMatch = (rawText ?? '[]').match(/\[[\s\S]*\]/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
         if (Array.isArray(parsed)) {
@@ -91,7 +80,7 @@ ${proposalContext}`,
       flags,
       score,
       checkedAt: new Date().toISOString(),
-      model: 'claude-sonnet-4-20250514',
+      model: MODELS.FAST,
     };
 
     captureServerEvent('author_constitutional_check_run', {
