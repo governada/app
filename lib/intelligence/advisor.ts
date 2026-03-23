@@ -13,6 +13,7 @@
  */
 
 import { logger } from '@/lib/logger';
+import { createAnthropicStream } from '@/lib/ai';
 
 // ---------------------------------------------------------------------------
 // Question / intent detection
@@ -208,29 +209,24 @@ export async function streamAdvisorResponse(
   const { messages, context, signal } = options;
   const systemPrompt = buildAdvisorSystemPrompt(context);
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    logger.error('[Advisor] ANTHROPIC_API_KEY not configured');
-    return createErrorStream('AI advisor is not configured. Please try again later.');
-  }
-
-  const { default: Anthropic } = await import('@anthropic-ai/sdk');
-  const client = new Anthropic({ apiKey });
-
   const anthropicMessages = messages.map((m) => ({
     role: m.role as 'user' | 'assistant',
     content: m.content,
   }));
 
   try {
-    const stream = await client.messages.create({
-      model: 'claude-sonnet-4-5',
-      max_tokens: 1024,
+    const stream = await createAnthropicStream('', {
+      model: 'FAST',
+      maxTokens: 1024,
       temperature: 0.3,
       system: systemPrompt,
       messages: anthropicMessages,
-      stream: true,
     });
+
+    if (!stream) {
+      logger.error('[Advisor] AI client not available');
+      return createErrorStream('AI advisor is not configured. Please try again later.');
+    }
 
     const encoder = new TextEncoder();
 

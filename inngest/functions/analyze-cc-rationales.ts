@@ -12,6 +12,7 @@
  */
 
 import { inngest } from '@/lib/inngest';
+import { MODELS } from '@/lib/ai';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { analyzeRationale } from '@/lib/cc/rationaleAnalysis';
 import { classifyPrecedent } from '@/lib/cc/precedentLinker';
@@ -265,7 +266,7 @@ export const analyzeCcRationales = inngest.createFunction(
                 boilerplate_score: result.boilerplate_score ?? null,
                 confidence: result.confidence ?? null,
                 analyzed_at: new Date().toISOString(),
-                model_version: 'claude-sonnet-4-5',
+                model_version: MODELS.FAST,
               },
               {
                 onConflict: 'cc_hot_id,proposal_tx_hash,proposal_index',

@@ -21,7 +21,7 @@ import { getSupabaseAdmin } from '@/lib/supabase';
 import { assembleGovernanceContext } from '@/lib/workspace/agent/context';
 import { buildSystemPrompt } from '@/lib/workspace/agent/system-prompt';
 import { getToolDefinitions, executeTool } from '@/lib/workspace/agent/tools';
-import { MODELS } from '@/lib/ai';
+import { MODELS, getAnthropicClient } from '@/lib/ai';
 import { logger } from '@/lib/logger';
 import type { AgentMessage } from '@/lib/workspace/agent/types';
 
@@ -231,8 +231,16 @@ async function handleAgentStream(
   }
 
   // 7. Call Claude with streaming
-  const { default: Anthropic } = await import('@anthropic-ai/sdk');
-  const client = new Anthropic({ apiKey });
+  const client = await getAnthropicClient(apiKey);
+  if (!client) {
+    emit({
+      type: 'text_delta',
+      content: 'AI client could not be initialized. Please check your API key settings.',
+    });
+    emit({ type: 'done' });
+    controller.close();
+    return;
+  }
 
   // Accumulate assistant response for persistence
   let fullAssistantText = '';

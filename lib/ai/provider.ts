@@ -1,9 +1,10 @@
 /**
- * AI provider with BYOK support and provenance logging.
+ * AI provider with BYOK support, multi-model routing, and provenance logging.
  *
- * Extends lib/ai.ts (which handles Anthropic client + model selection)
+ * Extends lib/ai.ts (which handles model selection + multi-provider routing)
  * to support:
  * - BYOK: user-provided API keys from encrypted_api_keys table
+ * - Multi-provider: routes to Anthropic or OpenAI based on model ID
  * - Provenance: every AI call logged to ai_activity_log
  * - Personal context: user's governance philosophy injected into prompts
  *
@@ -16,9 +17,13 @@
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { decryptApiKey } from '@/lib/ai/encryption';
 import { logger } from '@/lib/logger';
-import { MODELS } from '@/lib/ai';
-
-type ModelKey = keyof typeof MODELS;
+import {
+  MODELS,
+  type GenerateOptions,
+  generateTextWithModel,
+  getProviderForModel,
+  resolveModel,
+} from '@/lib/ai';
 
 interface ProviderOptions {
   /** User ID for BYOK key lookup. If omitted, uses platform key. */
@@ -27,17 +32,11 @@ interface ProviderOptions {
   stakeAddress?: string;
 }
 
-interface GenerateOptions {
-  model?: ModelKey;
-  maxTokens?: number;
-  temperature?: number;
-  system?: string;
-}
-
 interface AIResult<T> {
   data: T | null;
   provenance: {
     model: string;
+    provider: 'anthropic' | 'openai';
     keySource: 'platform' | 'byok';
     tokensUsed?: number;
   };
@@ -46,6 +45,12 @@ interface AIResult<T> {
 interface AIProvider {
   generateText: (prompt: string, options?: GenerateOptions) => Promise<AIResult<string>>;
   generateJSON: <T = unknown>(prompt: string, options?: GenerateOptions) => Promise<AIResult<T>>;
+  /** Generate text with a specific model ID (bypasses ModelKey lookup). */
+  generateTextWithModel: (
+    prompt: string,
+    modelId: string,
+    options?: { maxTokens?: number; temperature?: number; system?: string },
+  ) => Promise<AIResult<string>>;
   keySource: 'platform' | 'byok';
   /** Log a skill invocation to provenance */
   logActivity: (params: {
@@ -59,87 +64,91 @@ interface AIProvider {
 
 /**
  * Create an AI provider with optional BYOK support.
+ * Supports both Anthropic and OpenAI models via automatic routing.
  */
 export async function createAIProvider(options: ProviderOptions = {}): Promise<AIProvider> {
-  let apiKey = process.env.ANTHROPIC_API_KEY ?? '';
+  let anthropicKey: string | undefined;
+  let openaiKey: string | undefined;
   let keySource: 'platform' | 'byok' = 'platform';
 
-  // Check for BYOK key
+  // Check for BYOK keys
   if (options.userId) {
     try {
       const supabase = getSupabaseAdmin();
-      const { data: keyRow } = await supabase
+      const { data: keys } = await supabase
         .from('encrypted_api_keys')
-        .select('encrypted_key')
+        .select('encrypted_key, provider')
         .eq('user_id', options.userId)
-        .eq('provider', 'anthropic')
-        .maybeSingle();
+        .in('provider', ['anthropic', 'openai']);
 
-      if (keyRow?.encrypted_key) {
-        apiKey = decryptApiKey(keyRow.encrypted_key);
-        keySource = 'byok';
+      if (keys && keys.length > 0) {
+        for (const keyRow of keys) {
+          if (keyRow.encrypted_key) {
+            const decrypted = decryptApiKey(keyRow.encrypted_key);
+            if (keyRow.provider === 'anthropic') {
+              anthropicKey = decrypted;
+              keySource = 'byok';
+            } else if (keyRow.provider === 'openai') {
+              openaiKey = decrypted;
+              keySource = 'byok';
+            }
+          }
+        }
       }
     } catch (err) {
-      logger.error('[AI Provider] Failed to fetch BYOK key, falling back to platform', {
+      logger.error('[AI Provider] Failed to fetch BYOK keys, falling back to platform', {
         error: err,
       });
     }
   }
 
-  // Create Anthropic client with the resolved key
-  let client: {
-    messages: {
-      create: (params: {
-        model: string;
-        max_tokens: number;
-        temperature?: number;
-        system?: string;
-        messages: Array<{ role: string; content: string }>;
-      }) => Promise<{
-        content: Array<{ type: string; text?: string }>;
-        usage?: { output_tokens?: number };
-      }>;
-    };
-  } | null = null;
-
-  if (apiKey) {
-    const { default: Anthropic } = await import('@anthropic-ai/sdk');
-    client = new Anthropic({ apiKey }) as unknown as typeof client;
+  function getApiKeyForModel(modelId: string): string | undefined {
+    const provider = getProviderForModel(modelId);
+    return provider === 'openai' ? openaiKey : anthropicKey;
   }
 
   async function callAI(
     prompt: string,
-    opts: GenerateOptions = {},
-  ): Promise<{ text: string | null; tokensUsed?: number }> {
-    if (!client) return { text: null };
+    modelId: string,
+    opts: { maxTokens?: number; temperature?: number; system?: string } = {},
+  ): Promise<{
+    text: string | null;
+    tokensUsed?: number;
+    model: string;
+    provider: 'anthropic' | 'openai';
+  }> {
+    const provider = getProviderForModel(modelId);
+    const apiKey = getApiKeyForModel(modelId);
 
-    const model = MODELS[opts.model ?? 'FAST'];
-    try {
-      const message = await client.messages.create({
-        model,
-        max_tokens: opts.maxTokens ?? 1024,
-        ...(opts.temperature != null ? { temperature: opts.temperature } : {}),
-        ...(opts.system ? { system: opts.system } : {}),
-        messages: [{ role: 'user', content: prompt }],
-      });
+    const result = await generateTextWithModel(prompt, modelId, {
+      maxTokens: opts.maxTokens ?? 1024,
+      temperature: opts.temperature,
+      system: opts.system,
+      apiKey,
+    });
 
-      const block = message.content[0];
-      const text = block?.type === 'text' ? (block.text ?? null) : null;
-      return { text, tokensUsed: message.usage?.output_tokens };
-    } catch (err) {
-      logger.error('[AI Provider] Generation error', { error: err, keySource });
-      return { text: null };
-    }
+    return {
+      text: result.text,
+      tokensUsed: result.tokensUsed,
+      model: modelId,
+      provider,
+    };
   }
 
   const generateText = async (
     prompt: string,
     opts: GenerateOptions = {},
   ): Promise<AIResult<string>> => {
-    const { text, tokensUsed } = await callAI(prompt, opts);
+    const modelId = resolveModel(opts.model ?? 'FAST');
+    const result = await callAI(prompt, modelId, opts);
     return {
-      data: text,
-      provenance: { model: MODELS[opts.model ?? 'FAST'], keySource, tokensUsed },
+      data: result.text,
+      provenance: {
+        model: result.model,
+        provider: result.provider,
+        keySource,
+        tokensUsed: result.tokensUsed,
+      },
     };
   };
 
@@ -147,29 +156,44 @@ export async function createAIProvider(options: ProviderOptions = {}): Promise<A
     prompt: string,
     opts: GenerateOptions = {},
   ): Promise<AIResult<T>> => {
-    const { text, tokensUsed } = await callAI(prompt, opts);
-    if (!text)
-      return {
-        data: null,
-        provenance: { model: MODELS[opts.model ?? 'FAST'], keySource, tokensUsed },
-      };
+    const modelId = resolveModel(opts.model ?? 'FAST');
+    const result = await callAI(prompt, modelId, opts);
+    const provenance = {
+      model: result.model,
+      provider: result.provider,
+      keySource,
+      tokensUsed: result.tokensUsed,
+    } as const;
+
+    if (!result.text) return { data: null, provenance };
 
     try {
-      const cleaned = text
+      const cleaned = result.text
         .replace(/^```json\s*/, '')
         .replace(/\s*```$/, '')
         .trim();
-      return {
-        data: JSON.parse(cleaned) as T,
-        provenance: { model: MODELS[opts.model ?? 'FAST'], keySource, tokensUsed },
-      };
+      return { data: JSON.parse(cleaned) as T, provenance };
     } catch {
       logger.error('[AI Provider] Failed to parse JSON response');
-      return {
-        data: null,
-        provenance: { model: MODELS[opts.model ?? 'FAST'], keySource, tokensUsed },
-      };
+      return { data: null, provenance };
     }
+  };
+
+  const generateTextWithModelFn = async (
+    prompt: string,
+    modelId: string,
+    opts: { maxTokens?: number; temperature?: number; system?: string } = {},
+  ): Promise<AIResult<string>> => {
+    const result = await callAI(prompt, modelId, opts);
+    return {
+      data: result.text,
+      provenance: {
+        model: result.model,
+        provider: result.provider,
+        keySource,
+        tokensUsed: result.tokensUsed,
+      },
+    };
   };
 
   const logActivity = async (params: {
@@ -197,5 +221,11 @@ export async function createAIProvider(options: ProviderOptions = {}): Promise<A
     }
   };
 
-  return { generateText, generateJSON, keySource, logActivity };
+  return {
+    generateText,
+    generateJSON,
+    generateTextWithModel: generateTextWithModelFn,
+    keySource,
+    logActivity,
+  };
 }
