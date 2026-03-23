@@ -3,17 +3,22 @@
  *
  * 4-pillar scoring model for governance proposers:
  *   1. Track Record (35%)  — approval rate + delivery + trajectory
- *   2. Proposal Quality (30%) — specification completeness + community engagement
- *   3. Fiscal Responsibility (20%) — request reasonableness + efficiency
- *   4. Governance Citizenship (15%) — responsiveness + transparency
+ *   2. Proposal Quality (30%) — AI quality (60%) + spec completeness (20%) + engagement (20%)
+ *   3. Fiscal Responsibility (20%) — enacted rate + delivery + budget quality (treasury)
+ *   4. Governance Citizenship (15%) — type diversity + completeness + sustained engagement
  *
  * Uses absolute calibration curves (same as DRep/SPO/CC scores).
- * Confidence-gated: 1 proposal = max Emerging, 2-3 = max Bronze, 4+ = full.
+ * Confidence-gated: 1 = max Emerging, 2-3 = max Bronze, 4-6 = max Silver, 7+ = full.
+ *
+ * Anti-gaming:
+ *   - Serial low-effort detection (3+ proposals with AI quality < 30 → 0.85x citizenship)
+ *   - InfoAction-only proposers capped at 60 raw track record
  */
 
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { calibrate, type CalibrationCurve } from '@/lib/scoring/calibration';
 import { logger } from '@/lib/logger';
+import type { ProposalQualityResult } from './proposalQuality';
 
 // ---------------------------------------------------------------------------
 // Weights & Calibration
@@ -42,13 +47,16 @@ export const PROPOSER_CALIBRATION: Record<string, CalibrationCurve> = {
   governanceCitizenship: { floor: 10, targetLow: 30, targetHigh: 60, ceiling: 80 },
 };
 
-/** Confidence tiers based on proposal count. */
+/**
+ * Confidence tiers based on proposal count.
+ * Graduated system: requires 7+ proposals for uncapped confidence (similar
+ * to DRep's 15+ votes requirement).
+ */
 const CONFIDENCE_TIERS = [
   { maxProposals: 1, confidence: 40, maxTier: 'Emerging' },
-  { maxProposals: 3, confidence: 70, maxTier: 'Bronze' },
+  { maxProposals: 3, confidence: 60, maxTier: 'Bronze' },
+  { maxProposals: 6, confidence: 80, maxTier: 'Silver' },
 ] as const;
-
-const FULL_CONFIDENCE_PROPOSALS = 4;
 
 const TIER_BOUNDARIES = [
   { name: 'Emerging', min: 0, max: 39 },
@@ -60,10 +68,23 @@ const TIER_BOUNDARIES = [
 ] as const;
 
 // ---------------------------------------------------------------------------
+// Anti-gaming constants
+// ---------------------------------------------------------------------------
+
+/** Threshold for "low effort" AI quality score */
+const LOW_EFFORT_AI_THRESHOLD = 30;
+/** Minimum proposals needed to trigger low-effort pattern detection */
+const LOW_EFFORT_MIN_PROPOSALS = 3;
+/** Multiplier applied to citizenship pillar when low-effort pattern detected */
+const LOW_EFFORT_CITIZENSHIP_MULTIPLIER = 0.85;
+/** Cap on track record raw score for InfoAction-only proposers */
+const INFOACTION_ONLY_TRACK_RECORD_CAP = 60;
+
+// ---------------------------------------------------------------------------
 // Pillar computations
 // ---------------------------------------------------------------------------
 
-interface ProposerData {
+export interface ProposerData {
   id: string;
   proposalCount: number;
   enactedCount: number;
@@ -83,12 +104,23 @@ interface ProposerData {
   }[];
 }
 
+/** AI-scored quality results keyed by "txHash-proposalIndex" */
+export type AIQualityMap = Map<string, ProposalQualityResult>;
+/** AI-scored budget quality results keyed by "txHash-proposalIndex" */
+export type BudgetQualityMap = Map<string, number>;
+
 function computeTrackRecord(data: ProposerData): number {
   if (data.proposalCount === 0) return 0;
 
   // Exclude InfoActions from approval rate (non-binding)
   const actionable = data.proposals.filter((p) => p.proposalType !== 'InfoAction');
-  if (actionable.length === 0) return 50; // InfoAction-only proposer gets neutral
+
+  // Anti-gaming: InfoAction-only proposers get capped track record
+  if (actionable.length === 0 && data.proposals.length > 0) {
+    return Math.min(50, INFOACTION_ONLY_TRACK_RECORD_CAP);
+  }
+
+  if (actionable.length === 0) return 50;
 
   // Sub-signal 1: Approval rate (60%)
   const enacted = actionable.filter((p) => p.enacted).length;
@@ -106,14 +138,30 @@ function computeTrackRecord(data: ProposerData): number {
   // 1 proposal = 20, 3 = 50, 5 = 70, 10+ = 100
   const volumeScore = Math.min(100, 20 + (data.proposalCount - 1) * 13);
 
-  return approvalRate * 0.6 + deliveryScore * 0.25 + volumeScore * 0.15;
+  let raw = approvalRate * 0.6 + deliveryScore * 0.25 + volumeScore * 0.15;
+
+  // Anti-gaming: Cap track record if ALL proposals are InfoActions
+  // (prevents gaming approval rate via non-binding, always-pass proposals)
+  if (actionable.length === 0 && data.proposals.length > 0) {
+    raw = Math.min(raw, INFOACTION_ONLY_TRACK_RECORD_CAP);
+  }
+
+  return raw;
 }
 
-function computeProposalQuality(data: ProposerData): number {
+/**
+ * Compute Proposal Quality pillar.
+ *
+ * When AI quality scores are available:
+ *   AI quality (60%) + specification completeness (20%) + community engagement (20%)
+ *
+ * Fallback (AI unavailable):
+ *   specification completeness (50%) + community engagement (50%)
+ */
+function computeProposalQuality(data: ProposerData, aiQuality: AIQualityMap): number {
   if (data.proposals.length === 0) return 0;
 
-  // Sub-signal 1: Specification completeness (50%)
-  // Does the proposal have: title (assumed yes), abstract, body, author metadata?
+  // Sub-signal: Specification completeness
   let completenessTotal = 0;
   for (const p of data.proposals) {
     let score = 30; // base: has title + author (they're in the system)
@@ -123,8 +171,7 @@ function computeProposalQuality(data: ProposerData): number {
   }
   const completeness = completenessTotal / data.proposals.length;
 
-  // Sub-signal 2: Community engagement (50%)
-  // Did their proposals generate votes and discussion?
+  // Sub-signal: Community engagement
   let engagementTotal = 0;
   for (const p of data.proposals) {
     // Vote count scoring: 0 votes = 0, 10 = 40, 30 = 70, 50+ = 100
@@ -133,20 +180,48 @@ function computeProposalQuality(data: ProposerData): number {
   }
   const engagement = engagementTotal / data.proposals.length;
 
+  // Sub-signal: AI quality (average across proposals with AI scores)
+  let aiScoreTotal = 0;
+  let aiScoreCount = 0;
+  for (const p of data.proposals) {
+    const key = `${p.txHash}-${p.proposalIndex}`;
+    const aiResult = aiQuality.get(key);
+    if (aiResult) {
+      aiScoreTotal += aiResult.score;
+      aiScoreCount++;
+    }
+  }
+
+  // If we have AI scores for at least one proposal, use AI-weighted formula
+  if (aiScoreCount > 0) {
+    const avgAiScore = aiScoreTotal / aiScoreCount;
+    return avgAiScore * 0.6 + completeness * 0.2 + engagement * 0.2;
+  }
+
+  // Fallback: original weights when AI is unavailable
   return completeness * 0.5 + engagement * 0.5;
 }
 
-function computeFiscalResponsibility(data: ProposerData): number {
+/**
+ * Compute Fiscal Responsibility pillar.
+ *
+ * For treasury proposers with AI budget quality scores:
+ *   enacted rate (50%) + delivery (30%) + budget quality (20%)
+ *
+ * Fallback (no AI or non-treasury):
+ *   enacted rate (60%) + delivery (40%)
+ */
+function computeFiscalResponsibility(data: ProposerData, budgetQuality: BudgetQualityMap): number {
   const treasuryProposals = data.proposals.filter((p) => p.proposalType === 'TreasuryWithdrawals');
 
   // Non-treasury proposers get neutral score
   if (treasuryProposals.length === 0) return 50;
 
-  // Sub-signal 1: Enacted rate for treasury asks (60%)
+  // Sub-signal 1: Enacted rate for treasury asks
   const enacted = treasuryProposals.filter((p) => p.enacted).length;
   const enactedRate = (enacted / treasuryProposals.length) * 100;
 
-  // Sub-signal 2: Delivery on funded proposals (40%)
+  // Sub-signal 2: Delivery on funded proposals
   const funded = treasuryProposals.filter((p) => p.enacted);
   const withDelivery = funded.filter((p) => p.deliveryScore !== null);
   let deliveryScore = 50; // neutral when no delivery data
@@ -155,13 +230,28 @@ function computeFiscalResponsibility(data: ProposerData): number {
       withDelivery.reduce((s, p) => s + (p.deliveryScore ?? 0), 0) / withDelivery.length;
   }
 
+  // Sub-signal 3: AI budget quality (average across treasury proposals with scores)
+  let budgetTotal = 0;
+  let budgetCount = 0;
+  for (const p of treasuryProposals) {
+    const key = `${p.txHash}-${p.proposalIndex}`;
+    const bq = budgetQuality.get(key);
+    if (bq !== undefined) {
+      budgetTotal += bq;
+      budgetCount++;
+    }
+  }
+
+  if (budgetCount > 0) {
+    const avgBudgetQuality = budgetTotal / budgetCount;
+    return enactedRate * 0.5 + deliveryScore * 0.3 + avgBudgetQuality * 0.2;
+  }
+
+  // Fallback: original weights when AI budget scoring is unavailable
   return enactedRate * 0.6 + deliveryScore * 0.4;
 }
 
 function computeGovernanceCitizenship(data: ProposerData): number {
-  // This pillar is the hardest to measure with current data.
-  // For Phase A, we use proxy signals:
-
   // Sub-signal 1: Proposal type diversity (40%)
   // Proposers who engage across multiple governance areas show broader citizenship
   const types = new Set(data.proposals.map((p) => p.proposalType));
@@ -179,7 +269,35 @@ function computeGovernanceCitizenship(data: ProposerData): number {
   );
   const sustainedScore = Math.min(100, uniqueEpochs.size * 25); // 1 epoch=25, 2=50, 4+=100
 
+  // TODO: Community Responsiveness Signal — when on-chain proposals can be linked to
+  // draft_reviews (workspace reviews), add a responsiveness sub-signal here:
+  // Did the proposer iterate on their proposal after receiving community review feedback?
+  // Currently draft_reviews links to proposal_drafts, not on-chain proposals.
+
   return diversityScore * 0.4 + bodyRate * 0.3 + sustainedScore * 0.3;
+}
+
+// ---------------------------------------------------------------------------
+// Anti-gaming
+// ---------------------------------------------------------------------------
+
+/**
+ * Detect serial low-effort proposal pattern.
+ * If a proposer has 3+ proposals with AI quality score < 30, they're flagged.
+ */
+function hasLowEffortPattern(
+  proposals: ProposerData['proposals'],
+  aiQuality: AIQualityMap,
+): boolean {
+  let lowEffortCount = 0;
+  for (const p of proposals) {
+    const key = `${p.txHash}-${p.proposalIndex}`;
+    const aiResult = aiQuality.get(key);
+    if (aiResult && aiResult.score < LOW_EFFORT_AI_THRESHOLD) {
+      lowEffortCount++;
+    }
+  }
+  return lowEffortCount >= LOW_EFFORT_MIN_PROPOSALS;
 }
 
 // ---------------------------------------------------------------------------
@@ -217,8 +335,14 @@ function getTier(score: number, proposalCount: number): string {
 /**
  * Compute scores for all proposers and update the database.
  * Called by the Inngest sync pipeline.
+ *
+ * @param aiQualityScores - Pre-computed AI quality scores keyed by "txHash-proposalIndex"
+ * @param budgetQualityScores - Pre-computed AI budget quality scores keyed by "txHash-proposalIndex"
  */
-export async function scoreAllProposers(): Promise<{ scored: number }> {
+export async function scoreAllProposers(
+  aiQualityScores: AIQualityMap = new Map(),
+  budgetQualityScores: BudgetQualityMap = new Map(),
+): Promise<{ scored: number }> {
   const supabase = getSupabaseAdmin();
 
   // 1. Fetch all proposers with their proposal links
@@ -304,11 +428,19 @@ export async function scoreAllProposers(): Promise<{ scored: number }> {
       }),
     };
 
-    // 6. Compute pillars
+    // 6. Compute pillars (with AI data where available)
     const rawTrackRecord = computeTrackRecord(proposerData);
-    const rawQuality = computeProposalQuality(proposerData);
-    const rawFiscal = computeFiscalResponsibility(proposerData);
-    const rawCitizenship = computeGovernanceCitizenship(proposerData);
+    const rawQuality = computeProposalQuality(proposerData, aiQualityScores);
+    const rawFiscal = computeFiscalResponsibility(proposerData, budgetQualityScores);
+    let rawCitizenship = computeGovernanceCitizenship(proposerData);
+
+    // 6a. Anti-gaming: low-effort pattern reduces citizenship score
+    if (hasLowEffortPattern(proposerData.proposals, aiQualityScores)) {
+      rawCitizenship *= LOW_EFFORT_CITIZENSHIP_MULTIPLIER;
+      logger.debug('[ProposerScore] Low-effort pattern detected', {
+        proposerId: proposer.id,
+      });
+    }
 
     // 7. Calibrate
     const calTrackRecord = calibrate(rawTrackRecord, PROPOSER_CALIBRATION.trackRecord);
