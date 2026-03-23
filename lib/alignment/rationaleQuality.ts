@@ -189,6 +189,7 @@ async function scoreRationaleEnsemble(input: RationaleInput): Promise<EnsembleRe
   // Run both models in parallel
   const [primaryRaw, secondaryRaw] = await Promise.all([
     generateJSON<PrimaryAIResponse>(buildPrimaryPrompt(input), {
+      model: 'FAST',
       system: PRIMARY_SYSTEM,
       maxTokens: 256,
       temperature: 0.2,
