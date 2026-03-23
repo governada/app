@@ -53,6 +53,7 @@ import { generateUserEmbedding } from '@/inngest/functions/generate-user-embeddi
 import { computeAiQuality } from '@/inngest/functions/compute-ai-quality';
 import { detectGamingSignals } from '@/inngest/functions/detect-gaming-signals';
 import { extractMatchingTopics } from '@/inngest/functions/extract-matching-topics';
+import { scoreProposers } from '@/inngest/functions/score-proposers';
 export const { GET, POST, PUT } = serve({
   client: inngest,
   functions: [
@@ -107,5 +108,6 @@ export const { GET, POST, PUT } = serve({
     computeAiQuality,
     detectGamingSignals,
     extractMatchingTopics,
+    scoreProposers,
   ],
 });
