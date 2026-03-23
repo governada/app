@@ -43,6 +43,7 @@ import { YourRepresentativeCard } from '@/components/governada/proposals/YourRep
 import { CitizenProposalSummary } from '@/components/governada/proposals/CitizenProposalSummary';
 import { ProposalVerdictStrip } from '@/components/governada/proposals/ProposalVerdictStrip';
 import { MobileStickyAction } from '@/components/governada/proposals/MobileStickyAction';
+import { ProposerTrackRecord } from '@/components/governada/proposals/ProposerTrackRecord';
 import { generateEditorialHeadline } from '@/lib/editorialHeadline';
 import { getVerdict } from '@/components/governada/proposals/proposal-theme';
 // Legacy layout uses ProposalHeroV2 (see else branch below)
@@ -363,6 +364,9 @@ export default async function ProposalDetailPage({ params }: PageProps) {
         currentYesPct={voteProjection?.currentYesPct ?? null}
       />
 
+      {/* Proposer track record — contextual trust signal */}
+      <ProposerTrackRecord txHash={txHash} proposalIndex={proposalIndex} />
+
       {/* Citizen context — accessible explanation for non-experts */}
       <CitizenProposalSummary
         title={title}
@@ -520,6 +524,8 @@ export default async function ProposalDetailPage({ params }: PageProps) {
 
       {/* Your Representative — shows citizen's DRep and their vote */}
       <YourRepresentativeCard txHash={txHash} proposalIndex={proposalIndex} />
+      {/* Proposer track record — contextual trust signal */}
+      <ProposerTrackRecord txHash={txHash} proposalIndex={proposalIndex} />
       {/* Citizen-friendly expanded summary — richer context for non-experts */}
       <CitizenProposalSummary
         title={title}

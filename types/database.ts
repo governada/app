@@ -4629,6 +4629,32 @@ export type Database = {
           },
         ];
       };
+      proposal_proposers: {
+        Row: {
+          proposal_index: number;
+          proposal_tx_hash: string;
+          proposer_id: string;
+        };
+        Insert: {
+          proposal_index: number;
+          proposal_tx_hash: string;
+          proposer_id: string;
+        };
+        Update: {
+          proposal_index?: number;
+          proposal_tx_hash?: string;
+          proposer_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'proposal_proposers_proposer_id_fkey';
+            columns: ['proposer_id'];
+            isOneToOne: false;
+            referencedRelation: 'proposers';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       proposal_revision_notifications: {
         Row: {
           created_at: string;
@@ -5075,6 +5101,89 @@ export type Database = {
           tx_hash?: string;
           updated_at?: string | null;
           withdrawal_amount?: number | null;
+        };
+        Relationships: [];
+      };
+      proposer_aliases: {
+        Row: {
+          alias_key: string;
+          alias_name: string;
+          id: number;
+          proposer_id: string;
+        };
+        Insert: {
+          alias_key?: string;
+          alias_name: string;
+          id?: never;
+          proposer_id: string;
+        };
+        Update: {
+          alias_key?: string;
+          alias_name?: string;
+          id?: never;
+          proposer_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'proposer_aliases_proposer_id_fkey';
+            columns: ['proposer_id'];
+            isOneToOne: false;
+            referencedRelation: 'proposers';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      proposers: {
+        Row: {
+          composite_score: number | null;
+          confidence: number;
+          display_name: string;
+          dropped_count: number;
+          enacted_count: number;
+          first_proposal_epoch: number | null;
+          fiscal_responsibility_score: number | null;
+          governance_citizenship_score: number | null;
+          id: string;
+          proposal_count: number;
+          proposal_quality_score: number | null;
+          tier: string;
+          track_record_score: number | null;
+          type: string;
+          updated_at: string;
+        };
+        Insert: {
+          composite_score?: number | null;
+          confidence?: number;
+          display_name: string;
+          dropped_count?: number;
+          enacted_count?: number;
+          first_proposal_epoch?: number | null;
+          fiscal_responsibility_score?: number | null;
+          governance_citizenship_score?: number | null;
+          id: string;
+          proposal_count?: number;
+          proposal_quality_score?: number | null;
+          tier?: string;
+          track_record_score?: number | null;
+          type?: string;
+          updated_at?: string;
+        };
+        Update: {
+          composite_score?: number | null;
+          confidence?: number;
+          display_name?: string;
+          dropped_count?: number;
+          enacted_count?: number;
+          first_proposal_epoch?: number | null;
+          fiscal_responsibility_score?: number | null;
+          governance_citizenship_score?: number | null;
+          id?: string;
+          proposal_count?: number;
+          proposal_quality_score?: number | null;
+          tier?: string;
+          track_record_score?: number | null;
+          type?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };
