@@ -229,8 +229,17 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
 
 /** POST /api/workspace/drafts — create a new draft */
 export const POST = withRouteHandler(
-  async (request: NextRequest) => {
+  async (request: NextRequest, ctx) => {
     const body = CreateDraftSchema.parse(await request.json());
+
+    // Verify the submitted stakeAddress matches the session wallet
+    if (body.stakeAddress !== ctx.wallet) {
+      return NextResponse.json(
+        { error: 'Stake address does not match authenticated session' },
+        { status: 403 },
+      );
+    }
+
     const admin = getSupabaseAdmin();
 
     // Sandbox support: scope writes to preview cohort if sandbox header present
@@ -335,7 +344,7 @@ export const POST = withRouteHandler(
 
     return NextResponse.json({ draft: mapDraftRow(draft) }, { status: 201 });
   },
-  { auth: 'none', rateLimit: { max: 20, window: 60 } },
+  { auth: 'required', rateLimit: { max: 20, window: 60 } },
 );
 
 // ---------------------------------------------------------------------------

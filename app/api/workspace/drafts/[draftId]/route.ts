@@ -79,7 +79,7 @@ export const GET = withRouteHandler(
 
 /** PATCH /api/workspace/drafts/[draftId] — update draft fields (auto-save) */
 export const PATCH = withRouteHandler(
-  async (request: NextRequest) => {
+  async (request: NextRequest, ctx) => {
     const segments = request.nextUrl.pathname.split('/');
     const draftId = segments[segments.length - 1];
     if (!draftId) {
@@ -89,6 +89,49 @@ export const PATCH = withRouteHandler(
     const body = UpdateDraftSchema.parse(await request.json());
 
     const admin = getSupabaseAdmin();
+
+    // Verify ownership or team membership before allowing update
+    const { data: draft, error: fetchError } = await admin
+      .from('proposal_drafts')
+      .select('owner_stake_address')
+      .eq('id', draftId)
+      .single();
+
+    if (fetchError || !draft) {
+      return NextResponse.json({ error: 'Draft not found' }, { status: 404 });
+    }
+
+    const wallet = ctx.wallet!;
+    let canEdit = draft.owner_stake_address === wallet;
+
+    if (!canEdit) {
+      // Check team membership with edit-capable roles
+      const { data: teamRow } = await admin
+        .from('proposal_teams')
+        .select('id')
+        .eq('draft_id', draftId)
+        .maybeSingle();
+
+      if (teamRow) {
+        const { data: memberRow } = await admin
+          .from('proposal_team_members')
+          .select('role')
+          .eq('team_id', teamRow.id)
+          .eq('stake_address', wallet)
+          .maybeSingle();
+
+        if (memberRow && ['lead', 'author', 'editor'].includes(memberRow.role)) {
+          canEdit = true;
+        }
+      }
+    }
+
+    if (!canEdit) {
+      return NextResponse.json(
+        { error: 'Only the owner or team editors can update this draft' },
+        { status: 403 },
+      );
+    }
 
     // Build update fields (only include provided fields)
     const updateFields: Record<string, unknown> = {
@@ -115,26 +158,22 @@ export const PATCH = withRouteHandler(
 
     return NextResponse.json({ draft: mapDraftRow(data) });
   },
-  { auth: 'none', rateLimit: { max: 60, window: 60 } },
+  { auth: 'required', rateLimit: { max: 60, window: 60 } },
 );
 
-/** DELETE /api/workspace/drafts/[draftId]?stakeAddress=... — permanently delete a draft */
+/** DELETE /api/workspace/drafts/[draftId] — permanently delete a draft */
 export const DELETE = withRouteHandler(
-  async (request: NextRequest) => {
+  async (request: NextRequest, ctx) => {
     const segments = request.nextUrl.pathname.split('/');
     const draftId = segments[segments.length - 1];
     if (!draftId) {
       return NextResponse.json({ error: 'Missing draftId' }, { status: 400 });
     }
 
-    const stakeAddress = request.nextUrl.searchParams.get('stakeAddress');
-    if (!stakeAddress) {
-      return NextResponse.json({ error: 'Missing stakeAddress' }, { status: 400 });
-    }
-
+    const wallet = ctx.wallet!;
     const admin = getSupabaseAdmin();
 
-    // Fetch draft and verify ownership
+    // Fetch draft and verify ownership via session (not query param)
     const { data: draft, error: fetchError } = await admin
       .from('proposal_drafts')
       .select('*')
@@ -145,7 +184,7 @@ export const DELETE = withRouteHandler(
       return NextResponse.json({ error: 'Draft not found' }, { status: 404 });
     }
 
-    if (draft.owner_stake_address !== stakeAddress) {
+    if (draft.owner_stake_address !== wallet) {
       return NextResponse.json({ error: 'Only the owner can delete a draft' }, { status: 403 });
     }
 
@@ -220,12 +259,12 @@ export const DELETE = withRouteHandler(
         draft_id: draftId,
         proposal_type: draft.proposal_type,
       },
-      stakeAddress,
+      wallet,
     );
 
     return NextResponse.json({ success: true });
   },
-  { auth: 'none', rateLimit: { max: 10, window: 60 } },
+  { auth: 'required', rateLimit: { max: 10, window: 60 } },
 );
 
 // ---------------------------------------------------------------------------
