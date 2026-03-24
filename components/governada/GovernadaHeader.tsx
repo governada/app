@@ -44,6 +44,7 @@ import { SUPPORTED_LOCALES, LOCALE_NAMES, type SupportedLocale } from '@/lib/i18
 import { useWallet } from '@/utils/wallet-context';
 import { useSegment, type UserSegment } from '@/components/providers/SegmentProvider';
 import { TIER_SCORE_COLOR, type TierKey } from '@/components/governada/cards/tierStyles';
+import { GovernanceRings } from '@/components/ui/GovernanceRings';
 import { useUnreadNotifications } from '@/hooks/useUnreadNotifications';
 import {
   useNotifications,
@@ -658,6 +659,15 @@ export function GovernadaHeader({ compassToggle, compassOpen }: GovernadaHeaderP
                     if (sandboxCohortId) return <FlaskConical className="h-3.5 w-3.5" />;
                     if (hasOverride || hasDimensionOverrides)
                       return <Eye className="h-3.5 w-3.5" />;
+                    if (segment === 'citizen') {
+                      return (
+                        <GovernanceRings
+                          data={{ participation: 20, deliberation: 0, impact: 0 }}
+                          size="inline"
+                          animate={false}
+                        />
+                      );
+                    }
                     const SegmentIcon = SEGMENT_ICONS[segment];
                     return <SegmentIcon className="h-3.5 w-3.5" />;
                   })()}

@@ -15,6 +15,8 @@ interface GovernanceRingsProps {
   data: GovernanceRingsData;
   size?: 'hero' | 'card' | 'badge' | 'inline';
   animate?: boolean;
+  /** Entrance animation: 'bloom' scales rings from 0→1 with spring easing; 'none' renders instantly */
+  entrance?: 'bloom' | 'none';
   className?: string;
   showLabels?: boolean;
 }
@@ -150,6 +152,7 @@ export function GovernanceRings({
   data,
   size = 'hero',
   animate = true,
+  entrance = 'none',
   className = '',
   showLabels = false,
 }: GovernanceRingsProps) {
@@ -162,27 +165,33 @@ export function GovernanceRings({
   const middleRadius = outerRadius - strokeWidth - gap;
   const innerRadius = middleRadius - strokeWidth - gap;
 
+  // Bloom entrance: scale from 0 → 1 with spring easing
+  const isBloom = entrance === 'bloom';
+  const prefersReducedMotion =
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const shouldBloom = isBloom && !prefersReducedMotion;
+
   const rings = [
     {
       key: 'participation',
       value: data.participation,
       radius: outerRadius,
       color: RING_COLORS.participation,
-      delay: 0,
+      delay: isBloom ? 200 : 0,
     },
     {
       key: 'deliberation',
       value: data.deliberation,
       radius: middleRadius,
       color: RING_COLORS.deliberation,
-      delay: 100,
+      delay: isBloom ? 350 : 100,
     },
     {
       key: 'impact',
       value: data.impact,
       radius: innerRadius,
       color: RING_COLORS.impact,
-      delay: 200,
+      delay: isBloom ? 500 : 200,
     },
   ] as const;
 
@@ -196,6 +205,14 @@ export function GovernanceRings({
         viewBox={`0 0 ${diameter} ${diameter}`}
         aria-label={`Governance rings: Participation ${data.participation}%, Deliberation ${data.deliberation}%, Impact ${data.impact}%`}
         role="img"
+        style={
+          shouldBloom
+            ? {
+                animation: 'rings-bloom 800ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+                transform: 'scale(0)',
+              }
+            : undefined
+        }
       >
         {rings.map((ring) => (
           <Ring
@@ -206,7 +223,7 @@ export function GovernanceRings({
             strokeWidth={strokeWidth}
             value={ring.value}
             color={ring.color}
-            animate={animate}
+            animate={animate || isBloom}
             delay={ring.delay}
           />
         ))}
@@ -227,3 +244,6 @@ export function GovernanceRings({
     </div>
   );
 }
+
+/** Export ring colors for use in OG images and other contexts */
+export { RING_COLORS };
