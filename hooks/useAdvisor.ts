@@ -27,6 +27,12 @@ export interface AdvisorMessage {
 export interface UseAdvisorOptions {
   /** Page-specific context to include */
   pageContext?: string;
+  /** Visitor onboarding mode */
+  visitorMode?: 'onboarding' | 'exploring' | 'returning' | 'authenticated';
+  /** Match quiz state */
+  matchState?: 'idle' | 'matching' | 'matched' | 'delegated';
+  /** Wallet detection and connection state */
+  walletState?: 'none_detected' | 'detected' | 'connected' | 'has_ada' | 'no_ada';
 }
 
 export interface UseAdvisorReturn {
@@ -185,7 +191,7 @@ export function useAdvisor(options?: UseAdvisorOptions): UseAdvisorReturn {
       incrementUsage();
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [options?.pageContext],
+    [options?.pageContext, options?.visitorMode, options?.matchState, options?.walletState],
   );
 
   async function fetchStream(
@@ -209,6 +215,9 @@ export function useAdvisor(options?: UseAdvisorOptions): UseAdvisorReturn {
             daysRemaining: 0,
             activeProposalCount: 0,
             ...(options?.pageContext && { pageContext: options.pageContext }),
+            ...(options?.visitorMode && { visitorMode: options.visitorMode }),
+            ...(options?.matchState && { matchState: options.matchState }),
+            ...(options?.walletState && { walletState: options.walletState }),
           },
         }),
         signal: abortController.signal,

@@ -69,6 +69,9 @@ const SENECA_DEFAULT_GREETING =
 const SENECA_ANONYMOUS_GREETING =
   "I'm Seneca — your governance advisor. I can help you understand proposals, find representatives who share your values, and navigate the treasury. Connect your wallet to unlock the full conversation, or start with the match quiz below.";
 
+const SENECA_ONBOARDING_GREETING =
+  'Welcome to Cardano governance. Every light in that constellation is someone governing a \u20BF2B treasury. Let me help you find where you fit \u2014 it takes about 90 seconds.';
+
 // ---------------------------------------------------------------------------
 // Suggestion chips — framed as Seneca's advice
 // ---------------------------------------------------------------------------
@@ -81,13 +84,47 @@ interface Suggestion {
   action?: 'quiz' | 'wallet';
 }
 
-function getSuggestions(
-  currentPage: string | undefined,
-  progression: ReturnType<typeof getCompassProgression>,
-  tours: { id: string; label: string; startRoute: string; section?: string }[],
-  toursCompleted: string[],
-): Suggestion[] {
+interface SuggestionContext {
+  currentPage: string | undefined;
+  progression: ReturnType<typeof getCompassProgression>;
+  tours: { id: string; label: string; startRoute: string; section?: string }[];
+  toursCompleted: string[];
+  matchState?: 'idle' | 'matching' | 'matched' | 'delegated';
+  walletState?: 'none_detected' | 'detected' | 'connected' | 'has_ada' | 'no_ada';
+  isSegmentUpgrade?: boolean;
+}
+
+function getSuggestions(ctx: SuggestionContext): Suggestion[] {
+  const {
+    currentPage,
+    progression,
+    tours,
+    toursCompleted,
+    matchState,
+    walletState,
+    isSegmentUpgrade,
+  } = ctx;
   const suggestions: Suggestion[] = [];
+
+  // Segment upgrade: citizen welcome chips
+  if (isSegmentUpgrade) {
+    suggestions.push({ label: 'Explore active proposals', href: '/governance/proposals' });
+    suggestions.push({ label: "Check my DRep's activity", href: '/my-gov' });
+    return suggestions.slice(0, 3);
+  }
+
+  // Post-match segment-aware chips
+  if (matchState === 'matched') {
+    if (walletState === 'detected') {
+      suggestions.push({ label: 'Connect & Delegate', action: 'wallet' });
+    } else if (walletState === 'none_detected') {
+      suggestions.push({ label: 'Get a wallet to delegate', href: '/get-started' });
+    } else if (walletState === 'no_ada') {
+      suggestions.push({ label: 'How to get ADA', href: '/get-started' });
+    } else if (walletState === 'has_ada' || walletState === 'connected') {
+      suggestions.push({ label: 'Delegate Now', href: '/match' });
+    }
+  }
 
   // Page-specific tour
   if (currentPage) {
@@ -110,12 +147,17 @@ function getSuggestions(
     });
   }
 
-  // Wallet suggestion
-  if (progression === 'quiz_completed') {
+  // Wallet suggestion (post-quiz, no match-specific chip already added)
+  if (progression === 'quiz_completed' && matchState !== 'matched') {
     suggestions.push({
       label: 'Connect to see my full profile',
       action: 'wallet',
     });
+  }
+
+  // Post-connect suggestion
+  if (progression === 'connected' && matchState !== 'matched') {
+    suggestions.push({ label: 'Explore what your DRep has been voting on', href: '/my-gov' });
   }
 
   // Contextual suggestions based on page
@@ -185,9 +227,11 @@ export function CompassPanel({ currentPage, onStartTour, onClose }: CompassPanel
     setRemaining(getRemainingMessages());
   }, [messages.length]);
 
-  // Seneca's opening — contextual to page
+  // Seneca's opening — contextual to page and progression
   const greeting = isAnonymous
-    ? SENECA_ANONYMOUS_GREETING
+    ? progression === 'first_visit'
+      ? SENECA_ONBOARDING_GREETING
+      : SENECA_ANONYMOUS_GREETING
     : (currentPage && SENECA_GREETINGS[currentPage]) || SENECA_DEFAULT_GREETING;
 
   // Suggestions
@@ -196,7 +240,12 @@ export function CompassPanel({ currentPage, onStartTour, onClose }: CompassPanel
         { label: 'Find my governance match', href: '/match', action: 'quiz' as const },
         { label: 'What is governance?', href: '/governance/health' },
       ]
-    : getSuggestions(currentPage, progression, tours, state.toursCompleted);
+    : getSuggestions({
+        currentPage,
+        progression,
+        tours,
+        toursCompleted: state.toursCompleted,
+      });
 
   // Progress
   const progressPercent = explorationProgress.percent;

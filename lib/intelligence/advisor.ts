@@ -135,6 +135,14 @@ export interface AdvisorContext {
   personalContext?: string;
   /** Recent governance data summaries for grounding */
   governanceSnapshot?: string;
+  /** Visitor onboarding mode */
+  visitorMode?: 'onboarding' | 'exploring' | 'returning' | 'authenticated';
+  /** Current page the user is viewing */
+  pageContext?: string;
+  /** Match quiz state */
+  matchState?: 'idle' | 'matching' | 'matched' | 'delegated';
+  /** Wallet detection and connection state */
+  walletState?: 'none_detected' | 'detected' | 'connected' | 'has_ada' | 'no_ada';
 }
 
 export function buildAdvisorSystemPrompt(ctx: AdvisorContext): string {
@@ -168,6 +176,66 @@ export function buildAdvisorSystemPrompt(ctx: AdvisorContext): string {
     '- Do not produce generic blockchain explanations — users are governance participants',
     '- Do not recommend specific votes — present analysis, let users decide',
   ];
+
+  // Page context awareness
+  if (ctx.pageContext) {
+    lines.push(
+      '',
+      `## Current Page Context`,
+      `The user is currently viewing the "${ctx.pageContext}" section of Governada.`,
+    );
+  }
+
+  // Onboarding mode: adjust tone, explain without jargon, celebrate actions
+  if (ctx.visitorMode === 'onboarding') {
+    lines.push(
+      '',
+      '## Onboarding Mode — Active',
+      'This is a first-time visitor. Adjust your behavior:',
+      '- Explain governance concepts simply, without jargon',
+      '- Celebrate their first actions (completing the quiz, connecting a wallet)',
+      '- Surface ONE clear next action — never a menu of options',
+      '- Keep responses short and encouraging (under 150 words)',
+      '- Reference what they can see on screen when relevant',
+    );
+
+    // Segment-specific guidance based on match + wallet state
+    if (ctx.matchState === 'matched' && ctx.walletState) {
+      lines.push('', '## Post-Match Guidance');
+      switch (ctx.walletState) {
+        case 'detected':
+          lines.push(
+            'The user has a wallet extension installed but not yet connected.',
+            'Suggest connecting their detected wallet to delegate to their match. Emphasize it takes one click.',
+          );
+          break;
+        case 'none_detected':
+          lines.push(
+            'No wallet extension was detected.',
+            'Explain what a Cardano wallet is in one sentence. Recommend ONE wallet for their device (Eternl for desktop, Vespr for mobile).',
+            'Reassure them their matches are saved and they can come back to delegate later.',
+          );
+          break;
+        case 'connected':
+          lines.push(
+            'Wallet is connected. Guide them to delegate to their top match — it is one click away.',
+          );
+          break;
+        case 'no_ada':
+          lines.push(
+            'Wallet is connected but has no ADA.',
+            'Explain how to acquire ADA simply. Emphasize that ADA stays in their wallet during delegation — they are not giving it away.',
+          );
+          break;
+        case 'has_ada':
+          lines.push(
+            'Wallet is connected and has ADA. They are ready to delegate.',
+            'Guide them to delegate to their top match now. Emphasize it is a single action and their ADA remains in their wallet.',
+          );
+          break;
+      }
+    }
+  }
 
   if (ctx.personalContext) {
     lines.push('', "## User's Governance Profile", ctx.personalContext);
@@ -214,11 +282,16 @@ export async function streamAdvisorResponse(
     content: m.content,
   }));
 
+  // Adjust temperature and max tokens for onboarding mode
+  const isOnboarding = context.visitorMode === 'onboarding';
+  const temperature = isOnboarding ? 0.4 : 0.3;
+  const maxTokens = isOnboarding ? 512 : 1024;
+
   try {
     const stream = await createAnthropicStream('', {
       model: 'FAST',
-      maxTokens: 1024,
-      temperature: 0.3,
+      maxTokens,
+      temperature,
       system: systemPrompt,
       messages: anthropicMessages,
     });
