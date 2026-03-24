@@ -15,6 +15,7 @@
 import { createClient } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
 import { cached } from '@/lib/redis';
+import { getCurrentEpoch } from '@/lib/constants';
 import {
   getTreasuryBalance,
   getNclUtilization,
@@ -233,11 +234,7 @@ async function synthesizeProposalContext(
 
   // Expiration
   if (proposal.expiration_epoch) {
-    const SHELLEY_GENESIS = 1596491091;
-    const EPOCH_LEN = 432000;
-    const SHELLEY_BASE = 209;
-    const currentEpoch =
-      Math.floor((Date.now() / 1000 - SHELLEY_GENESIS) / EPOCH_LEN) + SHELLEY_BASE;
+    const currentEpoch = getCurrentEpoch();
     const epochsRemaining = proposal.expiration_epoch - currentEpoch;
     if (epochsRemaining <= 2 && epochsRemaining > 0) {
       highlights.push({
@@ -599,10 +596,7 @@ async function synthesizeProposalsListContext(
   const treasury = treasuryProposals.data ?? [];
 
   // Current epoch estimate
-  const SHELLEY_GENESIS = 1596491091;
-  const EPOCH_LEN = 432000;
-  const SHELLEY_BASE = 209;
-  const currentEpoch = Math.floor((Date.now() / 1000 - SHELLEY_GENESIS) / EPOCH_LEN) + SHELLEY_BASE;
+  const currentEpoch = getCurrentEpoch();
 
   // Active proposal count
   highlights.push({

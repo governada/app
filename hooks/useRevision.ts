@@ -10,41 +10,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ChangeJustification, RevisionState } from '@/lib/workspace/revision/types';
 import type { DraftVersion } from '@/lib/workspace/types';
-
-// ---------------------------------------------------------------------------
-// Fetch helpers (same pattern as hooks/useDrafts.ts)
-// ---------------------------------------------------------------------------
-
-async function fetchJson<T>(url: string): Promise<T> {
-  const headers: Record<string, string> = {};
-  try {
-    const { getStoredSession } = await import('@/lib/supabaseAuth');
-    const token = getStoredSession();
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-  } catch {
-    // No session available
-  }
-  const res = await fetch(url, { headers });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  return res.json();
-}
-
-async function postJson<T>(url: string, body: unknown): Promise<T> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  try {
-    const { getStoredSession } = await import('@/lib/supabaseAuth');
-    const token = getStoredSession();
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-  } catch {
-    // No session available
-  }
-  const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(`${res.status} ${res.statusText}: ${text}`);
-  }
-  return res.json();
-}
+import { fetchJson, postJson } from '@/lib/api/client';
 
 // ---------------------------------------------------------------------------
 // Queries

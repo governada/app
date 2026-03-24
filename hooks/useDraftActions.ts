@@ -3,61 +3,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toastSuccess, toastError } from '@/lib/workspace/toast';
 import type { ProposalDraft } from '@/lib/workspace/types';
-
-// ---------------------------------------------------------------------------
-// Fetch helpers (match useDrafts.ts pattern)
-// ---------------------------------------------------------------------------
-
-async function patchJsonWithAuth<T>(url: string, body: unknown): Promise<T> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  try {
-    const { getStoredSession } = await import('@/lib/supabaseAuth');
-    const token = getStoredSession();
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-  } catch {
-    // No session available
-  }
-  const res = await fetch(url, { method: 'PATCH', headers, body: JSON.stringify(body) });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(`${res.status} ${res.statusText}: ${text}`);
-  }
-  return res.json();
-}
-
-async function postJsonWithAuth<T>(url: string, body: unknown): Promise<T> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  try {
-    const { getStoredSession } = await import('@/lib/supabaseAuth');
-    const token = getStoredSession();
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-  } catch {
-    // No session available
-  }
-  const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(`${res.status} ${res.statusText}: ${text}`);
-  }
-  return res.json();
-}
-
-async function deleteJsonWithAuth<T>(url: string): Promise<T> {
-  const headers: Record<string, string> = {};
-  try {
-    const { getStoredSession } = await import('@/lib/supabaseAuth');
-    const token = getStoredSession();
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-  } catch {
-    // No session available
-  }
-  const res = await fetch(url, { method: 'DELETE', headers });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(`${res.status} ${res.statusText}: ${text}`);
-  }
-  return res.json();
-}
+import { postJson, patchJson, deleteJson } from '@/lib/api/client';
 
 async function fetchBlobWithAuth(url: string): Promise<Blob> {
   const headers: Record<string, string> = {};
@@ -91,7 +37,7 @@ export function useArchiveDraft(stakeAddress: string | null) {
     { snapshots: [readonly unknown[], unknown][] }
   >({
     mutationFn: ({ draftId }) =>
-      patchJsonWithAuth(`/api/workspace/drafts/${encodeURIComponent(draftId)}/stage`, {
+      patchJson(`/api/workspace/drafts/${encodeURIComponent(draftId)}/stage`, {
         targetStatus: 'archived',
       }),
 
@@ -140,7 +86,7 @@ export function useUnarchiveDraft(stakeAddress: string | null) {
     { snapshots: [readonly unknown[], unknown][] }
   >({
     mutationFn: ({ draftId }) =>
-      patchJsonWithAuth(`/api/workspace/drafts/${encodeURIComponent(draftId)}/stage`, {
+      patchJson(`/api/workspace/drafts/${encodeURIComponent(draftId)}/stage`, {
         targetStatus: 'draft',
       }),
 
@@ -189,7 +135,7 @@ export function useDuplicateDraft(stakeAddress: string | null) {
 
   return useMutation<{ draft: ProposalDraft }, Error, { draftId: string; titlePrefix?: string }>({
     mutationFn: ({ draftId, titlePrefix }) =>
-      postJsonWithAuth(`/api/workspace/drafts/${encodeURIComponent(draftId)}/duplicate`, {
+      postJson(`/api/workspace/drafts/${encodeURIComponent(draftId)}/duplicate`, {
         stakeAddress,
         ...(titlePrefix && { titlePrefix }),
       }),
@@ -222,7 +168,7 @@ export function useDeleteDraft(stakeAddress: string | null) {
     { snapshots: [readonly unknown[], unknown][] }
   >({
     mutationFn: ({ draftId }) =>
-      deleteJsonWithAuth(
+      deleteJson(
         `/api/workspace/drafts/${encodeURIComponent(draftId)}?stakeAddress=${encodeURIComponent(stakeAddress ?? '')}`,
       ),
 
@@ -306,7 +252,7 @@ export function useTransferDraft(stakeAddress: string | null) {
     { draftId: string; newOwnerStakeAddress: string }
   >({
     mutationFn: ({ draftId, newOwnerStakeAddress }) =>
-      patchJsonWithAuth(`/api/workspace/drafts/${encodeURIComponent(draftId)}/transfer`, {
+      patchJson(`/api/workspace/drafts/${encodeURIComponent(draftId)}/transfer`, {
         currentOwnerStakeAddress: stakeAddress,
         newOwnerStakeAddress,
       }),

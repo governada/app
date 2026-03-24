@@ -38,7 +38,6 @@ export function applyPreferenceBoost(
 
   let boost = 0;
 
-  // Apply boosts based on selected preferences
   if (prefs.includes('treasury-conservative')) {
     if (drep.rationaleRate > 50) boost += 4;
   }
@@ -66,9 +65,7 @@ export function applyPreferenceBoost(
     if (drep.rationaleRate > 60) boost += 5;
   }
 
-  // Cap boost at 15 points
   boost = Math.min(boost, 15);
 
-  // Return boosted score, capped at 100
   return Math.min(100, drep.drepScore + boost);
 }

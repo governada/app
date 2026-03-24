@@ -12,6 +12,7 @@
 import { createClient } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
 import { cached } from '@/lib/redis';
+import { getCurrentEpoch } from '@/lib/constants';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -121,10 +122,7 @@ async function computePriorityUncached(
   }
 
   // Step 3: Score each proposal
-  const SHELLEY_GENESIS = 1596491091;
-  const EPOCH_LEN = 432000;
-  const SHELLEY_BASE = 209;
-  const currentEpoch = Math.floor((Date.now() / 1000 - SHELLEY_GENESIS) / EPOCH_LEN) + SHELLEY_BASE;
+  const currentEpoch = getCurrentEpoch();
 
   const scored: PriorityProposal[] = proposals.map((p) => {
     const key = `${p.tx_hash}-${p.proposal_index}`;

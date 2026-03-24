@@ -13,6 +13,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase';
 import { captureServerEvent } from '@/lib/posthog-server';
 import { withRouteHandler } from '@/lib/api/withRouteHandler';
+import { getCurrentEpoch } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 15;
@@ -73,11 +74,7 @@ export const GET = withRouteHandler(async (request) => {
     return NextResponse.json({ alerts: 0, reason: 'No open proposals' });
   }
 
-  const SHELLEY_START = 1591566291;
-  const EPOCH_LENGTH = 432000;
-  const SHELLEY_EPOCH = 208;
-  const currentEpoch =
-    Math.floor((Date.now() / 1000 - SHELLEY_START) / EPOCH_LENGTH) + SHELLEY_EPOCH;
+  const currentEpoch = getCurrentEpoch();
 
   const CRITICAL_TYPES = new Set([
     'HardForkInitiation',

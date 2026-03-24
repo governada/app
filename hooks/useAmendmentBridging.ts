@@ -2,27 +2,7 @@
 
 import { useMutation } from '@tanstack/react-query';
 import type { AmendmentBridgeOutput } from '@/lib/constitution/types';
-
-// ---------------------------------------------------------------------------
-// Fetch helpers (same pattern as hooks/useDrafts.ts)
-// ---------------------------------------------------------------------------
-
-async function postJson<T>(url: string, body: unknown): Promise<T> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  try {
-    const { getStoredSession } = await import('@/lib/supabaseAuth');
-    const token = getStoredSession();
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-  } catch {
-    // No session available
-  }
-  const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(`${res.status} ${res.statusText}: ${text}`);
-  }
-  return res.json();
-}
+import { postJson } from '@/lib/api/client';
 
 // ---------------------------------------------------------------------------
 // Mutation (on-demand, not auto-fetch)

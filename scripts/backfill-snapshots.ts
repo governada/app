@@ -29,6 +29,7 @@ import {
   fetchTreasuryHistory,
 } from '../utils/koios';
 import { blockTimeToEpoch } from '../lib/koios';
+import { getCurrentEpoch } from '../lib/constants';
 
 const CONWAY_GENESIS_EPOCH = 509;
 const BATCH_SIZE = 100;
@@ -45,12 +46,8 @@ function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-async function getCurrentEpoch(): Promise<number> {
-  return blockTimeToEpoch(Math.floor(Date.now() / 1000));
-}
-
 async function getEpochRange(from?: number, to?: number): Promise<{ from: number; to: number }> {
-  const current = await getCurrentEpoch();
+  const current = getCurrentEpoch();
   return {
     from: Math.max(CONWAY_GENESIS_EPOCH, from ?? CONWAY_GENESIS_EPOCH),
     to: to ?? current,

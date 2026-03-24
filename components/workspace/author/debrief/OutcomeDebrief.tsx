@@ -25,6 +25,7 @@ import { useDraftReviews } from '@/hooks/useDraftReviews';
 import { useDuplicateDraft } from '@/hooks/useDraftActions';
 import { useSegment } from '@/components/providers/SegmentProvider';
 import type { ProposalDraft } from '@/lib/workspace/types';
+import { fetchJson } from '@/lib/api/client';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -60,20 +61,6 @@ type TerminalStatus = 'ratified' | 'expired' | 'dropped' | 'active';
 // ---------------------------------------------------------------------------
 // Data fetching
 // ---------------------------------------------------------------------------
-
-async function fetchJson<T>(url: string): Promise<T> {
-  const headers: Record<string, string> = {};
-  try {
-    const { getStoredSession } = await import('@/lib/supabaseAuth');
-    const token = getStoredSession();
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-  } catch {
-    // No session available
-  }
-  const res = await fetch(url, { headers });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  return res.json();
-}
 
 function useOnChainProposal(txHash: string | null) {
   return useQuery<{ proposal: OnChainProposal | null }>({

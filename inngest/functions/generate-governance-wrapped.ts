@@ -1,5 +1,6 @@
 import { inngest } from '@/lib/inngest';
 import { getSupabaseAdmin } from '@/lib/supabase';
+import { getCurrentEpoch } from '@/lib/constants';
 
 export const generateGovernanceWrapped = inngest.createFunction(
   {
@@ -11,11 +12,7 @@ export const generateGovernanceWrapped = inngest.createFunction(
   async ({ step, logger }) => {
     const supabase = getSupabaseAdmin();
 
-    const EPOCH_START_UNIX = 1596491091;
-    const EPOCH_LENGTH = 432000;
-    const currentEpoch = Math.floor(
-      (Math.floor(Date.now() / 1000) - EPOCH_START_UNIX) / EPOCH_LENGTH,
-    );
+    const currentEpoch = getCurrentEpoch();
     const periodId = `epoch_${currentEpoch}`;
 
     const flagCheck = await step.run('check-flag', async () => {

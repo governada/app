@@ -12,6 +12,7 @@
  * depth-gated and rendered below the Decision Engine / Discovery Mode.
  */
 
+import { cache } from 'react';
 import { notFound } from 'next/navigation';
 
 import nextDynamic from 'next/dynamic';
@@ -127,6 +128,8 @@ import { DRepProfileClient } from '@/components/governada/profiles/DRepProfileCl
 import { ActivityHeatmap } from '@/components/ActivityHeatmap';
 import { getDRepTreasuryTrackRecord } from '@/lib/treasury';
 
+const getCachedDRep = cache((id: string) => getDRepById(id));
+
 interface DRepDetailPageProps {
   params: Promise<{ drepId: string }>;
   searchParams: Promise<{ match?: string }>;
@@ -135,7 +138,7 @@ interface DRepDetailPageProps {
 export async function generateMetadata({ params }: DRepDetailPageProps): Promise<Metadata> {
   const { drepId } = await params;
   const decodedId = decodeURIComponent(drepId);
-  const drep = await getDRepById(decodedId);
+  const drep = await getCachedDRep(decodedId);
 
   if (!drep) {
     return {
@@ -185,7 +188,7 @@ async function getDRepData(drepId: string) {
     }
 
     const [cachedDRep, votes] = await Promise.all([
-      getDRepById(decodedId),
+      getCachedDRep(decodedId),
       getVotesByDRepId(decodedId),
     ]);
 

@@ -2,20 +2,11 @@
 
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-
-// Cardano epoch constants (Shelley era)
-const SHELLEY_GENESIS = 1596491091;
-const EPOCH_LENGTH = 432000; // 5 days in seconds
-const SHELLEY_BASE_EPOCH = 209;
-
-function computeCurrentEpoch() {
-  const now = Math.floor(Date.now() / 1000);
-  return Math.floor((now - SHELLEY_GENESIS) / EPOCH_LENGTH) + SHELLEY_BASE_EPOCH;
-}
+import { getCurrentEpoch, epochToTimestamp } from '@/lib/constants';
 
 function computeEpochDay() {
   const now = Math.floor(Date.now() / 1000);
-  const epochStart = SHELLEY_GENESIS + (computeCurrentEpoch() - SHELLEY_BASE_EPOCH) * EPOCH_LENGTH;
+  const epochStart = epochToTimestamp(getCurrentEpoch());
   const secondsIntoEpoch = now - epochStart;
   return Math.floor(secondsIntoEpoch / 86400) + 1; // 1-indexed
 }
@@ -34,7 +25,7 @@ export interface EpochContext {
  * Proposal count fetched from existing proposals endpoint.
  */
 export function useEpochContext(): EpochContext {
-  const epoch = useMemo(() => computeCurrentEpoch(), []);
+  const epoch = useMemo(() => getCurrentEpoch(), []);
   const day = useMemo(() => computeEpochDay(), []);
 
   // Fetch just proposal count — reuses the same queryKey as useProposals

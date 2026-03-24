@@ -3,6 +3,7 @@ import { withApiHandler } from '@/lib/api/handler';
 import { apiSuccess, apiError } from '@/lib/api/response';
 import { getDRepById } from '@/lib/data';
 import { getDRepPrimaryName } from '@/utils/display';
+import { getCurrentEpoch } from '@/lib/constants';
 import type { ApiContext } from '@/lib/api/handler';
 
 function getTierColor(score: number): string {
@@ -15,14 +16,6 @@ function getTierLabel(score: number): string {
   if (score >= 80) return 'Strong';
   if (score >= 60) return 'Good';
   return 'Low';
-}
-
-const SHELLEY_GENESIS = 1596491091;
-const EPOCH_LEN = 432000;
-const SHELLEY_BASE = 209;
-
-function getCurrentEpoch(): number {
-  return Math.floor((Date.now() / 1000 - SHELLEY_GENESIS) / EPOCH_LEN) + SHELLEY_BASE;
 }
 
 function renderBadgeSvg(name: string, score: number, theme: 'dark' | 'light'): string {

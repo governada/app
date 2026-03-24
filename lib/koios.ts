@@ -117,13 +117,11 @@ export function calculateDRepScore(
 /** Batch size for Koios API (drep_info/drep_metadata limit) */
 const BATCH_SIZE = 50;
 
-/**
- * Cardano epoch constants for deriving epoch from block_time
- * Shelley genesis timestamp and epoch length (5 days in seconds)
- */
-const SHELLEY_GENESIS_TIMESTAMP = 1596491091;
-const EPOCH_LENGTH_SECONDS = 432000;
-const SHELLEY_BASE_EPOCH = 209;
+import {
+  SHELLEY_GENESIS_TIMESTAMP,
+  EPOCH_LENGTH_SECONDS,
+  SHELLEY_BASE_EPOCH,
+} from '@/lib/constants';
 
 /**
  * Derive Cardano epoch number from Unix timestamp (block_time)

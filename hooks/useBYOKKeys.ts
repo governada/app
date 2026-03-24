@@ -13,10 +13,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getStoredSession } from '@/lib/supabaseAuth';
 import type { BYOKKeyInfo } from '@/lib/workspace/types';
 
-// ---------------------------------------------------------------------------
-// Fetch helper
-// ---------------------------------------------------------------------------
-
 async function fetchWithAuth<T>(url: string, init?: RequestInit): Promise<T> {
   const token = getStoredSession();
   const headers: Record<string, string> = {
@@ -33,15 +29,7 @@ async function fetchWithAuth<T>(url: string, init?: RequestInit): Promise<T> {
   return res.json();
 }
 
-// ---------------------------------------------------------------------------
-// Query key
-// ---------------------------------------------------------------------------
-
 const BYOK_KEYS_QUERY = ['byok-keys'] as const;
-
-// ---------------------------------------------------------------------------
-// Hooks
-// ---------------------------------------------------------------------------
 
 /** Fetch the user's stored BYOK API keys (masked). */
 export function useBYOKKeys() {

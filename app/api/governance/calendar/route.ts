@@ -3,21 +3,14 @@ import { withRouteHandler } from '@/lib/api/withRouteHandler';
 import { createClient } from '@/lib/supabase';
 import { blockTimeToEpoch } from '@/lib/koios';
 import { captureServerEvent } from '@/lib/posthog-server';
+import { epochToTimestamp, EPOCH_LENGTH_SECONDS } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
-
-const SHELLEY_GENESIS_TIMESTAMP = 1596491091;
-const EPOCH_LENGTH_SECONDS = 432000;
-const SHELLEY_BASE_EPOCH = 209;
-
-function epochStartTime(epoch: number): number {
-  return SHELLEY_GENESIS_TIMESTAMP + (epoch - SHELLEY_BASE_EPOCH) * EPOCH_LENGTH_SECONDS;
-}
 
 export const GET = withRouteHandler(async () => {
   const now = Math.floor(Date.now() / 1000);
   const currentEpoch = blockTimeToEpoch(now);
-  const epochEnd = epochStartTime(currentEpoch + 1);
+  const epochEnd = epochToTimestamp(currentEpoch + 1);
   const secondsRemaining = Math.max(0, epochEnd - now);
   const epochProgress = Math.round(
     ((EPOCH_LENGTH_SECONDS - secondsRemaining) / EPOCH_LENGTH_SECONDS) * 100,

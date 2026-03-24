@@ -3,6 +3,7 @@
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Clock, CheckCircle2, XCircle, AlertTriangle, Hourglass } from 'lucide-react';
+import { epochToTimestamp } from '@/lib/constants';
 
 /**
  * Convert a Cardano epoch number to an approximate date.
@@ -10,11 +11,7 @@ import { Clock, CheckCircle2, XCircle, AlertTriangle, Hourglass } from 'lucide-r
  * Each epoch = 5 days (432000 seconds).
  */
 function epochToDate(epoch: number): Date {
-  const SHELLEY_GENESIS_TIMESTAMP = 1596491091;
-  const EPOCH_LENGTH_SECONDS = 432000;
-  const SHELLEY_BASE_EPOCH = 209;
-  const timestamp = SHELLEY_GENESIS_TIMESTAMP + (epoch - SHELLEY_BASE_EPOCH) * EPOCH_LENGTH_SECONDS;
-  return new Date(timestamp * 1000);
+  return new Date(epochToTimestamp(epoch) * 1000);
 }
 
 function formatEpochLabel(epoch: number): string {
