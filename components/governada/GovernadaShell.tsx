@@ -136,6 +136,22 @@ function SentryContextSync() {
   return null;
 }
 
+/** Derive a page context key from the pathname for Seneca's contextual awareness. */
+function derivePageContext(pathname: string): string | undefined {
+  if (pathname === '/') return 'governance';
+  if (pathname.startsWith('/governance/proposals') || pathname.startsWith('/proposal/'))
+    return 'proposals';
+  if (pathname.startsWith('/governance/representatives') || pathname.startsWith('/drep/'))
+    return 'dreps';
+  if (pathname.startsWith('/governance/treasury')) return 'treasury';
+  if (pathname.startsWith('/governance/spos') || pathname.startsWith('/spo/')) return 'spos';
+  if (pathname.startsWith('/match')) return 'match';
+  if (pathname.startsWith('/my-gov') || pathname.startsWith('/you')) return 'you';
+  if (pathname.startsWith('/governance/health')) return 'governance';
+  if (pathname.startsWith('/get-started')) return 'help';
+  return undefined;
+}
+
 /**
  * Governada layout shell — sidebar on desktop, bottom bar on mobile.
  * Sidebar is persona-adaptive via the nav config.
@@ -171,7 +187,7 @@ export function GovernadaShell({ children }: { children: React.ReactNode }) {
           <PreviewBanner />
           {/* Discovery context wraps everything so header Compass icon can open the panel */}
           <SpotlightProvider>
-            <DiscoveryHub>
+            <DiscoveryHub currentPage={derivePageContext(pathname)}>
               {!isStudioMode && (
                 <GovernadaHeader
                   compassToggle={

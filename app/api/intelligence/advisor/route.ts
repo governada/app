@@ -38,6 +38,10 @@ const AdvisorRequestSchema = z.object({
     daysRemaining: z.number(),
     activeProposalCount: z.number(),
     segment: z.string(),
+    visitorMode: z.enum(['onboarding', 'exploring', 'returning', 'authenticated']).optional(),
+    pageContext: z.string().optional(),
+    matchState: z.enum(['idle', 'matching', 'matched', 'delegated']).optional(),
+    walletState: z.enum(['none_detected', 'detected', 'connected', 'has_ada', 'no_ada']).optional(),
   }),
 });
 
@@ -173,6 +177,10 @@ export async function POST(request: NextRequest): Promise<Response> {
       segment: parsed.context.segment,
       personalContext,
       governanceSnapshot,
+      visitorMode: parsed.context.visitorMode,
+      pageContext: parsed.context.pageContext,
+      matchState: parsed.context.matchState,
+      walletState: parsed.context.walletState,
     };
 
     // --- Stream response ---
