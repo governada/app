@@ -10,11 +10,17 @@ import { getSupabaseAdmin } from '@/lib/supabase';
 import { type NotificationPayload } from '@/lib/channelRenderers';
 import { withRouteHandler } from '@/lib/api/withRouteHandler';
 import { PushSendSchema } from '@/lib/api/schemas/user';
+import { isAdminWallet } from '@/lib/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
 export const POST = withRouteHandler(
-  async (request: NextRequest) => {
+  async (request: NextRequest, ctx) => {
+    // Admin-only: push broadcasts can spam all subscribed users
+    if (!ctx.wallet || !isAdminWallet(ctx.wallet)) {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    }
+
     const body = PushSendSchema.parse(await request.json());
     const { type } = body;
 
@@ -95,5 +101,5 @@ export const POST = withRouteHandler(
       total: targetIds.length,
     });
   },
-  { auth: 'none', rateLimit: { max: 10, window: 60 } },
+  { auth: 'required', rateLimit: { max: 10, window: 60 } },
 );
