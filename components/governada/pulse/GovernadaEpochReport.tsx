@@ -6,20 +6,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorCard } from '@/components/ui/ErrorCard';
 import { cn } from '@/lib/utils';
 import { useGovernancePulse } from '@/hooks/queries';
-
-const SHELLEY_START_UNIX = 1596059091;
-const SHELLEY_EPOCH = 208;
-const EPOCH_SECONDS = 432000;
+import { epochToTimestamp, EPOCH_LENGTH_SECONDS } from '@/lib/constants';
 
 function epochProgress(epoch: number): {
   pct: number;
   hoursRemaining: number;
   daysRemaining: number;
 } {
-  const epochStart = SHELLEY_START_UNIX + (epoch - SHELLEY_EPOCH) * EPOCH_SECONDS;
-  const epochEnd = epochStart + EPOCH_SECONDS;
+  const epochStart = epochToTimestamp(epoch);
+  const epochEnd = epochStart + EPOCH_LENGTH_SECONDS;
   const now = Math.floor(Date.now() / 1000);
-  const pct = Math.min(100, Math.max(0, ((now - epochStart) / EPOCH_SECONDS) * 100));
+  const pct = Math.min(100, Math.max(0, ((now - epochStart) / EPOCH_LENGTH_SECONDS) * 100));
   const secondsRemaining = Math.max(0, epochEnd - now);
   return {
     pct: Math.round(pct * 10) / 10,

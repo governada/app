@@ -14,6 +14,12 @@ import {
 import { cn } from '@/lib/utils';
 import { useSegment } from '@/components/providers/SegmentProvider';
 import { useGovernanceHolder, useSPOSummary } from '@/hooks/queries';
+import {
+  SHELLEY_GENESIS_TIMESTAMP,
+  EPOCH_LENGTH_SECONDS,
+  SHELLEY_BASE_EPOCH,
+  epochToTimestamp,
+} from '@/lib/constants';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -21,11 +27,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 /** Convert epoch number to a human-readable date range */
 function epochDateRange(epoch: number): string {
-  const SHELLEY_GENESIS = 1596491091;
-  const EPOCH_LEN = 432000;
-  const BASE_EPOCH = 209;
-  const startUnix = SHELLEY_GENESIS + (epoch - BASE_EPOCH) * EPOCH_LEN;
-  const end = new Date((startUnix + EPOCH_LEN) * 1000);
+  const startUnix = epochToTimestamp(epoch);
+  const end = new Date((startUnix + EPOCH_LENGTH_SECONDS) * 1000);
   const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   return fmt(end);
 }
@@ -125,11 +128,9 @@ export function DelegationHealthSummary() {
   const { icon: StatusIcon, iconColor, badgeCls } = statusColors[status];
 
   // Epoch countdown (uses mountTime captured in state to satisfy purity rules)
-  const SHELLEY_GENESIS = 1596491091;
-  const EPOCH_LEN = 432000;
-  const BASE_EPOCH = 209;
-  const currentEpoch = BASE_EPOCH + Math.floor((mountTime - SHELLEY_GENESIS) / EPOCH_LEN);
-  const nextEpochStart = SHELLEY_GENESIS + (currentEpoch + 1 - BASE_EPOCH) * EPOCH_LEN;
+  const currentEpoch =
+    SHELLEY_BASE_EPOCH + Math.floor((mountTime - SHELLEY_GENESIS_TIMESTAMP) / EPOCH_LENGTH_SECONDS);
+  const nextEpochStart = epochToTimestamp(currentEpoch + 1);
   const daysUntilNext = Math.max(0, Math.ceil((nextEpochStart - mountTime) / 86400));
 
   // Auto-abstain and no-confidence special states

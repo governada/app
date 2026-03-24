@@ -58,6 +58,7 @@ import { useSegment } from '@/components/providers/SegmentProvider';
 import { generateTreasuryNarrative } from '@/lib/treasury';
 import type { NclUtilization } from '@/lib/treasury';
 import { useQuery } from '@tanstack/react-query';
+import { fetchJson } from '@/lib/api/client';
 
 interface TreasuryCurrentData {
   balance: number;
@@ -70,12 +71,6 @@ interface TreasuryCurrentData {
   healthComponents: Record<string, number> | null;
   pendingCount: number;
   pendingTotalAda?: number;
-}
-
-async function fetchJson<T>(url: string): Promise<T> {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  return res.json();
 }
 
 /**

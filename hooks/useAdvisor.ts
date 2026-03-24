@@ -139,7 +139,6 @@ export function useAdvisor(options?: UseAdvisorOptions): UseAdvisorReturn {
 
   const abortRef = useRef<AbortController | null>(null);
 
-  // Clean up on unmount
   useEffect(() => {
     return () => {
       if (abortRef.current) {

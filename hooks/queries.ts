@@ -2,20 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import type { NclUtilization, DRepNclImpact } from '@/lib/treasury';
-
-async function fetchJson<T>(url: string): Promise<T> {
-  const headers: Record<string, string> = {};
-  try {
-    const { getStoredSession } = await import('@/lib/supabaseAuth');
-    const token = getStoredSession();
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-  } catch {
-    // No session available — proceed without auth
-  }
-  const res = await fetch(url, { headers });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  return res.json();
-}
+import { fetchJson } from '@/lib/api/client';
 
 export interface CCHealthSummaryResponse {
   status: 'healthy' | 'attention' | 'critical';
@@ -109,6 +96,7 @@ export function useGovernanceHolder(stakeAddress?: string | null) {
           : '/api/governance/holder',
       ),
     enabled: stakeAddress !== undefined,
+    staleTime: 120_000,
   });
 }
 
@@ -121,6 +109,7 @@ export function useGovernanceSummary(drepId?: string | null) {
           ? `/api/governance/summary?drepId=${encodeURIComponent(drepId)}`
           : '/api/governance/summary',
       ),
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -128,6 +117,7 @@ export function useGovernanceHealthIndex(epochs = 20) {
   return useQuery({
     queryKey: ['ghi-history', epochs],
     queryFn: () => fetchJson(`/api/governance/health-index/history?epochs=${epochs}`),
+    staleTime: 10 * 60_000,
   });
 }
 
@@ -151,6 +141,7 @@ export function useGovernanceTimeline() {
   return useQuery({
     queryKey: ['governance-timeline'],
     queryFn: () => fetchJson('/api/governance/timeline'),
+    staleTime: 10 * 60_000,
   });
 }
 
@@ -158,6 +149,7 @@ export function useGovernanceBenchmarks() {
   return useQuery({
     queryKey: ['governance-benchmarks'],
     queryFn: () => fetchJson('/api/governance/benchmarks'),
+    staleTime: 10 * 60_000,
   });
 }
 
@@ -165,6 +157,7 @@ export function useGovernanceSparklines() {
   return useQuery({
     queryKey: ['governance-sparklines'],
     queryFn: () => fetchJson('/api/governance/sparklines'),
+    staleTime: 10 * 60_000,
   });
 }
 
@@ -172,6 +165,7 @@ export function useGovernanceInsights() {
   return useQuery({
     queryKey: ['governance-insights'],
     queryFn: () => fetchJson('/api/governance/insights'),
+    staleTime: 10 * 60_000,
   });
 }
 
@@ -179,6 +173,7 @@ export function useGovernanceActivity(limit = 20) {
   return useQuery({
     queryKey: ['governance-activity', limit],
     queryFn: () => fetchJson(`/api/governance/activity?limit=${limit}`),
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -187,6 +182,7 @@ export function useGovernanceLeaderboard(tier?: string) {
     queryKey: ['governance-leaderboard', tier],
     queryFn: () =>
       fetchJson(tier ? `/api/governance/leaderboard?tier=${tier}` : '/api/governance/leaderboard'),
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -195,6 +191,7 @@ export function useDRepVotes(drepId: string | null | undefined) {
     queryKey: ['drep-votes', drepId],
     queryFn: () => fetchJson(`/api/drep/${drepId}/votes`),
     enabled: !!drepId,
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -203,6 +200,7 @@ export function useDRepRationales(drepId: string | null | undefined) {
     queryKey: ['drep-rationales', drepId],
     queryFn: () => fetchJson(`/api/drep/${drepId}/rationales`),
     enabled: !!drepId,
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -211,6 +209,7 @@ export function useDRepTrajectory(drepId: string | null | undefined) {
     queryKey: ['drep-trajectory', drepId],
     queryFn: () => fetchJson(`/api/drep/${drepId}/trajectory`),
     enabled: !!drepId,
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -218,6 +217,7 @@ export function useDReps(limit?: number) {
   return useQuery({
     queryKey: ['dreps', limit],
     queryFn: () => fetchJson(limit ? `/api/dreps?limit=${limit}` : '/api/dreps'),
+    staleTime: 10 * 60_000,
   });
 }
 
@@ -225,6 +225,7 @@ export function useProposals(limit?: number) {
   return useQuery({
     queryKey: ['proposals', limit],
     queryFn: () => fetchJson(limit ? `/api/proposals?limit=${limit}` : '/api/proposals'),
+    staleTime: 10 * 60_000,
   });
 }
 
@@ -234,6 +235,7 @@ export function useSimilarProposals(txHash: string, index: number) {
     queryFn: () =>
       fetchJson(`/api/proposals/similar?tx=${encodeURIComponent(txHash)}&index=${index}`),
     enabled: !!txHash,
+    staleTime: 10 * 60_000,
   });
 }
 
@@ -245,6 +247,7 @@ export function useProposalPower(txHash: string, index: number, type?: string) {
         `/api/proposals/power?txHash=${encodeURIComponent(txHash)}&index=${index}${type ? `&type=${type}` : ''}`,
       ),
     enabled: !!txHash,
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -252,6 +255,7 @@ export function useTreasuryCurrent() {
   return useQuery({
     queryKey: ['treasury-current'],
     queryFn: () => fetchJson('/api/treasury/current'),
+    staleTime: 10 * 60_000,
   });
 }
 
@@ -264,6 +268,7 @@ export function useTreasuryAccountability(txHash?: string, index?: number) {
           ? `/api/treasury/accountability?txHash=${encodeURIComponent(txHash)}&index=${index}`
           : '/api/treasury/accountability',
       ),
+    staleTime: 10 * 60_000,
   });
 }
 
@@ -271,6 +276,7 @@ export function useTreasuryPending() {
   return useQuery({
     queryKey: ['treasury-pending'],
     queryFn: () => fetchJson('/api/treasury/pending'),
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -278,6 +284,7 @@ export function useTreasuryHistory(epochs = 30) {
   return useQuery({
     queryKey: ['treasury-history', epochs],
     queryFn: () => fetchJson(`/api/treasury/history?epochs=${epochs}`),
+    staleTime: 10 * 60_000,
   });
 }
 
@@ -285,6 +292,7 @@ export function useTreasurySimulate(burnAdjust: number) {
   return useQuery({
     queryKey: ['treasury-simulate', burnAdjust],
     queryFn: () => fetchJson(`/api/treasury/simulate?burnAdjust=${burnAdjust}`),
+    staleTime: 10 * 60_000,
   });
 }
 
@@ -294,6 +302,7 @@ export function useTreasurySimilar(txHash: string, index: number) {
     queryFn: () =>
       fetchJson(`/api/treasury/similar?txHash=${encodeURIComponent(txHash)}&index=${index}`),
     enabled: !!txHash,
+    staleTime: 10 * 60_000,
   });
 }
 
@@ -322,6 +331,7 @@ export function useDashboardUrgent(drepId: string | null | undefined) {
     queryKey: ['dashboard-urgent', drepId],
     queryFn: () => fetchJson(`/api/dashboard/urgent?drepId=${encodeURIComponent(drepId!)}`),
     enabled: !!drepId,
+    staleTime: 120_000,
   });
 }
 
@@ -330,6 +340,7 @@ export function useDashboardRepresentation(drepId: string | null | undefined) {
     queryKey: ['dashboard-representation', drepId],
     queryFn: () => fetchJson(`/api/dashboard/representation?drepId=${encodeURIComponent(drepId!)}`),
     enabled: !!drepId,
+    staleTime: 120_000,
   });
 }
 
@@ -338,6 +349,7 @@ export function useDashboardScoreChange(drepId: string | null | undefined) {
     queryKey: ['dashboard-score-change', drepId],
     queryFn: () => fetchJson(`/api/dashboard/score-change?drepId=${encodeURIComponent(drepId!)}`),
     enabled: !!drepId,
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -347,6 +359,7 @@ export function useDashboardDelegatorTrends(drepId: string | null | undefined) {
     queryFn: () =>
       fetchJson(`/api/dashboard/delegator-trends?drepId=${encodeURIComponent(drepId!)}`),
     enabled: !!drepId,
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -354,6 +367,7 @@ export function useGovernanceDecentralization() {
   return useQuery({
     queryKey: ['governance-decentralization'],
     queryFn: () => fetchJson('/api/governance/decentralization'),
+    staleTime: 10 * 60_000,
   });
 }
 
@@ -361,6 +375,7 @@ export function useGovernancePulse() {
   return useQuery({
     queryKey: ['governance-pulse'],
     queryFn: () => fetchJson('/api/governance/pulse'),
+    staleTime: 10 * 60_000,
   });
 }
 
@@ -368,6 +383,7 @@ export function useGovernanceInterBody() {
   return useQuery({
     queryKey: ['governance-inter-body'],
     queryFn: () => fetchJson('/api/governance/inter-body'),
+    staleTime: 10 * 60_000,
   });
 }
 
@@ -375,6 +391,7 @@ export function useGovernanceConstellation() {
   return useQuery({
     queryKey: ['governance-constellation'],
     queryFn: () => fetchJson('/api/governance/constellation'),
+    staleTime: 10 * 60_000,
   });
 }
 
@@ -382,6 +399,7 @@ export function useGovernanceProposalTrends() {
   return useQuery({
     queryKey: ['governance-proposal-trends'],
     queryFn: () => fetchJson('/api/governance/proposal-trends'),
+    staleTime: 10 * 60_000,
   });
 }
 
@@ -389,6 +407,7 @@ export function useGovernanceCohorts() {
   return useQuery({
     queryKey: ['governance-cohorts'],
     queryFn: () => fetchJson('/api/governance/cohorts'),
+    staleTime: 10 * 60_000,
   });
 }
 
@@ -398,6 +417,7 @@ export function useGovernanceFootprint(stakeAddress: string | null | undefined) 
     queryFn: () =>
       fetchJson(`/api/governance/footprint?stakeAddress=${encodeURIComponent(stakeAddress!)}`),
     enabled: !!stakeAddress,
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -405,6 +425,7 @@ export function useGovernanceForYou() {
   return useQuery({
     queryKey: ['governance-for-you'],
     queryFn: () => fetchJson('/api/governance/for-you'),
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -452,6 +473,7 @@ export function useSpoVotes(txHash: string, index: number) {
     queryFn: () =>
       fetchJson(`/api/governance/spo-votes?txHash=${encodeURIComponent(txHash)}&index=${index}`),
     enabled: !!txHash,
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -461,6 +483,7 @@ export function useCcVotes(txHash: string, index: number) {
     queryFn: () =>
       fetchJson(`/api/governance/cc-votes?txHash=${encodeURIComponent(txHash)}&index=${index}`),
     enabled: !!txHash,
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -469,6 +492,7 @@ export function usePollResults(params?: string) {
     queryKey: ['poll-results', params],
     queryFn: () => fetchJson(`/api/polls/results${params ? `?${params}` : ''}`),
     enabled: params !== undefined,
+    staleTime: 120_000,
   });
 }
 
@@ -476,6 +500,7 @@ export function useUser() {
   return useQuery({
     queryKey: ['user'],
     queryFn: () => fetchJson('/api/user'),
+    staleTime: 120_000,
   });
 }
 
@@ -505,6 +530,7 @@ export function useProfileViews(drepId: string | null | undefined) {
     queryKey: ['profile-views', drepId],
     queryFn: () => fetchJson(`/api/views?drepId=${encodeURIComponent(drepId!)}`),
     enabled: !!drepId,
+    staleTime: 120_000,
   });
 }
 
@@ -513,6 +539,7 @@ export function useScoreHistory(drepId: string | null | undefined) {
     queryKey: ['score-history', drepId],
     queryFn: () => fetchJson(`/api/score-history?drepId=${encodeURIComponent(drepId!)}`),
     enabled: !!drepId,
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -521,6 +548,7 @@ export function useSocialProof(drepId: string | null | undefined) {
     queryKey: ['social-proof', drepId],
     queryFn: () => fetchJson(`/api/social-proof?drepId=${encodeURIComponent(drepId!)}`),
     enabled: !!drepId,
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -528,6 +556,7 @@ export function useGovernanceEpochRecap() {
   return useQuery({
     queryKey: ['governance-epoch-recap'],
     queryFn: () => fetchJson('/api/governance/epoch-recap'),
+    staleTime: 10 * 60_000,
   });
 }
 
@@ -544,6 +573,7 @@ export function useGovernanceDrepFeed() {
   return useQuery({
     queryKey: ['governance-drep-feed'],
     queryFn: () => fetchJson('/api/governance/drep-feed'),
+    staleTime: 10 * 60_000,
   });
 }
 
@@ -551,6 +581,7 @@ export function useGovernanceQuickMatchPool() {
   return useQuery({
     queryKey: ['governance-quick-match-pool'],
     queryFn: () => fetchJson('/api/governance/quick-match-pool'),
+    staleTime: 10 * 60_000,
   });
 }
 
@@ -559,6 +590,7 @@ export function useOnboarding(wallet: string | null | undefined) {
     queryKey: ['onboarding', wallet],
     queryFn: () => fetchJson(`/api/dashboard/onboarding?wallet=${encodeURIComponent(wallet!)}`),
     enabled: !!wallet,
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -566,6 +598,7 @@ export function useFeatureFlags() {
   return useQuery({
     queryKey: ['feature-flags'],
     queryFn: () => fetchJson('/api/admin/feature-flags'),
+    staleTime: 5 * 60_000,
   });
 }
 
@@ -611,6 +644,7 @@ export function useGovernanceCalendar() {
   return useQuery({
     queryKey: ['governance-calendar'],
     queryFn: () => fetchJson('/api/governance/calendar'),
+    staleTime: 10 * 60_000,
   });
 }
 
@@ -657,6 +691,7 @@ export function useSPOUrgent(poolId: string | null | undefined) {
     queryKey: ['spo-urgent', poolId],
     queryFn: () => fetchJson(`/api/dashboard/spo-urgent?poolId=${encodeURIComponent(poolId!)}`),
     enabled: !!poolId,
+    staleTime: 120_000,
   });
 }
 
@@ -813,18 +848,6 @@ export function useWorkspaceCockpit(drepId: string | null | undefined) {
   });
 }
 
-// ── Authed fetch helper ─────────────────────────────────────────────────────
-
-async function fetchAuthed<T>(url: string): Promise<T> {
-  const { getStoredSession } = await import('@/lib/supabaseAuth');
-  const token = getStoredSession();
-  const headers: HeadersInit = {};
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, { headers });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  return res.json();
-}
-
 // ── Citizen Impact Score ─────────────────────────────────────────────────────
 
 export interface ImpactScoreResponse {
@@ -839,7 +862,7 @@ export interface ImpactScoreResponse {
 export function useCitizenImpactScore(enabled: boolean) {
   return useQuery<ImpactScoreResponse>({
     queryKey: ['citizen-impact-score'],
-    queryFn: () => fetchAuthed<ImpactScoreResponse>('/api/you/impact-score'),
+    queryFn: () => fetchJson<ImpactScoreResponse>('/api/you/impact-score'),
     enabled,
     staleTime: 5 * 60_000,
   });

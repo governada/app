@@ -2,21 +2,12 @@
 
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getStoredSession } from '@/lib/supabaseAuth';
 import type { CredibilityResult, CredibilityTier } from '@/lib/citizenCredibility';
 import { useSegment } from '@/components/providers/SegmentProvider';
+import { fetchJson } from '@/lib/api/client';
 
 const STALE_30S = 30_000;
 const STALE_60S = 60_000;
-
-async function fetchJsonWithAuth<T>(url: string): Promise<T> {
-  const headers: HeadersInit = {};
-  const token = getStoredSession();
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(url, { headers });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  return res.json();
-}
 
 // -- Sentiment --
 
@@ -37,7 +28,7 @@ export function useSentimentResults(txHash: string, proposalIndex: number, drepI
 
   return useQuery<SentimentResults>({
     queryKey: ['citizen-sentiment', txHash, proposalIndex, drepId ?? null],
-    queryFn: () => fetchJsonWithAuth(`/api/engagement/sentiment/results?${params}`),
+    queryFn: () => fetchJson(`/api/engagement/sentiment/results?${params}`),
     staleTime: STALE_30S,
   });
 }
@@ -54,7 +45,7 @@ export function useConcernFlags(txHash: string, proposalIndex: number) {
   return useQuery<ConcernFlagResults>({
     queryKey: ['concern-flags', txHash, proposalIndex],
     queryFn: () =>
-      fetchJsonWithAuth(
+      fetchJson(
         `/api/engagement/concerns/results?proposalTxHash=${txHash}&proposalIndex=${proposalIndex}`,
       ),
     staleTime: STALE_30S,
@@ -74,7 +65,7 @@ export function useImpactTags(txHash: string, proposalIndex: number) {
   return useQuery<ImpactTagResults>({
     queryKey: ['impact-tags', txHash, proposalIndex],
     queryFn: () =>
-      fetchJsonWithAuth(
+      fetchJson(
         `/api/engagement/impact/results?proposalTxHash=${txHash}&proposalIndex=${proposalIndex}`,
       ),
     staleTime: STALE_30S,
@@ -93,7 +84,7 @@ export function usePriorityRankings(epoch?: number) {
   const params = epoch ? `?epoch=${epoch}` : '';
   return useQuery<PriorityRankings>({
     queryKey: ['priority-rankings', epoch ?? 'current'],
-    queryFn: () => fetchJsonWithAuth(`/api/engagement/priorities/results${params}`),
+    queryFn: () => fetchJson(`/api/engagement/priorities/results${params}`),
     staleTime: STALE_60S,
   });
 }
@@ -107,7 +98,7 @@ export function useUserPrioritySignal(epoch?: number) {
   const params = epoch ? `?epoch=${epoch}` : '';
   return useQuery<UserPrioritySignal | null>({
     queryKey: ['user-priority-signal', epoch ?? 'current'],
-    queryFn: () => fetchJsonWithAuth(`/api/engagement/priorities/user${params}`),
+    queryFn: () => fetchJson(`/api/engagement/priorities/user${params}`),
     staleTime: STALE_60S,
   });
 }
@@ -136,7 +127,7 @@ export interface AssemblyWithUserVote extends Assembly {
 export function useActiveAssembly() {
   return useQuery<AssemblyWithUserVote | null>({
     queryKey: ['active-assembly'],
-    queryFn: () => fetchJsonWithAuth('/api/engagement/assembly/active'),
+    queryFn: () => fetchJson('/api/engagement/assembly/active'),
     staleTime: STALE_60S,
   });
 }
@@ -144,7 +135,7 @@ export function useActiveAssembly() {
 export function useAssemblyHistory() {
   return useQuery<Assembly[]>({
     queryKey: ['assembly-history'],
-    queryFn: () => fetchJsonWithAuth('/api/engagement/assembly/history'),
+    queryFn: () => fetchJson('/api/engagement/assembly/history'),
     staleTime: STALE_60S,
   });
 }
@@ -183,7 +174,7 @@ export function useCitizenVoice(wallet?: string | null) {
   const params = wallet ? `?wallet=${encodeURIComponent(wallet)}` : '';
   return useQuery<CitizenVoiceData>({
     queryKey: ['citizen-voice', wallet ?? null],
-    queryFn: () => fetchJsonWithAuth(`/api/engagement/citizen-voice${params}`),
+    queryFn: () => fetchJson(`/api/engagement/citizen-voice${params}`),
     staleTime: STALE_60S,
     enabled: !!wallet,
   });
@@ -203,7 +194,7 @@ export function useEndorsements(entityType: string, entityId: string) {
   return useQuery<EndorsementResults>({
     queryKey: ['endorsements', entityType, entityId],
     queryFn: () =>
-      fetchJsonWithAuth(
+      fetchJson(
         `/api/engagement/endorsements?entityType=${encodeURIComponent(entityType)}&entityId=${encodeURIComponent(entityId)}`,
       ),
     staleTime: STALE_60S,
@@ -226,7 +217,7 @@ export function useBatchEndorsementCounts(entityType: string, entityIds: string[
   return useQuery<BatchEndorsementCounts>({
     queryKey: ['endorsement-counts', entityType, key],
     queryFn: () =>
-      fetchJsonWithAuth(
+      fetchJson(
         `/api/engagement/endorsements/batch?entityType=${encodeURIComponent(entityType)}&entityIds=${encodeURIComponent(entityIds.join(','))}`,
       ),
     staleTime: STALE_60S,
@@ -262,7 +253,7 @@ export function useCitizenCredibility() {
   const { dimensionOverrides } = useSegment();
   const query = useQuery<CredibilityWithLevel>({
     queryKey: ['citizen-credibility'],
-    queryFn: () => fetchJsonWithAuth('/api/engagement/credibility'),
+    queryFn: () => fetchJson('/api/engagement/credibility'),
     staleTime: 5 * 60 * 1000,
   });
 

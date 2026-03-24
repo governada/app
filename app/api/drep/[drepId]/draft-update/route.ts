@@ -17,18 +17,10 @@ import { captureServerEvent } from '@/lib/posthog-server';
 import { withRouteHandler } from '@/lib/api/withRouteHandler';
 import { z } from 'zod';
 import { SessionTokenSchema } from '@/lib/api/schemas/common';
+import { getCurrentEpoch } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
-
-// Epoch derivation (same constants as lib/data.ts and lib/api/response.ts)
-const SHELLEY_GENESIS = 1596491091;
-const EPOCH_LEN = 432000;
-const SHELLEY_BASE = 209;
-
-function getCurrentEpoch(): number {
-  return Math.floor((Date.now() / 1000 - SHELLEY_GENESIS) / EPOCH_LEN) + SHELLEY_BASE;
-}
 
 const DraftUpdateSchema = z.object({
   sessionToken: SessionTokenSchema,

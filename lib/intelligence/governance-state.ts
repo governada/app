@@ -8,25 +8,18 @@
 
 import { createClient } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
+import { getCurrentEpoch, epochToTimestamp, EPOCH_LENGTH_SECONDS } from '@/lib/constants';
 
 // ---------------------------------------------------------------------------
-// Epoch derivation constants (shared with lib/data.ts and lib/api/response.ts)
+// Epoch progress helper
 // ---------------------------------------------------------------------------
-
-const SHELLEY_GENESIS = 1596491091;
-const EPOCH_LEN = 432000; // 5 days in seconds
-const SHELLEY_BASE = 209;
-
-function getCurrentEpoch(): number {
-  return Math.floor((Date.now() / 1000 - SHELLEY_GENESIS) / EPOCH_LEN) + SHELLEY_BASE;
-}
 
 function getEpochProgress(): { progress: number; remainingSeconds: number; epochStart: number } {
   const now = Date.now() / 1000;
-  const epochStart = (getCurrentEpoch() - SHELLEY_BASE) * EPOCH_LEN + SHELLEY_GENESIS;
+  const epochStart = epochToTimestamp(getCurrentEpoch());
   const elapsed = now - epochStart;
-  const progress = Math.min(1, Math.max(0, elapsed / EPOCH_LEN));
-  const remainingSeconds = Math.max(0, EPOCH_LEN - elapsed);
+  const progress = Math.min(1, Math.max(0, elapsed / EPOCH_LENGTH_SECONDS));
+  const remainingSeconds = Math.max(0, EPOCH_LENGTH_SECONDS - elapsed);
   return { progress, remainingSeconds, epochStart };
 }
 

@@ -5,17 +5,9 @@
 
 import { NextResponse } from 'next/server';
 import { getApiError } from './errors';
+import { getCurrentEpoch } from '@/lib/constants';
 
 type ErrorParams = Record<string, string | number>;
-
-// Epoch derivation (same constants as lib/data.ts)
-const SHELLEY_GENESIS = 1596491091;
-const EPOCH_LEN = 432000;
-const SHELLEY_BASE = 209;
-
-function getCurrentEpoch(): number {
-  return Math.floor((Date.now() / 1000 - SHELLEY_GENESIS) / EPOCH_LEN) + SHELLEY_BASE;
-}
 
 let requestCounter = 0;
 export function generateRequestId(): string {

@@ -1,17 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { withRouteHandler, type RouteContext } from '@/lib/api/withRouteHandler';
+import { getCurrentEpoch } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
-
-// Epoch derivation (same constants as lib/api/response.ts)
-const SHELLEY_GENESIS = 1596491091;
-const EPOCH_LEN = 432000;
-const SHELLEY_BASE = 209;
-
-function getCurrentEpoch(): number {
-  return Math.floor((Date.now() / 1000 - SHELLEY_GENESIS) / EPOCH_LEN) + SHELLEY_BASE;
-}
 
 /**
  * Resolve userId to stake_address (same pattern as notifications route).

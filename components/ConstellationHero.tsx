@@ -6,6 +6,7 @@ import { ChevronDown } from 'lucide-react';
 import { useWallet } from '@/utils/wallet';
 import { useGovernanceHolder } from '@/hooks/queries';
 import { posthog } from '@/lib/posthog';
+import { SHELLEY_GENESIS_TIMESTAMP, EPOCH_LENGTH_SECONDS } from '@/lib/constants';
 import { ActivityTicker } from '@/components/ActivityTicker';
 import { PersonalizedStatsStrip } from '@/components/PersonalizedStatsStrip';
 import dynamic from 'next/dynamic';
@@ -374,12 +375,11 @@ export function ConstellationHero({
 }
 
 function getEpochCountdown(): string {
-  // Cardano epochs are 5 days. Epoch 0 started at 1596491091 (unix)
-  const epochLength = 432000; // 5 days in seconds
-  const epochStart = 1596491091;
   const now = Math.floor(Date.now() / 1000);
-  const currentEpochStart = epochStart + Math.floor((now - epochStart) / epochLength) * epochLength;
-  const nextEpochStart = currentEpochStart + epochLength;
+  const currentEpochStart =
+    SHELLEY_GENESIS_TIMESTAMP +
+    Math.floor((now - SHELLEY_GENESIS_TIMESTAMP) / EPOCH_LENGTH_SECONDS) * EPOCH_LENGTH_SECONDS;
+  const nextEpochStart = currentEpochStart + EPOCH_LENGTH_SECONDS;
   const remaining = nextEpochStart - now;
 
   const days = Math.floor(remaining / 86400);

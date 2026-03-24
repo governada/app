@@ -29,6 +29,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { epochToTimestamp, EPOCH_LENGTH_SECONDS } from '@/lib/constants';
 import { briefingContainer, briefingItem, spring } from '@/lib/animations';
 import { StaggeredList } from '@/components/ui/StaggeredList';
 import { useSegment } from '@/components/providers/SegmentProvider';
@@ -75,12 +76,9 @@ function formatAda(ada: number): string {
 
 /** Convert epoch number to a human-readable date range like "Mar 8 – 13" */
 function epochDateRange(epoch: number): string {
-  const SHELLEY_GENESIS = 1596491091;
-  const EPOCH_LEN = 432000;
-  const BASE_EPOCH = 209;
-  const startUnix = SHELLEY_GENESIS + (epoch - BASE_EPOCH) * EPOCH_LEN;
+  const startUnix = epochToTimestamp(epoch);
   const start = new Date(startUnix * 1000);
-  const end = new Date((startUnix + EPOCH_LEN) * 1000);
+  const end = new Date((startUnix + EPOCH_LENGTH_SECONDS) * 1000);
   const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   return `${fmt(start)} – ${fmt(end)}`;
 }

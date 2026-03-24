@@ -30,7 +30,6 @@ export function useFocusableList(listId: string, length: number) {
   const setActiveList = useFocusStore((s) => s.setActiveList);
   const clearActiveList = useFocusStore((s) => s.clearActiveList);
 
-  // Register this list as active on mount
   useEffect(() => {
     setActiveList(listId, length);
     return () => {
@@ -39,7 +38,6 @@ export function useFocusableList(listId: string, length: number) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listId]);
 
-  // Update length when items change
   useEffect(() => {
     if (activeListId === listId) {
       setActiveList(listId, length);

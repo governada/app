@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCCMembersTransparency, getCCTransparencyHistory } from '@/lib/data';
+import { getCCMembersFidelity, getCCFidelityHistory } from '@/lib/data';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,10 +16,10 @@ export async function GET(request: NextRequest) {
   const ccHotId = searchParams.get('ccHotId');
 
   if (ccHotId) {
-    const history = await getCCTransparencyHistory(ccHotId);
+    const history = await getCCFidelityHistory(ccHotId);
     return NextResponse.json({ history });
   }
 
-  const members = await getCCMembersTransparency();
+  const members = await getCCMembersFidelity();
   return NextResponse.json({ members });
 }

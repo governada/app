@@ -9,38 +9,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { RevisionNotification } from '@/lib/workspace/revision/types';
-
-// ---------------------------------------------------------------------------
-// Fetch helpers
-// ---------------------------------------------------------------------------
-
-async function fetchJson<T>(url: string): Promise<T> {
-  const headers: Record<string, string> = {};
-  try {
-    const { getStoredSession } = await import('@/lib/supabaseAuth');
-    const token = getStoredSession();
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-  } catch {
-    // No session available
-  }
-  const res = await fetch(url, { headers });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  return res.json();
-}
-
-async function patchJson<T>(url: string, body: unknown): Promise<T> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  try {
-    const { getStoredSession } = await import('@/lib/supabaseAuth');
-    const token = getStoredSession();
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-  } catch {
-    // No session available
-  }
-  const res = await fetch(url, { method: 'PATCH', headers, body: JSON.stringify(body) });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  return res.json();
-}
+import { fetchJson, patchJson } from '@/lib/api/client';
 
 // ---------------------------------------------------------------------------
 // Queries
