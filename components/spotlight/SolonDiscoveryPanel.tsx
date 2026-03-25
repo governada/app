@@ -51,7 +51,7 @@ const ANONYMOUS_PROMPT_REDIRECTS: Record<SpotlightEntityType, Record<string, str
   },
   proposal: {
     "What's being decided right now?": '/governance/proposals?status=Open',
-    'Treasury spending proposals': '/governance/proposals?status=Open&type=Treasury',
+    'Treasury spending proposals': '/governance/proposals?status=Open&type=TreasuryWithdrawals',
     'Most contested proposals': '/governance/proposals?status=Open',
     'Proposals closing soon': '/governance/proposals?status=Open',
   },
