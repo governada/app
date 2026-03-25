@@ -1,6 +1,5 @@
 export const dynamic = 'force-dynamic';
 
-import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { PageViewTracker } from '@/components/PageViewTracker';
 import { FunnelExploreTracker } from '@/components/funnel/FunnelExploreTracker';
@@ -28,9 +27,7 @@ export default function ProposalsPage() {
     <div className="container mx-auto px-4 sm:px-6 py-3 sm:py-4">
       <PageViewTracker event="governance_proposals_viewed" />
       <FunnelExploreTracker />
-      <Suspense>
-        <ProposalsBrowse />
-      </Suspense>
+      <ProposalsBrowse />
     </div>
   );
 }
