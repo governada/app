@@ -78,7 +78,8 @@ export async function executeProposalsSync(): Promise<Record<string, unknown>> {
                 title: p.title,
                 abstract: p.abstract,
                 meta_json: rawMetaMap.get(`${p.txHash}-${p.index}`) ?? null,
-                withdrawal_amount: p.withdrawalAmountAda,
+                withdrawal_amount:
+                  p.withdrawalAmountAda != null ? Math.round(p.withdrawalAmountAda) : null,
                 treasury_tier: p.treasuryTier,
                 param_changes: p.paramChanges,
                 relevant_prefs: p.relevantPrefs,
