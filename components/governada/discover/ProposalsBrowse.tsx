@@ -23,7 +23,7 @@ import type { BrowseProposal } from './ProposalCard';
 import { DiscoverFilterBar } from './DiscoverFilterBar';
 import { DiscoverPagination } from './DiscoverPagination';
 import { usePeekTrigger } from '@/components/governada/peeks/PeekDrawerProvider';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useFeatureFlag } from '@/components/FeatureGate';
 import { SpotlightTheater } from '@/components/spotlight/SpotlightTheater';
 import { SpotlightProposalCard } from '@/components/spotlight/SpotlightProposalCard';
@@ -172,48 +172,26 @@ export function ProposalsBrowse() {
   const { isAtLeast } = useGovernanceDepth();
   const { segment } = useSegment();
   const isAnonymous = segment === 'anonymous';
-  const searchParams = useSearchParams();
 
+  // Read URL params on mount (e.g. from Seneca pill redirect ?status=Open&type=TreasuryWithdrawals).
+  // Using window.location directly avoids requiring a Suspense boundary (useSearchParams does).
   const [search, setSearch] = useState('');
-  // Initialize status filter from URL param (e.g. from Seneca pill redirect), then
-  // fall back to Open for anonymous users and All for authenticated.
   const [statusFilter, setStatusFilter] = useState(() => {
-    const urlStatus = searchParams.get('status');
-    if (urlStatus && STATUS_FILTERS.includes(urlStatus)) return urlStatus;
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search).get('status');
+      if (p && STATUS_FILTERS.includes(p)) return p;
+    }
     return isAnonymous ? 'Open' : 'All';
   });
-  // Initialize type filter from URL param (e.g. ?type=TreasuryWithdrawals from Seneca redirect)
   const [typeFilter, setTypeFilter] = useState(() => {
-    const urlType = searchParams.get('type');
-    if (urlType && TYPE_FILTERS.some((f) => f.value === urlType)) return urlType;
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search).get('type');
+      if (p && TYPE_FILTERS.some((f) => f.value === p)) return p;
+    }
     return 'All';
   });
   const [page, setPage] = useState(0);
   const [recentlyDecidedExpanded, setRecentlyDecidedExpanded] = useState(false);
-
-  // Sync filters when URL params change (handles same-page router.push from Seneca pills)
-  const prevStatusParamRef = useRef(searchParams.get('status'));
-  const prevTypeParamRef = useRef(searchParams.get('type'));
-  React.useEffect(() => {
-    const urlStatus = searchParams.get('status');
-    const urlType = searchParams.get('type');
-    if (urlStatus !== prevStatusParamRef.current) {
-      prevStatusParamRef.current = urlStatus;
-      if (urlStatus && STATUS_FILTERS.includes(urlStatus)) {
-        setStatusFilter(urlStatus);
-        setPage(0);
-      }
-    }
-    if (urlType !== prevTypeParamRef.current) {
-      prevTypeParamRef.current = urlType;
-      if (urlType && TYPE_FILTERS.some((f) => f.value === urlType)) {
-        setTypeFilter(urlType);
-        setPage(0);
-      } else if (urlType === null) {
-        setTypeFilter('All');
-      }
-    }
-  }, [searchParams]);
 
   const handlePageChange = useCallback((newPage: number) => {
     setPage(newPage);
