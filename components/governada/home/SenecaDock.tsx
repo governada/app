@@ -1,8 +1,28 @@
 'use client';
 
+/**
+ * SenecaDock — Warm, context-aware Seneca entry point on the anonymous homepage.
+ *
+ * Replaces hero text by communicating what Cardano governance IS, why it matters,
+ * and what the user can do — through Seneca's voice, not marketing copy.
+ *
+ * Three states:
+ * 1. First Visit  — Value proposition + "Find my representative" CTA
+ * 2. Returning    — Dynamic narrative pulse + "Continue where I left off"
+ * 3. Post-Match   — Previous match results + "Ready to delegate?"
+ *
+ * Also detects wallet extensions for personalized messaging.
+ */
+
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Compass, Send } from 'lucide-react';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { Send, Sparkles, ArrowRight, RotateCcw } from 'lucide-react';
+import { motion, useReducedMotion } from 'framer-motion';
+import { useSenecaWarmth } from '@/hooks/useSenecaWarmth';
+import { CompassSigil } from '@/components/governada/CompassSigil';
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 interface SenecaDockProps {
   onStartConversation: (query: string) => void;
@@ -10,50 +30,24 @@ interface SenecaDockProps {
   narrativePulse?: string;
 }
 
-const GHOST_PROMPTS = [
-  'Who should represent my ADA?',
-  "What's happening in governance right now?",
-  'How does Cardano governance work?',
-  'Which proposals are being voted on?',
-  'What do DReps actually do?',
-  'How is the treasury being spent?',
-];
-
-// Show 3 prompts at a time, rotate every 10 seconds
-const VISIBLE_COUNT = 3;
-const ROTATE_INTERVAL = 10_000;
-
-/**
- * SenecaDock — Compact bottom-left Seneca entry point for the anonymous homepage.
- *
- * Glassmorphic card with rotating ghost prompts and a text input.
- * The primary entry point into the Seneca AI companion.
- */
-/** The first ghost prompt triggers match mode instead of conversation */
-const MATCH_PROMPT = GHOST_PROMPTS[0]; // "Who should represent my ADA?"
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 export function SenecaDock({ onStartConversation, onStartMatch, narrativePulse }: SenecaDockProps) {
   const [inputValue, setInputValue] = useState('');
-  const [promptOffset, setPromptOffset] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const prefersReducedMotion = useReducedMotion();
+  const { dockState, walletDetected, matchMemory, greeting, markVisited } = useSenecaWarmth();
 
-  // Rotate ghost prompts every 10 seconds
+  // Mark visited after first render
   useEffect(() => {
-    if (prefersReducedMotion) return;
-    const timer = setInterval(() => {
-      setPromptOffset((prev) => (prev + VISIBLE_COUNT) % GHOST_PROMPTS.length);
-    }, ROTATE_INTERVAL);
-    return () => clearInterval(timer);
-  }, [prefersReducedMotion]);
-
-  const visiblePrompts = Array.from({ length: VISIBLE_COUNT }, (_, i) => {
-    const idx = (promptOffset + i) % GHOST_PROMPTS.length;
-    return GHOST_PROMPTS[idx];
-  });
+    const timer = setTimeout(markVisited, 2000);
+    return () => clearTimeout(timer);
+  }, [markVisited]);
 
   const handleSubmit = useCallback(
-    (e: React.FormEvent) => {
+    (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       const query = inputValue.trim();
       if (!query) return;
@@ -63,87 +57,85 @@ export function SenecaDock({ onStartConversation, onStartMatch, narrativePulse }
     [inputValue, onStartConversation],
   );
 
-  const handlePromptClick = useCallback(
-    (prompt: string) => {
-      if (prompt === MATCH_PROMPT && onStartMatch) {
-        onStartMatch();
-      } else {
-        onStartConversation(prompt);
-      }
-    },
-    [onStartConversation, onStartMatch],
-  );
+  const handleMatchClick = useCallback(() => {
+    if (onStartMatch) {
+      onStartMatch();
+    }
+  }, [onStartMatch]);
 
   return (
     <motion.div
-      initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 20 }}
+      initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.3, duration: 0.5, ease: 'easeOut' }}
-      className="fixed bottom-4 left-4 right-4 sm:right-auto sm:left-4 lg:left-16 sm:w-80 z-40 pointer-events-auto"
+      transition={{ delay: 0.6, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+      className="fixed bottom-4 left-4 right-4 sm:right-auto sm:left-4 lg:left-16 sm:w-[22rem] z-40 pointer-events-auto"
     >
-      <div className="rounded-2xl border border-white/10 bg-black/80 backdrop-blur-xl shadow-2xl overflow-hidden">
-        {/* Narrative pulse */}
-        {narrativePulse && (
-          <div className="px-4 pt-3 pb-0">
-            <p className="text-xs text-white/40 leading-relaxed line-clamp-2">{narrativePulse}</p>
+      <div className="rounded-2xl border border-white/[0.08] bg-black/75 backdrop-blur-2xl shadow-2xl overflow-hidden">
+        {/* Sigil + warm content */}
+        <div className="px-5 pt-5 pb-3">
+          {/* Compass Sigil */}
+          <div className="mb-3">
+            <CompassSigil state="greeting" size={28} />
           </div>
-        )}
 
-        {/* Header with Seneca sigil */}
-        <div className="flex items-center gap-2 px-4 pt-3 pb-2">
-          <motion.div
-            animate={prefersReducedMotion ? {} : { opacity: [0.7, 1, 0.7] }}
-            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-          >
-            <Compass className="h-4 w-4 text-primary" />
-          </motion.div>
-          <span
-            className="text-sm font-semibold text-white/90"
-            style={{ fontFamily: 'var(--font-governada-display)' }}
-          >
-            Ask Seneca
-          </span>
+          {/* State-dependent warm content */}
+          {dockState === 'first-visit' && <FirstVisitContent walletDetected={walletDetected} />}
+          {dockState === 'returning' && (
+            <ReturningContent greeting={greeting} narrativePulse={narrativePulse} />
+          )}
+          {dockState === 'post-match' && matchMemory && (
+            <PostMatchContent matchMemory={matchMemory} />
+          )}
         </div>
 
-        {/* Ghost prompts */}
-        <div className="px-4 pb-2 space-y-1 min-h-[4.5rem]">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={promptOffset}
-              initial={prefersReducedMotion ? {} : { opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={prefersReducedMotion ? {} : { opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-1"
+        {/* Primary CTA */}
+        <div className="px-4 pb-3">
+          {dockState === 'post-match' && matchMemory ? (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleMatchClick}
+                className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-primary/20 border border-primary/30 px-3 py-2.5 text-sm font-medium text-primary hover:bg-primary/30 transition-colors"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                See my matches
+              </button>
+              <button
+                type="button"
+                onClick={handleMatchClick}
+                className="flex items-center justify-center rounded-xl bg-white/[0.04] border border-white/[0.08] px-3 py-2.5 text-xs text-white/50 hover:text-white/70 hover:bg-white/[0.08] transition-colors"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleMatchClick}
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary/15 border border-primary/25 px-4 py-2.5 text-sm font-medium text-primary hover:bg-primary/25 transition-colors group"
             >
-              {visiblePrompts.map((prompt) => (
-                <button
-                  key={prompt}
-                  onClick={() => handlePromptClick(prompt)}
-                  className="block w-full text-left text-xs text-white/50 hover:text-white/80 transition-colors py-0.5 cursor-pointer"
-                >
-                  {prompt}
-                </button>
-              ))}
-            </motion.div>
-          </AnimatePresence>
+              <Sparkles className="h-3.5 w-3.5" />
+              Find my representative
+              <ArrowRight className="h-3.5 w-3.5 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+            </button>
+          )}
         </div>
 
-        {/* Input */}
-        <form onSubmit={handleSubmit} className="px-3 pb-3">
-          <div className="flex items-center gap-2 rounded-xl bg-white/[0.06] border border-white/[0.08] px-3 py-2">
+        {/* Free-form input */}
+        <form onSubmit={handleSubmit} className="px-4 pb-4">
+          <div className="flex items-center gap-2 rounded-xl bg-white/[0.04] border border-white/[0.06] px-3 py-2">
             <input
               ref={inputRef}
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Ask anything about governance..."
-              className="flex-1 bg-transparent text-sm text-white/90 placeholder:text-white/30 focus:outline-none"
+              placeholder="Ask Seneca anything..."
+              className="flex-1 bg-transparent text-sm text-white/90 placeholder:text-white/25 focus:outline-none"
             />
             <button
               type="submit"
               disabled={!inputValue.trim()}
-              className="shrink-0 text-white/40 hover:text-primary disabled:opacity-30 transition-colors"
+              className="shrink-0 text-white/30 hover:text-primary disabled:opacity-20 transition-colors"
               aria-label="Send"
             >
               <Send className="h-3.5 w-3.5" />
@@ -152,5 +144,98 @@ export function SenecaDock({ onStartConversation, onStartMatch, narrativePulse }
         </form>
       </div>
     </motion.div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Sub-components for each dock state
+// ---------------------------------------------------------------------------
+
+function FirstVisitContent({ walletDetected }: { walletDetected: boolean }) {
+  return (
+    <div className="space-y-2">
+      <h2
+        className="text-[15px] font-semibold text-white/90 leading-snug"
+        style={{ fontFamily: 'var(--font-governada-display)' }}
+      >
+        Cardano runs on decentralized governance.
+      </h2>
+      <p className="text-[13px] text-white/55 leading-relaxed">
+        {walletDetected ? (
+          <>
+            I see you have a wallet — you&apos;re halfway to participating. Find a representative
+            for your ADA in about 60 seconds.
+          </>
+        ) : (
+          <>
+            700 representatives are making decisions about a $2 billion treasury right now. One of
+            them could represent your ADA — and finding them takes 60 seconds.
+          </>
+        )}
+      </p>
+    </div>
+  );
+}
+
+function ReturningContent({
+  greeting,
+  narrativePulse,
+}: {
+  greeting: string;
+  narrativePulse?: string;
+}) {
+  return (
+    <div className="space-y-2">
+      <h2
+        className="text-[15px] font-semibold text-white/90 leading-snug"
+        style={{ fontFamily: 'var(--font-governada-display)' }}
+      >
+        {greeting}. Welcome back.
+      </h2>
+      {narrativePulse ? (
+        <p className="text-[13px] text-white/55 leading-relaxed">{narrativePulse}</p>
+      ) : (
+        <p className="text-[13px] text-white/55 leading-relaxed">
+          Governance is always moving. Ask me what&apos;s changed, or find your representative.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function PostMatchContent({
+  matchMemory,
+}: {
+  matchMemory: { topMatches: Array<{ name: string; score: number }>; archetype?: string };
+}) {
+  const topMatch = matchMemory.topMatches[0];
+  const matchCount = matchMemory.topMatches.length;
+
+  return (
+    <div className="space-y-2">
+      <h2
+        className="text-[15px] font-semibold text-white/90 leading-snug"
+        style={{ fontFamily: 'var(--font-governada-display)' }}
+      >
+        Welcome back{matchMemory.archetype ? `, ${matchMemory.archetype}` : ''}.
+      </h2>
+      <p className="text-[13px] text-white/55 leading-relaxed">
+        {topMatch ? (
+          <>
+            You matched with <span className="text-white/75 font-medium">{topMatch.name}</span> (
+            {topMatch.score}%)
+            {matchCount > 1 && (
+              <>
+                {' '}
+                and {matchCount - 1} other{matchCount > 2 ? 's' : ''}
+              </>
+            )}{' '}
+            last time. Ready to delegate?
+          </>
+        ) : (
+          <>You started finding your representative. Pick up where you left off?</>
+        )}
+      </p>
+    </div>
   );
 }
