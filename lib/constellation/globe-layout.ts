@@ -50,6 +50,11 @@ interface LayoutInput {
   nodeType: GovernanceNodeType;
   geoLat?: number;
   geoLon?: number;
+  adaAmount?: number;
+  drepStatus?: string;
+  delegatorCount?: number;
+  voteCount?: number;
+  fidelityGrade?: string;
 }
 
 export function computeGlobeLayout(inputs: LayoutInput[], nodeLimit: number): LayoutResult {
