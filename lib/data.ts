@@ -2162,6 +2162,70 @@ export async function isDRepClaimed(drepId: string): Promise<boolean> {
 }
 
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// AI Character Profiles
+// ---------------------------------------------------------------------------
+
+export interface CharacterOutput {
+  title: string;
+  summary: string;
+  pills: Array<{ label: string; reason: string }>;
+}
+
+/**
+ * Get the latest AI-generated character profile for a DRep.
+ * Returns the most recent epoch's character, or null if none exists.
+ */
+export async function getDRepCharacter(drepId: string): Promise<CharacterOutput | null> {
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('drep_characters')
+      .select('character_title, character_summary, attribute_pills')
+      .eq('drep_id', drepId)
+      .order('epoch', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !data) return null;
+
+    return {
+      title: data.character_title,
+      summary: data.character_summary,
+      pills: (data.attribute_pills as Array<{ label: string; reason: string }>) ?? [],
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Get the latest AI-generated character profile for an SPO.
+ * Returns the most recent epoch's character, or null if none exists.
+ */
+export async function getSPOCharacter(poolId: string): Promise<CharacterOutput | null> {
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('spo_characters')
+      .select('character_title, character_summary, attribute_pills')
+      .eq('pool_id', poolId)
+      .order('epoch', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !data) return null;
+
+    return {
+      title: data.character_title,
+      summary: data.character_summary,
+      pills: (data.attribute_pills as Array<{ label: string; reason: string }>) ?? [],
+    };
+  } catch {
+    return null;
+  }
+}
+
 // Citizen sentiment aggregate (server-side, for editorial headline)
 // ---------------------------------------------------------------------------
 

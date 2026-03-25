@@ -1011,6 +1011,33 @@ export function useCCPredictions() {
   });
 }
 
+// ── AI Character Profiles ─────────────────────────────────────────────────────
+
+export interface CharacterOutput {
+  title: string;
+  summary: string;
+  pills: Array<{ label: string; reason: string }>;
+}
+
+export function useDRepCharacter(drepId: string) {
+  return useQuery<CharacterOutput | null>({
+    queryKey: ['drep-character', drepId],
+    queryFn: () => fetchJson<CharacterOutput | null>(`/api/drep/${drepId}/basic?character=1`),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!drepId,
+  });
+}
+
+export function useSPOCharacter(poolId: string) {
+  return useQuery<CharacterOutput | null>({
+    queryKey: ['spo-character', poolId],
+    queryFn: () =>
+      fetchJson<CharacterOutput | null>(`/api/governance/pools/${poolId}/summary?character=1`),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!poolId,
+  });
+}
+
 // ── Treasury Spending Categories ──────────────────────────────────────────────
 
 export interface TreasuryCategoriesResponse {
@@ -1038,5 +1065,25 @@ export function useTreasuryCategories() {
     queryKey: ['treasury-categories'],
     queryFn: () => fetchJson<TreasuryCategoriesResponse>('/api/treasury/categories'),
     staleTime: 60 * 60 * 1000,
+  });
+}
+
+// ── Observatory Narratives ────────────────────────────────────────────────────
+
+export interface ObservatoryNarrativesResponse {
+  unified: string | null;
+  treasury: string | null;
+  committee: string | null;
+  health: string | null;
+  generatedAt: string;
+}
+
+export function useObservatoryNarratives(epoch: number) {
+  return useQuery<ObservatoryNarrativesResponse>({
+    queryKey: ['observatory-narratives', epoch],
+    queryFn: () =>
+      fetchJson<ObservatoryNarrativesResponse>(`/api/observatory/narrative?epoch=${epoch}`),
+    staleTime: 5 * 60_000,
+    enabled: epoch > 0,
   });
 }

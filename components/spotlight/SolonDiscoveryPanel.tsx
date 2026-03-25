@@ -19,10 +19,10 @@ const SENECA_PLACEHOLDERS: Record<SpotlightEntityType, string> = {
 };
 
 const SENECA_GREETINGS: Record<SpotlightEntityType, string> = {
-  drep: '"It is not that we have a short time to live, but that we waste a great deal of it." There are representatives below who take governance seriously — and others who registered and vanished. Ask me anything.',
-  spo: 'The pools below don\u2019t just produce blocks \u2014 some also vote on the future of the protocol. Worth knowing which ones show up. Ask me what you want to know.',
+  drep: '"It is not that we have a short time to live, but that we waste a great deal of it." Below are those who claimed the mantle of representative. Some have earned it through consistent action. Others registered and vanished. Ask me who deserves your trust.',
+  spo: 'These pools do not merely produce blocks \u2014 some also cast votes that shape the protocol\u2019s future. Your staking choice is a governance choice, whether you intended it or not. Ask me which ones take that duty seriously.',
   proposal:
-    'Every proposal below will shape Cardano for years. Some allocate millions from the treasury. Others change the protocol itself. Ask me about any of them.',
+    'Every proposal below carries consequence that will outlast the epoch in which it was written. Some redistribute the common treasury. Others alter the rules themselves. Ask me about any of them \u2014 I will tell you what the numbers cannot.',
 };
 
 // ─── Props ────────────────────────────────────────────────────────────────────

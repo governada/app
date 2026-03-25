@@ -91,14 +91,23 @@ async function generateTemplateNarrative(supabase: ReturnType<typeof createClien
   const ghiScore = ghiRes.status === 'fulfilled' ? ghiRes.value.data?.score : null;
 
   const balanceStr = balance
-    ? `${new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(balance / 1_000_000)} ADA in reserve`
-    : 'treasury data loading';
-  const ccStr =
-    ccCount > 0 ? `${ccCount} constitutional guardians active` : 'committee data loading';
-  const ghiStr =
-    ghiScore != null ? `governance health at ${Math.round(ghiScore)}` : 'health data loading';
+    ? `${new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(balance / 1_000_000)} ADA`
+    : null;
+  const ghiScoreRound = ghiScore != null ? Math.round(ghiScore) : null;
 
-  const unified = `Governance Observatory — Epoch ${epoch || 'current'}. ${balanceStr}, ${ccStr}, ${ghiStr}. Expand any panel to explore the details.`;
+  // Seneca-voiced template fallback
+  let unified: string;
+  if (balanceStr && ghiScoreRound != null && ccCount > 0) {
+    const healthVerdict =
+      ghiScoreRound >= 70
+        ? 'The system functions, though vigilance is never optional.'
+        : ghiScoreRound >= 50
+          ? `Governance health sits at ${ghiScoreRound} \u2014 functional, but lacking the deliberative depth a healthy democracy demands.`
+          : `Governance health has fallen to ${ghiScoreRound}. The machinery runs, but the spirit of deliberation is fading.`;
+    unified = `Epoch ${epoch || 'current'}. The treasury holds ${balanceStr} in common reserve. ${ccCount} constitutional guardians remain active. ${healthVerdict} Expand any instrument to examine the details.`;
+  } else {
+    unified = `Epoch ${epoch || 'current'}. The Observatory is assembling its instruments. Expand any panel to examine what has been gathered so far.`;
+  }
 
   return {
     unified,

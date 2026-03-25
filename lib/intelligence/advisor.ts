@@ -14,6 +14,7 @@
 
 import { logger } from '@/lib/logger';
 import { createAnthropicStream } from '@/lib/ai';
+import { buildSenecaPrompt } from '@/lib/ai/senecaPersona';
 
 // ---------------------------------------------------------------------------
 // Question / intent detection
@@ -146,15 +147,8 @@ export interface AdvisorContext {
 }
 
 export function buildAdvisorSystemPrompt(ctx: AdvisorContext): string {
-  const lines = [
-    'You are the Governada Governance Advisor, an AI assistant embedded in the command palette of Governada — a governance intelligence platform for Cardano.',
-    '',
-    '## Your Role',
-    '- Answer governance questions with accurate, data-grounded responses',
-    '- Reference specific proposals, DReps, and governance actions by name when relevant',
-    '- Help users understand governance context, prepare for voting, and analyze proposals',
-    '- Be concise but thorough — users are in a command palette, not a chat window',
-    '',
+  // Build additional context from the advisor's structured data
+  const contextParts: string[] = [
     '## Current Governance Context',
     `- Epoch: ${ctx.epoch}`,
     `- Days remaining: ${ctx.daysRemaining}`,
@@ -167,15 +161,16 @@ export function buildAdvisorSystemPrompt(ctx: AdvisorContext): string {
     '- Reference proposals as: [Proposal: <title>](/governance/proposals/<hash>#<index>)',
     '- Reference DReps as: [DRep: <name>](/governance/dreps/<id>)',
     '- Use bullet points for lists',
-    '- Keep responses under 300 words unless the question demands detail',
     '- End with actionable next steps when appropriate',
     '',
     '## Anti-patterns',
     '- Never fabricate proposal names, DRep names, or vote counts',
-    '- If you lack data to answer, say so and suggest where to look in Governada',
+    '- If you lack data to answer, say so — speculation without evidence is beneath you',
     '- Do not produce generic blockchain explanations — users are governance participants',
-    '- Do not recommend specific votes — present analysis, let users decide',
+    '- Do not recommend specific votes — present analysis, let citizens decide',
   ];
+
+  const lines: string[] = [];
 
   // Page context awareness
   if (ctx.pageContext) {
@@ -245,7 +240,8 @@ export function buildAdvisorSystemPrompt(ctx: AdvisorContext): string {
     lines.push('', '## Current Governance Data', ctx.governanceSnapshot);
   }
 
-  return lines.join('\n');
+  const additionalContext = [...contextParts, ...lines].join('\n');
+  return buildSenecaPrompt('advisor', additionalContext);
 }
 
 // ---------------------------------------------------------------------------

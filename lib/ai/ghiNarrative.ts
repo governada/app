@@ -13,6 +13,7 @@
 import { generateText } from '@/lib/ai';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
+import { buildSenecaPrompt } from '@/lib/ai/senecaPersona';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -35,11 +36,10 @@ interface EpochNarrative {
 // Prompt
 // ---------------------------------------------------------------------------
 
-const NARRATIVE_SYSTEM = `You are a governance intelligence analyst writing brief, factual epoch summaries for Cardano's Governance Health Index (GHI).
-
-Write in plain English for a general audience. Be specific about what changed and by how much. Focus on the "why" when the data supports it. 2-4 sentences maximum.
-
-Do not use emojis, markdown formatting, or bullet points. Write as continuous prose.`;
+const NARRATIVE_SYSTEM = buildSenecaPrompt(
+  'vitals',
+  'Write 2-4 sentences as continuous prose. Be specific about what changed and by how much. Focus on the "why" when the data supports it. Do not use emojis, markdown formatting, or bullet points.',
+);
 
 function buildNarrativePrompt(
   currentEpoch: number,

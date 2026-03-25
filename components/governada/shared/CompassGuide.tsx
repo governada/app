@@ -53,98 +53,98 @@ const SENECA_NARRATIVES: Record<
 > = {
   proposals: {
     first_visit: {
-      text: 'Every decision you see below will shape Cardano for years. Some will allocate millions in treasury funds. Others will change how the protocol itself works. The question worth asking: who is deciding on your behalf, and do they share your values?',
+      text: 'Every line below is a decision that will outlast the epoch in which it was made. Some redistribute millions from the common treasury. Others rewrite the rules of the protocol itself. The question is not whether these matter. The question is whether you will let others decide for you.',
     },
     exploring: {
-      text: "You've been observing — that's wise. But observation without participation is spectatorship, not governance. I can tell you in 60 seconds which representatives would vote the way you think.",
-      cta: { label: 'Find out', href: '/match' },
+      text: 'You have been watching. Good. But the difference between a spectator and a citizen is a single act of commitment. I can map your values to these proposals in sixty seconds. The only cost is honesty.',
+      cta: { label: 'Map my values', href: '/match' },
     },
     quiz_completed: {
-      text: "Your values are mapped. Your matched representatives are voting on these proposals right now. Connect your wallet and I'll show you whether they're representing you well — or whether you should reconsider.",
+      text: 'Your convictions are on record. The representatives who matched your values are casting votes on these proposals right now. Connect your wallet and I will show you whether they are keeping faith \u2014 or whether your trust is misplaced.',
       cta: { label: 'Connect your wallet', href: '/match' },
     },
     connected: {
-      text: "These are today's open decisions. I'll tell you if anything here conflicts with your stated values.",
+      text: 'The open decisions before you. I will mark anything that conflicts with what you have told me you believe.',
     },
   },
   representatives: {
     first_visit: {
-      text: "These are the people who vote on Cardano's future. Some have voted on every proposal. Others have disappeared after registering. Below you'll find their records — not their promises, their actions. Judge accordingly.",
+      text: 'These are the people who speak for Cardano when votes are called. Some have shown up for every ballot. Others registered, collected delegation, and vanished. What you see below are records, not promises. Judge by what they have done, not what they say they will do.',
     },
     exploring: {
-      text: '"It is not that we have a short time to live, but that we waste a great deal of it." You\'ve been browsing — let me save you time. Tell me your governance values and I\'ll show you who actually matches.',
+      text: '"It is not that we have a short time to live, but that we waste a great deal of it." You have been browsing when you could be choosing. Tell me what you stand for and I will show you who actually stands with you.',
       cta: { label: 'Match me', href: '/match' },
     },
     quiz_completed: {
-      text: "I've ranked these representatives against your values. But a match score only tells part of the story. Connect your wallet and I'll show you the full alignment — where you agree, where you differ, and why it matters.",
+      text: 'I have measured these representatives against your stated values. But a number only tells part of the story. Connect your wallet and I will reveal the full alignment \u2014 where you converge, where you diverge, and what that costs you.',
       cta: { label: 'See full alignment', href: '/match' },
     },
     connected: {
-      text: "Your representatives and their recent actions. I'll flag any votes that diverge from your stated priorities.",
+      text: 'Your representatives and their recent conduct. Where their votes diverge from your priorities, I will tell you plainly.',
     },
   },
   pools: {
     first_visit: {
-      text: 'Most people choose stake pools for returns alone. But some pools also vote on governance — meaning your staking choice is also a governance choice, whether you intended it or not. Worth knowing which pools take that responsibility seriously.',
+      text: 'Most choose their stake pool for yield alone. But every pool that votes on governance makes your staking decision a political act \u2014 whether you intended it or not. Below are the ones who take that second responsibility seriously. Worth knowing which side of history your stake supports.',
     },
     exploring: {
-      text: "What if you could earn staking rewards from a pool that also votes your values? That's not idealism — it's available right now. Let me match you.",
+      text: 'What if the pool earning your rewards also voted your conscience? That is not idealism. It is available right now. Let me show you.',
       cta: { label: 'Find aligned pools', href: '/match' },
     },
     quiz_completed: {
-      text: "I've identified pools that align with your governance values and participate actively. Connect your wallet to compare them against your current pool — you might be leaving representation on the table.",
+      text: 'I have found pools that match both your governance values and your participation standards. Connect your wallet to see how they compare to your current delegation. You may be leaving representation on the table while collecting only yield.',
       cta: { label: 'Compare pools', href: '/match' },
     },
     connected: {
-      text: "Governance-active pools. I'll note any that better match your values than your current delegation.",
+      text: 'Governance-active pools, ranked. Where a pool better matches your values than your current delegation, I will say so.',
     },
   },
   committee: {
     first_visit: {
-      text: "The Constitutional Committee exists for one reason: to ensure no proposal violates Cardano's founding principles. Below is their record — who participates, who reasons well, and who has yet to cast a single vote. Accountability starts with visibility.",
+      text: 'The Constitutional Committee is the last guardrail. Their sole purpose: ensure no proposal violates the founding principles. Below is their record \u2014 who deliberates, who rubber-stamps, and who has yet to cast a single vote. Accountability begins with visibility.',
     },
     exploring: {
-      text: '"No one is free who is a slave to their ignorance." You\'ve been learning how governance works. The committee is the last safeguard — connect your wallet and I\'ll show you how their rulings ripple into your delegation.',
-      cta: { label: 'See your impact', href: '/match' },
+      text: '"No person is free who is enslaved by ignorance." You have been learning how the machinery works. The committee is where constitutional fidelity is tested. Connect your wallet and I will trace how their rulings ripple through your delegation chain.',
+      cta: { label: 'See the ripple', href: '/match' },
     },
     quiz_completed: {
-      text: "You understand the governance structure. Connect your wallet and I'll trace how committee decisions affect the proposals your matched representatives are voting on — the chain of accountability matters.",
+      text: 'You see the structure now. Connect your wallet and I will map how committee decisions flow into the proposals your matched representatives are voting on. The chain of accountability matters more than any single vote.',
       cta: { label: 'Connect to trace', href: '/match' },
     },
     connected: {
-      text: "Committee activity and constitutional rulings. I'll alert you to any decisions that affect your delegation chain.",
+      text: 'Committee activity and constitutional verdicts. When a ruling touches your delegation chain, I will surface it.',
     },
   },
   treasury: {
     first_visit: {
-      text: "This is Cardano's common wealth — billions of ADA held in trust for the ecosystem. Every withdrawal requires community approval. The question isn't just how much is left, but whether what's been spent has delivered. Look at the numbers below and decide for yourself.",
+      text: 'This is the common wealth of Cardano \u2014 billions of ADA held in trust for the ecosystem. Every withdrawal requires community consent. The question worth asking is not how much remains, but whether what has been spent has delivered anything worth the cost. The numbers are below. Decide for yourself.',
     },
     exploring: {
-      text: '"Wealth consists not in having great possessions, but in having few wants." Still — it helps to know how the treasury affects your stake. Connect your wallet and I\'ll make it concrete.',
-      cta: { label: 'Show me', href: '/match' },
+      text: '"Wealth consists not in having great possessions, but in having few wants." Still \u2014 this treasury is yours. Connect your wallet and I will show you exactly how spending decisions touch your stake.',
+      cta: { label: 'Make it concrete', href: '/match' },
     },
     quiz_completed: {
-      text: "Your governance values include views on treasury spending. Connect your wallet and I'll break down whether current allocations align with what you believe the treasury should fund.",
+      text: 'Your values include views on how the treasury should be stewarded. Connect your wallet and I will tell you whether current allocations honor those views \u2014 or betray them.',
       cta: { label: 'See treasury alignment', href: '/match' },
     },
     connected: {
-      text: "Treasury flows and runway projections. I'm watching for spending patterns that conflict with your priorities.",
+      text: 'Treasury flows and runway projections. Where spending patterns conflict with your stated priorities, I will flag them.',
     },
   },
   health: {
     first_visit: {
-      text: "This is governance examined — not as it should be, but as it is. Participation rates, power concentration, deliberation quality. A democracy that doesn't measure itself cannot improve. These metrics tell you whether the system is healthy or merely operational.",
+      text: 'This is governance examined \u2014 not as we wish it were, but as it is. Participation rates. Power concentration. Deliberation quality. A democracy that refuses to measure itself has already begun to decay. These metrics tell you whether the system is healthy or merely still running.',
     },
     exploring: {
-      text: "You've explored the pieces. This dashboard shows whether they add up to a functioning democracy. Connect your wallet and I'll show you where you fit in these numbers — participant or bystander.",
+      text: 'You have explored the parts. This dashboard shows whether they compose a functioning democracy. Connect your wallet and I will tell you something harder: whether you are a participant in these numbers, or merely a bystander.',
       cta: { label: 'Find your place', href: '/match' },
     },
     quiz_completed: {
-      text: '"We suffer more in imagination than in reality." The health metrics here are real. Connect your wallet and I\'ll show you how your participation — active or absent — contributes to these scores.',
+      text: '"We suffer more often in imagination than in reality." The health metrics here are real. Connect your wallet and I will show you how your participation \u2014 or your absence \u2014 moves these scores.',
       cta: { label: 'See your contribution', href: '/match' },
     },
     connected: {
-      text: "System health at a glance. I'll flag any governance metric that shifts meaningfully between epochs.",
+      text: 'System vitals at a glance. When a governance metric shifts meaningfully between epochs, you will hear it from me first.',
     },
   },
 };

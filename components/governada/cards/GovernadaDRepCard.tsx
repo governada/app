@@ -9,6 +9,7 @@ import { TierBadge } from './TierBadge';
 import type { EnrichedDRep } from '@/lib/koios';
 import { ScoreExplainer } from '@/components/ui/ScoreExplainer';
 import { ProactiveReviewerBadge } from '@/components/ui/ProactiveReviewerBadge';
+import { useDRepCharacter } from '@/hooks/queries';
 import {
   extractAlignments,
   getPersonalityLabel,
@@ -64,6 +65,11 @@ export function GovernadaDRepCard({
   const identityGradient = dominantDim ? getIdentityGradient(dominantDim) : undefined;
   const pillarStrengths = getPillarStrengths(drep);
 
+  // AI character data — enhances pills and archetype when available
+  const { data: character } = useDRepCharacter(drep.drepId);
+  const hasCharacter = character && character.title !== 'Emerging Voice';
+  const isEmergingVoice = character?.title === 'Emerging Voice';
+
   return (
     <Link
       href={`/drep/${drep.drepId}`}
@@ -117,8 +123,28 @@ export function GovernadaDRepCard({
           </div>
         </div>
 
-        {/* ── Personality archetype — the hero element ────────────── */}
-        {personalityLabel && identityColor && (
+        {/* ── Character archetype — AI-generated or personality fallback ── */}
+        {hasCharacter ? (
+          <div className="mb-3">
+            <span
+              className="inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-lg border"
+              style={{
+                borderColor: identityColor ? `${identityColor.hex}30` : 'var(--border)',
+                backgroundColor: identityColor ? `${identityColor.hex}08` : 'transparent',
+                color: identityColor?.hex ?? 'var(--foreground)',
+              }}
+            >
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{
+                  backgroundColor: identityColor?.hex ?? 'var(--primary)',
+                  boxShadow: identityColor ? `0 0 6px ${identityColor.hex}40` : undefined,
+                }}
+              />
+              {character.title}
+            </span>
+          </div>
+        ) : personalityLabel && identityColor ? (
           <div className="mb-3">
             <span
               className="inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-lg border"
@@ -138,10 +164,32 @@ export function GovernadaDRepCard({
               {personalityLabel}
             </span>
           </div>
+        ) : null}
+
+        {/* ── Emerging Voice indicator ─────────────────────────────── */}
+        {isEmergingVoice && (
+          <div className="mb-3">
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground border border-dashed border-border/60 px-2 py-1 rounded-lg">
+              <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />2 more votes to
+              reveal character
+            </span>
+          </div>
         )}
 
-        {/* ── Pillar strengths ─────────────────────────────────────── */}
-        {pillarStrengths.length > 0 && (
+        {/* ── Character pills or pillar strengths fallback ─────────── */}
+        {hasCharacter && character.pills.length > 0 ? (
+          <div className="flex items-center gap-1.5 flex-wrap mb-3">
+            {character.pills.map((pill) => (
+              <span
+                key={pill.label}
+                className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full"
+                title={pill.reason}
+              >
+                {pill.label}
+              </span>
+            ))}
+          </div>
+        ) : pillarStrengths.length > 0 ? (
           <div className="flex items-center gap-1.5 flex-wrap mb-3">
             {pillarStrengths.map((label) => (
               <span
@@ -152,6 +200,13 @@ export function GovernadaDRepCard({
               </span>
             ))}
           </div>
+        ) : null}
+
+        {/* ── Character summary snippet ────────────────────────────── */}
+        {hasCharacter && character.summary && (
+          <p className="text-[11px] text-muted-foreground/80 leading-relaxed mb-3 line-clamp-2">
+            {character.summary}
+          </p>
         )}
 
         {/* ── Proactive Reviewer badge (Layer 2, not in composite score) ── */}
