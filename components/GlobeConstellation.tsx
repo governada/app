@@ -27,7 +27,6 @@ export type { ConstellationRef } from '@/components/GovernanceConstellation';
 const DREP_COLOR = '#2dd4bf';
 const SPO_COLOR = '#a78bfa'; // purple — visually distinct from teal DReps
 const CC_COLOR = '#fbbf24';
-const GLOBE_LINE_COLOR = '#334488';
 const MATCH_COLOR = '#f59e0b'; // Warm amber — distinct from teal, purple, gold
 
 interface GlobeConstellationProps {
@@ -186,6 +185,9 @@ export const GlobeConstellation = forwardRef<
     const [x, y, z] = rotateAroundY(node.position, rotationAngleRef.current);
     await controls.setLookAt(x * 1.5, y * 1.5, z * 1.5 + 3, x, y, z, true);
 
+    // Resume rotation eligibility after fly-to completes
+    setSceneState((prev) => ({ ...prev, animating: false }));
+
     onNodeSelectRef.current?.(node);
     return node;
   };
@@ -269,6 +271,7 @@ export const GlobeConstellation = forwardRef<
         dimmed: false,
         animating: false,
       }));
+      rotationSpeedRef.current = DEFAULT_ROTATION_SPEED;
     },
 
     highlightMatches: (userAlignment: number[], threshold: number) => {
@@ -473,10 +476,8 @@ export const GlobeConstellation = forwardRef<
 
   const handleCanvasPointerUp = useCallback(() => {
     if (!interactive) return;
-    const elapsed = Date.now() - pointerDownTimeRef.current;
-    if (elapsed > 200 || isDraggingRef.current) {
-      isDraggingRef.current = true; // ensure it's flagged for NodePoints click suppression
-    }
+    // Only suppress click if actual dragging occurred (position moved >5px).
+    // Time-based suppression removed — slow clicks should still work.
     pointerDownPosRef.current = null;
 
     // Resume auto-rotation after 5 seconds of inactivity
@@ -495,6 +496,7 @@ export const GlobeConstellation = forwardRef<
       // Zoomed in — reset to default
       controls.setLookAt(...effectiveCamera, ...effectiveTarget, true);
       setSceneState((prev) => ({ ...prev, highlightId: null, dimmed: false, animating: false }));
+      rotationSpeedRef.current = DEFAULT_ROTATION_SPEED;
     } else {
       // At default — zoom in
       controls.dolly(4, true);
@@ -562,7 +564,7 @@ export const GlobeConstellation = forwardRef<
                 sceneState.scanProgress > 0 ? sceneState.scanProgress : healthProgress * 0.3
               }
             />
-            <GlobeWireframe radius={8} opacity={0.04} />
+            {/* Wireframe removed — the latitude lines (especially equator) were visually distracting */}
             <ConstellationNodes
               nodes={sceneState.nodes}
               highlightId={sceneState.highlightId}
@@ -737,62 +739,9 @@ function GlobeAtmosphere({
   );
 }
 
-// --- Subtle wireframe grid (very faint structural lines) ---
-
-function GlobeWireframe({ radius, opacity }: { radius: number; opacity: number }) {
-  const geometry = useMemo(() => {
-    const points: number[] = [];
-    const segments = 64;
-
-    // Only equator + 2 latitude lines for subtle structure
-    for (const latDeg of [-45, 0, 45]) {
-      const lat = (latDeg * Math.PI) / 180;
-      const r = radius * Math.cos(lat);
-      const z = radius * Math.sin(lat);
-      for (let i = 0; i < segments; i++) {
-        const a1 = (i / segments) * Math.PI * 2;
-        const a2 = ((i + 1) / segments) * Math.PI * 2;
-        points.push(r * Math.cos(a1), r * Math.sin(a1), z);
-        points.push(r * Math.cos(a2), r * Math.sin(a2), z);
-      }
-    }
-
-    // Only 6 meridians (60° apart) instead of 12
-    for (let lonDeg = 0; lonDeg < 360; lonDeg += 60) {
-      const lon = (lonDeg * Math.PI) / 180;
-      for (let i = 0; i < segments; i++) {
-        const lat1 = (i / segments) * Math.PI - Math.PI / 2;
-        const lat2 = ((i + 1) / segments) * Math.PI - Math.PI / 2;
-        points.push(
-          radius * Math.cos(lat1) * Math.cos(lon),
-          radius * Math.cos(lat1) * Math.sin(lon),
-          radius * Math.sin(lat1),
-        );
-        points.push(
-          radius * Math.cos(lat2) * Math.cos(lon),
-          radius * Math.cos(lat2) * Math.sin(lon),
-          radius * Math.sin(lat2),
-        );
-      }
-    }
-
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
-    return geo;
-  }, [radius]);
-
-  return (
-    <lineSegments geometry={geometry}>
-      <lineBasicMaterial
-        color={GLOBE_LINE_COLOR}
-        transparent
-        opacity={opacity}
-        toneMapped={false}
-        depthWrite={false}
-      />
-    </lineSegments>
-  );
-}
+// GlobeWireframe removed — the latitude lines (especially the equator ring) were visually
+// distracting and didn't clearly convey meaning. The atmosphere shells and node positions
+// provide sufficient spatial reference.
 
 // --- Point sprite shaders (same as original constellation) ---
 

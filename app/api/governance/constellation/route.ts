@@ -61,7 +61,10 @@ export const GET = withRouteHandler(async () => {
       )
       .gt('vote_count', 0),
 
-    supabase.from('cc_votes').select('cc_hot_id').limit(100),
+    supabase
+      .from('cc_members')
+      .select('cc_hot_id, cc_cold_id, author_name, fidelity_grade, fidelity_score, status')
+      .eq('status', 'authorized'),
   ]);
 
   const dreps = drepsResult.data || [];
@@ -100,6 +103,7 @@ export const GET = withRouteHandler(async () => {
   const drepNodes: ConstellationApiData['nodes'] = dreps.map((d) => {
     const info = d.info as Record<string, unknown> | null;
     const raw = parseInt((info?.votingPowerLovelace as string) || '0', 10) || 0;
+    const adaAmount = Math.round(raw / 1_000_000);
     const alignments = extractAlignments(d);
     const arr = alignmentsToArray(alignments);
     return {
@@ -111,11 +115,13 @@ export const GET = withRouteHandler(async () => {
       dominant: getDominantDimension(alignments),
       alignments: arr,
       nodeType: 'drep' as const,
+      adaAmount,
+      delegatorCount: parseInt(String(info?.delegatorCount ?? '0'), 10) || 0,
     };
   });
 
   const poolsData = spoVotesResult.data || [];
-  const ccIds = [...new Set((ccVotesResult.data || []).map((v) => v.cc_hot_id as string))];
+  const ccMembers = ccVotesResult.data || [];
 
   const maxPoolVotes = Math.max(...poolsData.map((p) => p.vote_count || 0), 1);
   const spoNodes: ConstellationApiData['nodes'] = poolsData.map((p) => {
@@ -137,21 +143,23 @@ export const GET = withRouteHandler(async () => {
       dominant: getDominantDimension(aligns),
       alignments: arr,
       nodeType: 'spo' as const,
+      voteCount: p.vote_count || 0,
       ...(p.relay_lat != null && p.relay_lon != null
         ? { geoLat: p.relay_lat, geoLon: p.relay_lon }
         : {}),
     };
   });
 
-  const ccNodes: ConstellationApiData['nodes'] = ccIds.map((ccId) => ({
-    id: ccId.slice(0, 16),
-    fullId: ccId,
-    name: null,
+  const ccNodes: ConstellationApiData['nodes'] = ccMembers.map((m) => ({
+    id: (m.cc_hot_id as string).slice(0, 16),
+    fullId: m.cc_hot_id as string,
+    name: (m.author_name as string) || null,
     power: 0.8,
-    score: 75,
+    score: (m.fidelity_score as number) ?? 75,
     dominant: 'transparency' as AlignmentDimension,
     alignments: [50, 50, 50, 50, 50, 50],
     nodeType: 'cc' as const,
+    fidelityGrade: (m.fidelity_grade as string) || undefined,
   }));
 
   const nodes: ConstellationApiData['nodes'] = [...drepNodes, ...spoNodes, ...ccNodes];
@@ -200,7 +208,7 @@ export const GET = withRouteHandler(async () => {
       votesThisWeek: votes.length,
       activeDReps: dreps.length,
       activeSpOs: poolsData.length,
-      ccMembers: ccIds.length,
+      ccMembers: ccMembers.length,
     },
   };
 

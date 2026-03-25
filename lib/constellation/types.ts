@@ -18,6 +18,16 @@ export interface ConstellationNode3D {
   geoLat?: number;
   /** Real-world longitude from relay geolocation (SPOs only) */
   geoLon?: number;
+  /** Actual ADA amount for DReps (voting power) */
+  adaAmount?: number;
+  /** DRep status (Active/Inactive/Retired) */
+  drepStatus?: string;
+  /** Number of delegators for DReps */
+  delegatorCount?: number;
+  /** Vote count for SPOs */
+  voteCount?: number;
+  /** CC fidelity grade (A-F) */
+  fidelityGrade?: string;
 }
 
 export type EdgeType = 'proximity' | 'infrastructure' | 'lastmile' | 'orbital';
@@ -54,6 +64,11 @@ export interface ConstellationApiData {
     nodeType: GovernanceNodeType;
     geoLat?: number;
     geoLon?: number;
+    adaAmount?: number;
+    drepStatus?: string;
+    delegatorCount?: number;
+    voteCount?: number;
+    fidelityGrade?: string;
   }>;
   recentEvents: ConstellationEvent[];
   stats: {

@@ -123,10 +123,28 @@ export function ConstellationNodeDetail({ node, onClose }: ConstellationNodeDeta
               />
               {getDimensionLabel(node.dominant)}
             </div>
-            <div className="text-xs text-white/40">
-              Power:{' '}
-              <span className="text-white/60 font-mono">{(node.power * 100).toFixed(0)}%</span>
-            </div>
+            {node.nodeType === 'drep' && node.adaAmount != null && node.adaAmount > 0 && (
+              <div className="text-xs text-white/40">
+                <span className="text-white/60 font-mono">
+                  {node.adaAmount >= 1_000_000
+                    ? `${(node.adaAmount / 1_000_000).toFixed(1)}M`
+                    : node.adaAmount >= 1_000
+                      ? `${(node.adaAmount / 1_000).toFixed(0)}K`
+                      : String(node.adaAmount)}
+                </span>{' '}
+                &#8371; delegated
+              </div>
+            )}
+            {node.nodeType === 'spo' && node.voteCount != null && node.voteCount > 0 && (
+              <div className="text-xs text-white/40">
+                <span className="text-white/60 font-mono">{node.voteCount}</span> votes
+              </div>
+            )}
+            {node.nodeType === 'cc' && node.fidelityGrade && (
+              <div className="text-xs text-white/40">
+                Grade <span className="text-white/60 font-mono">{node.fidelityGrade}</span>
+              </div>
+            )}
           </div>
 
           {profileHref && (

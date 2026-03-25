@@ -12,8 +12,16 @@ interface GlobeTooltipProps {
 
 const OFFSET = 16;
 
+function formatAda(amount: number): string {
+  if (amount >= 1_000_000_000) return `${(amount / 1_000_000_000).toFixed(1)}B`;
+  if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(1)}M`;
+  if (amount >= 1_000) return `${(amount / 1_000).toFixed(0)}K`;
+  return String(amount);
+}
+
 /**
  * Cursor-following tooltip for globe node hover.
+ * Shows entity-specific details for DReps, SPOs, and CC members.
  * Flips position near viewport edges to stay visible.
  */
 export function GlobeTooltip({ node, screenPos }: GlobeTooltipProps) {
@@ -47,30 +55,13 @@ export function GlobeTooltip({ node, screenPos }: GlobeTooltipProps) {
     setPosition({ x, y });
   }, [screenPos, node]);
 
-  const typeLabel = node?.nodeType === 'drep' ? 'DRep' : node?.nodeType === 'spo' ? 'SPO' : 'CC';
-  const typeColor =
-    node?.nodeType === 'drep'
-      ? 'text-teal-400'
-      : node?.nodeType === 'spo'
-        ? 'text-purple-400'
-        : 'text-amber-400';
-
   const displayName = node?.name
-    ? node.name.length > 20
-      ? node.name.slice(0, 20) + '...'
+    ? node.name.length > 24
+      ? node.name.slice(0, 24) + '...'
       : node.name
     : node
       ? `${node.id.slice(0, 12)}...`
       : '';
-
-  const formattedPower =
-    node && node.power > 0
-      ? node.power >= 1_000_000
-        ? `${(node.power / 1_000_000).toFixed(1)}M`
-        : node.power >= 1_000
-          ? `${(node.power / 1_000).toFixed(0)}K`
-          : String(node.power)
-      : null;
 
   return (
     <AnimatePresence>
@@ -94,23 +85,71 @@ export function GlobeTooltip({ node, screenPos }: GlobeTooltipProps) {
           {/* Name */}
           <p className="text-sm font-semibold text-white truncate">{displayName}</p>
 
-          {/* Type + Score + Power */}
-          <div className="flex items-center gap-3 mt-1 text-xs text-white/60">
-            <span className={typeColor}>{typeLabel}</span>
-            <span>
-              Score <strong className="text-white/90">{node.score}</strong>
-            </span>
-            {formattedPower && (
-              <span>
-                <strong className="text-white/90">{formattedPower}</strong> &#8371;
-              </span>
-            )}
-          </div>
-
-          {/* Hint */}
-          <p className="text-[10px] text-white/40 mt-1.5">Click to explore &rarr;</p>
+          {/* Entity-specific details */}
+          {node.nodeType === 'drep' && <DRepTooltipContent node={node} />}
+          {node.nodeType === 'spo' && <SPOTooltipContent node={node} />}
+          {node.nodeType === 'cc' && <CCTooltipContent node={node} />}
         </motion.div>
       )}
     </AnimatePresence>
+  );
+}
+
+function DRepTooltipContent({ node }: { node: ConstellationNode3D }) {
+  return (
+    <>
+      <div className="flex items-center gap-3 mt-1 text-xs text-white/60">
+        <span className="text-teal-400">DRep</span>
+        <span>
+          Score <strong className="text-white/90">{node.score}</strong>
+        </span>
+      </div>
+      <div className="flex items-center gap-3 mt-0.5 text-xs text-white/50">
+        {node.adaAmount != null && node.adaAmount > 0 && (
+          <span>
+            <strong className="text-white/80">{formatAda(node.adaAmount)}</strong> &#8371; delegated
+          </span>
+        )}
+        {node.delegatorCount != null && node.delegatorCount > 0 && (
+          <span>{node.delegatorCount.toLocaleString()} delegators</span>
+        )}
+      </div>
+    </>
+  );
+}
+
+function SPOTooltipContent({ node }: { node: ConstellationNode3D }) {
+  return (
+    <>
+      <div className="flex items-center gap-3 mt-1 text-xs text-white/60">
+        <span className="text-purple-400">Pool</span>
+        <span>
+          Score <strong className="text-white/90">{node.score}</strong>
+        </span>
+      </div>
+      <div className="flex items-center gap-3 mt-0.5 text-xs text-white/50">
+        {node.voteCount != null && node.voteCount > 0 && (
+          <span>
+            <strong className="text-white/80">{node.voteCount}</strong> governance votes
+          </span>
+        )}
+      </div>
+    </>
+  );
+}
+
+function CCTooltipContent({ node }: { node: ConstellationNode3D }) {
+  return (
+    <>
+      <div className="flex items-center gap-3 mt-1 text-xs text-white/60">
+        <span className="text-amber-400">Committee</span>
+        {node.fidelityGrade && (
+          <span>
+            Grade <strong className="text-white/90">{node.fidelityGrade}</strong>
+          </span>
+        )}
+      </div>
+      <div className="mt-0.5 text-xs text-white/50">Constitutional Committee Member</div>
+    </>
   );
 }
