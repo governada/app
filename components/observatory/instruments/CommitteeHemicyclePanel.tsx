@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, ScrollText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePeekTrigger } from '@/components/governada/peeks/PeekDrawerProvider';
@@ -21,6 +21,8 @@ interface CommitteeHemicyclePanelProps {
   expanded?: boolean;
   position: number; // 0–1 playback position
   isLive: boolean;
+  /** AI-generated Seneca narrative for the committee drilldown */
+  narrative?: string | null;
 }
 
 interface SeatPosition {
@@ -123,6 +125,7 @@ export function CommitteeHemicyclePanel({
   expanded = false,
   position,
   isLive,
+  narrative,
 }: CommitteeHemicyclePanelProps) {
   const { data, isLoading, isError } = useCommitteeMembers();
   const openPeek = usePeekTrigger();
@@ -299,6 +302,14 @@ export function CommitteeHemicyclePanel({
         {health?.activeMembers ?? members.length} active
         {health?.avgFidelity != null && `, avg fidelity ${Math.round(health.avgFidelity)}%`}
       </p>
+
+      {/* Seneca narrative */}
+      {expanded && narrative && (
+        <div className="w-full mb-2 flex items-start gap-2 rounded-lg bg-muted/20 px-4 py-3">
+          <ScrollText className="h-3.5 w-3.5 shrink-0 text-primary/40 mt-0.5" />
+          <p className="text-sm italic leading-relaxed text-muted-foreground">{narrative}</p>
+        </div>
+      )}
 
       {/* Expanded: fidelity breakdown, bloc summary, briefing excerpt, profile CTA */}
       {expanded && members.length > 0 && (

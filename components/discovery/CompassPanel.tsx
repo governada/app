@@ -49,28 +49,28 @@ const SENECA_TOOLTIP =
 
 const SENECA_GREETINGS: Record<string, string> = {
   governance:
-    "Welcome. Cardano's governance has been active — let me catch you up on what matters.",
+    'Cardano\u2019s governance stirs. Proposals have been filed, votes have been cast, and the treasury has moved. Let me tell you what actually matters.',
   proposals:
-    "These decisions will shape Cardano for years. Want me to walk you through what's at stake?",
+    'These decisions will outlast the epoch in which they were written. Some will redistribute millions. Others will rewrite the protocol. Ask me what is at stake.',
   dreps:
-    'Choosing a representative is choosing who speaks for you. I can help you find one whose actions — not just words — align with yours.',
+    'Choosing a representative is choosing who speaks when you are absent. I can help you find one whose record \u2014 not rhetoric \u2014 aligns with your convictions.',
   treasury:
-    '"Wealth consists not in having great possessions, but in having few wants." Still, this treasury belongs to everyone. Ask me anything about how it\'s being spent.',
-  spos: 'Your staking choice is also a governance choice. Let me show you which pools take both responsibilities seriously.',
+    '"Wealth consists not in having great possessions, but in having few wants." Still \u2014 this treasury belongs to the nation. Ask me how it is being stewarded.',
+  spos: 'Your staking choice is a governance choice, whether you intended it or not. Let me show you which pools honor both responsibilities.',
   match:
-    "Good — you want to know where you stand. Answer honestly, and I'll show you who actually matches your values.",
-  you: "Let's look at your governance footprint. Are you participating, or merely observing?",
-  help: "I'm here. What would you like to understand about governance?",
+    'Good. You want to know where you stand. Answer with honesty, not aspiration, and I will show you who genuinely matches your values.',
+  you: 'Let us examine your governance footprint. Are you participating in this democracy, or merely witnessing it?',
+  help: 'I am here. What would you like to understand about how Cardano governs itself?',
 };
 
 const SENECA_DEFAULT_GREETING =
-  "I've been studying Cardano's governance closely. Ask me anything — proposals, representatives, treasury, or your own participation.";
+  'I have been studying Cardano\u2019s governance closely. Proposals, representatives, treasury, your own participation \u2014 ask me anything. I will answer with what the data shows, not what you want to hear.';
 
 const SENECA_ANONYMOUS_GREETING =
-  "I'm Seneca — your governance advisor. I can help you understand proposals, find representatives who share your values, and navigate the treasury. Connect your wallet to unlock the full conversation, or start with the match quiz below.";
+  'I am Seneca \u2014 your governance advisor. I can help you understand proposals, find representatives whose actions match your values, and navigate the treasury. Connect your wallet to unlock the full conversation, or begin with the match quiz. Either way, the first step is yours.';
 
 const SENECA_ONBOARDING_GREETING =
-  'Welcome to Cardano governance. Every light in that constellation is someone governing a \u20BF2B treasury. Let me help you find where you fit \u2014 it takes about 90 seconds.';
+  'Every light in that constellation represents a voice in Cardano\u2019s governance. Most are silent. Yours does not have to be. Let me help you find where you fit \u2014 it takes ninety seconds of honesty.';
 
 // ---------------------------------------------------------------------------
 // Suggestion chips — framed as Seneca's advice

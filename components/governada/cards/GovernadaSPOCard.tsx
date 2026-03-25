@@ -16,6 +16,7 @@ import { computeTier } from '@/lib/scoring/tiers';
 import { TIER_SCORE_COLOR, TIER_BORDER, TIER_BG, TIER_GLOW, tierKey } from './tierStyles';
 import { TierBadge } from './TierBadge';
 import { ScoreExplainer } from '@/components/ui/ScoreExplainer';
+import { useSPOCharacter } from '@/hooks/queries';
 
 export interface GovernadaSPOData {
   poolId: string;
@@ -80,6 +81,11 @@ export function GovernadaSPOCard({ pool, rank, matchScore }: GovernadaSPOCardPro
   const isRetiring = pool.poolStatus === 'retiring';
   const momentum = pool.scoreMomentum ?? null;
   const strengths = getPoolStrengths(pool);
+
+  // AI character data — enhances strength pills when available
+  const { data: character } = useSPOCharacter(pool.poolId);
+  const hasCharacter = character && character.title !== 'Emerging Voice';
+  const isEmergingVoice = character?.title === 'Emerging Voice';
 
   const displayName = pool.ticker
     ? pool.ticker
@@ -186,8 +192,43 @@ export function GovernadaSPOCard({ pool, rank, matchScore }: GovernadaSPOCardPro
           </div>
         )}
 
-        {/* Strength labels */}
-        {strengths.length > 0 && (
+        {/* Character archetype badge (AI-generated) */}
+        {hasCharacter && (
+          <div className="mb-2">
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-lg border border-border/50 bg-card/50 text-foreground">
+              <span
+                className="h-2 w-2 rounded-full bg-primary"
+                style={{ boxShadow: '0 0 6px var(--primary)' }}
+              />
+              {character.title}
+            </span>
+          </div>
+        )}
+
+        {/* Emerging Voice indicator */}
+        {isEmergingVoice && (
+          <div className="mb-2">
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground border border-dashed border-border/60 px-2 py-1 rounded-lg">
+              <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />2 more votes to
+              reveal character
+            </span>
+          </div>
+        )}
+
+        {/* Character pills or strength labels fallback */}
+        {hasCharacter && character.pills.length > 0 ? (
+          <div className="flex items-center gap-1.5 flex-wrap mb-2">
+            {character.pills.map((pill) => (
+              <span
+                key={pill.label}
+                className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full"
+                title={pill.reason}
+              >
+                {pill.label}
+              </span>
+            ))}
+          </div>
+        ) : strengths.length > 0 ? (
           <div className="flex items-center gap-1.5 flex-wrap mb-2">
             {strengths.map((label) => (
               <span
@@ -198,14 +239,18 @@ export function GovernadaSPOCard({ pool, rank, matchScore }: GovernadaSPOCardPro
               </span>
             ))}
           </div>
-        )}
+        ) : null}
 
-        {/* Governance statement preview */}
-        {statementPreview && (
+        {/* Character summary or governance statement preview */}
+        {hasCharacter && character.summary ? (
+          <p className="text-[11px] text-muted-foreground/80 leading-relaxed mb-2 line-clamp-2">
+            {character.summary}
+          </p>
+        ) : statementPreview ? (
           <p className="text-[11px] text-muted-foreground/80 italic leading-relaxed mb-2 line-clamp-2">
             &ldquo;{statementPreview}&rdquo;
           </p>
-        )}
+        ) : null}
 
         {/* Key metrics row */}
         <div className="flex items-center gap-3 text-[10px] text-muted-foreground mb-2 flex-wrap">

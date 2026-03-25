@@ -10,7 +10,7 @@
 
 import { useMemo, useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, ScrollText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useGovernanceHealthIndex } from '@/hooks/queries';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -23,6 +23,8 @@ interface HealthVitalTracesPanelProps {
   expanded?: boolean;
   position: number;
   isLive: boolean;
+  /** AI-generated Seneca narrative for the health drilldown */
+  narrative?: string | null;
 }
 
 /** History point — components come as an array from the API, not a Record */
@@ -395,6 +397,7 @@ export function HealthVitalTracesPanel({
   expanded = false,
   position,
   isLive,
+  narrative,
 }: HealthVitalTracesPanelProps) {
   const { data: rawGhi, isLoading } = useGovernanceHealthIndex(20);
   const prefersReducedMotion = useReducedMotion();
@@ -486,6 +489,14 @@ export function HealthVitalTracesPanel({
 
   return (
     <div className="space-y-2">
+      {/* Seneca narrative */}
+      {expanded && narrative && (
+        <div className="mb-2 flex items-start gap-2 rounded-lg bg-muted/20 px-4 py-3">
+          <ScrollText className="h-3.5 w-3.5 shrink-0 text-primary/40 mt-0.5" />
+          <p className="text-sm italic leading-relaxed text-muted-foreground">{narrative}</p>
+        </div>
+      )}
+
       {/* Score header */}
       <div className="flex items-center gap-3">
         {/* Large GHI number */}

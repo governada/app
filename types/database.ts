@@ -2194,6 +2194,36 @@ export type Database = {
           },
         ];
       };
+      drep_characters: {
+        Row: {
+          attribute_pills: Json;
+          character_summary: string;
+          character_title: string;
+          drep_id: string;
+          epoch: number;
+          generated_at: string;
+          input_hash: string;
+        };
+        Insert: {
+          attribute_pills?: Json;
+          character_summary: string;
+          character_title: string;
+          drep_id: string;
+          epoch: number;
+          generated_at?: string;
+          input_hash: string;
+        };
+        Update: {
+          attribute_pills?: Json;
+          character_summary?: string;
+          character_title?: string;
+          drep_id?: string;
+          epoch?: number;
+          generated_at?: string;
+          input_hash?: string;
+        };
+        Relationships: [];
+      };
       drep_delegator_snapshots: {
         Row: {
           amount_lovelace: number;
@@ -5576,6 +5606,36 @@ export type Database = {
           epoch_no?: number;
           pool_id?: string;
           snapshot_at?: string | null;
+        };
+        Relationships: [];
+      };
+      spo_characters: {
+        Row: {
+          attribute_pills: Json;
+          character_summary: string;
+          character_title: string;
+          epoch: number;
+          generated_at: string;
+          input_hash: string;
+          pool_id: string;
+        };
+        Insert: {
+          attribute_pills?: Json;
+          character_summary: string;
+          character_title: string;
+          epoch: number;
+          generated_at?: string;
+          input_hash: string;
+          pool_id: string;
+        };
+        Update: {
+          attribute_pills?: Json;
+          character_summary?: string;
+          character_title?: string;
+          epoch?: number;
+          generated_at?: string;
+          input_hash?: string;
+          pool_id?: string;
         };
         Relationships: [];
       };

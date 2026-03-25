@@ -5,13 +5,13 @@
  *
  * Compact mode: Reservoir headline + Budget Window NCL bar + top pending proposal.
  * Expanded mode: Full two-lens layout with Sankey flows, NCL budget detail,
- *   pending proposals, and interactive tools (Simulator, YouDrawIt).
+ *   pending proposals, and unified Treasury Futures interactive tool.
  *
  * Lens 1 "The Reservoir" — total balance, runway, historical spending categories.
  * Lens 2 "The Budget Window" — NCL utilization, pending proposals, projected impact.
  */
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, useReducedMotion } from 'framer-motion';
 import {
@@ -21,10 +21,7 @@ import {
   Minus,
   Landmark,
   CircleDollarSign,
-  ChevronDown,
-  ChevronUp,
-  Gauge,
-  Pencil,
+  ScrollText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -36,15 +33,10 @@ import {
 } from '@/hooks/queries';
 import { formatAda } from '@/lib/treasury';
 
-// Lazy-load heavy interactive components only in expanded mode
-const TreasurySimulator = dynamic(
-  () => import('@/components/TreasurySimulator').then((m) => m.TreasurySimulator),
-  { ssr: false },
-);
-const YouDrawIt = dynamic(
-  () => import('@/components/treasury/YouDrawIt').then((m) => m.YouDrawIt),
-  { ssr: false },
-);
+// Lazy-load heavy interactive component only in expanded mode
+const TreasuryFutures = dynamic(() => import('@/components/treasury/TreasuryFutures'), {
+  ssr: false,
+});
 
 // ---------------------------------------------------------------------------
 // Types
@@ -54,6 +46,8 @@ interface TreasurySankeyPanelProps {
   expanded?: boolean;
   position: number;
   isLive: boolean;
+  /** AI-generated Seneca narrative for the treasury drilldown */
+  narrative?: string | null;
 }
 
 interface CategoryFlow {
@@ -471,14 +465,13 @@ export function TreasurySankeyPanel({
   expanded = false,
   position,
   isLive,
+  narrative,
 }: TreasurySankeyPanelProps) {
   const prefersReducedMotion = useReducedMotion();
   const { data: currentData, isLoading: currentLoading } = useTreasuryCurrent();
   const { data: categoriesData, isLoading: categoriesLoading } = useTreasuryCategories();
   const { data: nclData, isLoading: nclLoading } = useTreasuryNcl();
   const { data: pendingData } = useTreasuryPending();
-  const [showSimulator, setShowSimulator] = useState(false);
-  const [showYouDrawIt, setShowYouDrawIt] = useState(false);
 
   const isLoading = currentLoading || categoriesLoading || nclLoading;
 
@@ -592,6 +585,14 @@ export function TreasurySankeyPanel({
   // ── Expanded View ───────────────────────────────────────────────────────
   return (
     <div className="space-y-6 p-4">
+      {/* Seneca narrative */}
+      {narrative && (
+        <div className="mb-4 flex items-start gap-2 rounded-lg bg-muted/20 px-4 py-3">
+          <ScrollText className="h-3.5 w-3.5 shrink-0 text-primary/40 mt-0.5" />
+          <p className="text-sm italic leading-relaxed text-muted-foreground">{narrative}</p>
+        </div>
+      )}
+
       {/* ── LENS 1: The Reservoir ─────────────────────────────────── */}
       <section className="space-y-3">
         <div className="flex items-center gap-2">
@@ -717,68 +718,12 @@ export function TreasurySankeyPanel({
       {/* Divider */}
       <div className="border-t border-border/20" />
 
-      {/* ── Interactive Tools ─────────────────────────────────────── */}
+      {/* ── Treasury Futures ─────────────────────────────────────── */}
       <section className="space-y-2">
         <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-          Explore
+          Treasury Futures
         </p>
-        <div className="flex gap-2">
-          <button
-            onClick={() => {
-              setShowSimulator((prev) => !prev);
-              setShowYouDrawIt(false);
-            }}
-            className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
-              showSimulator
-                ? 'bg-primary/15 text-primary'
-                : 'bg-muted/50 text-muted-foreground hover:text-foreground',
-            )}
-          >
-            <Gauge className="w-3.5 h-3.5" />
-            Runway Simulator
-            {showSimulator ? (
-              <ChevronUp className="w-3 h-3" />
-            ) : (
-              <ChevronDown className="w-3 h-3" />
-            )}
-          </button>
-          <button
-            onClick={() => {
-              setShowYouDrawIt((prev) => !prev);
-              setShowSimulator(false);
-            }}
-            className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
-              showYouDrawIt
-                ? 'bg-primary/15 text-primary'
-                : 'bg-muted/50 text-muted-foreground hover:text-foreground',
-            )}
-          >
-            <Pencil className="w-3.5 h-3.5" />
-            Draw Your Forecast
-            {showYouDrawIt ? (
-              <ChevronUp className="w-3 h-3" />
-            ) : (
-              <ChevronDown className="w-3 h-3" />
-            )}
-          </button>
-        </div>
-
-        {showSimulator && (
-          <div className="mt-2">
-            <TreasurySimulator
-              currentBalance={balanceAda}
-              burnRate={treasury?.burnRatePerEpoch ?? 0}
-              currentEpoch={epoch}
-            />
-          </div>
-        )}
-        {showYouDrawIt && (
-          <div className="mt-2">
-            <YouDrawIt />
-          </div>
-        )}
+        <TreasuryFutures />
       </section>
     </div>
   );

@@ -22,7 +22,7 @@ import { HealthVitalTracesPanel } from './instruments/HealthVitalTracesPanel';
 import { ObservatoryNarrativeBar } from './narrative/ObservatoryNarrativeBar';
 import { GovernanceWrapped } from './wrapped/GovernanceWrapped';
 import { useGovernanceDepth } from '@/hooks/useGovernanceDepth';
-import { useGovernanceHealthIndex } from '@/hooks/queries';
+import { useGovernanceHealthIndex, useObservatoryNarratives } from '@/hooks/queries';
 import { useEpochContext } from '@/hooks/useEpochContext';
 import { FeatureGate } from '@/components/FeatureGate';
 
@@ -65,6 +65,9 @@ export function ObservatoryLayout({ initialFocus }: ObservatoryLayoutProps) {
 
   // Playback engine
   const playback = usePlayback({ currentEpoch });
+
+  // Observatory narratives (for drilldown panels)
+  const { data: narratives } = useObservatoryNarratives(currentEpoch);
 
   // Show playback bar for exploring+ users (not first-visit anonymous)
   const showPlayback = depth !== 'hands_off';
@@ -145,13 +148,28 @@ export function ObservatoryLayout({ initialFocus }: ObservatoryLayoutProps) {
             transition={{ duration: 0.2 }}
           >
             {expandedPanel === 'treasury' && (
-              <TreasurySankeyPanel expanded position={playbackPosition} isLive={isLive} />
+              <TreasurySankeyPanel
+                expanded
+                position={playbackPosition}
+                isLive={isLive}
+                narrative={narratives?.treasury}
+              />
             )}
             {expandedPanel === 'committee' && (
-              <CommitteeHemicyclePanel expanded position={playbackPosition} isLive={isLive} />
+              <CommitteeHemicyclePanel
+                expanded
+                position={playbackPosition}
+                isLive={isLive}
+                narrative={narratives?.committee}
+              />
             )}
             {expandedPanel === 'health' && (
-              <HealthVitalTracesPanel expanded position={playbackPosition} isLive={isLive} />
+              <HealthVitalTracesPanel
+                expanded
+                position={playbackPosition}
+                isLive={isLive}
+                narrative={narratives?.health}
+              />
             )}
           </motion.div>
         </AnimatePresence>
