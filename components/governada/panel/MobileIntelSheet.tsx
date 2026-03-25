@@ -51,6 +51,8 @@ type SheetState = 'closed' | 'half' | 'full';
 interface MobileIntelSheetProps {
   /** Sheet content (same content as the desktop panel) */
   children: ReactNode;
+  /** Dynamic narrative pulse for context-aware PeekBar */
+  narrativePulse?: string;
   /** Additional class on the sheet container */
   className?: string;
 }
@@ -83,7 +85,7 @@ const SPRING_CONFIG = {
 // Component
 // ---------------------------------------------------------------------------
 
-export function MobileIntelSheet({ children, className }: MobileIntelSheetProps) {
+export function MobileIntelSheet({ children, narrativePulse, className }: MobileIntelSheetProps) {
   const [state, setState] = useState<SheetState>('closed');
   const prefersReducedMotion = useReducedMotion();
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -256,7 +258,12 @@ export function MobileIntelSheet({ children, className }: MobileIntelSheetProps)
   return (
     <>
       {/* Peek bar — visible only when sheet is closed, on mobile only */}
-      <PeekBar onOpen={open} onOpenWithPrompt={openWithPrompt} isSheetOpen={isOpen} />
+      <PeekBar
+        onOpen={open}
+        onOpenWithPrompt={openWithPrompt}
+        isSheetOpen={isOpen}
+        narrativePulse={narrativePulse}
+      />
 
       {/* Sheet + backdrop */}
       <AnimatePresence>

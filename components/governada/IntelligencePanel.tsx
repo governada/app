@@ -1,9 +1,11 @@
 'use client';
 
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { X, Compass } from 'lucide-react';
+import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIntelligencePanel } from '@/hooks/useIntelligencePanel';
+import { getPersonaForRoute } from '@/lib/intelligence/senecaPersonas';
+import { CompassSigil } from './CompassSigil';
 import { ReadinessSignal } from './panel/ReadinessSignal';
 import { PanelRouter } from './panel/PanelRouter';
 import { SenecaInput } from './panel/SenecaInput';
@@ -33,6 +35,18 @@ export function IntelligencePanel({
   const { panelRoute, entityId, mode, pendingQuery, startConversation, returnToBriefing } =
     useIntelligencePanel();
 
+  const persona = getPersonaForRoute(panelRoute);
+
+  // Map panel mode to sigil animation state
+  const sigilState =
+    mode === 'matching'
+      ? ('searching' as const)
+      : mode === 'conversation'
+        ? ('speaking' as const)
+        : mode === 'research'
+          ? ('thinking' as const)
+          : ('idle' as const);
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -52,11 +66,16 @@ export function IntelligencePanel({
           role="complementary"
           aria-label="Governance intelligence panel"
         >
-          {/* Panel Header */}
+          {/* Panel Header — persona-aware with Compass Sigil */}
           <div className="flex items-center justify-between px-3 py-2 border-b border-border/10 shrink-0">
             <div className="flex items-center gap-2">
-              <Compass className="h-4 w-4 text-primary/70" aria-hidden="true" />
+              <CompassSigil state={sigilState} size={18} accentColor={persona.accentColor} />
               <h2 className="text-xs font-semibold text-foreground/80">Seneca</h2>
+              {persona.id !== 'navigator' && persona.id !== 'guide' && (
+                <span className={cn('text-[10px] font-medium', persona.accentClass)}>
+                  · {persona.label}
+                </span>
+              )}
             </div>
             <button
               type="button"
