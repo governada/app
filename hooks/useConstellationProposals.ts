@@ -12,137 +12,133 @@ import type { ConstellationNode3D } from '@/lib/constellation/types';
 import { getDominantDimension } from '@/lib/drepIdentity';
 import type { AlignmentScores } from '@/lib/drepIdentity';
 
-interface ProposalSummary {
+/**
+ * Actual shape from GET /api/proposals
+ */
+interface ProposalFromAPI {
   txHash: string;
   index: number;
   title: string;
   type: string;
   status: string;
-  adaAmount: number | null;
-  submittedEpoch: number;
-  expiryEpoch: number | null;
-  yesVotes: number;
-  noVotes: number;
-  abstainVotes: number;
-  dimTreasuryConservative: number | null;
-  dimTreasuryGrowth: number | null;
-  dimDecentralization: number | null;
-  dimSecurity: number | null;
-  dimInnovation: number | null;
-  dimTransparency: number | null;
+  withdrawalAmount: number | null;
+  proposedEpoch: number;
+  expirationEpoch: number | null;
+  relevantPrefs: string[] | null;
+  triBody: {
+    drep: { yes: number; no: number; abstain: number };
+    spo: { yes: number; no: number; abstain: number };
+    cc: { yes: number; no: number; abstain: number };
+  } | null;
 }
 
-/** Cardano epoch is ~5 days. Urgency = 1.0 when within ~48h, 0 when 5+ epochs away. */
-function computeUrgency(expiryEpoch: number | null, currentEpoch: number): number {
-  if (expiryEpoch == null) return 0.3; // unknown expiry, moderate default
-  const epochsRemaining = expiryEpoch - currentEpoch;
-  if (epochsRemaining <= 0) return 1.0; // expired or expiring now
-  // ~48h = ~0.4 epochs -> urgency 1.0
-  // ~5 days = 1 epoch -> urgency 0.5
-  // 5+ epochs remaining -> urgency ~0
-  const urgency = 1.0 - Math.min(1, epochsRemaining / 5);
-  return Math.max(0, Math.min(1, urgency));
+// Map relevantPrefs tags to 6D alignment scores
+const PREF_TO_DIMENSION: Record<string, keyof AlignmentScores> = {
+  'treasury-conservative': 'treasuryConservative',
+  'smart-treasury-growth': 'treasuryGrowth',
+  'strong-decentralization': 'decentralization',
+  'security-first': 'security',
+  'innovation-friendly': 'innovation',
+  'transparency-focused': 'transparency',
+  treasury: 'treasuryConservative',
+  decentralization: 'decentralization',
+  security: 'security',
+  innovation: 'innovation',
+  transparency: 'transparency',
+};
+
+function prefsToAlignments(prefs: string[] | null): AlignmentScores {
+  const scores: AlignmentScores = {
+    treasuryConservative: 50,
+    treasuryGrowth: 50,
+    decentralization: 50,
+    security: 50,
+    innovation: 50,
+    transparency: 50,
+  };
+  if (!prefs) return scores;
+  for (const pref of prefs) {
+    const dim = PREF_TO_DIMENSION[pref];
+    if (dim) scores[dim] = 80;
+  }
+  return scores;
 }
 
-function proposalToAlignments(p: ProposalSummary): number[] {
+function scoresToArray(scores: AlignmentScores): number[] {
   return [
-    p.dimTreasuryConservative ?? 50,
-    p.dimTreasuryGrowth ?? 50,
-    p.dimDecentralization ?? 50,
-    p.dimSecurity ?? 50,
-    p.dimInnovation ?? 50,
-    p.dimTransparency ?? 50,
+    scores.treasuryConservative ?? 50,
+    scores.treasuryGrowth ?? 50,
+    scores.decentralization ?? 50,
+    scores.security ?? 50,
+    scores.innovation ?? 50,
+    scores.transparency ?? 50,
   ];
 }
 
-function proposalToAlignmentScores(p: ProposalSummary): AlignmentScores {
-  return {
-    treasuryConservative: p.dimTreasuryConservative,
-    treasuryGrowth: p.dimTreasuryGrowth,
-    decentralization: p.dimDecentralization,
-    security: p.dimSecurity,
-    innovation: p.dimInnovation,
-    transparency: p.dimTransparency,
-  };
+function computeUrgency(expirationEpoch: number | null, currentEpoch: number): number {
+  if (expirationEpoch == null) return 0.3;
+  const remaining = expirationEpoch - currentEpoch;
+  if (remaining <= 0) return 1.0;
+  return Math.max(0, Math.min(1, 1 - remaining / 5));
 }
 
 const PROPOSAL_MIN_SCALE = 0.08;
 const PROPOSAL_MAX_SCALE = 0.2;
-// Proposal radius: slightly above the globe surface so they float visibly
 const PROPOSAL_RADIUS = GLOBE_RADIUS + 0.5;
+const CURRENT_EPOCH = 621;
 
-// Cardano mainnet epoch as of March 2026. Proposals don't need exact epoch for urgency calc.
-const FALLBACK_EPOCH = 621;
-
-export function useConstellationProposals(userAlignments?: number[]) {
-  const { data: proposals, isLoading: proposalsLoading } = useQuery<ProposalSummary[]>({
+export function useConstellationProposals(_userAlignments?: number[]) {
+  const { data: proposals, isLoading: proposalsLoading } = useQuery<ProposalFromAPI[]>({
     queryKey: ['constellation-proposals'],
     queryFn: async () => {
       const res = await fetch('/api/proposals');
-      if (!res.ok) throw new Error('Failed to fetch proposals');
+      if (!res.ok) return [];
       const json = await res.json();
-      // API may return { proposals: [...] } or a raw array
       return Array.isArray(json) ? json : (json.proposals ?? []);
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60_000,
   });
-
-  const { data: healthData } = useQuery<{ currentEpoch?: number }>({
-    queryKey: ['constellation-current-epoch'],
-    queryFn: async () => {
-      const res = await fetch('/api/governance/health-index');
-      if (!res.ok) return { currentEpoch: FALLBACK_EPOCH };
-      return res.json();
-    },
-    staleTime: 10 * 60 * 1000,
-  });
-
-  const currentEpoch = healthData?.currentEpoch ?? FALLBACK_EPOCH;
 
   const proposalNodes = useMemo<ConstellationNode3D[]>(() => {
-    if (!proposals) return [];
+    if (!proposals?.length) return [];
 
-    // Status values: 'Open' (active), 'Enacted', 'Dropped', 'Expired'
-    const activeProposals = proposals.filter((p) => p.status === 'Open' || p.status === 'active');
+    return proposals
+      .filter((p) => p.status === 'Open')
+      .map((p) => {
+        const scores = prefsToAlignments(p.relevantPrefs);
+        const alignments = scoresToArray(scores);
+        const dominant = getDominantDimension(scores);
 
-    return activeProposals.map((p) => {
-      const alignments = proposalToAlignments(p);
-      const scores = proposalToAlignmentScores(p);
-      const dominant = getDominantDimension(scores);
-      const totalVotes = p.yesVotes + p.noVotes + p.abstainVotes;
-      const urgency = computeUrgency(p.expiryEpoch, currentEpoch);
+        const drepVotes = p.triBody?.drep;
+        const totalVotes = drepVotes ? drepVotes.yes + drepVotes.no + drepVotes.abstain : 0;
+        const urgency = computeUrgency(p.expirationEpoch, CURRENT_EPOCH);
 
-      // Power for layout sizing: normalize ADA amount (log scale) combined with vote activity
-      const adaNorm = p.adaAmount ? Math.min(1, Math.log10(p.adaAmount + 1) / 10) : 0.3;
-      const voteNorm = Math.min(1, totalVotes / 500);
-      const power = adaNorm * 0.6 + voteNorm * 0.4;
+        const adaNorm = p.withdrawalAmount
+          ? Math.min(1, Math.log10(p.withdrawalAmount + 1) / 10)
+          : 0.3;
+        const voteNorm = Math.min(1, totalVotes / 200);
+        const power = adaNorm * 0.6 + voteNorm * 0.4;
 
-      const layoutInput: LayoutInput = {
-        id: `proposal-${p.txHash}-${p.index}`,
-        fullId: `${p.txHash}#${p.index}`,
-        name: p.title,
-        power,
-        score: urgency * 100, // use urgency as the "score" for positioning spread
-        dominant,
-        alignments,
-        nodeType: 'proposal',
-      };
+        const layoutInput: LayoutInput = {
+          id: `proposal-${p.txHash.slice(0, 12)}-${p.index}`,
+          fullId: `${p.txHash}#${p.index}`,
+          name: p.title,
+          power,
+          score: urgency * 100,
+          dominant,
+          alignments,
+          nodeType: 'proposal',
+        };
 
-      const [lon, lat] = computeSpherePosition(layoutInput);
-      const pos = sphereToCartesian(lat, lon, PROPOSAL_RADIUS);
+        const [lon, lat] = computeSpherePosition(layoutInput);
+        const pos = sphereToCartesian(lat, lon, PROPOSAL_RADIUS);
+        const scale =
+          PROPOSAL_MIN_SCALE +
+          (power * 0.5 + urgency * 0.5) * (PROPOSAL_MAX_SCALE - PROPOSAL_MIN_SCALE);
 
-      // Scale: larger for higher ADA amounts and more urgent proposals
-      const scale =
-        PROPOSAL_MIN_SCALE +
-        (power * 0.5 + urgency * 0.5) * (PROPOSAL_MAX_SCALE - PROPOSAL_MIN_SCALE);
-
-      return {
-        ...layoutInput,
-        position: pos,
-        scale,
-      };
-    });
-  }, [proposals, currentEpoch, userAlignments]);
+        return { ...layoutInput, position: pos, scale };
+      });
+  }, [proposals]);
 
   return { proposalNodes, isLoading: proposalsLoading };
 }
