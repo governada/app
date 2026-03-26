@@ -1,6 +1,6 @@
 # Cockpit Build — Progress Checkpoint
 
-## Status: Core Cockpit Complete (Phases 0-2C+6), Phases 3-13 Remaining
+## Status: Phases 0-3B+6 Complete, Phases 4-5+7-13 Remaining
 
 ## Plan Location
 
@@ -47,48 +47,61 @@
 
 1. `26d4529c` — Phase 0+1: Foundation store, types, shell, status strip
 2. `b60d186d` — Phase 2A+2B+2C+6: Seneca strip, action rail, overlay tabs, sound
+3. `469d9431` — Phase 3A partial: globe overlay color mode + urgent node IDs
+4. `663429b2` — Phase 3B: enhanced tooltip with action buttons, visited, social
 
-## Remaining Phases (in dependency order)
+### Phase 3A: Globe Overlay Color Mode ✅ (partial)
 
-### Ready to parallelize NOW:
+- `GlobeConstellation.tsx` — Added `overlayColorMode` and `urgentNodeIds` props
+- Overlay-aware color callbacks: urgent dims non-actionable nodes, proposals dims non-proposals, network dims proposals
+- Props threaded from main component → ConstellationNodes → color callbacks
+- **Still needed in 3A**: urgency PULSING (animated emissive cycling in useFrame), visited ring shader (aVisited attribute), social shimmer shader, personalized gravity in globe-layout.ts
 
-- **Phase 3A**: Globe Node Enhancements — modify `GlobeConstellation.tsx` shaders for urgency encoding (pulsing nodes), visited node memory (aVisited ring), social presence shimmer, personalized gravity (alignment-weighted node distances)
-- **Phase 3B**: Enhanced Hover Tooltip — modify `GlobeTooltip.tsx` to add action buttons (Research/Compare/Delegate/Review per entity type), visited chip, social presence count
-- **Phase 7**: Temporal Scrubbing — `hooks/useTemporalConstellation.ts` + `components/cockpit/TemporalScrubber.tsx`, integrate into StatusStrip
+### Phase 3B: Enhanced Tooltip ✅
 
-### After 3A:
+- `GlobeTooltip.tsx` — Added action buttons per entity type, visited chip, social presence count, cockpit store hover sync
 
-- **Phase 5**: Transition Cinematics — enhance `GlobeConstellation.flyToNodeImpl` for 600ms coordinated zoom + create `CockpitDetailPanel.tsx` (right-side panel with peek content + "Open in Studio →")
-- **Phase 4**: Network Edges — `components/cockpit/NetworkEdges.tsx` R3F component + `/api/cockpit/network-edges/route.ts`
+## Remaining Phases (in priority order)
 
-### After 2A+2B+2C (already done):
+### HIGHEST PRIORITY:
 
-- **Phase 8**: Mobile Cockpit — `CockpitMobile.tsx`, `MobileStatusPills.tsx`, `MobileActionFeed.tsx`
-- **Phase 9**: Boot Choreography — finalize cascade timing in CockpitHomePage, sync Seneca narration with HUD layer entrance
-- **Phase 10**: Completion Feedback — detect vote completion on window focus, trigger card animation + globe node green flash
+- **Phase 5**: Transition Cinematics + Detail Panel — THE critical missing piece for the DRep narrative. Create `CockpitDetailPanel.tsx` (right-side panel with peek content + "Open in Studio →" button). Enhance `GlobeConstellation.flyToNodeImpl` for coordinated 600ms zoom. Wire panel opening from node click.
 
-### Parallel with anything:
+### HIGH PRIORITY:
 
-- **Phase 11**: Accessibility — `CockpitTextMode.tsx` (sr-only), ARIA attributes, keyboard nav, GPU fallback
+- **Phase 3A completion**: Add urgency pulsing (useFrame animation), visited ring (shader attribute), personalized gravity (globe-layout.ts modification). Currently only overlay coloring is done.
+- **Phase 9**: Boot Choreography — finalize cascade timing, sync Seneca boot narration with HUD entrance
+- **Phase 10**: Completion Feedback — detect vote completion on window focus, trigger card animation + node green flash
 
-### Last:
+### MEDIUM PRIORITY:
 
-- **Phase 12**: Chrome Verification (16 checkpoints across DRep/Citizen/SPO/Mobile)
-- **Phase 13**: Adversarial Review (separate agent, iterate until spec met)
+- **Phase 4**: Network Edges — `NetworkEdges.tsx` R3F component + API route
+- **Phase 7**: Temporal Scrubbing — `TemporalScrubber.tsx` + historical data hook
+- **Phase 8**: Mobile Cockpit — `CockpitMobile.tsx` + mobile-specific components
+
+### LOWER PRIORITY:
+
+- **Phase 11**: Accessibility — `CockpitTextMode.tsx`, ARIA, keyboard nav, GPU fallback
+
+### LAST:
+
+- **Phase 12**: Chrome Verification (16 checkpoints)
+- **Phase 13**: Adversarial Review
 
 ## Key Integration Points for Next Agent
 
-- `CockpitHomePage.tsx` has SenecaStrip, ActionRail, OverlayTabs all integrated — no more placeholders
+- `CockpitHomePage.tsx` has all HUD components integrated (StatusStrip, SenecaStrip, ActionRail, OverlayTabs)
 - `StatusStrip.tsx` has `{/* Phase 7: TemporalScrubber will go here */}` comment
-- `GlobeTooltip.tsx` needs Phase 3B modifications (action buttons) — currently just shows entity info
-- `GlobeConstellation.tsx` needs Phase 3A (shader extensions: aVisited, aSocial, urgency pulsing), Phase 2C effect (overlayColorMode prop for node recoloring), Phase 4 (networkEdges children prop)
-- `CockpitHomePage.tsx` needs Phase 5 (CockpitDetailPanel integration for node click → panel slide-in)
+- `GlobeConstellation.tsx` has `overlayColorMode` + `urgentNodeIds` props but NOT yet: urgency pulsing, visited ring shader, social shimmer, personalized gravity
+- `GlobeTooltip.tsx` is fully enhanced with action buttons, visited chip, social presence
+- `CockpitHomePage.tsx` needs Phase 5 addition: `CockpitDetailPanel` integration for node click → panel slide-in → "Open in Studio" flow
+- The `ConstellationScene` wrapper (used by CockpitHomePage) needs the new props threaded through — check if `overlayColorMode` and `urgentNodeIds` are passed from CockpitHomePage → ConstellationScene → GlobeConstellation
 
 ## How to Resume
 
 1. Read this checkpoint and the plan at `C:\Users\dalto\.claude-personal\plans\cozy-noodling-neumann.md`
-2. Verify current state: `cd C:\Users\dalto\governada\governada-app\.claude\worktrees\hungry-kowalevski && git log --oneline -5`
-3. Pick the next phase(s) from the dependency graph and build
-4. Phase 3A is the most critical remaining phase — it makes the globe nodes actually encode meaning
-5. Phase 5 (Detail Panel + Cinematics) is the second most critical — it enables the "click node → see details → Open in Studio" flow
-6. After each phase: run preflight (`npm run preflight`), commit, update this checkpoint
+2. Verify current state: `cd C:\Users\dalto\governada\governada-app\.claude\worktrees\hungry-kowalevski && git log --oneline -6`
+3. **Start with Phase 5** (Detail Panel + Cinematics) — it's the most critical for the DRep narrative flow
+4. Then Phase 9 (Boot Choreography) and Phase 10 (Completion Feedback) to nail the narrative
+5. After each phase: typecheck (`npx tsc --noEmit`), commit, update this checkpoint
+6. When all phases done: push, create PR, run Chrome verification (Phase 12), then adversarial review (Phase 13)
