@@ -35,7 +35,7 @@ import { MatchAwareDiscoverHero } from './MatchAwareDiscoverHero';
 
 import { InsightCard } from '@/components/governada/shared/InsightCard';
 import { PersonalTeaser } from '@/components/governada/shared/PersonalTeaser';
-import { AdvisorPanel } from '@/components/governada/shared/AdvisorPanel';
+
 import { useRouter } from 'next/navigation';
 import { useFeatureFlag } from '@/components/FeatureGate';
 import { SpotlightTheater } from '@/components/spotlight/SpotlightTheater';
@@ -632,8 +632,6 @@ export function GovernadaSPOBrowse() {
         insight="Stake pools with governance scores above 70 tend to have more stable delegator bases — governance participation signals operator commitment."
         category="participation"
       />
-
-      <AdvisorPanel />
     </div>
   );
 }

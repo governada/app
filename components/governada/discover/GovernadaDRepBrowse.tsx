@@ -35,7 +35,7 @@ import { AlignmentScatter } from '@/components/governada/shared/AlignmentScatter
 import { MoversStrip } from '@/components/governada/shared/MoversStrip';
 import { InsightCard } from '@/components/governada/shared/InsightCard';
 import { PersonalTeaser } from '@/components/governada/shared/PersonalTeaser';
-import { AdvisorPanel } from '@/components/governada/shared/AdvisorPanel';
+
 import { useGovernanceDepth } from '@/hooks/useGovernanceDepth';
 import { DepthGate } from '@/components/providers/DepthGate';
 import { useWallet } from '@/utils/wallet-context';
@@ -1037,8 +1037,6 @@ export function GovernadaDRepBrowse(_props: GovernadaDRepBrowseProps) {
         insight="The top 10 DReps by governance score have a rationale rate 3x higher than average — they don't just vote, they explain why."
         category="participation"
       />
-
-      <AdvisorPanel />
     </div>
   );
 }
