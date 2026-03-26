@@ -137,7 +137,7 @@ export const useCockpitStore = create<CockpitState & CockpitActions>()(
       partialize: (state) => ({
         visitedNodeIds: state.visitedNodeIds,
         soundEnabled: state.soundEnabled,
-        activeOverlay: state.activeOverlay,
+        // QG-8: activeOverlay NOT persisted — always resets to 'urgent' on page load
       }),
     },
   ),

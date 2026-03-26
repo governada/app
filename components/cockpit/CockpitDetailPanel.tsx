@@ -76,6 +76,23 @@ function getActionLabel(node: ConstellationNode3D): string {
   }
 }
 
+/** QG-4: Derive a meaningful display name for the panel header */
+function getDisplayName(node: ConstellationNode3D): string {
+  if (node.name) return node.name;
+  switch (node.nodeType) {
+    case 'proposal':
+      return `Proposal #${node.id.replace(/^proposal-/, '').slice(-8)}`;
+    case 'drep':
+      return `DRep ${(node.fullId ?? node.id).slice(0, 8)}…`;
+    case 'spo':
+      return `Pool ${(node.fullId ?? node.id).slice(0, 8)}…`;
+    case 'cc':
+      return `CC Member ${(node.fullId ?? node.id).slice(0, 8)}…`;
+    default:
+      return node.id.slice(0, 16);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -153,7 +170,7 @@ export function CockpitDetailPanel({ node, onClose }: CockpitDetailPanelProps) {
             ref={panelRef}
             tabIndex={-1}
             role="dialog"
-            aria-label={`Details for ${node.name ?? node.id}`}
+            aria-label={`Details for ${getDisplayName(node)}`}
             initial={prefersReducedMotion ? { opacity: 0 } : { x: '100%', opacity: 0 }}
             animate={prefersReducedMotion ? { opacity: 1 } : { x: 0, opacity: 1 }}
             exit={prefersReducedMotion ? { opacity: 0 } : { x: '100%', opacity: 0 }}
@@ -175,7 +192,7 @@ export function CockpitDetailPanel({ node, onClose }: CockpitDetailPanelProps) {
               <div className="flex items-center gap-2 min-w-0">
                 <Sparkles className="h-4 w-4 shrink-0 text-compass-teal" />
                 <h2 className="truncate text-sm font-semibold text-foreground">
-                  {node.name ?? node.id.slice(0, 12) + '...'}
+                  {getDisplayName(node)}
                 </h2>
                 <span className="shrink-0 rounded bg-white/10 px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground">
                   {node.nodeType}

@@ -10,7 +10,7 @@
 
 import { useRef, useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
-import { useReducedMotion } from 'framer-motion';
+import { useReducedMotion, motion, useMotionValue, useTransform } from 'framer-motion';
 import { CheckCircle2 } from 'lucide-react';
 import { GlobeTooltip } from '@/components/governada/GlobeTooltip';
 import { useCockpitStore } from '@/stores/cockpitStore';
@@ -20,6 +20,7 @@ import { useSenecaThreadStore } from '@/stores/senecaThreadStore';
 import { useEpochContext } from '@/hooks/useEpochContext';
 import { ActionRailCard } from './ActionRailCard';
 import { OverlayTabs } from './OverlayTabs';
+import type { ActionRailItem } from '@/lib/cockpit/types';
 import type { ConstellationRef } from '@/components/GovernanceConstellation';
 import type { ConstellationNode3D } from '@/lib/constellation/types';
 
@@ -94,6 +95,60 @@ function MobileSenecaCard() {
 }
 
 // ---------------------------------------------------------------------------
+// Haptic helper
+// ---------------------------------------------------------------------------
+
+function triggerHaptic(type: 'light' | 'medium' | 'confirm' = 'light') {
+  if (typeof navigator === 'undefined' || !('vibrate' in navigator)) return;
+  const patterns: Record<string, number | number[]> = {
+    light: 10,
+    medium: 25,
+    confirm: [15, 50, 30],
+  };
+  try {
+    navigator.vibrate(patterns[type] ?? 10);
+  } catch {
+    /* unsupported */
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Swipeable action card wrapper (QG-5)
+// ---------------------------------------------------------------------------
+
+function SwipeableActionCard({
+  item,
+  index,
+  isCompleting,
+}: {
+  item: ActionRailItem;
+  index: number;
+  isCompleting: boolean;
+}) {
+  const x = useMotionValue(0);
+  const opacity = useTransform(x, [0, 120], [1, 0.3]);
+  const completeAction = useCockpitStore((s) => s.completeAction);
+
+  return (
+    <motion.div
+      style={{ x, opacity }}
+      drag="x"
+      dragConstraints={{ left: 0, right: 0 }}
+      dragElastic={0.3}
+      onDragEnd={(_, info) => {
+        if (info.offset.x > 100) {
+          triggerHaptic('confirm');
+          completeAction(item.id);
+        }
+      }}
+      onTapStart={() => triggerHaptic('light')}
+    >
+      <ActionRailCard item={item} index={index} isCompleting={isCompleting} />
+    </motion.div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Action Feed
 // ---------------------------------------------------------------------------
 
@@ -118,7 +173,7 @@ function MobileActionFeed() {
   return (
     <div className="flex flex-col gap-2 px-4">
       {items.map((item, index) => (
-        <ActionRailCard
+        <SwipeableActionCard
           key={item.id}
           item={item}
           index={index}
@@ -174,7 +229,15 @@ export function CockpitMobile({
   );
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-background">
+    <div
+      className="flex min-h-[100dvh] flex-col bg-background"
+      style={{
+        paddingTop: 'env(safe-area-inset-top)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        paddingLeft: 'env(safe-area-inset-left)',
+        paddingRight: 'env(safe-area-inset-right)',
+      }}
+    >
       {/* Compact globe — top 1/3 */}
       <div className="relative h-[33vh] w-full overflow-hidden">
         <ConstellationScene
@@ -194,8 +257,11 @@ export function CockpitMobile({
         <GlobeTooltip node={hoveredNode} screenPos={hoverScreenPos} />
       </div>
 
-      {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto pb-20">
+      {/* Scrollable content — extra padding for bottom overlay tabs + safe area */}
+      <div
+        className="flex-1 overflow-y-auto"
+        style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}
+      >
         {/* Status pills */}
         <MobileStatusPills temperature={temperature} urgentCount={urgentCount} />
 

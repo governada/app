@@ -27,9 +27,15 @@ import { CockpitDetailPanel } from './CockpitDetailPanel';
 import { CockpitMobile } from './CockpitMobile';
 import { CockpitTextMode } from './CockpitTextMode';
 import { NetworkEdges } from './NetworkEdges';
-import { computeDensityLevel } from '@/lib/cockpit/types';
+import { computeDensityLevel, BOOT_SEQUENCE, BOOT_TOTAL_MS } from '@/lib/cockpit/types';
 import type { ConstellationRef } from '@/components/GovernanceConstellation';
 import type { ConstellationNode3D } from '@/lib/constellation/types';
+
+// Boot timing derived from BOOT_SEQUENCE constants
+const BOOT_DELAYS = Object.fromEntries(BOOT_SEQUENCE.map((s) => [s.component, s.delay])) as Record<
+  string,
+  number
+>;
 
 const ConstellationScene = dynamic(
   () => import('@/components/ConstellationScene').then((m) => ({ default: m.ConstellationScene })),
@@ -72,12 +78,14 @@ export function CockpitHomePage() {
   }, [allItems]);
 
   // SV-5: Map completed actions to globe node IDs using allItems (not filtered items)
+  // QG-7: Track whether we have completions separately to avoid stale Set reference in deps
+  const hasCompletedNodes = completedGlobeNodeIds.size > 0;
   useEffect(() => {
     const animatingIds = Object.entries(actionCompletions)
       .filter(([, status]) => status === 'animating')
       .map(([id]) => id);
     if (animatingIds.length === 0) {
-      if (completedGlobeNodeIds.size > 0) {
+      if (hasCompletedNodes) {
         const timer = setTimeout(() => setCompletedGlobeNodeIds(new Set()), 2000);
         return () => clearTimeout(timer);
       }
@@ -85,12 +93,11 @@ export function CockpitHomePage() {
     }
     const nodeIds = new Set<string>();
     for (const id of animatingIds) {
-      // Search allItems (not filtered items) to find globe node ID
       const item = allItems.find((i) => i.id === id);
       if (item?.globeNodeId) nodeIds.add(item.globeNodeId);
     }
     if (nodeIds.size > 0) setCompletedGlobeNodeIds(nodeIds);
-  }, [actionCompletions, allItems, completedGlobeNodeIds.size]);
+  }, [actionCompletions, allItems, hasCompletedNodes]);
 
   // Detect mobile
   useEffect(() => {
@@ -192,7 +199,7 @@ export function CockpitHomePage() {
       return;
     }
 
-    // Start cascade
+    // Start cascade — total duration from BOOT_SEQUENCE constants
     setBootPhase('cascade');
     const readyTimer = setTimeout(() => {
       setBootPhase('ready');
@@ -201,7 +208,7 @@ export function CockpitHomePage() {
       } catch {
         /* ignore */
       }
-    }, 2500);
+    }, BOOT_TOTAL_MS);
 
     return () => clearTimeout(readyTimer);
   }, [bootPhase, setBootPhase, prefersReducedMotion]);
@@ -320,7 +327,7 @@ export function CockpitHomePage() {
                 : isReady
                   ? 'translateY(0)'
                   : 'translateY(-20px)',
-            transitionDelay: isCascading ? '500ms' : '0ms',
+            transitionDelay: isCascading ? `${BOOT_DELAYS['status-strip']}ms` : '0ms',
           }}
         >
           <StatusStrip govState={govState ?? undefined} />
@@ -344,7 +351,7 @@ export function CockpitHomePage() {
                   : isReady
                     ? 'translateX(0)'
                     : 'translateX(-20px)',
-              transitionDelay: isCascading ? '1500ms' : '0ms',
+              transitionDelay: isCascading ? `${BOOT_DELAYS['action-rail']}ms` : '0ms',
             }}
           >
             <ActionRail />
