@@ -17,10 +17,12 @@ import { useSenecaGlobeBridge } from '@/hooks/useSenecaGlobeBridge';
 import { useUserConstellationNode } from '@/hooks/useUserConstellationNode';
 import { useConstellationProposals } from '@/hooks/useConstellationProposals';
 import { useCockpitStore } from '@/stores/cockpitStore';
+import { useCockpitActions } from '@/hooks/useCockpitActions';
 import { StatusStrip } from './StatusStrip';
 import { SenecaStrip } from './SenecaStrip';
 import { ActionRail } from './ActionRail';
 import { OverlayTabs } from './OverlayTabs';
+import { CockpitDetailPanel } from './CockpitDetailPanel';
 import { computeDensityLevel } from '@/lib/cockpit/types';
 import type { ConstellationRef } from '@/components/GovernanceConstellation';
 import type { ConstellationNode3D } from '@/lib/constellation/types';
@@ -36,6 +38,7 @@ export function CockpitHomePage() {
   const globeRef = useRef<ConstellationRef>(null);
   const [hoveredNode, setLocalHoveredNode] = useState<ConstellationNode3D | null>(null);
   const [hoverScreenPos, setHoverScreenPos] = useState<{ x: number; y: number } | null>(null);
+  const [selectedNode, setSelectedNode] = useState<ConstellationNode3D | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const prefersReducedMotion = useReducedMotion();
   const flyInAttempted = useRef(false);
@@ -46,6 +49,33 @@ export function CockpitHomePage() {
   const setDensityLevel = useCockpitStore((s) => s.setDensityLevel);
   const setStoreHoveredNode = useCockpitStore((s) => s.setHoveredNode);
   const markNodeVisited = useCockpitStore((s) => s.markNodeVisited);
+
+  // Track completed action node IDs for globe green flash
+  const actionCompletions = useCockpitStore((s) => s.actionCompletions);
+  const { items: actionItems } = useCockpitActions();
+  const [completedGlobeNodeIds, setCompletedGlobeNodeIds] = useState<Set<string>>(new Set());
+
+  // When actionCompletions includes 'animating' items, map them to globe node IDs
+  useEffect(() => {
+    const animatingIds = Object.entries(actionCompletions)
+      .filter(([, status]) => status === 'animating')
+      .map(([id]) => id);
+    if (animatingIds.length === 0) {
+      if (completedGlobeNodeIds.size > 0) {
+        // Clear after 2s to let green flash show
+        const timer = setTimeout(() => setCompletedGlobeNodeIds(new Set()), 2000);
+        return () => clearTimeout(timer);
+      }
+      return;
+    }
+    // Find the globe node IDs for completed actions
+    const nodeIds = new Set<string>();
+    for (const id of animatingIds) {
+      const item = actionItems.find((i) => i.id === id);
+      if (item?.globeNodeId) nodeIds.add(item.globeNodeId);
+    }
+    if (nodeIds.size > 0) setCompletedGlobeNodeIds(nodeIds);
+  }, [actionCompletions, actionItems, completedGlobeNodeIds.size]);
 
   // Detect mobile
   useEffect(() => {
@@ -63,7 +93,7 @@ export function CockpitHomePage() {
   const { proposalNodes } = useConstellationProposals(userAlignments ?? undefined);
 
   // Bridge: globe commands from Seneca
-  const { handleNodeClick, executeGlobeCommand } = useSenecaGlobeBridge(globeRef);
+  const { executeGlobeCommand } = useSenecaGlobeBridge(globeRef);
   useEffect(() => {
     function handleGlobeCommand(e: Event) {
       const detail = (e as CustomEvent).detail;
@@ -188,10 +218,21 @@ export function CockpitHomePage() {
   const handleNodeSelect = useCallback(
     (node: ConstellationNode3D) => {
       markNodeVisited(node.id);
-      handleNodeClick(node);
+      // Open the detail panel instead of Seneca bridge click
+      setSelectedNode(node);
+      // Clear hover tooltip while panel is open
+      setLocalHoveredNode(null);
+      setHoverScreenPos(null);
     },
-    [markNodeVisited, handleNodeClick],
+    [markNodeVisited],
   );
+
+  // Close detail panel → reset globe camera + clear hovered state
+  const handleDetailPanelClose = useCallback(() => {
+    setSelectedNode(null);
+    setStoreHoveredNode(null);
+    globeRef.current?.resetCamera();
+  }, [setStoreHoveredNode]);
 
   // TODO: Phase 8 — render CockpitMobile for mobile
   if (isMobile) {
@@ -220,6 +261,7 @@ export function CockpitHomePage() {
           userNode={userNode}
           proposalNodes={proposalNodes}
           delegationBond={delegationBond}
+          completedNodeIds={completedGlobeNodeIds.size > 0 ? completedGlobeNodeIds : undefined}
         />
       </div>
 
@@ -250,7 +292,19 @@ export function CockpitHomePage() {
         {/* Spacer to push action rail and tabs to edges */}
         <div className="flex-1 relative">
           {/* Layer 4: Action Rail — positioned absolutely within the spacer */}
-          <div className="pointer-events-auto absolute left-4 top-4">
+          <div
+            className="pointer-events-auto absolute left-4 top-4 transition-all duration-500"
+            style={{
+              opacity: isReady || isCascading ? 1 : 0,
+              transform:
+                isCascading && !isReady
+                  ? 'translateX(-20px)'
+                  : isReady
+                    ? 'translateX(0)'
+                    : 'translateX(-20px)',
+              transitionDelay: isCascading ? '1500ms' : '0ms',
+            }}
+          >
             <ActionRail />
           </div>
         </div>
@@ -259,8 +313,11 @@ export function CockpitHomePage() {
         <OverlayTabs />
       </div>
 
-      {/* Globe tooltip */}
-      <GlobeTooltip node={hoveredNode} screenPos={hoverScreenPos} />
+      {/* Globe tooltip — hide when detail panel is open */}
+      {!selectedNode && <GlobeTooltip node={hoveredNode} screenPos={hoverScreenPos} />}
+
+      {/* Detail panel — slides in from right on node selection */}
+      <CockpitDetailPanel node={selectedNode} onClose={handleDetailPanelClose} />
     </div>
   );
 }
