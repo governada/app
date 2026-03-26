@@ -27,7 +27,6 @@ import { useRouter } from 'next/navigation';
 import { useFeatureFlag } from '@/components/FeatureGate';
 import { SpotlightTheater } from '@/components/spotlight/SpotlightTheater';
 import { SpotlightProposalCard } from '@/components/spotlight/SpotlightProposalCard';
-import { SolonDiscoveryPanel } from '@/components/spotlight/SolonDiscoveryPanel';
 import type { SpotlightEntity } from '@/components/spotlight/types';
 import { useSegment } from '@/components/providers/SegmentProvider';
 
@@ -304,7 +303,7 @@ export function ProposalsBrowse() {
 
   // ── Spotlight mode ──────────────────────────────────────────────────
   const spotlightEnabled = useFeatureFlag('spotlight_browse');
-  const solonEnabled = useFeatureFlag('solon_discovery');
+
   const router = useRouter();
 
   const spotlightQueue: SpotlightEntity[] = useMemo(() => {
@@ -355,9 +354,7 @@ export function ProposalsBrowse() {
     return (
       <div className="space-y-4 pt-2">
         <h1 className="text-xl font-bold tracking-tight">Explore Proposals</h1>
-        {solonEnabled && (
-          <SolonDiscoveryPanel entityType="proposal" entityCount={proposals.length} />
-        )}
+
         <SpotlightTheater
           queue={spotlightQueue}
           entityType="proposal"
