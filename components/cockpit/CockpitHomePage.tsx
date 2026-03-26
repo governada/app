@@ -18,6 +18,9 @@ import { useUserConstellationNode } from '@/hooks/useUserConstellationNode';
 import { useConstellationProposals } from '@/hooks/useConstellationProposals';
 import { useCockpitStore } from '@/stores/cockpitStore';
 import { StatusStrip } from './StatusStrip';
+import { SenecaStrip } from './SenecaStrip';
+import { ActionRail } from './ActionRail';
+import { OverlayTabs } from './OverlayTabs';
 import { computeDensityLevel } from '@/lib/cockpit/types';
 import type { ConstellationRef } from '@/components/GovernanceConstellation';
 import type { ConstellationNode3D } from '@/lib/constellation/types';
@@ -239,17 +242,21 @@ export function CockpitHomePage() {
           <StatusStrip govState={govState ?? undefined} />
         </div>
 
-        {/* Layer 3: Seneca Strip — Phase 2A */}
-        {/* Placeholder: will be replaced by SenecaStrip component */}
+        {/* Layer 3: Seneca Strip */}
+        <div className="pointer-events-auto">
+          <SenecaStrip />
+        </div>
 
         {/* Spacer to push action rail and tabs to edges */}
-        <div className="flex-1" />
+        <div className="flex-1 relative">
+          {/* Layer 4: Action Rail — positioned absolutely within the spacer */}
+          <div className="pointer-events-auto absolute left-4 top-4">
+            <ActionRail />
+          </div>
+        </div>
 
-        {/* Layer 4: Action Rail — Phase 2B */}
-        {/* Placeholder: will be replaced by ActionRail component */}
-
-        {/* Layer 5: Overlay Tabs — Phase 2C */}
-        {/* Placeholder: will be replaced by OverlayTabs component */}
+        {/* Layer 5: Overlay Tabs */}
+        <OverlayTabs />
       </div>
 
       {/* Globe tooltip */}
