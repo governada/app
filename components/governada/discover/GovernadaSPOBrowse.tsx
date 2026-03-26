@@ -40,7 +40,6 @@ import { useRouter } from 'next/navigation';
 import { useFeatureFlag } from '@/components/FeatureGate';
 import { SpotlightTheater } from '@/components/spotlight/SpotlightTheater';
 import { SpotlightSPOCard } from '@/components/spotlight/SpotlightSPOCard';
-import { SolonDiscoveryPanel } from '@/components/spotlight/SolonDiscoveryPanel';
 import { ConstellationCTA } from '@/components/spotlight/ConstellationCTA';
 import { ConstellationBrowse } from '@/components/spotlight/ConstellationBrowse';
 import { useSpotlightTracking } from '@/hooks/useSpotlightTracking';
@@ -370,7 +369,7 @@ export function GovernadaSPOBrowse() {
 
   // ── Spotlight mode ──────────────────────────────────────────────────
   const spotlightEnabled = useFeatureFlag('spotlight_browse');
-  const solonEnabled = useFeatureFlag('solon_discovery');
+
   const constellationEnabled = useFeatureFlag('constellation_browse');
   const spotlightTracking = useSpotlightTracking('spo');
   const [showConstellation, setShowConstellation] = useState(false);
@@ -418,7 +417,7 @@ export function GovernadaSPOBrowse() {
     return (
       <div className="space-y-4 pt-2">
         <h1 className="text-xl font-bold tracking-tight">Explore Stake Pools</h1>
-        {solonEnabled && <SolonDiscoveryPanel entityType="spo" entityCount={pools.length} />}
+
         {showConstellation && constellationEnabled ? (
           <ConstellationBrowse
             trackedIds={spotlightTracking.trackedIds}
