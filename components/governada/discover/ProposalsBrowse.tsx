@@ -13,7 +13,7 @@ import type { VotesResponseData, VoteItem } from '@/types/api';
 import { UrgencyStrip } from '@/components/governada/shared/UrgencyStrip';
 import { InsightCard } from '@/components/governada/shared/InsightCard';
 import { PersonalTeaser } from '@/components/governada/shared/PersonalTeaser';
-import { AdvisorPanel } from '@/components/governada/shared/AdvisorPanel';
+
 import { useDepthConfig } from '@/hooks/useDepthConfig';
 import { useGovernanceDepth } from '@/hooks/useGovernanceDepth';
 import { DepthGate } from '@/components/providers/DepthGate';
@@ -587,8 +587,6 @@ export function ProposalsBrowse() {
       />
 
       <DiscoverPagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
-
-      <AdvisorPanel />
     </div>
   );
 }
