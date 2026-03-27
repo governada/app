@@ -721,10 +721,6 @@ button:not(:disabled):active,
   display: none;
 }
 
-.scroll-snap-align-start {
-  scroll-snap-align: start;
-}
-
 /* ============================================================
    Button ripple — identity-tinted, CSS-only
    ============================================================ */
@@ -764,23 +760,6 @@ button:not(:disabled):active,
 
 :focus:not(:focus-visible) {
   outline: none;
-}
-
-/* ============================================================
-   Skeleton → content crossfade
-   ============================================================ */
-
-.skeleton-transition-enter {
-  animation: skeleton-crossfade 0.2s ease-out both;
-}
-
-@keyframes skeleton-crossfade {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
 }
 
 /* ============================================================
