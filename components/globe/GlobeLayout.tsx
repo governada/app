@@ -6,10 +6,17 @@
  * This is the client-side core of the /g/ route namespace.
  * The globe fills the viewport. Entity focus is driven by URL params.
  * SSR content from child pages is rendered as sr-only for SEO.
+ *
+ * Z-layer stack:
+ *   z-0:  ConstellationScene (full viewport)
+ *   z-20: GlobeControls (floating top-left)
+ *   z-25: ListOverlay (left panel)
+ *   z-30: PanelOverlay (right panel — entity detail)
+ *   z-40: SenecaOrb + SenecaThread
  */
 
-import { useRef, useCallback, useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRef, useCallback, useEffect, useState } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import type { ConstellationRef } from '@/components/GovernanceConstellation';
 import type { ConstellationNode3D } from '@/lib/constellation/types';
@@ -18,7 +25,12 @@ import { useSenecaThread } from '@/hooks/useSenecaThread';
 import { useSegment } from '@/components/providers/SegmentProvider';
 import { useEpochContext } from '@/hooks/useEpochContext';
 import { useWhisper } from '@/hooks/useWhisper';
+import type { GlobeFilter } from '@/lib/globe/urlState';
+import type { SortMode } from './FilterBar';
 import { PanelOverlay } from './PanelOverlay';
+import { ListOverlay } from './ListOverlay';
+import { GlobeControls } from './GlobeControls';
+
 const ConstellationScene = dynamic(
   () => import('@/components/ConstellationScene').then((m) => ({ default: m.ConstellationScene })),
   { ssr: false },
@@ -34,6 +46,12 @@ const SenecaThread = dynamic(
   { ssr: false },
 );
 
+// ---------------------------------------------------------------------------
+// Filter cycle order for keyboard shortcut
+// ---------------------------------------------------------------------------
+
+const FILTER_CYCLE: (GlobeFilter | null)[] = [null, 'dreps', 'proposals', 'spos', 'cc'];
+
 interface GlobeLayoutProps {
   children: React.ReactNode;
 }
@@ -42,6 +60,7 @@ export function GlobeLayout({ children }: GlobeLayoutProps) {
   const globeRef = useRef<ConstellationRef>(null);
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const seneca = useSenecaThread();
   const { handleNodeClick: bridgeNodeClick } = useSenecaGlobeBridge(globeRef);
   const { segment } = useSegment();
@@ -49,41 +68,144 @@ export function GlobeLayout({ children }: GlobeLayoutProps) {
   const { epoch, day, totalDays, activeProposalCount } = useEpochContext();
   const daysRemaining = totalDays - day;
 
-  // Track whether we've done the initial focus fly-to
+  // ---------------------------------------------------------------------------
+  // List overlay state
+  // ---------------------------------------------------------------------------
+
+  const urlFilter = searchParams.get('filter') as GlobeFilter | null;
+  const [listOpen, setListOpen] = useState(!!urlFilter);
+  const [filter, setFilter] = useState<GlobeFilter | null>(urlFilter);
+  const [sort, setSort] = useState<SortMode>('score');
+  const [highlightedNodeId, setHighlightedNodeId] = useState<string | null>(null);
+
+  // Sync filter from URL on navigation
+  useEffect(() => {
+    const f = searchParams.get('filter') as GlobeFilter | null;
+    if (f && f !== filter) {
+      setFilter(f);
+      setListOpen(true);
+    }
+  }, [searchParams, filter]);
+
+  // ---------------------------------------------------------------------------
+  // Globe focus tracking
+  // ---------------------------------------------------------------------------
+
   const initialFocusDone = useRef(false);
 
-  // When globe is ready + we have an entity route, fly to it
   const handleGlobeReady = useCallback(() => {
     if (initialFocusDone.current) return;
     initialFocusDone.current = true;
-
-    // Derive focus from the route path (e.g., /g/drep/abc → flyTo drep_abc)
     const entityFocus = deriveEntityFocusFromPath(pathname);
     if (entityFocus) {
       globeRef.current?.flyToNode(entityFocus);
     }
   }, [pathname]);
 
-  // Handle globe node selection — navigate to entity route
   const handleNodeSelect = useCallback(
     (node: ConstellationNode3D) => {
-      // Build the /g/ route for this entity
       const route = nodeToRoute(node);
-      if (route) {
-        router.push(route);
-      }
-      // Also fire the Seneca bridge
+      if (route) router.push(route);
       bridgeNodeClick(node);
     },
     [router, bridgeNodeClick],
   );
 
-  // Panel close → restore globe to default camera position
   const handlePanelClose = useCallback(() => {
     globeRef.current?.resetCamera();
   }, []);
 
-  // Whisper system for the orb
+  // Reset initial focus on path changes
+  useEffect(() => {
+    initialFocusDone.current = false;
+    const entityFocus = deriveEntityFocusFromPath(pathname);
+    if (entityFocus && globeRef.current) {
+      globeRef.current.flyToNode(entityFocus);
+      initialFocusDone.current = true;
+    }
+  }, [pathname]);
+
+  // ---------------------------------------------------------------------------
+  // List ↔ Globe sync: hover highlight
+  // ---------------------------------------------------------------------------
+
+  const handleNodeHover = useCallback((nodeId: string | null) => {
+    setHighlightedNodeId(nodeId);
+    globeRef.current?.highlightNode(nodeId);
+  }, []);
+
+  // ---------------------------------------------------------------------------
+  // List overlay controls
+  // ---------------------------------------------------------------------------
+
+  const handleFilterChange = useCallback(
+    (newFilter: GlobeFilter | null) => {
+      setFilter(newFilter);
+      // Update URL without navigation
+      const params = new URLSearchParams(searchParams.toString());
+      if (newFilter) {
+        params.set('filter', newFilter);
+      } else {
+        params.delete('filter');
+      }
+      const qs = params.toString();
+      router.replace(`${pathname}${qs ? `?${qs}` : ''}`, { scroll: false });
+    },
+    [searchParams, pathname, router],
+  );
+
+  const handleToggleList = useCallback(() => {
+    setListOpen((prev) => !prev);
+  }, []);
+
+  const handleCycleFilter = useCallback(() => {
+    const idx = FILTER_CYCLE.indexOf(filter);
+    const next = FILTER_CYCLE[(idx + 1) % FILTER_CYCLE.length];
+    handleFilterChange(next);
+    if (next && !listOpen) setListOpen(true);
+  }, [filter, listOpen, handleFilterChange]);
+
+  const handleResetGlobe = useCallback(() => {
+    globeRef.current?.resetCamera();
+    setListOpen(false);
+    handleFilterChange(null);
+    router.push('/g');
+  }, [router, handleFilterChange]);
+
+  const handleListClose = useCallback(() => {
+    setListOpen(false);
+    // Clear highlight when list closes
+    globeRef.current?.highlightNode(null);
+    setHighlightedNodeId(null);
+  }, []);
+
+  // ---------------------------------------------------------------------------
+  // Keyboard shortcuts
+  // ---------------------------------------------------------------------------
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      // Ignore if typing in an input
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+        return;
+
+      if (e.key === 'l' || e.key === 'L') {
+        e.preventDefault();
+        handleToggleList();
+      } else if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        handleCycleFilter();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [handleToggleList, handleCycleFilter]);
+
+  // ---------------------------------------------------------------------------
+  // Seneca whisper
+  // ---------------------------------------------------------------------------
+
   const { currentWhisper, dismissWhisper } = useWhisper('governance', {
     activeProposals: activeProposalCount ?? undefined,
     epochProgress: epoch ? (day / totalDays) * 100 : undefined,
@@ -99,16 +221,6 @@ export function GlobeLayout({ children }: GlobeLayoutProps) {
         : seneca.mode === 'research'
           ? ('thinking' as const)
           : ('idle' as const);
-
-  // Reset initial focus when path changes (entity navigation)
-  useEffect(() => {
-    initialFocusDone.current = false;
-    const entityFocus = deriveEntityFocusFromPath(pathname);
-    if (entityFocus && globeRef.current) {
-      globeRef.current.flyToNode(entityFocus);
-      initialFocusDone.current = true;
-    }
-  }, [pathname]);
 
   return (
     <div className="relative w-full h-[100dvh] overflow-hidden">
@@ -129,10 +241,28 @@ export function GlobeLayout({ children }: GlobeLayoutProps) {
         {children}
       </div>
 
-      {/* Globe controls overlay — z-20 (Phase 3 will add FilterBar here) */}
+      {/* Globe controls — z-20: floating top-left */}
       <div className="absolute top-20 left-4 z-20 pointer-events-auto">
-        {/* Placeholder for Phase 3 filter chips */}
+        <GlobeControls
+          listOpen={listOpen}
+          onToggleList={handleToggleList}
+          activeFilter={filter}
+          onCycleFilter={handleCycleFilter}
+          onResetGlobe={handleResetGlobe}
+        />
       </div>
+
+      {/* List overlay — z-25: left side panel */}
+      <ListOverlay
+        isOpen={listOpen}
+        onClose={handleListClose}
+        filter={filter}
+        onFilterChange={handleFilterChange}
+        sort={sort}
+        onSortChange={setSort}
+        highlightedNodeId={highlightedNodeId}
+        onNodeHover={handleNodeHover}
+      />
 
       {/* Panel overlay — z-30: entity detail panels over the globe */}
       <PanelOverlay onClose={handlePanelClose} />
@@ -177,19 +307,15 @@ export function GlobeLayout({ children }: GlobeLayoutProps) {
 
 /** Derive a globe node ID from the current /g/ route path */
 function deriveEntityFocusFromPath(pathname: string): string | null {
-  // /g/drep/[id]
   const drepMatch = pathname.match(/^\/g\/drep\/([^/]+)/);
   if (drepMatch) return `drep_${decodeURIComponent(drepMatch[1])}`;
 
-  // /g/proposal/[hash]/[index] — proposals use txHash as node ID prefix
   const proposalMatch = pathname.match(/^\/g\/proposal\/([a-f0-9]+)\/(\d+)/);
   if (proposalMatch) return `proposal_${proposalMatch[1]}_${proposalMatch[2]}`;
 
-  // /g/pool/[id]
   const poolMatch = pathname.match(/^\/g\/pool\/([^/]+)/);
   if (poolMatch) return `spo_${decodeURIComponent(poolMatch[1])}`;
 
-  // /g/cc/[id]
   const ccMatch = pathname.match(/^\/g\/cc\/([^/]+)/);
   if (ccMatch) return `cc_${decodeURIComponent(ccMatch[1])}`;
 
@@ -202,7 +328,6 @@ function nodeToRoute(node: ConstellationNode3D): string | null {
     case 'drep':
       return `/g/drep/${encodeURIComponent(node.fullId || node.id)}`;
     case 'proposal': {
-      // Proposal IDs are typically "txHash_index"
       const lastUnderscore = node.fullId.lastIndexOf('_');
       if (lastUnderscore === -1) return `/g/proposal/${node.fullId}/0`;
       const txHash = node.fullId.slice(0, lastUnderscore);

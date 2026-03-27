@@ -540,6 +540,14 @@ export const GlobeConstellation = forwardRef<
         dimmed: false,
       }));
     },
+
+    highlightNode: (nodeId: string | null) => {
+      setSceneState((prev) => ({
+        ...prev,
+        highlightId: nodeId,
+        dimmed: nodeId != null,
+      }));
+    },
   }));
 
   useEffect(() => {
