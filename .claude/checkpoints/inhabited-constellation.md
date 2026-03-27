@@ -10,67 +10,86 @@
 - **Phase 1**: Complete — PR #632 (/g/ route namespace, globe URL state)
 - **Phase 2**: Complete — PR #633 (panel overlay system)
 - **Phase 3**: Complete — PR #634 (list overlay + filtering + globe controls)
-- **Phase 4**: NOT STARTED — Seneca Intent Routing
-- **Phase 5**: NOT STARTED — Mobile Adaptation
+- **Phase 4**: Complete — PR #636 (Seneca intent routing — 8 intent types)
+- **Phase 5**: Complete — PR #637 (2D canvas fallback, GPU tier detection, touch targets)
 - **Phase 6**: NOT STARTED — Migration + Cleanup
 
 ## Current Branch
 
-`claude/loving-cannon` — rebased on main, all Phase 3 work merged.
+`claude/adoring-kilby` — rebased on main, all Phase 5 work merged.
 
-## Phase 3 Deliverables (just shipped)
+## Phase 6 Requirements (Final Phase)
 
-- `components/globe/ListOverlay.tsx` — left panel (380px desktop, bottom sheet mobile)
-- `components/globe/ListItem.tsx` — compact entity cards for 4 types
-- `components/globe/FilterBar.tsx` — entity type chips + sort cycling
-- `components/globe/GlobeControls.tsx` — floating pill with L/F/Reset
-- `highlightNode(nodeId)` added to `ConstellationRef` in both GovernanceConstellation.tsx and GlobeConstellation.tsx
-- `animate-panel-slide-left` added to globals.css
-- `GlobeLayout.tsx` rewritten with list state, filter URL sync, keyboard shortcuts
+**Goal:** Redirect old governance routes to globe equivalents. Remove dead page components. Update navigation.
 
-## Phase 4 Requirements (Next)
-
-**Goal:** Seneca queries translate to globe state changes. The AI becomes the navigator.
-
-### Intent Categories
+### Route Redirects (implement as `redirect()` in each page.tsx)
 
 ```
-BROWSE:    "show me proposals" → open list overlay, filter to proposals
-FOCUS:     "show me drep_X" → flyTo node, open detail panel
-COMPARE:   "compare X and Y" → highlight both, open comparison panel
-FILTER:    "show tier 1 dreps who vote on treasury" → filter list + globe
-MATCH:     "find my match" → start match flow with globe animation
-RESEARCH:  "analyze this proposal's impact" → deep research mode
-VOTESPLIT: "how did people vote on proposal X" → voteSplit visualization
-TEMPORAL:  "show me epoch 620" → temporal replay
+/governance/proposals       → /g?filter=proposals
+/governance/representatives → /g?filter=dreps
+/governance/pools           → /g?filter=spos
+/governance/treasury        → /g?sector=treasury
+/governance/health          → /g (health is ambient globe state)
+/governance/committee       → /g?filter=cc
+/governance/leaderboard     → /g?filter=dreps&sort=score
+/proposal/[tx]/[i]          → /g/proposal/[tx]/[i]
+/drep/[id]                  → /g/drep/[id]
+/pool/[id]                  → /g/pool/[id]
 ```
 
-### Key Files to Modify
+### Routes to KEEP (do NOT redirect)
 
-- `lib/intelligence/advisor.ts` — Add intent detection layer before AI call
-- `hooks/useSenecaThread.ts` — Add `executeIntent(intent)` method
-- `stores/senecaThreadStore.ts` — Add `pendingGlobeAction` field
-- `components/globe/GlobeLayout.tsx` — Listen for Seneca intents, dispatch to globe + list/panel
+- `app/governance/observatory` — already spatial-first, different paradigm
+- `app/governance/committee/compare` — specialized comparison tool
+- `app/governance/committee/data` — specialized data tool
+- `app/governance/briefing` — briefing page
+- `app/governance/health/methodology` — methodology docs
+- `app/governance/health/tracker` — health tracker tool
+- `app/governance/report/[epoch]` — epoch report pages
 
-### Architecture Notes
+### Dead Code Removal
 
-- GlobeLayout already has `globeRef` with `flyToNode`, `highlightNode`, `resetCamera`, `highlightMatches`, `setVoteSplit`, `setTemporalState`
-- ListOverlay is driven by `filter` state + `listOpen` boolean in GlobeLayout
-- URL state encodes filter/sector/view via `lib/globe/urlState.ts`
-- Seneca thread state is in `stores/senecaThreadStore.ts` (Zustand)
-- The bridge between Seneca and globe is partially wired via `useSenecaGlobeBridge` hook
+Delete these discover components (replaced by globe ListOverlay + FilterBar):
 
-### Pattern: How List/Filter Currently Works
+- `components/governada/discover/GovernadaDRepBrowse.tsx`
+- `components/governada/discover/ProposalsBrowse.tsx`
+- `components/governada/discover/GovernadaSPOBrowse.tsx`
+- `components/governada/discover/GovernadaDiscover.tsx`
+- `components/governada/discover/DiscoverFilterBar.tsx`
+- `components/governada/discover/DiscoverPagination.tsx`
+- `components/governada/discover/DiscoverHero.tsx`
+- `components/governada/discover/MatchAwareDiscoverHero.tsx`
 
-1. User clicks filter chip → `handleFilterChange(filter)` in GlobeLayout
-2. Updates `filter` state + URL searchParams
-3. ListOverlay reads `filter` prop and shows matching entities
-4. Globe doesn't yet dim non-matching nodes (Phase 4 could wire this via `highlightNode` or a new `setFilteredTypes` method)
+**IMPORTANT**: Before deleting, grep for imports of each component. Some may be referenced from pages that are being redirected (safe to delete together) or from pages being kept (need to update those pages first).
 
-## Decisions Made This Session
+### Navigation Updates
 
-- Used `z-[25]` for ListOverlay (between globe controls z-20 and panel overlay z-30)
-- ListItem is a `<button>` element (not Link) — clicks call `router.push` for better hover/highlight control
-- FilterBar sort cycles on click (score → activity → recent) rather than dropdown
-- Data hooks cast `as` for untyped fetchJson responses (matching panel pattern)
-- No virtual scrolling yet — full list renders all entities (can optimize later if perf issues)
+- Update `lib/nav/config.ts` to point governance items to `/g` routes
+- SectionTabBar: remove governance items or repurpose as globe filter toggles
+
+### Homepage Update
+
+- Anonymous: globe already fills viewport. "Explore governance" CTA → `/g`
+- Authenticated: SynapticBriefPanel stays. "Explore governance" CTA → `/g`
+
+### Key Files for Context
+
+| File                                      | Purpose                                          |
+| ----------------------------------------- | ------------------------------------------------ |
+| `components/globe/GlobeLayout.tsx`        | The /g/ client layout with all overlays          |
+| `lib/globe/urlState.ts`                   | URL state encoding (filter, sector, view params) |
+| `lib/nav/config.ts`                       | Navigation rail configuration                    |
+| `components/governada/GovernadaShell.tsx` | Shell with nav rail + SectionTabBar              |
+| `components/governada/SectionTabBar.tsx`  | Tab bar within governance sections               |
+
+### Validation Checklist
+
+- [ ] All old governance URLs redirect correctly (no 404s)
+- [ ] External links to `/governance/proposals` land on `/g?filter=proposals`
+- [ ] Navigation rail/tabs point to `/g` routes
+- [ ] No dead imports after component deletion (preflight catches this)
+- [ ] `/g` and all `/g/[entity]` routes still work after nav changes
+- [ ] Homepage CTAs navigate to `/g`
+- [ ] Accessibility: list mode (Ctrl+L) provides full table/card view of all entity types
+- [ ] `npm run preflight` passes
+- [ ] Production health check after deploy
