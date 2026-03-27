@@ -74,9 +74,11 @@ export function SynapticHomePage() {
                   alignment: command.alignment,
                   threshold: command.threshold ?? 120,
                 }
-              : command.cmd === 'reset'
-                ? { type: 'reset' }
-                : { type: 'clear' };
+              : command.cmd === 'voteSplit' && command.target
+                ? { type: 'voteSplit', proposalRef: command.target }
+                : command.cmd === 'reset'
+                  ? { type: 'reset' }
+                  : { type: 'clear' };
 
       bridge.executeGlobeCommand(bridgeCmd);
     },
