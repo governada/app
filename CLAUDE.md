@@ -10,14 +10,16 @@ Implementation is NOT complete until deployed and validated in production. Use `
 2. Stage files, commit (conventional: `feat:`, `fix:`, `refactor:`, etc.)
 3. `git push -u origin HEAD`
 4. `gh pr create` -- use `gh pr checks <N> --watch` to wait for CI, fix failures
-5. **Pre-merge check**: `bash scripts/pre-merge-check.sh <PR#>` -- blocks if CI is running on main or branch is behind
+5. **Pre-merge check**: `bash scripts/pre-merge-check.sh <PR#>` -- blocks if CI running, branch behind, or Sentry error rate elevated
 6. Merge: `gh api repos/governada/governada-app/pulls/<N>/merge -X PUT -f merge_method=squash`
-7. Apply migrations via Supabase MCP -> `npm run gen:types` if needed
-8. **Verify production** (Railway auto-deploys from merge — do NOT watch CI on main): wait ~3 min, then `curl -s https://governada.io/api/health` until healthy. Use `deploy-verifier` subagent in background if preferred.
+7. Apply migrations via Supabase MCP (test on branch first per `.claude/rules/migration-safety.md`) -> `npm run gen:types` if needed
+8. **Verify production**: wait ~3 min, then `bash scripts/check-deploy-health.sh` (includes response time assertions). Use `deploy-verifier` subagent in background if preferred.
 9. PUT `https://governada.io/api/inngest` if Inngest functions changed
 10. `npm run smoke-test`, verify changed endpoints on `governada.io`
-11. **Visual verification** (REQUIRED for UI changes): Open production in Claude Chrome, screenshot changed routes at desktop + mobile, verify against build spec. See `.claude/rules/post-deploy-verification.md` for full protocol.
-12. Clean up worktree if applicable
+11. `bash scripts/uptime-check.sh deploy` -- ping BetterStack heartbeat
+12. **Visual verification** (REQUIRED for UI changes): Open production in Claude Chrome, screenshot changed routes at desktop + mobile, verify against build spec. See `.claude/rules/post-deploy-verification.md` for full protocol.
+13. Clean up worktree if applicable
+14. **If deploy fails**: `bash scripts/rollback.sh` -- auto-reverts, verifies, creates GitHub issue
 
 ## Hard Constraints
 
@@ -98,16 +100,21 @@ C:\Users\dalto\governada\
 
 ## Scripts
 
-| Script               | Purpose                                              |
-| -------------------- | ---------------------------------------------------- |
-| `preflight`          | format:check + lint + type-check + test              |
-| `gen:types`          | Supabase types after migrations                      |
-| `inngest:status`     | Verify function registration                         |
-| `posthog:check`      | Verify analytics events                              |
-| `smoke-test`         | Production health checks                             |
-| `pre-merge-check.sh` | Block merge if CI running or branch behind           |
-| `cleanup.sh`         | Worktree/dir cleanup (dry-run or --clean)            |
-| `notify.sh`          | Alert founder via Discord/Telegram at decision gates |
+| Script                   | Purpose                                                     |
+| ------------------------ | ----------------------------------------------------------- |
+| `preflight`              | format:check + lint + type-check + test                     |
+| `gen:types`              | Supabase types after migrations                             |
+| `inngest:status`         | Verify function registration                                |
+| `posthog:check`          | Verify analytics events                                     |
+| `smoke-test`             | Production health checks + response time assertions         |
+| `pre-merge-check.sh`     | Block merge if CI running, branch behind, or errors spiking |
+| `cleanup.sh`             | Worktree/dir cleanup (dry-run or --clean)                   |
+| `notify.sh`              | Alert founder via Discord/Telegram at decision gates        |
+| `rollback.sh`            | Automated Railway rollback with health verification         |
+| `check-deploy-health.sh` | Post-deploy health + response time validation               |
+| `check-error-rate.sh`    | Sentry error rate gate (blocks merge if elevated)           |
+| `uptime-check.sh`        | Ping BetterStack heartbeat URLs                             |
+| `test-migration.sh`      | Supabase branch database migration testing guide            |
 
 ## Context Files (Agent-Optimized)
 

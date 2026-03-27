@@ -9,6 +9,7 @@ set -euo pipefail
 
 PR_NUMBER="${1:?Usage: pre-merge-check.sh <pr-number>}"
 REPO="governada/governada-app"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BASE_BRANCH="main"
 
 echo "Checking merge safety for PR #${PR_NUMBER}..."
@@ -58,6 +59,17 @@ if echo "$PR_STATUS" | grep -qi "fail"; then
   echo "BLOCKED: PR #${PR_NUMBER} has failing checks:"
   echo "$PR_STATUS"
   exit 1
+fi
+
+# 5. Check Sentry error rate (blocks if production is on fire)
+if [ -f "$SCRIPT_DIR/check-error-rate.sh" ]; then
+  echo ""
+  echo "Checking production error rate..."
+  if ! bash "$SCRIPT_DIR/check-error-rate.sh"; then
+    echo ""
+    echo "BLOCKED: Production error rate is elevated — fix existing issues before merging new changes."
+    exit 1
+  fi
 fi
 
 echo "OK: Safe to merge PR #${PR_NUMBER}."
