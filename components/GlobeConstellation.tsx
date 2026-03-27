@@ -17,7 +17,7 @@ import { useQuery } from '@tanstack/react-query';
 import * as THREE from 'three';
 import { computeGlobeLayout } from '@/lib/constellation/globe-layout';
 import { DelegationBond as DelegationBondComponent } from '@/components/globe/DelegationBond';
-import { CCCrownRing } from '@/components/hub/three/CCCrownRing';
+// CCCrownRing removed — CC members now render as sentinel nodes within the constellation
 import type {
   ConstellationApiData,
   FindMeTarget,
@@ -96,7 +96,7 @@ interface SceneState {
 const AXIAL_TILT = 23.4 * (Math.PI / 180);
 const INITIAL_CAMERA: [number, number, number] = [0, 3, 14];
 const INITIAL_TARGET: [number, number, number] = [0, 0, 0];
-const DEFAULT_ROTATION_SPEED = 0.012; // slow, majestic rotation (~8.7 min/revolution)
+const DEFAULT_ROTATION_SPEED = 0.005; // slow, contemplative rotation (~21 min/revolution)
 
 export const GlobeConstellation = forwardRef<
   import('@/components/GovernanceConstellation').ConstellationRef,
@@ -142,14 +142,8 @@ export const GlobeConstellation = forwardRef<
     [initialCameraTarget],
   );
 
-  // --- Interaction state: click-vs-drag disambiguation + auto-rotation pause ---
-  const pointerDownPosRef = useRef<{ x: number; y: number } | null>(null);
-  const pointerDownTimeRef = useRef(0);
-  const isDraggingRef = useRef(false);
-  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Mouse position tracking for tooltip placement
   const mouseScreenRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  /** Timestamp of last user interaction — used by useFrame-based idle recovery */
-  const lastInteractionRef = useRef(0);
   const [sceneState, setSceneState] = useState<SceneState>({
     nodes: [],
     edges: [],
@@ -214,7 +208,7 @@ export const GlobeConstellation = forwardRef<
     if (!controls || sceneState.nodes.length === 0) return null;
 
     const node = sceneState.nodes.find((n) => n.id === nodeId || n.fullId === nodeId);
-    if (!node || node.isAnchor) return null;
+    if (!node) return null;
 
     setSceneState((prev) => ({ ...prev, animating: true, highlightId: node.id, dimmed: true }));
 
@@ -319,7 +313,6 @@ export const GlobeConstellation = forwardRef<
       const intensities = new Map<string, number>();
 
       for (const node of sceneState.nodes) {
-        if (node.isAnchor) continue;
         // 6D Euclidean distance
         let sumSq = 0;
         for (let d = 0; d < 6; d++) {
@@ -550,77 +543,16 @@ export const GlobeConstellation = forwardRef<
     quality === 'low' ? 1 : quality === 'mid' ? 1.5 : Math.min(window.devicePixelRatio, 2);
 
   // --- Canvas-level interaction handlers ---
-  const handleCanvasPointerDown = useCallback(
-    (e: React.PointerEvent) => {
-      if (!interactive) return;
-      pointerDownPosRef.current = { x: e.clientX, y: e.clientY };
-      pointerDownTimeRef.current = Date.now();
-      isDraggingRef.current = false;
-      lastInteractionRef.current = Date.now();
-
-      // Pause auto-rotation while user is interacting
-      rotationSpeedRef.current = 0;
-    },
-    [interactive],
-  );
-
-  const handleCanvasPointerMove = useCallback(
-    (e: React.PointerEvent) => {
-      if (!interactive) return;
-      mouseScreenRef.current = { x: e.clientX, y: e.clientY };
-      lastInteractionRef.current = Date.now();
-
-      // Detect drag: if moved more than 5px from pointer-down, mark as dragging
-      const down = pointerDownPosRef.current;
-      if (down) {
-        const dx = e.clientX - down.x;
-        const dy = e.clientY - down.y;
-        if (dx * dx + dy * dy > 25) {
-          isDraggingRef.current = true;
-        }
-      }
-    },
-    [interactive],
-  );
-
-  const handleCanvasPointerUp = useCallback(() => {
-    if (!interactive) return;
-    pointerDownPosRef.current = null;
-    lastInteractionRef.current = Date.now();
-  }, [interactive]);
-
-  const handleCanvasDoubleClick = useCallback(() => {
-    if (!interactive) return;
-    const controls = cameraControlsRef.current;
-    if (!controls) return;
-    lastInteractionRef.current = Date.now();
-    const dist = controls.distance;
-    if (dist < 12) {
-      // Zoomed in — reset to default
-      controls.setLookAt(...effectiveCamera, ...effectiveTarget, true);
-      setSceneState((prev) => ({ ...prev, highlightId: null, dimmed: false }));
-      rotationSpeedRef.current = DEFAULT_ROTATION_SPEED;
-    } else {
-      // At default — zoom in
-      controls.dolly(4, true);
-    }
-  }, [interactive, effectiveCamera, effectiveTarget]);
-
-  // Cleanup idle timer on unmount
-  useEffect(() => {
-    return () => {
-      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-    };
+  // Track mouse position for hover tooltip positioning
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    mouseScreenRef.current = { x: e.clientX, y: e.clientY };
   }, []);
 
   return (
     <div
       className={`relative z-0 w-full ${className || ''}`}
       style={{ background: '#0a0b14' }}
-      onPointerDown={handleCanvasPointerDown}
-      onPointerMove={handleCanvasPointerMove}
-      onPointerUp={handleCanvasPointerUp}
-      onDoubleClick={handleCanvasDoubleClick}
+      onPointerMove={handlePointerMove}
     >
       {ready && (
         <Canvas
@@ -632,10 +564,10 @@ export const GlobeConstellation = forwardRef<
             inset: 0,
             width: '100%',
             height: '100%',
-            pointerEvents: interactive ? 'auto' : 'none',
+            pointerEvents: 'none',
           }}
           role="img"
-          aria-label="Interactive 3D globe visualization of Cardano governance"
+          aria-label="Governance constellation visualization"
         >
           <color
             attach="background"
@@ -652,11 +584,6 @@ export const GlobeConstellation = forwardRef<
           <ambientLight intensity={0.05} />
 
           <AmbientStarfield count={quality === 'low' ? 200 : 400} />
-          <IdleRotationRecovery
-            speedRef={rotationSpeedRef}
-            lastInteractionRef={lastInteractionRef}
-            interactive={interactive}
-          />
           <TiltedGlobeGroup
             rotationRef={rotationAngleRef}
             speedRef={rotationSpeedRef}
@@ -698,28 +625,10 @@ export const GlobeConstellation = forwardRef<
               overlayColorMode={overlayColorMode}
               urgentNodeIds={urgentNodeIds}
               completedNodeIds={completedNodeIds}
-              hoveredNodeId={hoveredNodeId}
-              visitedNodeIds={visitedNodeIds}
-              onNodeClick={
-                interactive
-                  ? (node) => {
-                      if (isDraggingRef.current) return; // suppress click after drag
-                      flyToNodeImpl(node.id);
-                    }
-                  : undefined
-              }
-              onNodeHover={
-                interactive
-                  ? (node) => {
-                      setHoveredNodeId(node?.id ?? null);
-                      onNodeHoverRef.current?.(node);
-                      onNodeHoverScreenRef.current?.(
-                        node,
-                        node ? { ...mouseScreenRef.current } : null,
-                      );
-                    }
-                  : undefined
-              }
+              onNodeHover={(node) => {
+                onNodeHoverRef.current?.(node);
+                onNodeHoverScreenRef.current?.(node, node ? { ...mouseScreenRef.current } : null);
+              }}
               matchedNodeIds={sceneState.matchedNodeIds}
               matchIntensities={sceneState.matchIntensities}
               activityMap={activityMap}
@@ -751,30 +660,7 @@ export const GlobeConstellation = forwardRef<
               <NetworkPulses edges={sceneState.edges} dimmed={sceneState.dimmed} />
             )}
 
-            {/* CC Crown Ring — golden halo with hexagonal medallions */}
-            <CCCrownRing
-              ccNodes={sceneState.nodes.filter((n) => n.nodeType === 'cc')}
-              dimmed={sceneState.dimmed}
-              onNodeClick={
-                interactive
-                  ? (node) => {
-                      if (isDraggingRef.current) return;
-                      flyToNodeImpl(node.id);
-                    }
-                  : undefined
-              }
-              onNodeHover={
-                interactive
-                  ? (node) => {
-                      onNodeHoverRef.current?.(node);
-                      onNodeHoverScreenRef.current?.(
-                        node,
-                        node ? { ...mouseScreenRef.current } : null,
-                      );
-                    }
-                  : undefined
-              }
-            />
+            {/* CC members rendered as sentinel nodes within the constellation (no crown ring) */}
           </TiltedGlobeGroup>
 
           {quality !== 'low' && (
@@ -803,34 +689,22 @@ export const GlobeConstellation = forwardRef<
             </EffectComposer>
           )}
 
+          {/* Non-interactive: Seneca controls camera via imperative setLookAt. No user orbit/zoom. */}
           <CameraControls
             ref={cameraControlsRef}
             makeDefault
             smoothTime={0.8}
-            mouseButtons={
-              interactive
-                ? {
-                    left: 1 as const, // ACTION.ROTATE
-                    middle: 0 as const,
-                    right: 0 as const,
-                    wheel: 16 as const, // ACTION.DOLLY
-                  }
-                : { left: 0 as const, middle: 0 as const, right: 0 as const, wheel: 0 as const }
-            }
-            touches={
-              interactive
-                ? {
-                    one: 64 as const, // ACTION.TOUCH_ROTATE
-                    two: 1024 as const, // ACTION.TOUCH_DOLLY
-                    three: 0 as const,
-                  }
-                : { one: 0 as const, two: 0 as const, three: 0 as const }
-            }
-            minPolarAngle={Math.PI / 2 - 0.785}
-            maxPolarAngle={Math.PI / 2 + 0.785}
+            mouseButtons={{
+              left: 0 as const,
+              middle: 0 as const,
+              right: 0 as const,
+              wheel: 0 as const,
+            }}
+            touches={{ one: 0 as const, two: 0 as const, three: 0 as const }}
             minDistance={8}
             maxDistance={22}
           />
+          <IdleCameraWobble controlsRef={cameraControlsRef} />
         </Canvas>
       )}
     </div>
@@ -961,6 +835,22 @@ void main() {
   float glow = 1.0 - smoothstep(0.0, 0.5, diamond);
   float core = 1.0 - smoothstep(0.0, 0.15, diamond);
   vec3 col = vColor * (1.0 + core * 2.0);
+  gl_FragColor = vec4(col, glow * vAlpha);
+}
+`;
+
+// Square-shaped glow for CC sentinel nodes — distinct from circular DReps and diamond SPOs
+const CC_SENTINEL_FRAG = /* glsl */ `
+varying vec3 vColor;
+varying float vAlpha;
+
+void main() {
+  vec2 p = gl_PointCoord - vec2(0.5);
+  float sq = max(abs(p.x), abs(p.y));
+  if (sq > 0.5) discard;
+  float glow = 1.0 - smoothstep(0.0, 0.5, sq);
+  float core = 1.0 - smoothstep(0.0, 0.12, sq);
+  vec3 col = vColor * (1.0 + core * 2.5);
   gl_FragColor = vec4(col, glow * vAlpha);
 }
 `;
@@ -1123,7 +1013,6 @@ function ConstellationNodes({
         proposal.push(n);
         continue;
       }
-      if (n.isAnchor) continue;
       if (n.nodeType === 'spo') spo.push(n);
       else if (n.nodeType === 'cc') cc.push(n);
       else drep.push(n);
@@ -1154,12 +1043,12 @@ function ConstellationNodes({
     },
     [overlayColorMode, urgentNodeIds, completedNodeIds],
   );
-  const getSpoColor = useCallback(() => {
-    // SPOs dim in proposals and urgent overlays, visible in network/ecosystem
-    if (overlayColorMode === 'proposals' || overlayColorMode === 'urgent') return DIMMED_COLOR;
-    return SPO_COLOR;
-  }, [overlayColorMode]);
-  // getCcColor removed — CC nodes rendered via CCCrownRing
+  const getSpoColor = useCallback(
+    () => (overlayColorMode === 'proposals' ? DIMMED_COLOR : SPO_COLOR),
+    [overlayColorMode],
+  );
+  const CC_SENTINEL_COLOR = '#d4a050'; // Wayfinder Amber — sentinel warmth
+  const getCcColor = useCallback(() => CC_SENTINEL_COLOR, []);
   const getUserColor = useCallback(() => USER_COLOR, []);
   const getProposalColor = useCallback(
     (node?: ConstellationNode3D) => {
@@ -1218,7 +1107,22 @@ function ConstellationNodes({
           activityMap={activityMap}
         />
       )}
-      {/* CC nodes rendered via CCCrownRing in the scene tree instead of point sprites */}
+      {/* CC sentinel nodes — distributed guardians with square-glow shader */}
+      {groups.cc.length > 0 && (
+        <NodePoints
+          nodes={groups.cc}
+          highlightId={highlightId}
+          dimmed={dimmed}
+          pulseId={pulseId}
+          interactive={false}
+          getColor={getCcColor}
+          emissive={3.5}
+          fragmentShader={CC_SENTINEL_FRAG}
+          matchedNodeIds={matchedNodeIds}
+          matchIntensities={matchIntensities}
+          activityMap={activityMap}
+        />
+      )}
       {groups.user.length > 0 && (
         <NodePoints
           nodes={groups.user}
@@ -1917,30 +1821,20 @@ function FlyToParticles({
 // --- Globe rotation group: Y-axis with Earth-like axial tilt ---
 
 /**
- * useFrame-based idle recovery: auto-restores rotation speed after 5 seconds
- * of no user interaction. This runs inside the Three.js render loop so it
- * can never be "lost" due to swallowed pointer events from CameraControls.
+ * Subtle camera wobble: gentle oscillation of azimuth angle
+ * to make the globe feel alive even when Seneca is idle.
+ * Amplitude ~0.0003 rad/frame, period ~12s.
  */
-function IdleRotationRecovery({
-  speedRef,
-  lastInteractionRef,
-  interactive,
+function IdleCameraWobble({
+  controlsRef,
 }: {
-  speedRef: React.RefObject<number>;
-  lastInteractionRef: React.RefObject<number>;
-  interactive?: boolean;
+  controlsRef: React.RefObject<CameraControls | null>;
 }) {
-  useFrame(() => {
-    if (!interactive) return;
-    if (speedRef.current >= DEFAULT_ROTATION_SPEED) return;
-    const elapsed = Date.now() - lastInteractionRef.current;
-    if (elapsed > 5000) {
-      // Smoothly restore rotation speed
-      speedRef.current = Math.min(
-        DEFAULT_ROTATION_SPEED,
-        speedRef.current + DEFAULT_ROTATION_SPEED * 0.02,
-      );
-    }
+  useFrame(({ clock }) => {
+    if (!controlsRef.current) return;
+    const t = clock.getElapsedTime();
+    // Gentle azimuth drift
+    controlsRef.current.azimuthAngle += Math.sin(t * 0.52) * 0.0002;
   });
   return null;
 }

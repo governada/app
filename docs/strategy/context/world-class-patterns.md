@@ -1367,6 +1367,81 @@ _(Patterns for AI-first product design, conversational intelligence, ambient AI)
 
 ---
 
+### AI Companions & Narrated Intelligence
+
+_(Patterns for AI-driven interfaces, narrated curation, ambient AI, conversational intelligence)_
+
+#### Spotify AI DJ — Personality-Driven Narrated Curation
+
+- **Source**: Spotify — https://newsroom.spotify.com/2023-03-08/spotify-new-personalized-ai-dj-how-it-works/
+- **Discovered**: 2026-03-26 (explore-feature: authenticated homepage)
+- **What they do**: AI DJ modeled on a real person (Xavier "X" Jernigan) narrates transitions between music segments. A "writers' room" of music experts + generative AI produces commentary. Key: narration explains WHY something matters to YOU ("here's a deep cut from an artist you haven't heard in a while"), not just what's playing.
+- **Why it's world-class**: Transforms passive playlist consumption into a narrated experience with personality. The DJ creates emotional context that makes the same song feel different.
+- **Applicable to**: Seneca governance briefings. Narrate WHY governance events matter to the specific user, not just what happened. "A treasury proposal just entered voting that aligns with your values — but your DRep voted No last time."
+- **Adoption difficulty**: Medium — Seneca persona system exists, need streaming briefing with personalization
+
+#### Perplexity — Predicted Follow-Up Questions
+
+- **Source**: Perplexity — https://www.nngroup.com/articles/perplexity-henry-modisett/
+- **Discovered**: 2026-03-26 (explore-feature: authenticated homepage)
+- **What they do**: After every answer, suggest 2-3 follow-up questions the user might want to ask. 82% of users say the interface is cleaner than Google. Key: recognizes that users don't always know what to ask next.
+- **Why it's world-class**: Turns one-shot Q&A into a guided exploration. The follow-ups create a "choose your own adventure" feel.
+- **Applicable to**: Every Seneca briefing segment should end with 2-3 contextual follow-ups. "Dig into the treasury impact?" / "Compare this to your DRep's position?" / "See how other citizens feel?"
+- **Adoption difficulty**: Low — append to advisor response format
+
+#### Ambient AI Agent UX — 7 Patterns (Benjamin Prigent)
+
+- **Source**: Benjamin Prigent — https://www.bprigent.com/article/7-ux-patterns-for-human-oversight-in-ambient-ai-agents
+- **Discovered**: 2026-03-26 (explore-feature: authenticated homepage)
+- **What they do**: Framework for ambient AI agents: overview panels (status), oversight flows (human intervention), activity logs (history), explainable rationale (why). Key distinction: chatbots react to prompts; ambient agents operate proactively — monitoring, deciding, and only involving humans when needed. Multi-stage verification prevents annoying notifications.
+- **Why it's world-class**: The only comprehensive UX framework for proactive (not reactive) AI agents.
+- **Applicable to**: Seneca should be an ambient agent: monitor governance, surface intelligence only when contextually relevant. Globe = overview panel. Intelligence panel = activity log. Seneca narration = explainable rationale.
+- **Adoption difficulty**: Medium — architecture exists, need proactive trigger pipeline
+
+### Visualization & Spatial Intelligence
+
+_(Patterns for data visualization, 3D/spatial interfaces, globe experiences, neural/brain metaphors)_
+
+#### Bbycroft LLM Visualization — Visible AI Thinking
+
+- **Source**: Brendan Bycroft — https://bbycroft.net/llm
+- **Discovered**: 2026-03-26 (explore-feature: authenticated homepage)
+- **What they do**: Full 3D visualization of a GPT-style transformer where you watch data flow through every layer in real-time. Each layer lights up as computation passes. Seamless macro-to-micro zoom from whole network to individual weight matrices.
+- **Why it's world-class**: Makes AI reasoning VISIBLE and tangible. You literally watch the machine think. Unprecedented educational and aesthetic impact.
+- **Applicable to**: When Seneca "thinks," neural pathway arcs could light up across the globe connecting relevant governance nodes. Visual metaphor: Seneca's thought process visible as data flowing through the governance network.
+- **Adoption difficulty**: Hard — needs neural mesh geometry + directional impulse shader animation
+
+#### Siri/Voice-Assistant Orb — 4-State Visual Machine
+
+- **Source**: SmoothUI — https://smoothui.dev/docs/components/siri-orb
+- **Discovered**: 2026-03-26 (explore-feature: authenticated homepage)
+- **What they do**: 4 distinct visual states: Idle (soft glow) → Listening (waveform expands) → Thinking (slow rotation, color shift) → Responding (pulsing waves, full brightness). Perlin noise for organic displacement. Fresnel effects intensify with voice input.
+- **Why it's world-class**: The state machine creates a complete visual language for AI presence. Each state is instantly recognizable.
+- **Applicable to**: The globe itself as Seneca's visual embodiment. Idle = gentle breathing. Analyzing = nodes pulse. Narrating = arcs light up in sync with text stream. The entire globe IS the orb.
+- **Adoption difficulty**: Medium — atmosphere shader can map to states
+
+#### Spline AI Voice — Real-Time 3D Voice Reactivity
+
+- **Source**: Spline — https://spline.design/solutions/ai-voice-with-real-time-api
+- **Discovered**: 2026-03-26 (explore-feature: authenticated homepage)
+- **What they do**: 3D visualizations respond to AI voice via OpenAI Realtime API. Voice spectrum variable drives any object property (scale, color, displacement). The "orb recipe": translucent sphere + inner sphere + displacement driven by audio spectrum.
+- **Why it's world-class**: Real-time synchronization between AI output and visual state. The visual IS the voice.
+- **Applicable to**: Globe displacement/glow intensity driven by Seneca's text generation rate. Fast streaming = energetic globe. Slow deliberation = gentle breathing.
+- **Adoption difficulty**: Low — map token generation rate to shader uniform
+
+### Shareable & Social
+
+_(Patterns for viral sharing, temporal identity, social proof)_
+
+#### Spotify Wrapped — Shareable Temporal Identity Cards
+
+- **Source**: Spotify — https://newsroom.spotify.com/2025-12-03/2025-wrapped-user-experience/
+- **Discovered**: 2026-03-26 (explore-feature: authenticated homepage)
+- **What they do**: 9:16 vertical format for Instagram Stories/TikTok. Bite-sized slides, one insight per card with dramatic animation. Native + Lottie animations. Vibrant gradients designed to stand out in feeds. Each slide reveals one insight dramatically.
+- **Why it's world-class**: 200M+ users share annually. The format (vertical, bold colors, one stat per card) is purpose-built for social feeds.
+- **Applicable to**: "Epoch Wrapped" — per-user governance participation cards. Globe time-lapse of epoch activity. "You aligned with 73% of passed proposals." Vertical format, Compass palette, shareable to Twitter/X.
+- **Adoption difficulty**: Medium — data exists, need card rendering pipeline + share flow
+
 ## Update Protocol
 
 When adding a pattern, use this format:

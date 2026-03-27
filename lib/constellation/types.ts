@@ -28,6 +28,8 @@ export interface ConstellationNode3D {
   voteCount?: number;
   /** CC fidelity grade (A-F) */
   fidelityGrade?: string;
+  /** Volumetric depth: 0 = center, 1 = boundary (radius / GLOBE_RADIUS) */
+  depth?: number;
 }
 
 export type EdgeType = 'proximity' | 'infrastructure' | 'lastmile' | 'orbital' | 'delegation';
