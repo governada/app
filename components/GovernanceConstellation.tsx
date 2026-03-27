@@ -47,6 +47,8 @@ export interface ConstellationRef {
   setTemporalState: (progress: number, voteMap: Map<string, 'Yes' | 'No' | 'Abstain'>) => void;
   /** Exit temporal replay mode */
   clearTemporal: () => void;
+  /** Highlight a single node (no camera move). Pass null to clear. */
+  highlightNode: (nodeId: string | null) => void;
 }
 
 interface ConstellationProps {
@@ -289,6 +291,14 @@ export const GovernanceConstellation = forwardRef<ConstellationRef, Constellatio
 
       clearTemporal: () => {
         // No-op in the legacy constellation
+      },
+
+      highlightNode: (nodeId: string | null) => {
+        setSceneState((prev) => ({
+          ...prev,
+          highlightId: nodeId,
+          dimmed: nodeId != null,
+        }));
       },
     }));
 
