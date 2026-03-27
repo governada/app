@@ -1,0 +1,70 @@
+name: Post-Deploy Verification
+
+# Runs after CI succeeds on main (post-merge).
+# Serialized via concurrency group to prevent parallel deploys.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false # Never cancel a running deploy verification
+
+jobs:
+  verify:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+
+      - name: Wait for Railway deploy
+        run: |
+          echo "Waiting 180s for Railway to build and deploy..."
+          sleep 180
+
+      - name: Health check
+        run: bash scripts/check-deploy-health.sh https://governada.io
+
+      - name: Smoke test
+        run: npm run smoke-test
+
+      - name: Ping deploy heartbeat
+        if: success()
+        run: bash scripts/uptime-check.sh deploy
+        env:
+          HEARTBEAT_URL_DEPLOY: ${{ secrets.HEARTBEAT_URL_DEPLOY }}
+
+      - name: Notify on failure
+        if: failure()
+        env:
+          DISCORD_WEBHOOK_URL: ${{ vars.DISCORD_WEBHOOK_URL }}
+        run: |
+          if [ -n "${DISCORD_WEBHOOK_URL:-}" ]; then
+            curl -H "Content-Type: application/json" \
+              -d "{\"content\": \"🚨 **POST-DEPLOY VERIFICATION FAILED** on main\\nCommit: \`${{ github.event.workflow_run.head_sha }}\`\\n${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
+              "$DISCORD_WEBHOOK_URL"
+          fi
+
+  notify-success:
+    needs: verify
+    if: success()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Discord deploy success
+        if: vars.DISCORD_WEBHOOK_URL != ''
+        env:
+          DISCORD_WEBHOOK_URL: ${{ vars.DISCORD_WEBHOOK_URL }}
+        run: |
+          curl -H "Content-Type: application/json" \
+            -d "{\"content\": \"✅ Deploy verified: \`${{ github.event.workflow_run.head_sha }}\` is live on governada.io\"}" \
+            "$DISCORD_WEBHOOK_URL"

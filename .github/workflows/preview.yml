@@ -1,0 +1,103 @@
+name: Preview Environment
+
+# Deploys a preview environment for PRs and runs smoke tests against it.
+# Requires Railway preview environments to be enabled in the project settings.
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Only run if Railway preview environments are configured
+    if: vars.RAILWAY_PREVIEW_ENABLED == 'true'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+
+      # Railway automatically creates preview environments for PRs
+      # when configured. The preview URL follows a predictable pattern.
+      - name: Wait for preview deploy
+        id: preview
+        run: |
+          # Railway preview URL pattern: pr-<number>-governada-app.up.railway.app
+          # or custom domain pattern from Railway project settings
+          PREVIEW_URL="https://pr-${{ github.event.pull_request.number }}-governada-app.up.railway.app"
+          echo "preview_url=$PREVIEW_URL" >> $GITHUB_OUTPUT
+
+          echo "Waiting for preview environment at $PREVIEW_URL..."
+          MAX_ATTEMPTS=30
+          ATTEMPT=0
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$PREVIEW_URL/api/health/ready" 2>/dev/null || echo "000")
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "Preview is ready!"
+              break
+            fi
+            ATTEMPT=$((ATTEMPT + 1))
+            echo "  Attempt $ATTEMPT/$MAX_ATTEMPTS: HTTP $HTTP_CODE"
+            sleep 20
+          done
+
+          if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+            echo "Preview environment did not become ready in time"
+            exit 1
+          fi
+
+      - name: Smoke test preview
+        run: npm run smoke-test -- "${{ steps.preview.outputs.preview_url }}"
+
+      - name: Comment preview URL on PR
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = `🔍 **Preview deployed and smoke tests passed**\n\n` +
+              `Preview URL: ${{ steps.preview.outputs.preview_url }}\n\n` +
+              `All ${8} smoke test checks passed.`;
+
+            // Find existing preview comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.includes('Preview deployed'));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+      - name: Comment failure on PR
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `🚨 **Preview smoke tests failed**\n\nCheck the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.`,
+            });

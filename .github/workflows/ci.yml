@@ -25,7 +25,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  install:
+  # Fast checks: format + lint + type-check in one job (saves 3 cache restores ~30s each)
+  checks:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -38,61 +39,20 @@ jobs:
         with:
           path: node_modules
           key: nm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-
-  type-check:
-    needs: install
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 20
-      - uses: actions/cache/restore@v5
-        with:
-          path: node_modules
-          key: nm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - run: npm run format:check
+      - run: npm run lint
       - run: npm run type-check
 
-  format:
-    needs: install
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 20
-      - uses: actions/cache/restore@v5
-        with:
-          path: node_modules
-          key: nm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-      - run: npm run format:check
-
-  lint:
-    needs: install
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 20
-      - uses: actions/cache/restore@v5
-        with:
-          path: node_modules
-          key: nm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-      - run: npm run lint
-
+  # Tests run in parallel with checks (separate job for isolation)
   test:
-    needs: install
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
           node-version: 20
-      - uses: actions/cache/restore@v5
-        with:
-          path: node_modules
-          key: nm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          cache: npm
+      - run: npm ci
       - run: npm run test:coverage
       - name: Check coverage thresholds
         run: |
@@ -118,7 +78,7 @@ jobs:
           "
 
   build:
-    needs: [type-check, format, lint, test]
+    needs: [checks, test]
     runs-on: ubuntu-latest
     env:
       NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
@@ -146,6 +106,17 @@ jobs:
       - name: Report bundle size
         if: github.event_name == 'pull_request'
         run: npx tsx scripts/report-bundle-size.ts
+      - name: Enforce bundle budget
+        run: |
+          # Fail CI if total JS bundle exceeds 20 MB (raw uncompressed)
+          # Baseline: ~12.5 MB. Budget gives 60% headroom for growth.
+          TOTAL_JS=$(find .next/static -name '*.js' -exec wc -c {} + 2>/dev/null | tail -1 | awk '{print $1}')
+          BUDGET=20971520  # 20 MB
+          if [ "${TOTAL_JS:-0}" -gt "$BUDGET" ]; then
+            echo "FAIL: Bundle size ${TOTAL_JS} bytes exceeds budget of ${BUDGET} bytes (20 MB)"
+            exit 1
+          fi
+          echo "Bundle size OK: ${TOTAL_JS:-0} bytes (budget: ${BUDGET})"
       - name: Upload build artifact
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         uses: actions/upload-artifact@v7
@@ -183,7 +154,7 @@ jobs:
 
   notify:
     if: failure()
-    needs: [type-check, format, lint, test, build]
+    needs: [checks, test, build]
     runs-on: ubuntu-latest
     steps:
       - name: Discord notification

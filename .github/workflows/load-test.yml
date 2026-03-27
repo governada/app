@@ -1,0 +1,75 @@
+name: Load Test
+
+# Manual trigger for load testing against production or a specific URL.
+# Run before launch to establish baselines.
+on:
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: 'Load test scenario'
+        required: true
+        type: choice
+        options:
+          - citizen-journey
+          - api-v1
+          - engagement-burst
+          - drep-workspace
+          - all
+      base_url:
+        description: 'Target URL (default: production)'
+        required: false
+        default: 'https://governada.io'
+      vus:
+        description: 'Max virtual users (overrides scenario default)'
+        required: false
+        default: ''
+
+jobs:
+  load-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D68
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Run load test
+        run: |
+          BASE_URL="${{ inputs.base_url }}"
+          SCENARIO="${{ inputs.scenario }}"
+
+          if [ "$SCENARIO" = "all" ]; then
+            for s in citizen-journey api-v1 engagement-burst drep-workspace; do
+              echo "=== Running $s ==="
+              BASE_URL="$BASE_URL" k6 run tests/load/scenarios/${s}.js --out json=results-${s}.json || true
+              echo ""
+            done
+          else
+            BASE_URL="$BASE_URL" k6 run tests/load/scenarios/${SCENARIO}.js --out json=results-${SCENARIO}.json
+          fi
+        env:
+          BASE_URL: ${{ inputs.base_url }}
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: k6-results-${{ github.run_id }}
+          path: results-*.json
+          retention-days: 30
+
+      - name: Post results summary
+        if: always()
+        run: |
+          echo "## Load Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Scenario:** ${{ inputs.scenario }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Target:** ${{ inputs.base_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Check the uploaded artifacts for detailed k6 JSON output." >> $GITHUB_STEP_SUMMARY
