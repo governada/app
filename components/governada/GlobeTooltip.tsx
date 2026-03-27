@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Compass } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useCockpitStore } from '@/stores/cockpitStore';
 import type { ConstellationNode3D } from '@/lib/constellation/types';
 
 interface GlobeTooltipProps {
@@ -82,22 +81,6 @@ export function GlobeTooltip({ node, screenPos, showMatchCta }: GlobeTooltipProp
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
 
-  const visitedNodeIds = useCockpitStore((s) => s.visitedNodeIds);
-  const setHoveredNode = useCockpitStore((s) => s.setHoveredNode);
-  const markNodeVisited = useCockpitStore((s) => s.markNodeVisited);
-
-  // -------------------------------------------------------------------------
-  // Hovered node tracking
-  // -------------------------------------------------------------------------
-  useEffect(() => {
-    if (node) {
-      setHoveredNode(node.id);
-    } else {
-      setHoveredNode(null);
-    }
-    return () => setHoveredNode(null);
-  }, [node, setHoveredNode]);
-
   // -------------------------------------------------------------------------
   // Position calculation
   // -------------------------------------------------------------------------
@@ -135,40 +118,33 @@ export function GlobeTooltip({ node, screenPos, showMatchCta }: GlobeTooltipProp
     window.dispatchEvent(new CustomEvent('startSenecaMatch'));
   }, []);
 
-  const isVisited = node ? visitedNodeIds.includes(node.id) : false;
-
   // -------------------------------------------------------------------------
   // Action handlers
   // -------------------------------------------------------------------------
   const handleResearch = useCallback(() => {
     if (!node) return;
-    markNodeVisited(node.id);
     dispatchResearch(node);
-  }, [node, markNodeVisited]);
+  }, [node]);
 
   const handleCompare = useCallback(() => {
     if (!node) return;
-    markNodeVisited(node.id);
     window.location.href = `/compare?drep=${node.id}`;
-  }, [node, markNodeVisited]);
+  }, [node]);
 
   const handleDelegate = useCallback(() => {
     if (!node) return;
-    markNodeVisited(node.id);
     window.location.href = '/delegation';
-  }, [node, markNodeVisited]);
+  }, [node]);
 
   const handleReview = useCallback(() => {
     if (!node) return;
-    markNodeVisited(node.id);
     window.location.href = '/governance/proposals';
-  }, [node, markNodeVisited]);
+  }, [node]);
 
   const handleViewProfile = useCallback(() => {
     if (!node) return;
-    markNodeVisited(node.id);
     window.location.href = getProfileHref(node);
-  }, [node, markNodeVisited]);
+  }, [node]);
 
   return (
     <AnimatePresence>
@@ -189,15 +165,8 @@ export function GlobeTooltip({ node, screenPos, showMatchCta }: GlobeTooltipProp
             top: position.y,
           }}
         >
-          {/* Name + visited chip */}
-          <div className="flex items-center gap-2">
-            <p className="text-sm font-semibold text-white truncate">{displayName}</p>
-            {isVisited && (
-              <span className="text-[9px] text-muted-foreground/40 bg-white/5 px-1.5 py-0.5 rounded-full whitespace-nowrap">
-                Visited
-              </span>
-            )}
-          </div>
+          {/* Name */}
+          <p className="text-sm font-semibold text-white truncate">{displayName}</p>
 
           {/* Entity-specific details */}
           {node.nodeType === 'drep' && <DRepTooltipContent node={node} />}

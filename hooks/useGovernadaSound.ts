@@ -15,7 +15,6 @@
 
 import { useRef, useCallback, useEffect } from 'react';
 import { useReducedMotion } from 'framer-motion';
-import { useCockpitStore } from '@/stores/cockpitStore';
 
 const MASTER_VOLUME = 0.3;
 
@@ -180,7 +179,8 @@ function createSoundEngine(): SoundEngine | null {
  * All sounds respect the `soundEnabled` store preference and `prefers-reduced-motion`.
  */
 export function useGovernadaSound(): SoundEngine {
-  const soundEnabled = useCockpitStore((s) => s.soundEnabled);
+  // Sound disabled by default — re-enable when Synaptic Brief sound design is ready
+  const soundEnabled = false;
   const prefersReducedMotion = useReducedMotion();
   const engineRef = useRef<SoundEngine | null>(null);
 

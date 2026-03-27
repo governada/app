@@ -1,13 +1,16 @@
 /**
- * Globe-based layout engine for the governance constellation.
+ * Volumetric constellation layout engine.
  *
- * Maps governance participants onto a sphere:
- *   - DReps = surface of the globe (radius ~8), positioned by alignment dimensions → lat/lon
- *   - SPOs = infrastructure nodes on the surface, real geo when available
- *   - CC members = orbital satellites above the surface (radius ~9.5) with tether lines down
+ * Maps governance participants into a 3D volume bounded by a sphere:
+ *   - CC members = distributed sentinels throughout mid-volume (r 3-6)
+ *   - Active DReps = inner-mid shell (r 4-6.5), positioned by alignment dimensions
+ *   - Regular DReps = mid-outer shell (r 5-7.5)
+ *   - SPOs = infrastructure layer (r 5.5-7.5)
+ *   - Inactive/retired = periphery (r 7-8)
  *
  * Alignment dimensions map to 6 longitude bands (60° each).
  * Specialization strength maps to latitude spread.
+ * Node significance maps to radial depth (closer to center = more significant).
  */
 
 import type {
@@ -30,15 +33,44 @@ const DIM_LONGITUDES: Record<string, number> = (() => {
   return map;
 })();
 
-export const GLOBE_RADIUS = 8;
-const CC_RADIUS = 11; // crown ring radius — matches CCCrownRing.RING_RADIUS
-const CC_RING_Y = 5.5; // crown ring elevation — matches CCCrownRing.RING_Y
-const SPO_ARC_RADIUS = GLOBE_RADIUS + 0.3; // slightly above surface
+export const GLOBE_RADIUS = 8; // sphere boundary — the constellation's edge
 const MIN_VISIBLE_SCALE = 0.06;
 const MAX_VISIBLE_SCALE = 0.25;
 const SPO_SCALE_FACTOR = 0.6;
-const CC_SCALE_FACTOR = 1.3; // slightly larger than DReps for guardian presence
+const CC_SCALE_FACTOR = 2.5; // sentinel presence — 2.5x DRep size
 const SPO_LIMIT = 400;
+
+/**
+ * Compute the radial depth for a node based on type and significance.
+ * Lower radius = closer to center = more significant/active.
+ */
+function computeVolumetricRadius(input: LayoutInput): number {
+  const hash = simpleHash(input.id);
+  const hashNorm = (hash % 10000) / 10000; // 0-1 deterministic jitter
+
+  switch (input.nodeType) {
+    case 'cc':
+      // Distributed sentinels throughout mid-volume
+      return 3.0 + hashNorm * 3.0; // range 3-6
+    case 'drep': {
+      // Inactive/retired DReps drift to the periphery
+      if (input.drepStatus === 'Inactive' || input.drepStatus === 'Retired') {
+        return 7.0 + hashNorm * 1.0; // range 7-8
+      }
+      // Top-tier DReps (high score, active) cluster inner-mid
+      if (input.score > 70) {
+        return 4.0 + (1 - input.score / 100) * 2.5; // range 4-6.5
+      }
+      // Regular DReps: mid-outer shell
+      return 5.0 + (1 - Math.min(1, input.power)) * 2.5; // range 5-7.5
+    }
+    case 'spo':
+      // Infrastructure layer — distributed through outer volume
+      return 5.5 + hashNorm * 2.0; // range 5.5-7.5
+    default:
+      return GLOBE_RADIUS * 0.9; // near boundary
+  }
+}
 
 export interface LayoutInput {
   id: string;
@@ -69,33 +101,44 @@ export function computeGlobeLayout(inputs: LayoutInput[], nodeLimit: number): La
   const nodes: ConstellationNode3D[] = [];
   const nodeMap = new Map<string, ConstellationNode3D>();
 
-  // DReps on globe surface
+  // DReps — volumetric distribution based on score/activity
   for (const input of active) {
     const [lon, lat] = computeSpherePosition(input);
-    const pos = sphereToCartesian(lat, lon, GLOBE_RADIUS);
-    const scale = MIN_VISIBLE_SCALE + input.power * (MAX_VISIBLE_SCALE - MIN_VISIBLE_SCALE);
-    const node: ConstellationNode3D = { ...input, position: pos, scale };
+    const r = computeVolumetricRadius(input);
+    const pos = sphereToCartesian(lat, lon, r);
+    const baseScale = MIN_VISIBLE_SCALE + input.power * (MAX_VISIBLE_SCALE - MIN_VISIBLE_SCALE);
+    // Depth compensation: nodes closer to center get slightly larger
+    const depthBoost = 1 + ((GLOBE_RADIUS - r) / GLOBE_RADIUS) * 0.4;
+    const node: ConstellationNode3D = {
+      ...input,
+      position: pos,
+      scale: baseScale * depthBoost,
+      depth: r / GLOBE_RADIUS,
+    };
     nodes.push(node);
     nodeMap.set(node.id, node);
   }
 
-  // CC members — crown ring above the globe
-  // Positioned on a horizontal ring at elevated Y, matching CCCrownRing visual
+  // CC members — distributed sentinels throughout the volume
   const ccNodes: ConstellationNode3D[] = [];
-  for (let i = 0; i < ccInputs.length; i++) {
-    const input = ccInputs[i];
-    const angle = (i / Math.max(ccInputs.length, 1)) * Math.PI * 2;
-    const x = Math.cos(angle) * CC_RADIUS;
-    const z = Math.sin(angle) * CC_RADIUS;
-    const pos: [number, number, number] = [x, CC_RING_Y, z];
-    const scale = MAX_VISIBLE_SCALE * CC_SCALE_FACTOR;
-    const node: ConstellationNode3D = { ...input, position: pos, scale };
+  for (const input of ccInputs) {
+    const [lon, lat] = computeSpherePosition(input);
+    const r = computeVolumetricRadius(input);
+    const pos = sphereToCartesian(lat, lon, r);
+    const depthBoost = 1 + ((GLOBE_RADIUS - r) / GLOBE_RADIUS) * 0.4;
+    const scale = MAX_VISIBLE_SCALE * CC_SCALE_FACTOR * depthBoost;
+    const node: ConstellationNode3D = {
+      ...input,
+      position: pos,
+      scale,
+      depth: r / GLOBE_RADIUS,
+    };
     ccNodes.push(node);
     nodes.push(node);
     nodeMap.set(node.id, node);
   }
 
-  // SPOs — positioned by real relay geolocation when available, hash fallback
+  // SPOs — infrastructure layer, volumetric depth
   const spoNodes: ConstellationNode3D[] = [];
   for (let i = 0; i < spoInputs.length; i++) {
     const input = spoInputs[i];
@@ -103,28 +146,28 @@ export function computeGlobeLayout(inputs: LayoutInput[], nodeLimit: number): La
     let lon: number;
 
     if (input.geoLat != null && input.geoLon != null) {
-      // Real geolocation: convert degrees to radians
       lat = (input.geoLat * Math.PI) / 180;
       lon = (input.geoLon * Math.PI) / 180;
     } else {
-      // Fallback: hash-based distribution
       const hash = simpleHash(input.id);
       lon = (i / spoInputs.length) * Math.PI * 2 - Math.PI;
       lat = (((hash % 140) - 70) / 70) * (Math.PI / 2) * 0.85;
     }
 
-    const pos = sphereToCartesian(lat, lon, GLOBE_RADIUS);
-    const scale =
+    const r = computeVolumetricRadius(input);
+    const pos = sphereToCartesian(lat, lon, r);
+    const baseScale =
       (MIN_VISIBLE_SCALE + input.power * (MAX_VISIBLE_SCALE - MIN_VISIBLE_SCALE)) *
       SPO_SCALE_FACTOR;
-    // Score-based glow: higher governance score = brighter node
     const scoreNorm = Math.max(0, Math.min(1, (input.score - 30) / 70));
+    const depthBoost = 1 + ((GLOBE_RADIUS - r) / GLOBE_RADIUS) * 0.4;
     const node: ConstellationNode3D = {
       ...input,
       position: pos,
-      scale: scale * (0.7 + scoreNorm * 0.6),
+      scale: baseScale * (0.7 + scoreNorm * 0.6) * depthBoost,
       geoLat: input.geoLat,
       geoLon: input.geoLon,
+      depth: r / GLOBE_RADIUS,
     };
     spoNodes.push(node);
     nodes.push(node);
@@ -187,12 +230,23 @@ export function computeSpherePosition(input: LayoutInput): [number, number] {
 function computeGlobeEdges(
   allNodes: ConstellationNode3D[],
   spoNodes: ConstellationNode3D[],
-  _ccNodes: ConstellationNode3D[],
+  ccNodes: ConstellationNode3D[],
 ): ConstellationEdge3D[] {
   const edges: ConstellationEdge3D[] = [];
   const drepNodes = allNodes.filter((n) => n.nodeType === 'drep');
 
-  // Layer 1: Proximity edges among DReps in the same dimension (surface connections)
+  // Layer 0: CC sentinel lattice — geometric connections between sentinels
+  for (let i = 0; i < ccNodes.length; i++) {
+    for (let j = i + 1; j < ccNodes.length; j++) {
+      edges.push({
+        from: ccNodes[i].position,
+        to: ccNodes[j].position,
+        edgeType: 'orbital',
+      });
+    }
+  }
+
+  // Layer 1: Proximity edges among DReps in the same dimension
   const maxProximity = 200;
   for (let i = 0; i < drepNodes.length && edges.length < maxProximity; i++) {
     for (let j = i + 1; j < drepNodes.length && edges.length < maxProximity; j++) {
@@ -217,8 +271,9 @@ function computeGlobeEdges(
 
     for (const { node, dist } of nearest) {
       if (dist > 6) continue; // only connect reasonably close SPOs
-      // Great-circle arc above the surface
-      const arcPoints = greatCircleArc(spo.position, node.position, SPO_ARC_RADIUS, 6);
+      // Great-circle arc at the average depth of both endpoints
+      const avgR = (dist3DToOrigin(spo.position) + dist3DToOrigin(node.position)) / 2;
+      const arcPoints = greatCircleArc(spo.position, node.position, avgR + 0.3, 6);
       for (let k = 0; k < arcPoints.length - 1; k++) {
         edges.push({ from: arcPoints[k], to: arcPoints[k + 1], edgeType: 'infrastructure' });
         infraCount++;
@@ -294,6 +349,10 @@ function dist3D(a: [number, number, number], b: [number, number, number]): numbe
   const dy = a[1] - b[1];
   const dz = a[2] - b[2];
   return Math.sqrt(dx * dx + dy * dy + dz * dz);
+}
+
+function dist3DToOrigin(p: [number, number, number]): number {
+  return Math.sqrt(p[0] * p[0] + p[1] * p[1] + p[2] * p[2]);
 }
 
 function clamp(v: number, min: number, max: number): number {

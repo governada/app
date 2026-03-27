@@ -12,9 +12,6 @@ import { CompetitiveContext } from '@/components/workspace/CompetitiveContext';
 import { ProfileShareToolkit } from '@/components/workspace/ProfileShareToolkit';
 import { SPOCockpit } from '@/components/workspace/SPOCockpit';
 import { ActionQueueCard } from '@/components/governada/ActionQueueCard';
-import { useFeatureFlag } from '@/components/FeatureGate';
-import { InhabitedConstellation } from './InhabitedConstellation';
-import { CockpitHomePage } from '@/components/cockpit/CockpitHomePage';
 
 interface PulseData {
   activeProposals: number;
@@ -38,7 +35,6 @@ interface HubHomePageProps {
  */
 export function HubHomePage({ pulseData }: HubHomePageProps) {
   const { segment, isLoading, drepId, poolId } = useSegment();
-  const globeHomepage = useFeatureFlag('globe_homepage_v2');
 
   // While detecting segment, show skeleton cards to prevent CLS flash
   if (isLoading) {
@@ -54,11 +50,6 @@ export function HubHomePage({ pulseData }: HubHomePageProps) {
 
   if (segment === 'anonymous') {
     return <AnonymousLanding pulseData={pulseData} />;
-  }
-
-  // Cockpit: HUD-driven command center homepage for authenticated users
-  if (globeHomepage) {
-    return <CockpitHomePage />;
   }
 
   // Citizens get the full Browse mode experience
