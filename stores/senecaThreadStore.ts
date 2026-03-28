@@ -122,6 +122,66 @@ function pruneMessages(messages: ThreadMessage[]): ThreadMessage[] {
 }
 
 // ---------------------------------------------------------------------------
+// Match intent detection — intercept before hitting the AI API
+// ---------------------------------------------------------------------------
+
+const MATCH_INTENT_PATTERNS = [
+  /\b(find|match|discover)\b.*\b(drep|representative|delegate|rep)\b/i,
+  /\b(drep|representative|delegate|rep)\b.*\b(find|match|discover)\b/i,
+  /\bwho\s+should\s+i\s+delegate\b/i,
+  /\bwho\s+represents?\s+me\b/i,
+  /\bfind\s+(me\s+)?a?\s*match\b/i,
+  /\bhelp\s+me\s+(find|choose|pick)\s+(a\s+)?(drep|representative|delegate)\b/i,
+  /\bmy\s+(drep|representative)\s+match\b/i,
+  /\bquick\s*match\b/i,
+  /\bgovernance\s+match\b/i,
+  /\bwho\s+aligns?\s+with\s+(me|my\s+values)\b/i,
+  /\b(start|begin|run|take)\s+(the\s+)?(match|quiz|matching)\b/i,
+];
+
+export function isMatchIntent(query: string): boolean {
+  const lower = query.trim().toLowerCase();
+  return MATCH_INTENT_PATTERNS.some((p) => p.test(lower));
+}
+
+// ---------------------------------------------------------------------------
+// Navigation intent detection — obvious page requests bypass AI
+// ---------------------------------------------------------------------------
+
+const NAVIGATION_INTENTS: Array<{ pattern: RegExp; path: string }> = [
+  { pattern: /\b(governance\s+health|ghi|health\s+(index|pulse|score))\b/i, path: '/pulse' },
+  { pattern: /\b(treasury|budget|runway|spending)\b/i, path: '/governance/treasury' },
+  { pattern: /\bcommittee\b/i, path: '/governance/committee' },
+  { pattern: /\b(leaderboard|top\s+dreps?|rankings?)\b/i, path: '/governance/representatives' },
+  { pattern: /\b(my\s+(governance|dashboard|gov))\b/i, path: '/my-gov' },
+  { pattern: /\b(voting\s+queue|pending\s+votes|vote\s+now)\b/i, path: '/match/vote' },
+  { pattern: /\b(epoch\s+briefing|briefing|recap)\b/i, path: '/governance/briefing' },
+  { pattern: /\b(engage|priorities|assembly|assemblies)\b/i, path: '/engage' },
+  { pattern: /\b(compare|comparison|side.by.side)\b/i, path: '/compare' },
+];
+
+/**
+ * Returns a navigation path if the query is an unambiguous page request.
+ * Only matches short, direct queries — nuanced questions flow to the AI.
+ */
+export function getNavigationIntent(query: string): string | null {
+  const trimmed = query.trim();
+  // Only intercept short queries (< 8 words) that are clearly navigation
+  if (trimmed.split(/\s+/).length > 7) return null;
+
+  // Don't intercept if it looks like a question (has a question mark or starts with question word)
+  if (trimmed.endsWith('?')) return null;
+  if (/^(what|how|why|who|when|where|which|can|could|should|would|is|are|do|does)\b/i.test(trimmed))
+    return null;
+
+  const lower = trimmed.toLowerCase();
+  for (const { pattern, path } of NAVIGATION_INTENTS) {
+    if (pattern.test(lower)) return path;
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // Store
 // ---------------------------------------------------------------------------
 
@@ -192,6 +252,16 @@ export const useSenecaThreadStore = create<SenecaThreadState & SenecaThreadActio
         }),
 
       startConversation: (query) => {
+        // Intercept match intents → built-in Quick Match flow
+        if (query && isMatchIntent(query)) {
+          set({
+            mode: 'matching',
+            pendingQuery: undefined,
+            isOpen: true,
+          });
+          return;
+        }
+
         const s = get();
         set({
           mode: 'conversation',

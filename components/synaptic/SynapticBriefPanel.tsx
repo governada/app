@@ -4,6 +4,7 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
 import { useSynapticStore } from '@/stores/synapticStore';
+import { useSenecaThreadStore } from '@/stores/senecaThreadStore';
 import { readAdvisorStream } from '@/lib/intelligence/streamAdvisor';
 import type { GlobeStreamCommand } from '@/lib/intelligence/streamAdvisor';
 import { useSegment } from '@/components/providers/SegmentProvider';
@@ -177,6 +178,16 @@ export function SynapticBriefPanel({ onGlobeCommand, className }: SynapticBriefP
         },
         controller.signal,
         onGlobeCommand,
+        (actionPayload) => {
+          const colonIdx = actionPayload.indexOf(':');
+          const actionType = colonIdx > 0 ? actionPayload.slice(0, colonIdx) : actionPayload;
+
+          if (actionType === 'startMatch') {
+            controller.abort();
+            setConversationStreaming(false);
+            useSenecaThreadStore.getState().startMatch();
+          }
+        },
       );
     },
     [

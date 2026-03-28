@@ -16,6 +16,11 @@ import { logger } from '@/lib/logger';
 import { createAnthropicStream } from '@/lib/ai';
 import { buildSenecaPrompt } from '@/lib/ai/senecaPersona';
 import { PERSONAS, type PersonaId } from '@/lib/intelligence/senecaPersonas';
+import {
+  ADVISOR_TOOLS,
+  executeAdvisorTool,
+  getToolThinkingGlobeCommands,
+} from '@/lib/intelligence/advisor-tools';
 
 // ---------------------------------------------------------------------------
 // Globe intent detection — intercepts user queries BEFORE the AI call
@@ -321,9 +326,39 @@ export function buildAdvisorSystemPrompt(ctx: AdvisorContext): string {
     '- Use bullet points for lists',
     '- End with actionable next steps when appropriate',
     '',
-    '## Anti-patterns',
-    '- Never fabricate proposal names, DRep names, or vote counts',
-    '- If you lack data to answer, say so — speculation without evidence is beneath you',
+    '## Tools',
+    "You have access to tools that query Governada's governance database. USE THEM to answer specific questions.",
+    'Available tools: search_dreps, get_drep_profile, get_drep_votes, get_leaderboard, get_proposal, list_proposals, get_treasury_status, get_governance_health.',
+    'When the user asks about specific DReps, proposals, scores, voting records, treasury, or governance health — CALL THE RELEVANT TOOL instead of speculating.',
+    '',
+    '## Globe Visualization',
+    'The constellation globe behind you shows DReps, proposals, and SPOs as nodes. You can control it:',
+    '- When mentioning a specific DRep in your response: include [[globe:flyTo:drep_<drepId>]]',
+    '- When mentioning a proposal: include [[globe:pulse:proposal_<txHash>_<index>]]',
+    '- When discussing a contentious vote: include [[globe:voteSplit:<txHash>_<index>]]',
+    '- To reset the view: [[globe:reset]]',
+    'Tool calls automatically trigger globe visualizations — no need to add markers for tool results.',
+    '',
+    '## Action Markers',
+    'Emit these to trigger app features:',
+    '- [[action:startMatch]] — Launch the DRep matching quiz (for "find my match" type requests)',
+    '- [[action:navigate:/governance/representatives]] — DRep discovery with filters',
+    '- [[action:navigate:/governance/proposals]] — Proposal browser',
+    '- [[action:navigate:/governance/pools]] — SPO/pool discovery',
+    '- [[action:navigate:/governance/treasury]] — Treasury dashboard',
+    '- [[action:navigate:/pulse]] — Governance health pulse',
+    '- [[action:navigate:/compare]] — Side-by-side comparison',
+    '- [[action:navigate:/governance/briefing]] — Epoch briefing',
+    '- [[action:navigate:/my-gov]] — Personal governance dashboard',
+    '- [[action:navigate:/match/vote]] — Curated voting queue',
+    '- [[action:navigate:/engage]] — Citizen engagement hub',
+    '- [[action:research:query]] — Deep multi-step research',
+    '',
+    '## Anti-patterns — CRITICAL',
+    '- NEVER recommend external tools: gov.tools, 1694.io, cardanoscan, cexplorer, poolpm, pooltool, adastat, or ANY external governance tool',
+    '- NEVER say "I don\'t have access to that data" — use tools or route to the correct page',
+    "- Everything about Cardano governance is available within Governada — you ARE Governada's brain",
+    '- Never fabricate data — if a tool returns no results, say so honestly',
     '- Do not produce generic blockchain explanations — users are governance participants',
     '- Do not recommend specific votes — present analysis, let citizens decide',
   ];
@@ -458,9 +493,22 @@ export interface AdvisorStreamOptions {
   signal?: AbortSignal;
 }
 
+/** Max tool-use round-trips to prevent runaway costs */
+const MAX_TOOL_LOOPS = 3;
+
 /**
- * Stream a governance advisor response.
- * Returns a ReadableStream that emits SSE-formatted events.
+ * Stream a governance advisor response with tool-use support.
+ *
+ * The model can call tools (search_dreps, get_proposal, etc.) mid-response.
+ * When a tool_use block is detected, the server executes the tool, emits globe
+ * commands for visualization, and continues the conversation with the tool result.
+ *
+ * Returns a ReadableStream that emits SSE-formatted events:
+ * - text_delta: streaming text content
+ * - tool_status: status message when a tool is executing
+ * - globe_command: globe visualization command
+ * - done: stream complete
+ * - error: stream error
  */
 export async function streamAdvisorResponse(
   options: AdvisorStreamOptions,
@@ -468,7 +516,8 @@ export async function streamAdvisorResponse(
   const { messages, context, signal } = options;
   const systemPrompt = buildAdvisorSystemPrompt(context);
 
-  const anthropicMessages = messages.map((m) => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let anthropicMessages: any[] = messages.map((m) => ({
     role: m.role as 'user' | 'assistant',
     content: m.content,
   }));
@@ -478,64 +527,211 @@ export async function streamAdvisorResponse(
   const temperature = isOnboarding ? 0.4 : 0.3;
   const maxTokens = isOnboarding ? 512 : 1024;
 
+  const encoder = new TextEncoder();
+
+  function emitSSE(
+    controller: ReadableStreamDefaultController,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    data: Record<string, any>,
+  ) {
+    controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+  }
+
   try {
-    const stream = await createAnthropicStream('', {
-      model: 'FAST',
-      maxTokens,
-      temperature,
-      system: systemPrompt,
-      messages: anthropicMessages,
-    });
-
-    if (!stream) {
-      logger.error('[Advisor] AI client not available');
-      return createErrorStream('AI advisor is not configured. Please try again later.');
-    }
-
-    const encoder = new TextEncoder();
-
     return new ReadableStream({
       async start(controller) {
         try {
-          for await (const event of stream as AsyncIterable<{
-            type: string;
-            delta?: { type?: string; text?: string };
-            message?: { usage?: { output_tokens?: number } };
-            usage?: { output_tokens?: number };
-          }>) {
+          let toolLoops = 0;
+
+          while (toolLoops <= MAX_TOOL_LOOPS) {
             if (signal?.aborted) {
               controller.close();
               return;
             }
 
+            const stream = await createAnthropicStream('', {
+              model: 'FAST',
+              maxTokens,
+              temperature,
+              system: systemPrompt,
+              messages: anthropicMessages,
+              tools: [...ADVISOR_TOOLS],
+            });
+
+            if (!stream) {
+              emitSSE(controller, { type: 'error', content: 'AI advisor is not configured.' });
+              emitSSE(controller, { type: 'done' });
+              controller.close();
+              return;
+            }
+
+            // Track tool_use blocks being accumulated
+            let currentToolUseId: string | null = null;
+            let currentToolName = '';
+            let currentToolInputJson = '';
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const pendingToolCalls: Array<{ id: string; name: string; input: any }> = [];
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const assistantContentBlocks: any[] = [];
+            let stopReason = 'end_turn';
+
+            for await (const event of stream as AsyncIterable<{
+              type: string;
+              index?: number;
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              content_block?: any;
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              delta?: any;
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              message?: any;
+            }>) {
+              if (signal?.aborted) {
+                controller.close();
+                return;
+              }
+
+              // --- Text streaming ---
+              if (
+                event.type === 'content_block_delta' &&
+                event.delta?.type === 'text_delta' &&
+                event.delta.text
+              ) {
+                emitSSE(controller, { type: 'text_delta', content: event.delta.text });
+              }
+
+              // --- Tool use block start ---
+              if (
+                event.type === 'content_block_start' &&
+                event.content_block?.type === 'tool_use'
+              ) {
+                currentToolUseId = event.content_block.id;
+                currentToolName = event.content_block.name;
+                currentToolInputJson = '';
+
+                // Emit "thinking" globe commands while tool executes
+                const thinkingCommands = getToolThinkingGlobeCommands(currentToolName, {});
+                for (const cmd of thinkingCommands) {
+                  emitSSE(controller, { type: 'globe_command', command: cmd });
+                }
+              }
+
+              // --- Tool use input JSON accumulation ---
+              if (
+                event.type === 'content_block_delta' &&
+                event.delta?.type === 'input_json_delta' &&
+                event.delta.partial_json
+              ) {
+                currentToolInputJson += event.delta.partial_json;
+              }
+
+              // --- Tool use block end ---
+              if (event.type === 'content_block_stop' && currentToolUseId) {
+                let parsedInput = {};
+                try {
+                  parsedInput = currentToolInputJson ? JSON.parse(currentToolInputJson) : {};
+                } catch {
+                  logger.warn('[Advisor] Failed to parse tool input JSON', {
+                    tool: currentToolName,
+                    json: currentToolInputJson,
+                  });
+                }
+
+                pendingToolCalls.push({
+                  id: currentToolUseId,
+                  name: currentToolName,
+                  input: parsedInput,
+                });
+
+                assistantContentBlocks.push({
+                  type: 'tool_use',
+                  id: currentToolUseId,
+                  name: currentToolName,
+                  input: parsedInput,
+                });
+
+                currentToolUseId = null;
+                currentToolName = '';
+                currentToolInputJson = '';
+              }
+
+              // --- Text block tracking for message history ---
+              if (event.type === 'content_block_start' && event.content_block?.type === 'text') {
+                assistantContentBlocks.push({ type: 'text', text: '' });
+              }
+              if (
+                event.type === 'content_block_delta' &&
+                event.delta?.type === 'text_delta' &&
+                event.delta.text
+              ) {
+                const lastBlock = assistantContentBlocks[assistantContentBlocks.length - 1];
+                if (lastBlock?.type === 'text') {
+                  lastBlock.text += event.delta.text;
+                }
+              }
+
+              // --- Message stop ---
+              if (event.type === 'message_delta' && event.delta?.stop_reason) {
+                stopReason = event.delta.stop_reason;
+              }
+            }
+
+            // --- Handle tool calls ---
             if (
-              event.type === 'content_block_delta' &&
-              event.delta?.type === 'text_delta' &&
-              event.delta.text
+              stopReason === 'tool_use' &&
+              pendingToolCalls.length > 0 &&
+              toolLoops < MAX_TOOL_LOOPS
             ) {
-              controller.enqueue(
-                encoder.encode(
-                  `data: ${JSON.stringify({ type: 'text_delta', content: event.delta.text })}\n\n`,
-                ),
-              );
+              toolLoops++;
+
+              // Execute tools and emit results
+              const toolResults = [];
+              for (const tc of pendingToolCalls) {
+                // Emit status to client
+                emitSSE(controller, { type: 'tool_status', content: `Looking up: ${tc.name}` });
+
+                // Emit thinking globe commands with actual input
+                const thinkingCmds = getToolThinkingGlobeCommands(tc.name, tc.input);
+                for (const cmd of thinkingCmds) {
+                  emitSSE(controller, { type: 'globe_command', command: cmd });
+                }
+
+                const result = await executeAdvisorTool(tc.name, tc.input);
+
+                // Emit result globe commands
+                for (const cmd of result.globeCommands) {
+                  emitSSE(controller, { type: 'globe_command', command: cmd });
+                }
+
+                toolResults.push({
+                  type: 'tool_result' as const,
+                  tool_use_id: tc.id,
+                  content: result.result,
+                });
+              }
+
+              // Build updated messages for next iteration
+              anthropicMessages = [
+                ...anthropicMessages,
+                { role: 'assistant', content: assistantContentBlocks },
+                ...toolResults.map((tr) => ({ role: 'user', content: [tr] })),
+              ];
+
+              // Continue the loop — next iteration will call the API again
+              continue;
             }
 
-            if (event.type === 'message_stop') {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`));
-            }
+            // --- Normal end ---
+            emitSSE(controller, { type: 'done' });
+            controller.close();
+            return;
           }
-
-          // Ensure we always send done
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`));
-          controller.close();
         } catch (err) {
           logger.error('[Advisor] Stream processing error', { error: err });
-          controller.enqueue(
-            encoder.encode(
-              `data: ${JSON.stringify({ type: 'error', content: 'Stream interrupted. Please try again.' })}\n\n`,
-            ),
-          );
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`));
+          emitSSE(controller, {
+            type: 'error',
+            content: 'Stream interrupted. Please try again.',
+          });
+          emitSSE(controller, { type: 'done' });
           controller.close();
         }
       },

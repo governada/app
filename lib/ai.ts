@@ -242,7 +242,13 @@ export interface StreamOptions {
   temperature?: number;
   system?: string;
   /** Multi-turn messages (instead of a single prompt). When provided, `prompt` param is ignored. */
-  messages?: Array<{ role: 'user' | 'assistant'; content: string }>;
+  messages?: Array<{
+    role: string;
+    content: string | Array<{ type: string; [key: string]: unknown }>;
+  }>;
+  /** Tool definitions for function calling (Anthropic tool use). */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  tools?: any[];
   apiKey?: string;
 }
 
@@ -261,13 +267,15 @@ export async function createAnthropicStream(
   if (!client) return null;
 
   const modelId = MODELS[options.model ?? 'FAST'];
-  const messages = options.messages ?? [{ role: 'user' as const, content: prompt }];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const messages: any[] = options.messages ?? [{ role: 'user' as const, content: prompt }];
 
   const stream = await client.messages.create({
     model: modelId,
     max_tokens: options.maxTokens ?? 1024,
     ...(options.temperature != null ? { temperature: options.temperature } : {}),
     ...(options.system ? { system: options.system } : {}),
+    ...(options.tools && options.tools.length > 0 ? { tools: options.tools } : {}),
     messages,
     stream: true,
   });

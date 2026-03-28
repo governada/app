@@ -30,6 +30,8 @@ export async function readAdvisorStream(
   onDone: () => void,
   signal?: AbortSignal,
   onGlobeCommand?: (command: GlobeStreamCommand) => void,
+  onAction?: (action: string) => void,
+  onToolStatus?: (status: string) => void,
 ): Promise<void> {
   try {
     const headers: Record<string, string> = {
@@ -84,26 +86,38 @@ export async function readAdvisorStream(
           };
 
           if (data.type === 'text_delta' && data.content) {
+            let cleanText = data.content;
+
+            // Parse [[action:payload]] markers (e.g. [[action:startMatch]], [[action:navigate:/pulse]])
+            const actionRe = /\[\[action:([^\]]+)\]\]/g;
+            let actionMatch: RegExpExecArray | null;
+            while ((actionMatch = actionRe.exec(data.content)) !== null) {
+              const [full, actionPayload] = actionMatch;
+              cleanText = cleanText.replace(full, '');
+              if (onAction) onAction(actionPayload);
+            }
+
             // Parse [[globe:cmd:target]] markers from briefing text
             if (onGlobeCommand) {
               const markerRe = /\[\[globe:(\w+):?([^\]]*)\]\]/g;
               let match: RegExpExecArray | null;
-              let cleanText = data.content;
-              while ((match = markerRe.exec(data.content)) !== null) {
+              while ((match = markerRe.exec(cleanText)) !== null) {
                 const [full, cmd, target] = match;
                 cleanText = cleanText.replace(full, '');
                 onGlobeCommand({ cmd, target: target || undefined });
               }
-              if (cleanText) onDelta(cleanText);
-            } else {
-              onDelta(data.content);
             }
+
+            if (cleanText) onDelta(cleanText);
           } else if (data.type === 'globe_command') {
-            // Direct globe commands injected by the server
+            // Direct globe commands injected by the server (from tool execution)
             const cmdData = data as unknown as { type: string; command?: GlobeStreamCommand };
             if (onGlobeCommand && cmdData.command) {
               onGlobeCommand(cmdData.command);
             }
+          } else if (data.type === 'tool_status' && data.content) {
+            // Tool execution status indicator (e.g., "Searching representatives...")
+            if (onToolStatus) onToolStatus(data.content);
           } else if (data.type === 'error' && data.content) {
             onError(data.content);
           } else if (data.type === 'done') {

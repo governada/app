@@ -89,25 +89,185 @@ async function buildGovernanceSnapshot(ctx: {
   try {
     const supabase = getSupabaseAdmin();
 
-    // Fetch active proposals summary
-    const { data: proposals } = await supabase
-      .from('proposals')
-      .select('title, type, status, tx_hash, index')
-      .in('status', ['active', 'voting'])
-      .order('created_at', { ascending: false })
-      .limit(20);
+    // Run 5 parallel queries for comprehensive governance context
+    // Wrap each in a standalone async function so .catch() works on a real Promise
+    const [proposalsResult, drepResult, treasuryResult, ghiResult, ccResult] = await Promise.all([
+      // 1. Active proposals
+      (async () => {
+        const { data } = await supabase
+          .from('proposals')
+          .select('title, type, status, tx_hash, index')
+          .in('status', ['active', 'voting'])
+          .order('created_at', { ascending: false })
+          .limit(20);
+        return data;
+      })().catch(() => null),
+
+      // 2. DRep landscape aggregate
+      (async () => {
+        const { data } = await supabase
+          .from('dreps')
+          .select('drep_id, info, score, participation_rate')
+          .not('info->isActive', 'eq', false)
+          .order('score', { ascending: false })
+          .limit(500);
+        return data;
+      })().catch(() => null),
+
+      // 3. Treasury latest snapshot
+      (async () => {
+        const { data } = await supabase
+          .from('treasury_snapshots')
+          .select('balance_lovelace, epoch_no')
+          .order('epoch_no', { ascending: false })
+          .limit(1);
+        return data?.[0] ?? null;
+      })().catch(() => null),
+
+      // 4. GHI latest snapshot
+      (async () => {
+        const { data } = await supabase
+          .from('ghi_snapshots')
+          .select('epoch_no, score, band, components')
+          .order('epoch_no', { ascending: false })
+          .limit(1);
+        return data?.[0] ?? null;
+      })().catch(() => null),
+
+      // 5. CC fidelity summary (latest epoch)
+      (async () => {
+        const { data } = await supabase
+          .from('cc_fidelity_snapshots')
+          .select('cc_hot_id, fidelity_score, epoch_no')
+          .order('epoch_no', { ascending: false })
+          .limit(20);
+        return data;
+      })().catch(() => null),
+    ]);
 
     const lines: string[] = [];
 
-    if (proposals && proposals.length > 0) {
-      lines.push(`Active proposals (${proposals.length}):`);
-      for (const p of proposals) {
+    // -- Proposals section --
+    if (proposalsResult && proposalsResult.length > 0) {
+      lines.push(`Active proposals (${proposalsResult.length}):`);
+      for (const p of proposalsResult) {
         lines.push(
           `- [${p.type}] "${p.title}" (${p.status}) — /governance/proposals/${p.tx_hash}#${p.index}`,
         );
       }
     } else {
       lines.push(`Active proposals: ${ctx.activeProposalCount} (details unavailable)`);
+    }
+
+    // -- DRep landscape section --
+    if (drepResult && drepResult.length > 0) {
+      type DRepRow = {
+        drep_id: string;
+        info: Record<string, unknown> | null;
+        score: number | null;
+        participation_rate: number | null;
+      };
+      const activeDreps = drepResult as DRepRow[];
+      const avgScore = Math.round(
+        activeDreps.reduce((sum: number, d: DRepRow) => sum + (d.score ?? 0), 0) /
+          activeDreps.length,
+      );
+      const avgParticipation = Math.round(
+        activeDreps.reduce((sum: number, d: DRepRow) => sum + (d.participation_rate ?? 0), 0) /
+          activeDreps.length,
+      );
+
+      // Tier distribution by score bands
+      const diamond = activeDreps.filter((d: DRepRow) => (d.score ?? 0) >= 85).length;
+      const gold = activeDreps.filter(
+        (d: DRepRow) => (d.score ?? 0) >= 70 && (d.score ?? 0) < 85,
+      ).length;
+      const silver = activeDreps.filter(
+        (d: DRepRow) => (d.score ?? 0) >= 50 && (d.score ?? 0) < 70,
+      ).length;
+      const emerging = activeDreps.filter((d: DRepRow) => (d.score ?? 0) < 50).length;
+
+      // Top 5 with IDs for globe references
+      const top5 = activeDreps.slice(0, 5).map((d: DRepRow) => {
+        const info = d.info;
+        const name =
+          (info?.givenName as string) || (info?.name as string) || d.drep_id.slice(0, 12) + '...';
+        return `${name} (${d.score ?? 0}, id:${d.drep_id.slice(0, 20)})`;
+      });
+
+      lines.push('');
+      lines.push(
+        `DRep landscape: ${activeDreps.length} active | Avg score: ${avgScore} | Avg participation: ${avgParticipation}%`,
+      );
+      lines.push(
+        `Tiers: ${diamond} Diamond+, ${gold} Gold, ${silver} Silver, ${emerging} Emerging`,
+      );
+      lines.push(`Top 5: ${top5.join(', ')}`);
+    }
+
+    // -- Treasury section --
+    if (treasuryResult) {
+      const balanceAda = Math.round(
+        Number(BigInt(treasuryResult.balance_lovelace ?? 0) / BigInt(1_000_000)),
+      );
+      const balanceFormatted =
+        balanceAda >= 1_000_000_000
+          ? `${(balanceAda / 1_000_000_000).toFixed(2)}B`
+          : balanceAda >= 1_000_000
+            ? `${(balanceAda / 1_000_000).toFixed(1)}M`
+            : balanceAda.toLocaleString();
+
+      // Count pending treasury proposals from the proposals we already fetched
+      type ProposalRow = {
+        title: string;
+        type: string;
+        status: string;
+        tx_hash: string;
+        index: number;
+      };
+      const pendingTreasury =
+        (proposalsResult as ProposalRow[] | null)?.filter(
+          (p: ProposalRow) =>
+            p.type === 'TreasuryWithdrawals' && ['active', 'voting'].includes(p.status),
+        ).length ?? 0;
+
+      lines.push('');
+      lines.push(
+        `Treasury: ${balanceFormatted} ADA | Pending: ${pendingTreasury} treasury proposals`,
+      );
+    }
+
+    // -- GHI section --
+    if (ghiResult) {
+      const components = (ghiResult.components as Array<{ name: string; value: number }>) ?? [];
+      const topComponents = components
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 3)
+        .map((c) => `${c.name} ${Math.round(c.value)}`)
+        .join(', ');
+
+      lines.push('');
+      lines.push(
+        `Governance Health (GHI): ${Math.round(ghiResult.score)}/100 (${ghiResult.band})${topComponents ? ` — ${topComponents}` : ''}`,
+      );
+    }
+
+    // -- CC section --
+    if (ccResult && ccResult.length > 0) {
+      type CCRow = { cc_hot_id: string; fidelity_score: number | null; epoch_no: number };
+      const ccRows = ccResult as CCRow[];
+      // Get latest epoch's members only
+      const latestEpoch = Math.max(...ccRows.map((c: CCRow) => c.epoch_no));
+      const latestMembers = ccRows.filter((c: CCRow) => c.epoch_no === latestEpoch);
+      const avgFidelity = Math.round(
+        latestMembers.reduce((sum: number, c: CCRow) => sum + (c.fidelity_score ?? 0), 0) /
+          latestMembers.length,
+      );
+
+      lines.push('');
+      lines.push(
+        `Constitutional Committee: ${latestMembers.length} members | Avg fidelity: ${avgFidelity}%`,
+      );
     }
 
     return lines.join('\n');

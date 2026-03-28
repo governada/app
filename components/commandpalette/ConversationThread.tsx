@@ -14,6 +14,7 @@ import { useEpochContext } from '@/hooks/useEpochContext';
 import { useSegment } from '@/components/providers/SegmentProvider';
 import { readAdvisorStream } from '@/lib/intelligence/streamAdvisor';
 import type { AdvisorMessage } from '@/lib/intelligence/streamAdvisor';
+import { useSenecaThreadStore } from '@/stores/senecaThreadStore';
 import { cn } from '@/lib/utils';
 
 export interface ConversationThreadProps {
@@ -121,6 +122,17 @@ export function ConversationThread({
           setIsStreaming(false);
         },
         abort.signal,
+        undefined, // onGlobeCommand
+        (actionPayload) => {
+          const colonIdx = actionPayload.indexOf(':');
+          const actionType = colonIdx > 0 ? actionPayload.slice(0, colonIdx) : actionPayload;
+
+          if (actionType === 'startMatch') {
+            abortRef.current?.abort();
+            setIsStreaming(false);
+            useSenecaThreadStore.getState().startMatch();
+          }
+        },
       );
     },
     [messages, isStreaming, epoch, daysRemaining, activeProposalCount, segment],
