@@ -511,33 +511,26 @@ export async function fetchProposals(): Promise<ProposalListResponse> {
  * Batch fetch DRep info and metadata for multiple DReps
  */
 export async function fetchDRepsWithDetails(drepIds: string[]) {
-  try {
-    const batchSize = 50; // Koios API batch limit
-    const batches = [];
+  const batchSize = 50; // Koios API batch limit
+  const batches = [];
 
-    for (let i = 0; i < drepIds.length; i += batchSize) {
-      const batch = drepIds.slice(i, i + batchSize);
-      batches.push(Promise.all([fetchDRepInfo(batch), fetchDRepMetadata(batch)]));
-    }
-
-    const results = await Promise.all(batches);
-
-    // Combine results from all batches
-    const allInfo = results.flatMap(([info]) => info);
-    const allMetadata = results.flatMap(([, metadata]) => metadata);
-
-    return {
-      info: allInfo,
-      metadata: allMetadata,
-    };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('[Koios] Error fetching DReps with details:', errorMessage);
-    return {
-      info: [],
-      metadata: [],
-    };
+  for (let i = 0; i < drepIds.length; i += batchSize) {
+    const batch = drepIds.slice(i, i + batchSize);
+    batches.push(Promise.all([fetchDRepInfo(batch), fetchDRepMetadata(batch)]));
   }
+
+  const results = await Promise.all(batches);
+
+  // Combine results from all batches
+  const allInfo = results.flatMap(([info]) => info);
+  const allMetadata = results.flatMap(([, metadata]) => metadata);
+
+  return {
+    info: allInfo,
+    metadata: allMetadata,
+  };
+  // NOTE: Errors now propagate to caller. Previously they were silently caught,
+  // causing allDReps=0 with totalAvailable=1010 when /drep_info failed.
 }
 
 /**
