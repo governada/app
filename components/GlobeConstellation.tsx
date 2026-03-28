@@ -414,9 +414,9 @@ export const GlobeConstellation = forwardRef<
           // Stop rotation — globe locked during search
           rotationSpeedRef.current = 0;
 
-          // Camera distance: roughly constant, slight pull-in as threshold narrows
+          // Camera pulls closer as the cluster narrows — funneling toward the match
           const zoomFactor = Math.max(0, Math.min(1, (160 - threshold) / 125));
-          const camDist = 11 - zoomFactor * 2; // 11 → 9
+          const camDist = 14 - zoomFactor * 6; // 14 → 8 (wide overview → close to cluster)
 
           // Camera position: directly facing the centroid from outside the globe
           const camX = nx * camDist;
@@ -1515,29 +1515,39 @@ function NodePoints({
     const curSizes = currentSizesRef.current;
     const curDimmed = currentDimmedRef.current;
 
-    // Lerp colors (RGB per node)
-    for (let i = 0; i < count * 3; i++) {
-      const diff = targetColors[i] - curColors[i];
-      if (Math.abs(diff) > 0.002) {
-        curColors[i] += diff * factor;
-        changed = true;
+    // Faster factor for dimming transitions (nodes fade out quickly)
+    const fastFactor = 1 - Math.pow(0.0001, delta); // ~3x faster than normal lerp
+
+    // Lerp colors (RGB per node) — use fast factor when dimming
+    for (let i = 0; i < count; i++) {
+      const isDimming = targetDimmed[i] > 0.5;
+      const f = isDimming ? fastFactor : factor;
+      for (let c = 0; c < 3; c++) {
+        const idx = i * 3 + c;
+        const diff = targetColors[idx] - curColors[idx];
+        if (Math.abs(diff) > 0.002) {
+          curColors[idx] += diff * f;
+          changed = true;
+        }
       }
     }
 
-    // Lerp sizes
+    // Lerp sizes — dimming nodes shrink faster
     for (let i = 0; i < count; i++) {
+      const isDimming = targetDimmed[i] > 0.5;
+      const f = isDimming ? fastFactor : factor;
       const diff = targetSizes[i] - curSizes[i];
       if (Math.abs(diff) > 0.001) {
-        curSizes[i] += diff * factor;
+        curSizes[i] += diff * f;
         changed = true;
       }
     }
 
-    // Lerp dimmed
+    // Lerp dimmed — fast transition so nodes fade out visibly
     for (let i = 0; i < count; i++) {
       const diff = targetDimmed[i] - curDimmed[i];
       if (Math.abs(diff) > 0.005) {
-        curDimmed[i] += diff * factor;
+        curDimmed[i] += diff * fastFactor;
         changed = true;
       }
     }
