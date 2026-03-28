@@ -458,7 +458,12 @@ export async function getEnrichedDReps(
       ...(options?.includeRawVotes ? { rawVotesMap: allRawVotes } : {}),
     };
   } catch (error) {
-    logger.error('[DRepScore] Error in getEnrichedDReps', { error });
+    const errDetail = error instanceof Error ? error.message : String(error);
+    const errStack = error instanceof Error ? error.stack?.split('\n').slice(0, 3).join('\n') : '';
+    logger.error('[DRepScore] Error in getEnrichedDReps', {
+      error: errDetail,
+      stack: errStack,
+    });
     return { dreps: [], allDReps: [], error: true, totalAvailable: 0 };
   }
 }
