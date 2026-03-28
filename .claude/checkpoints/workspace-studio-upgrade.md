@@ -1,9 +1,9 @@
 # Workspace Studio Upgrade — Handoff Document
 
-> **Status**: Phase 1a COMPLETE (Quality Pulse + Ambient Constitutional Check). Phase 1b-1f + Phases 2-6 remain.
-> **Branch**: `claude/epic-jang` (worktree at `.claude/worktrees/epic-jang`)
+> **Status**: Phase 1 COMPLETE. Phases 2-6 remain.
+> **Branch**: `claude/pedantic-dhawan`
 > **Plan**: `C:\Users\dalto\.claude-personal\plans\glimmering-discovering-crescent.md`
-> **Date**: 2026-03-28
+> **Updated**: 2026-03-28
 
 ## CRITICAL: Handoff Instructions for Next Agent
 
@@ -15,173 +15,182 @@
    - `feedback_globe_interaction_model.md` — Globe is visual + Seneca-driven, NOT directly clickable
    - `feedback_legal_change_tracking.md` — Legal-grade tracked changes required
 4. **Run `npm run preflight`** to verify the codebase compiles before starting work.
-5. **Follow these same handoff practices**: If you begin to run out of context, pause to document and commit a proper handoff document before stopping. Quality over quantity.
+5. **Follow these same handoff practices**: If you begin to run out of context, pause to document and commit a proper handoff document for the next agent before stopping. Quality over quantity.
 6. **Pause for decision gating** if you discover something that needs founder discussion/alignment.
+7. **Critical rules** (from founder):
+   - Workspace = authoring + review studio ONLY (not performance/votes/rationales)
+   - Globe is Seneca-driven, NOT directly clickable — users interact via Seneca widget
+   - Legal-grade tracked changes are required (reviewer suggestions, version diffs, revision narratives)
+   - AI feedback aggregation (theme clustering, endorsement, sealed period) must stay prominent
+   - AI should BE the workspace — intelligence as annotations, columns, structured analysis, not a sidebar chatbot
 
 ---
 
-## What Was Completed (Phase 1a)
+## What Was Completed (Phase 1 — All Subphases)
 
-### 1. QualityPulse Component
+### Phase 1a: QualityPulse + Ambient Constitutional Check
 
-**File**: `components/workspace/author/QualityPulse.tsx` (NEW)
+**Files created**:
 
-Always-visible quality signal strip that renders ABOVE the panel tabs in the author studio. Shows:
+- `components/workspace/author/QualityPulse.tsx` — Always-visible quality strip above panel tabs with per-section indicators, constitutional badge, feedback count
+- `hooks/useAmbientConstitutionalCheck.ts` — Auto-runs constitutional check on content change (5s debounce, FNV-1a hash dedup)
 
-- Per-section quality indicators (title, abstract, motivation, rationale) derived from section analysis results
-- Constitutional check status badge (pass/warning/fail with flag count)
-- Community feedback count (theme count + reviewer count)
+**Files modified**:
 
-**Architecture**: Stateless presentation component. Receives data via props. Renders as a compact horizontal strip with icons + labels.
+- `components/studio/StudioPanel.tsx` — Added `headerContent?: ReactNode` prop for persistent above-tab content
+- `app/workspace/editor/[draftId]/page.tsx` — Wired QualityPulse, ambient constitutional check, section analysis hooks
 
-### 2. Ambient Constitutional Check Hook
+### Phase 1b: Tracked Changes for All Proposal Types
 
-**File**: `hooks/useAmbientConstitutionalCheck.ts` (NEW)
+**Architecture decision**: Reuses existing `AIDiffAdded`/`AIDiffRemoved` marks (not a new mark system). Reviewer tracked changes use `review-` editId prefix for visual distinction (blue tint vs green for AI).
 
-Auto-runs constitutional check when draft content changes, debounced 5 seconds. Features:
+**Files modified**:
 
-- Content hash dedup (FNV-1a) — skips re-check if content unchanged
-- Persists result to draft via `updateDraft` mutation (fire-and-forget)
-- Exposes `result`, `isLoading`, `recheck()` for UI
-- Initializes from `draft.lastConstitutionalCheck` cache
+- `components/workspace/editor/AIDiffMark.tsx`:
+  - Extended `AIDiffAdded` and `AIDiffRemoved` marks with `explanation` and `authorName` attributes
+  - Reviewer changes render with blue highlighting (vs green for AI suggestions)
+  - Added `applyReviewerEdit(editor, proposedText, explanation, authorName)` — applies tracked change at current selection
+  - Added `scanAllTrackedChanges(editor)` — extracts all pending changes with metadata
+- `components/workspace/editor/SelectionToolbar.tsx`:
+  - Added `showSuggestEdit` and `onSuggestEdit` props
+  - New "Suggest Edit" button (blue-themed, PenLine icon) appears for reviewers
+  - Expanding shows replacement text input + explanation field + submit
+  - Pre-fills with selected text for convenience
+- `components/workspace/editor/ProposalEditor.tsx`:
+  - Added `showSuggestEdit` and `onSuggestEdit` props, passed through to SelectionToolbar
+  - Added `handleSuggestEdit` callback that applies `applyReviewerEdit`
+- `app/workspace/editor/[draftId]/page.tsx`:
+  - `showSuggestEdit={!isOwner && mode === 'review'}` enables for reviewers only
+  - PostHog: `tracked_change_proposed` event
 
-### 3. StudioPanel headerContent Support
+### Phase 1c: Proactive Seneca Insights
 
-**File**: `components/studio/StudioPanel.tsx` (MODIFIED)
+**Files created**:
 
-Added `headerContent?: ReactNode` prop to `StudioPanelProps`. Renders above the tab bar in both desktop and mobile views. Always visible regardless of which tab is active.
+- `components/workspace/author/ProactiveInsight.tsx` — Ambient AI insight card below QualityPulse
+  - Surfaces top completeness gap or vagueness issue from section analysis
+  - 3s typing idle timer (hides while typing)
+  - 30s auto-dismiss
+  - "Improve this section" CTA triggers AI agent via existing `agentSendMessage`
 
-### 4. Editor Page Wiring
+**Files modified**:
 
-**File**: `app/workspace/editor/[draftId]/page.tsx` (MODIFIED)
+- `app/workspace/editor/[draftId]/page.tsx`:
+  - Added ProactiveInsight below QualityPulse in headerContent (owners only)
+  - `handleInsightApply` sends section improvement prompt to agent
+  - PostHog: `proactive_insight_applied` event
 
-- Added imports: `QualityPulse`, `useAmbientConstitutionalCheck`, `useSectionAnalysis`
-- Instantiated hooks: `useAmbientConstitutionalCheck(draft)`, `useSectionAnalysis(draft)`
-- Added ambient section analysis trigger (effect that fires `analyzeSection()` on content length changes)
-- Created `qualityPulseNode` that passes content + section results + constitutional result to QualityPulse
-- Passed `headerContent={qualityPulseNode}` through `AuthorPanelWrapper` to `StudioPanel`
+### Phase 1e: Version Diff from Editor
+
+**Files modified**:
+
+- `app/workspace/editor/[draftId]/page.tsx`:
+  - Added `VersionCompareDialog` next to "Save Version" button in editor toolbar
+  - Shows when versions array has 2+ entries
 
 ---
 
 ## What Remains
 
-### Phase 1b: Tracked Changes for All Proposal Types (M effort)
-
-**Goal**: Extend the amendment editor's suggest mode / tracked changes to ALL proposal types in the standard ProposalEditor.
-
-**Key files**:
-
-- `components/workspace/editor/ProposalEditor.tsx` — Register suggest mode extensions
-- `app/workspace/amendment/[draftId]/page.tsx` — Reference implementation for suggest mode
-- Amendment editor uses `SuggestModePlugin` + `proposeChange()` + `scanDiffMarks()`
-
-**What to do**:
-
-1. Extract the suggest mode extension from the amendment editor into a reusable Tiptap extension
-2. Register it in ProposalEditor (only active in 'review' mode or when reviewer suggests changes)
-3. Add UI for reviewers to propose tracked changes on community drafts (select text -> suggest edit)
-4. Add UI for proposers to accept/reject tracked changes from reviewers
-5. Wire Seneca to suggest tracked changes via `proposeChange()` (agent already has `injectProposedEdit()`)
-
-**Architecture note**: The current ProposalEditor has `AIDiff` marks for inline diffs from the AI agent. Tracked changes from reviewers are different — they're persistent, attributed, and stored in the database (not ephemeral like AI suggestions). May need a new annotation type or separate mark.
-
-### Phase 1c: Proactive Seneca Insights (M effort)
-
-**Goal**: Seneca proactively surfaces insights in the sidebar without the user asking.
-
-**Key files**:
-
-- `components/workspace/author/QualityPulse.tsx` — Could show Seneca insight cards below quality indicators
-- `hooks/useSectionAnalysis.ts` — Already runs section analysis; results include `vaguenessIssues`, `completenessGaps`
-- `lib/ai/skills/readiness-narrative.ts` — Already generates narrative insight
-
-**What to do**:
-
-1. When section analysis returns `needs_work` quality, surface the top vagueness issue or completeness gap as a proactive insight in the sidebar
-2. Show as a small card below the QualityPulse: "Seneca: Your motivation doesn't address budget precedent. [Apply suggestion]"
-3. The "Apply suggestion" button uses the existing `onApplyFix` pattern from `AuthorIntelligencePanel`
-4. Don't show if user is actively typing (debounce)
-
-### Phase 1d: Design Language Enforcement (S effort)
-
-**What to do**:
-
-- Replace Tailwind hardcoded vote colors with Compass tokens (`--cerulean`, `--copper`, `--slate-vote`)
-- Use `--compass-teal` for primary actions consistently
-- Ensure Fraunces for scores/heroes, Space Grotesk for body
-- Check spacing against Compass density mode tokens
-
-### Phase 1e: Version Diff View in Editor (S effort)
-
-**Goal**: Make version comparison accessible from the editor (not just from the portfolio).
-
-**Key files**:
-
-- `components/workspace/editor/VersionDiffView.tsx` — Already exists
-- `app/workspace/editor/[draftId]/page.tsx` — Needs a way to trigger diff view (button in toolbar or slash command)
-
----
-
 ### Phase 2: Review Decision Table (L effort)
 
-Replace the review queue kanban with an AI-enriched analytical decision table. See plan for full spec.
+Replace the review queue kanban with an AI-enriched analytical decision table.
 
 **Key files to modify**:
 
-- `components/workspace/review/ReviewWorkspace.tsx` — Main review page
-- `components/workspace/review/ReviewQueue.tsx` — Current kanban queue
+- `components/workspace/review/ReviewWorkspace.tsx` — Main review page layout
+- `components/workspace/review/ReviewQueue.tsx` — Current kanban queue (replace with table)
 - `components/workspace/review/ReviewQueueList.tsx` — Current list items
+- `app/api/workspace/review-queue/route.ts` — API needs constitutional risk, alignment columns
 
 **Key files to reference**:
 
-- `hooks/useReviewQueue.ts` — Data source for review items
-- `lib/workspace/types.ts` — `ReviewQueueItem` type
-- `app/api/workspace/review-queue/route.ts` — API that returns proposals + intelligence
+- `hooks/useReviewQueue.ts` — Data source, returns `ReviewQueueItem[]`
+- `lib/workspace/types.ts` — `ReviewQueueItem` type (has interBodyVotes, citizenSentiment, epochsRemaining)
 
-**New infrastructure needed**:
+**What the API currently returns**: Proposals with inter-body vote tallies, citizen sentiment, epochs remaining, existing vote. Does NOT yet include constitutional check data, alignment scores, or risk levels.
 
-- Background pre-computation pipeline (Inngest function triggered on new proposals)
-- API endpoint changes to include pre-computed analysis in review queue response
-- Decision table component with sortable/filterable AI-computed columns
+**Implementation**:
+
+1. Create `DecisionTable` component with sortable/filterable columns
+2. Columns: Proposal, Type, Urgency, Constitutional Risk, Treasury Impact, Alignment, Community Signal, Your Status
+3. Enhance review-queue API to include pre-computed constitutional checks and alignment scores
+4. Inline expansion for each cell (click to see detail without leaving table)
+5. Unify pre-chain (feedback) and post-chain (voting) into one table with phase filter
+6. Use `@tanstack/react-table` (already in deps) for sorting/filtering
+7. Feature-flag behind `workspace_decision_table`
+8. PostHog: `review_table_sorted`, `review_table_filtered`, `review_cell_expanded`
 
 ### Phase 3: Review Studio Intelligence (L effort)
 
-Reimagine the review studio with Seneca summary as default view, persistent decision panel, structured analysis.
+Seneca summary as default view, persistent decision panel, structured analysis visible without tabs.
 
 **Key files**:
 
-- `app/workspace/review/page.tsx` — Review page (routes to ReviewPageRouter)
+- `app/workspace/review/page.tsx` — Review page router
 - `components/workspace/review/ProposalContent.tsx` — Raw proposal display
-- `components/workspace/review/ReviewWorkspace.tsx` — Studio layout
+- `components/workspace/review/ReviewWorkspace.tsx` — Studio layout (3-panel resizable)
 - `components/studio/StudioPanel.tsx` — Panel system (already has headerContent support)
 
-**Architecture decisions needed**:
+**What to build**:
 
-- Where does the Seneca summary render? (Above raw text, as a new section?)
-- Does the decision panel replace the Vote tab or sit alongside it?
-- How do tracked changes flow from reviewer to proposer database?
+1. `SenecaSummary` component — personalized AI summary framed through user's governance philosophy
+2. `DecisionPanel` — persistent right panel replacing Vote tab: position tracker, vote buttons, rationale, assumptions
+3. `IntelligenceStrip` — compact structured analysis (constitutional, treasury, proposer, community, inter-body)
+4. Pre-chain mode: DecisionPanel adapts to show ReviewRubric + "Suggest Edit" instead of vote buttons
+5. Revision diff: "What changed?" shows diff between community review version and current version
+
+**Architecture decisions needed from founder**:
+
+- Does the decision panel replace the Vote tab entirely, or sit alongside it?
+- How do tracked changes from reviewers persist to the database? (Currently only in-document marks)
 
 ### Phase 4: Author Decision Table (M effort)
 
-Replace author kanban with intelligent portfolio table. See Phase 2 for pattern — similar approach but for author's drafts.
+Replace author kanban with intelligent portfolio table. Same pattern as Phase 2 but for author's drafts. Columns: Draft, Status, Quality Signal, Community Feedback, Constitutional, Next Action.
 
 ### Phase 5: Globe-Workspace Bridge (M effort)
 
-Seneca-mediated globe navigation to workspace. Requires:
-
-- New Seneca intent types for workspace navigation
-- Contextual card components for overlaying on globe nodes
-- Seneca widget quick-action pills for workspace entry
+Seneca-mediated navigation from globe to workspace.
 
 **Key constraint**: Globe is NOT directly clickable. Seneca choreographs globe via intents. Cards overlay focused nodes and ARE clickable.
 
+**Files**:
+
+- `hooks/useSenecaGlobeBridge.ts` — Add workspace intent types
+- `components/governada/panel/SenecaConversation.tsx` — Add workspace quick-action pills
+- Create `components/globe/WorkspaceOverlayCards.tsx` — Contextual cards on focused nodes
+
 ### Phase 6: Design Language & Mobile (M effort)
 
-Full Compass enforcement across all workspace surfaces + mobile optimization.
+Full Compass enforcement + mobile optimization. Bottom sheet panels, simplified mobile editor, touch targets, reduced motion.
 
 ---
 
 ## Key Type Signatures for Next Agent
+
+### ReviewQueueItem (from lib/workspace/types.ts)
+
+```typescript
+interface ReviewQueueItem {
+  txHash: string;
+  proposalIndex: number;
+  title: string;
+  abstract: string | null;
+  aiSummary: string | null;
+  proposalType: string;
+  withdrawalAmount: number | null;
+  treasuryTier: string | null;
+  epochsRemaining: number | null;
+  isUrgent: boolean;
+  interBodyVotes: InterBodyVotes; // { drep, spo, cc: { yes, no, abstain } }
+  citizenSentiment: CitizenSentiment | null;
+  existingVote: string | null;
+  sealedUntil: string | null;
+  motivation: string | null;
+  rationale: string | null;
+}
+```
 
 ### ProposalDraft (from lib/workspace/types.ts)
 
@@ -204,6 +213,34 @@ interface ProposalDraft {
 }
 ```
 
+### AIDiffMark Extended Attributes
+
+```typescript
+// Both AIDiffAdded and AIDiffRemoved now support:
+{
+  editId: string | null; // 'ai-*' for AI, 'review-*' for reviewer tracked changes
+  explanation: string | null; // Why this change was suggested
+  authorName: string | null; // Who suggested it
+}
+```
+
+### New Public APIs in AIDiffMark.tsx
+
+```typescript
+// Apply a reviewer's tracked change at the current selection
+applyReviewerEdit(editor, proposedText, explanation, authorName): string | null  // returns editId
+
+// Scan document for all tracked changes (AI + reviewer)
+scanAllTrackedChanges(editor): Array<{
+  editId: string;
+  originalText: string;
+  proposedText: string;
+  explanation: string | null;
+  authorName: string | null;
+  isReviewer: boolean;  // true if editId starts with 'review-'
+}>
+```
+
 ### SectionAnalysisOutput (from lib/ai/skills/section-analysis.ts)
 
 ```typescript
@@ -216,25 +253,25 @@ interface SectionAnalysisOutput {
 }
 ```
 
-### ConstitutionalCheckResult (from lib/workspace/types.ts)
+### FeedbackTheme (from lib/workspace/feedback/types.ts)
 
 ```typescript
-interface ConstitutionalCheckResult {
-  flags: Array<{ article: string; section?: string; concern: string; severity: string }>;
-  score: 'pass' | 'warning' | 'fail';
+interface FeedbackTheme {
+  id: string;
   summary: string;
+  category: 'concern' | 'support' | 'question' | 'suggestion';
+  endorsementCount: number;
+  keyVoices: Array<{ reviewerId; text; timestamp }>;
+  novelContributions: Array<{ reviewerId; text; timestamp }>;
+  addressedStatus: 'open' | 'addressed' | 'deferred' | 'dismissed';
+  addressedReason?: string;
+  linkedAnnotationIds: string[];
 }
 ```
-
-### StudioPanel headerContent
-
-The `StudioPanel` component now accepts `headerContent?: ReactNode` which renders above the tab bar in both desktop and mobile views. Use this for any always-visible content.
 
 ---
 
 ## User Feedback Summary
-
-The founder provided these key constraints during the exploration:
 
 1. **Workspace = authoring + review studio only** — Performance, votes, rationales, delegators belong elsewhere
 2. **Globe is Seneca-driven, not directly interactive** — Users interact via Seneca widget, Seneca choreographs globe
