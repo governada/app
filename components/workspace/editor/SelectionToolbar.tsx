@@ -26,6 +26,7 @@ import {
   Bold,
   Italic,
   Link as LinkIcon,
+  PenLine,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -66,6 +67,10 @@ interface SelectionToolbarProps {
   currentUserId: string;
   currentUserName?: string;
   onCommentCreated?: () => void;
+  /** Called when reviewer submits a tracked change suggestion */
+  onSuggestEdit?: (proposedText: string, explanation: string) => void;
+  /** Whether to show the "Suggest Edit" button (reviewers in review mode) */
+  showSuggestEdit?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -77,10 +82,15 @@ export function SelectionToolbar({
   currentUserId,
   currentUserName = 'You',
   onCommentCreated,
+  onSuggestEdit,
+  showSuggestEdit = false,
 }: SelectionToolbarProps) {
   const [visible, setVisible] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0 });
   const [showCommentInput, setShowCommentInput] = useState(false);
+  const [showSuggestInput, setShowSuggestInput] = useState(false);
+  const [suggestText, setSuggestText] = useState('');
+  const [suggestExplanation, setSuggestExplanation] = useState('');
   const [commentText, setCommentText] = useState('');
   const [commentCategory, setCommentCategory] = useState<CommentCategory>('note');
   const [showRiskMenu, setShowRiskMenu] = useState(false);
@@ -135,6 +145,7 @@ export function SelectionToolbar({
     const handler = (e: MouseEvent) => {
       if (toolbarRef.current && !toolbarRef.current.contains(e.target as Node)) {
         setShowCommentInput(false);
+        setShowSuggestInput(false);
       }
     };
     document.addEventListener('mousedown', handler);
@@ -258,9 +269,22 @@ export function SelectionToolbar({
     [handleQuickMark],
   );
 
+  // --- Submit suggest edit ---
+  const handleSubmitSuggestEdit = useCallback(() => {
+    if (!suggestText.trim()) return;
+    onSuggestEdit?.(suggestText.trim(), suggestExplanation.trim());
+    setSuggestText('');
+    setSuggestExplanation('');
+    setShowSuggestInput(false);
+    setVisible(false);
+  }, [suggestText, suggestExplanation, onSuggestEdit]);
+
   const handleCancel = useCallback(() => {
     setShowCommentInput(false);
+    setShowSuggestInput(false);
     setCommentText('');
+    setSuggestText('');
+    setSuggestExplanation('');
     setCommentCategory('note');
   }, []);
 
@@ -277,7 +301,68 @@ export function SelectionToolbar({
       style={{ top: position.top, left: position.left }}
     >
       <div className="flex items-center gap-1 rounded-lg border border-border bg-background shadow-lg p-1">
-        {!showCommentInput ? (
+        {showSuggestInput ? (
+          <div className="flex flex-col gap-2 p-2 min-w-[300px]">
+            <div className="flex items-center gap-1.5 text-xs text-blue-400">
+              <PenLine className="h-3.5 w-3.5" />
+              <span className="font-medium">Suggest Edit</span>
+            </div>
+
+            {/* Proposed replacement text */}
+            <textarea
+              value={suggestText}
+              onChange={(e) => setSuggestText(e.target.value)}
+              placeholder="Write your suggested replacement text..."
+              className="w-full min-h-[60px] max-h-[120px] resize-none rounded border border-border bg-background px-2 py-1.5 text-xs placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+              autoFocus
+              onKeyDown={(e) => {
+                if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSubmitSuggestEdit();
+                }
+                if (e.key === 'Escape') {
+                  e.preventDefault();
+                  handleCancel();
+                }
+              }}
+            />
+
+            {/* Explanation (optional) */}
+            <input
+              value={suggestExplanation}
+              onChange={(e) => setSuggestExplanation(e.target.value)}
+              placeholder="Why this change? (optional)"
+              className="w-full rounded border border-border bg-background px-2 py-1 text-xs placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+            />
+
+            {/* Actions */}
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-muted-foreground/40">Ctrl+Enter to submit</span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={handleCancel}
+                  className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors cursor-pointer"
+                  title="Cancel"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={handleSubmitSuggestEdit}
+                  disabled={!suggestText.trim()}
+                  className={cn(
+                    'flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors cursor-pointer',
+                    suggestText.trim()
+                      ? 'bg-blue-600 text-white hover:bg-blue-500'
+                      : 'bg-muted text-muted-foreground cursor-not-allowed',
+                  )}
+                >
+                  <Send className="h-3 w-3" />
+                  Suggest
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : !showCommentInput ? (
           <>
             {/* Inline formatting buttons (edit mode only) */}
             {editor.isEditable && (
@@ -328,6 +413,25 @@ export function SelectionToolbar({
                 </button>
                 <div className="w-px h-4 bg-border" />
               </>
+            )}
+            {/* Suggest Edit button (reviewers only) */}
+            {showSuggestEdit && (
+              <button
+                onClick={() => {
+                  setShowSuggestInput(true);
+                  // Pre-fill with selected text for convenience
+                  const { from, to } = editor.state.selection;
+                  if (from !== to) {
+                    const selectedText = editor.state.doc.textBetween(from, to, '\n');
+                    setSuggestText(selectedText);
+                  }
+                }}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-blue-400 hover:text-blue-300 rounded-md hover:bg-blue-500/10 transition-colors cursor-pointer"
+                title="Suggest an edit to this text"
+              >
+                <PenLine className="h-3.5 w-3.5" />
+                Suggest Edit
+              </button>
             )}
             <button
               onClick={() => setShowCommentInput(true)}

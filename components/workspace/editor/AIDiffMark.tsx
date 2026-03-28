@@ -30,6 +30,8 @@ export const AIDiffAdded = Mark.create({
   addAttributes() {
     return {
       editId: { default: null },
+      explanation: { default: null, rendered: false },
+      authorName: { default: null, rendered: false },
     };
   },
 
@@ -38,13 +40,18 @@ export const AIDiffAdded = Mark.create({
   },
 
   renderHTML({ HTMLAttributes }) {
+    const isReviewer =
+      typeof HTMLAttributes.editId === 'string' && HTMLAttributes.editId.startsWith('review-');
     return [
       'span',
       mergeAttributes(HTMLAttributes, {
         'data-ai-diff-added': '',
-        class:
-          'ai-diff-added bg-emerald-200/60 dark:bg-emerald-900/40 text-emerald-900 dark:text-emerald-100 rounded-sm px-0.5',
-        title: 'AI-proposed addition (Tab to accept, Escape to reject)',
+        class: isReviewer
+          ? 'ai-diff-added bg-blue-200/60 dark:bg-blue-900/40 text-blue-900 dark:text-blue-100 rounded-sm px-0.5'
+          : 'ai-diff-added bg-emerald-200/60 dark:bg-emerald-900/40 text-emerald-900 dark:text-emerald-100 rounded-sm px-0.5',
+        title: HTMLAttributes.explanation
+          ? `${isReviewer ? 'Reviewer' : 'AI'} suggestion: ${HTMLAttributes.explanation}`
+          : `${isReviewer ? 'Reviewer' : 'AI'}-proposed addition (Tab to accept, Escape to reject)`,
       }),
       0,
     ];
@@ -63,6 +70,8 @@ export const AIDiffRemoved = Mark.create({
   addAttributes() {
     return {
       editId: { default: null },
+      explanation: { default: null, rendered: false },
+      authorName: { default: null, rendered: false },
     };
   },
 
@@ -77,7 +86,9 @@ export const AIDiffRemoved = Mark.create({
         'data-ai-diff-removed': '',
         class:
           'ai-diff-removed bg-red-200/60 dark:bg-red-900/40 text-red-900 dark:text-red-100 line-through rounded-sm px-0.5 opacity-70',
-        title: 'Will be removed (Tab to accept, Escape to reject)',
+        title: HTMLAttributes.explanation
+          ? `Suggested removal: ${HTMLAttributes.explanation}`
+          : 'Will be removed (Tab to accept, Escape to reject)',
       }),
       0,
     ];
@@ -358,4 +369,127 @@ export function acceptAllDiffs(editor: Editor): void {
 export function rejectAllDiffs(editor: Editor): void {
   const editId = findActiveEditId(editor);
   if (editId) rejectDiff(editor, editId);
+}
+
+// ---------------------------------------------------------------------------
+// Reviewer tracked change: apply at current selection range
+// ---------------------------------------------------------------------------
+
+/**
+ * Apply a reviewer's tracked change at the current editor selection.
+ *
+ * Unlike `applyProposedEdit()` which uses field-relative character offsets,
+ * this operates on the current selection range directly — ideal for the
+ * "Suggest Edit" toolbar action where the reviewer has selected text.
+ */
+export function applyReviewerEdit(
+  editor: Editor,
+  proposedText: string,
+  explanation: string,
+  authorName: string,
+): string | null {
+  const { from, to } = editor.state.selection;
+  if (from === to) return null;
+
+  const editId = `review-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+  // Temporarily enable editing if in review mode
+  const wasEditable = editor.isEditable;
+  if (!wasEditable) editor.setEditable(true);
+
+  editor
+    .chain()
+    .focus()
+    .command(({ tr }) => {
+      // Mark the selected text as removed
+      const removedMark = editor.schema.marks.aiDiffRemoved.create({
+        editId,
+        explanation,
+        authorName,
+      });
+      tr.addMark(from, to, removedMark);
+
+      // Insert proposed text after with added mark
+      const addedMark = editor.schema.marks.aiDiffAdded.create({
+        editId,
+        explanation,
+        authorName,
+      });
+      const textNode = editor.schema.text(proposedText, [addedMark]);
+      tr.insert(to, textNode);
+
+      return true;
+    })
+    .run();
+
+  if (!wasEditable) editor.setEditable(false);
+
+  return editId;
+}
+
+/**
+ * Scan the document for all tracked changes (both AI and reviewer).
+ * Returns metadata for each editId found.
+ */
+export function scanAllTrackedChanges(editor: Editor): Array<{
+  editId: string;
+  originalText: string;
+  proposedText: string;
+  explanation: string | null;
+  authorName: string | null;
+  isReviewer: boolean;
+}> {
+  const changesMap = new Map<
+    string,
+    {
+      editId: string;
+      removedText: string;
+      addedText: string;
+      explanation: string | null;
+      authorName: string | null;
+    }
+  >();
+
+  editor.state.doc.descendants((node) => {
+    if (!node.isText) return;
+
+    for (const mark of node.marks) {
+      if (mark.type.name === 'aiDiffRemoved' && mark.attrs.editId) {
+        const editId = mark.attrs.editId as string;
+        if (!changesMap.has(editId)) {
+          changesMap.set(editId, {
+            editId,
+            removedText: '',
+            addedText: '',
+            explanation: (mark.attrs.explanation as string) || null,
+            authorName: (mark.attrs.authorName as string) || null,
+          });
+        }
+        changesMap.get(editId)!.removedText += node.text ?? '';
+      }
+
+      if (mark.type.name === 'aiDiffAdded' && mark.attrs.editId) {
+        const editId = mark.attrs.editId as string;
+        if (!changesMap.has(editId)) {
+          changesMap.set(editId, {
+            editId,
+            removedText: '',
+            addedText: '',
+            explanation: (mark.attrs.explanation as string) || null,
+            authorName: (mark.attrs.authorName as string) || null,
+          });
+        }
+        changesMap.get(editId)!.addedText += node.text ?? '';
+      }
+    }
+  });
+
+  return Array.from(changesMap.values()).map((entry) => ({
+    editId: entry.editId,
+    originalText: entry.removedText,
+    proposedText: entry.addedText,
+    explanation: entry.explanation,
+    authorName: entry.authorName,
+    isReviewer: entry.editId.startsWith('review-'),
+  }));
 }
