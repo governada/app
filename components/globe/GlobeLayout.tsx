@@ -70,6 +70,17 @@ export function GlobeLayout({ children }: GlobeLayoutProps) {
   const searchParams = useSearchParams();
   const seneca = useSenecaThread();
   const { handleNodeClick: bridgeNodeClick, executeGlobeCommand } = useSenecaGlobeBridge(globeRef);
+
+  // Listen for globe commands from SenecaMatch (CustomEvent bridge)
+  useEffect(() => {
+    function handleSenecaGlobeCmd(e: Event) {
+      const detail = (e as CustomEvent).detail;
+      if (detail) executeGlobeCommand(detail);
+    }
+    window.addEventListener('senecaGlobeCommand', handleSenecaGlobeCmd);
+    return () => window.removeEventListener('senecaGlobeCommand', handleSenecaGlobeCmd);
+  }, [executeGlobeCommand]);
+
   const { segment } = useSegment();
   const isAuthenticated = segment !== 'anonymous';
   const { epoch, day, totalDays, activeProposalCount } = useEpochContext();

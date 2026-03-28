@@ -8,11 +8,16 @@ import { trackFunnel, FUNNEL_EVENTS } from '@/lib/funnel';
 import { useQuery } from '@tanstack/react-query';
 import { motion, useReducedMotion } from 'framer-motion';
 import { GlobeTooltip } from '@/components/governada/GlobeTooltip';
-// SenecaDock removed — globe IS Seneca's visual embodiment for anonymous users
 import { useSenecaThread } from '@/hooks/useSenecaThread';
 import { useSenecaGlobeBridge } from '@/hooks/useSenecaGlobeBridge';
 import type { ConstellationRef } from '@/components/GovernanceConstellation';
 import type { ConstellationNode3D } from '@/lib/constellation/types';
+
+const SenecaMatch = dynamic(
+  () =>
+    import('@/components/governada/panel/SenecaMatch').then((m) => ({ default: m.SenecaMatch })),
+  { ssr: false },
+);
 
 const ConstellationScene = dynamic(
   () => import('@/components/ConstellationScene').then((m) => ({ default: m.ConstellationScene })),
@@ -40,7 +45,7 @@ export function AnonymousLanding({ pulseData }: AnonymousLandingProps) {
   const [hoveredNode, setHoveredNode] = useState<ConstellationNode3D | null>(null);
   const [hoverScreenPos, setHoverScreenPos] = useState<{ x: number; y: number } | null>(null);
   const prefersReducedMotion = useReducedMotion();
-  const { startMatch } = useSenecaThread();
+  const { startMatch, mode: senecaMode, returnToIdle } = useSenecaThread();
 
   // Bridge globe node clicks to Seneca panel
   const { handleNodeClick, executeGlobeCommand } = useSenecaGlobeBridge(globeRef);
@@ -115,6 +120,19 @@ export function AnonymousLanding({ pulseData }: AnonymousLandingProps) {
       <GlobeTooltip node={hoveredNode} screenPos={hoverScreenPos} showMatchCta />
 
       {/* Globe IS Seneca — the Seneca Orb + Thread handles entry from GovernadaShell on non-homepage pages */}
+
+      {/* Match flow panel — appears when match is triggered */}
+      {senecaMode === 'matching' && (
+        <motion.div
+          initial={{ y: 40, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 40, opacity: 0 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          className="fixed bottom-6 left-6 z-50 w-[min(440px,calc(100vw-3rem))] max-h-[70vh] backdrop-blur-xl bg-background/50 border border-white/5 rounded-2xl shadow-2xl shadow-black/40 flex flex-col overflow-hidden max-md:bottom-0 max-md:left-0 max-md:right-0 max-md:w-full max-md:rounded-b-none max-md:rounded-t-xl max-md:max-h-[70vh] max-md:backdrop-blur-none max-md:bg-background/90"
+        >
+          <SenecaMatch onBack={returnToIdle} />
+        </motion.div>
+      )}
 
       {/* Subtle scroll escape hatch — bottom center */}
       <motion.button

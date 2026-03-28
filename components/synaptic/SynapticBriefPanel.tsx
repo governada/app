@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useCallback, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
 import { useSynapticStore } from '@/stores/synapticStore';
@@ -13,6 +14,12 @@ import { BriefingText } from './BriefingText';
 import { BriefingChips } from './BriefingChips';
 import { SenecaInput } from '@/components/governada/panel/SenecaInput';
 import { cn } from '@/lib/utils';
+
+const SenecaMatch = dynamic(
+  () =>
+    import('@/components/governada/panel/SenecaMatch').then((m) => ({ default: m.SenecaMatch })),
+  { ssr: false },
+);
 
 // ---------------------------------------------------------------------------
 // Default follow-up chips per persona (fallback if AI doesn't generate them)
@@ -53,6 +60,10 @@ export function SynapticBriefPanel({ onGlobeCommand, className }: SynapticBriefP
   const { segment } = useSegment();
   const { epoch, day, totalDays, activeProposalCount } = useEpochContext();
   const daysRemaining = totalDays - day;
+
+  // Match mode — when Seneca triggers a match flow, render SenecaMatch in place of briefing
+  const senecaMode = useSenecaThreadStore((s) => s.mode);
+  const returnToIdle = useSenecaThreadStore((s) => s.returnToIdle);
 
   const store = useSynapticStore();
   const abortRef = useRef<AbortController | null>(null);
@@ -207,6 +218,33 @@ export function SynapticBriefPanel({ onGlobeCommand, className }: SynapticBriefP
 
   // Don't show for anonymous users
   if (segment === 'anonymous') return null;
+
+  // ── Match mode: replace briefing panel with SenecaMatch quiz ──
+  if (senecaMode === 'matching') {
+    return (
+      <motion.div
+        key="synaptic-match-panel"
+        initial={{ y: 40, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 40, opacity: 0 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        className={cn(
+          'fixed bottom-6 left-6 z-50',
+          'w-[min(440px,calc(100vw-3rem))]',
+          'max-h-[70vh]',
+          'backdrop-blur-xl bg-background/50 border border-white/5',
+          'rounded-2xl shadow-2xl shadow-black/40',
+          'flex flex-col overflow-hidden',
+          'max-md:bottom-0 max-md:left-0 max-md:right-0 max-md:w-full',
+          'max-md:rounded-b-none max-md:rounded-t-xl',
+          'max-md:max-h-[70vh] max-md:backdrop-blur-none max-md:bg-background/90',
+          className,
+        )}
+      >
+        <SenecaMatch onBack={returnToIdle} />
+      </motion.div>
+    );
+  }
 
   return (
     <AnimatePresence>
