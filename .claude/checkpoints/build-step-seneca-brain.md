@@ -301,7 +301,7 @@ Phase 3 (all independent):
 | 1F: Action handler expansion        | SHIPPED | #646 | startMatch / navigate / research actions parsed in streaming onAction callback; abort + mode switch on startMatch                |
 | 2A: Proactive whispers              | SHIPPED | #648 | /api/you/whispers endpoint + useSenecaProactiveWhispers hook; priority over templates; PostHog analytics; 8s display, 45s rotate |
 | 2B: Conversational memory           | SHIPPED | #650 | seneca_conversation_summaries table; Claude Haiku summary gen; useSenecaMemory hook; injected into advisor system prompt         |
-| 2C: Navigation-aware context        | PENDING | —    | —                                                                                                                                |
+| 2C: Navigation-aware context        | SHIPPED | —    | navigationEvent in AdvisorContext; auto-fire on route change during conversation; debounced 600ms; no visible user message       |
 | 2D: Ambient annotations             | PENDING | —    | —                                                                                                                                |
 | 2E: Delegation coaching             | PENDING | —    | —                                                                                                                                |
 | 3A: Advanced globe choreography     | PENDING | —    | —                                                                                                                                |

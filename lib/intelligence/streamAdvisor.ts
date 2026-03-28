@@ -15,6 +15,8 @@ export interface AdvisorContext {
   entityId?: string;
   persona?: 'navigator' | 'analyst' | 'partner' | 'guide';
   conversationMemory?: string;
+  /** Navigation event — set when user navigates mid-conversation */
+  navigationEvent?: { from: string; to: string; entityId?: string };
 }
 
 export interface GlobeStreamCommand {

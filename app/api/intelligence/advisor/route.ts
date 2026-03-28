@@ -44,6 +44,13 @@ const AdvisorRequestSchema = z.object({
     persona: z.enum(['navigator', 'analyst', 'partner', 'guide']).optional(),
     mode: z.enum(['conversation', 'briefing']).optional(),
     conversationMemory: z.string().optional(),
+    navigationEvent: z
+      .object({
+        from: z.string(),
+        to: z.string(),
+        entityId: z.string().optional(),
+      })
+      .optional(),
   }),
 });
 
@@ -336,6 +343,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       walletState: parsed.context.walletState,
       persona: parsed.context.persona,
       conversationMemory: parsed.context.conversationMemory,
+      navigationEvent: parsed.context.navigationEvent,
     };
 
     // --- Stream response ---
