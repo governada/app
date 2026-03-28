@@ -304,6 +304,8 @@ export interface AdvisorContext {
   mode?: 'conversation' | 'briefing';
   /** Recent conversation summaries for continuity */
   conversationMemory?: string;
+  /** Navigation event — user navigated mid-conversation */
+  navigationEvent?: { from: string; to: string; entityId?: string };
 }
 
 export function buildAdvisorSystemPrompt(ctx: AdvisorContext): string {
@@ -368,6 +370,21 @@ export function buildAdvisorSystemPrompt(ctx: AdvisorContext): string {
       '',
       `## Current Page Context`,
       `The user is currently viewing the "${ctx.pageContext}" section of Governada.`,
+    );
+  }
+
+  // Navigation event — user navigated mid-conversation
+  if (ctx.navigationEvent) {
+    lines.push(
+      '',
+      '## Navigation Event',
+      `The user just navigated from "${ctx.navigationEvent.from}" to "${ctx.navigationEvent.to}".`,
+      ctx.navigationEvent.entityId
+        ? `They are now looking at entity: ${ctx.navigationEvent.entityId}.`
+        : '',
+      'Briefly acknowledge the navigation in 1-2 sentences. Offer a relevant insight or question about what they are now viewing.',
+      'Use your tools to fetch relevant data about the new page context if applicable (e.g., get_drep_profile for a DRep page, get_proposal for a proposal page).',
+      'Keep it conversational and natural — do not repeat the page name verbatim, use contextual language.',
     );
   }
 

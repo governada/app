@@ -27,6 +27,7 @@ import { useSegment } from '@/components/providers/SegmentProvider';
 import { readAdvisorStream } from '@/lib/intelligence/streamAdvisor';
 import { useSenecaMemory } from '@/hooks/useSenecaMemory';
 import { cn } from '@/lib/utils';
+import posthog from 'posthog-js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -341,6 +342,8 @@ export function SenecaThread({
 
   // Track route changes for navigation markers in conversation
   const [routeChanged, setRouteChanged] = useState(false);
+  // Track previous route for navigation events sent to the advisor
+  const prevNavRouteRef = useRef<PanelRoute>(panelRoute);
   useEffect(() => {
     if (prevRouteRef.current !== panelRoute) {
       setRouteChanged(true);
@@ -348,6 +351,44 @@ export function SenecaThread({
       const t = setTimeout(() => setRouteChanged(false), 100);
       return () => clearTimeout(t);
     }
+  }, [panelRoute]);
+
+  // 2C: Navigation-aware context — auto-fire advisor response on route change
+  const pendingNavRef = useRef<{
+    from: string;
+    to: string;
+    entityId?: string;
+  } | null>(null);
+  useEffect(() => {
+    if (
+      mode !== 'conversation' ||
+      isStreamingRef.current ||
+      messages.length === 0 ||
+      prevNavRouteRef.current === panelRoute
+    )
+      return;
+
+    const fromRoute = prevNavRouteRef.current;
+    prevNavRouteRef.current = panelRoute;
+
+    // Debounce rapid navigation — only fire if user settles for 600ms
+    const timer = setTimeout(() => {
+      if (isStreamingRef.current) return; // streaming started between debounce
+      pendingNavRef.current = {
+        from: ROUTE_LABELS[fromRoute],
+        to: ROUTE_LABELS[panelRoute],
+        entityId,
+      };
+      posthog.capture('seneca_navigation_context', {
+        from: ROUTE_LABELS[fromRoute],
+        to: ROUTE_LABELS[panelRoute],
+        has_entity: !!entityId,
+      });
+      // Trigger a synthetic navigation query — the streaming effect picks it up
+      setPendingQuery(`[nav:${panelRoute}]`);
+    }, 600);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [panelRoute]);
 
   // ── Streaming effect: pendingQuery → AI response ──
@@ -361,26 +402,45 @@ export function SenecaThread({
     setToolStatus(null);
     streamContentRef.current = '';
 
+    // 2C: Detect navigation-triggered queries (format: [nav:routeName])
+    const isNavQuery = /^\[nav:[^\]]+\]$/.test(query);
+    const navEvent = isNavQuery ? pendingNavRef.current : null;
+    if (isNavQuery) pendingNavRef.current = null; // consume
+
     // Snapshot history before adding new messages
     const historyMessages = messagesRef.current
       .filter((m) => m.role === 'user' || m.role === 'assistant')
       .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }));
-    historyMessages.push({ role: 'user', content: query });
 
-    // Add user + empty assistant placeholder to display
-    const userMsg: ThreadMessage = {
-      id: `user-${Date.now()}`,
-      role: 'user',
-      content: query,
-      ts: Date.now(),
-    };
+    if (isNavQuery && navEvent) {
+      // For navigation events, send a synthetic user message that the AI understands
+      // but DON'T show it in the chat — only show the assistant's response
+      historyMessages.push({
+        role: 'user',
+        content: `I just navigated to the ${navEvent.to} page.${navEvent.entityId ? ` Looking at entity: ${navEvent.entityId}.` : ''}`,
+      });
+    } else {
+      historyMessages.push({ role: 'user', content: query });
+    }
+
+    if (!isNavQuery) {
+      // Normal user query — show the user message bubble
+      const userMsg: ThreadMessage = {
+        id: `user-${Date.now()}`,
+        role: 'user',
+        content: query,
+        ts: Date.now(),
+      };
+      onAddMessage(userMsg);
+    }
+
+    // Always add the assistant placeholder
     const assistantMsg: ThreadMessage = {
       id: `assistant-${Date.now()}`,
       role: 'assistant',
       content: '',
       ts: Date.now(),
     };
-    onAddMessage(userMsg);
     onAddMessage(assistantMsg);
 
     const abort = new AbortController();
@@ -397,6 +457,7 @@ export function SenecaThread({
         entityId,
         persona: persona.id as 'navigator' | 'analyst' | 'partner' | 'guide',
         conversationMemory: memoryContext,
+        ...(navEvent ? { navigationEvent: navEvent } : {}),
       },
       (delta) => {
         streamContentRef.current += delta;
