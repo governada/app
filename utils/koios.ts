@@ -1095,54 +1095,48 @@ export async function fetchDRepDelegatorsFull(
   return all;
 }
 
+/** Response shape from Koios GET /drep_updates */
+export interface KoiosDRepUpdate {
+  drep_id: string;
+  hex: string;
+  has_script: boolean;
+  update_tx_hash: string;
+  cert_index: number;
+  block_time: number;
+  action: 'registered' | 'deregistered' | 'updated';
+  deposit: string | null;
+  meta_url: string | null;
+  meta_hash: string | null;
+  meta_json: Record<string, unknown> | null;
+}
+
+/** Page size for drep_updates pagination */
+const DREP_UPDATES_PAGE_SIZE = 1000;
+
 /**
  * Fetch DRep registration/update/deregistration history from /drep_updates.
+ * Uses GET with pagination (POST was removed from Koios v1).
+ * If drepIds is provided, filters to only those DReps.
  */
-export async function fetchDRepUpdates(drepIds: string[]): Promise<
-  Array<{
-    drep_id: string;
-    hex: string;
-    has_script: boolean;
-    update_tx_hash: string;
-    block_time: number;
-    action_type: 'registration' | 'update' | 'deregistration';
-    deposit: string | null;
-    meta_url: string | null;
-    meta_hash: string | null;
-    epoch_no?: number;
-  }>
-> {
-  if (drepIds.length === 0) return [];
-  try {
-    const data = await koiosFetch<
-      Array<{
-        drep_id: string;
-        hex: string;
-        has_script: boolean;
-        update_tx_hash: string;
-        block_time: number;
-        action_type: 'registration' | 'update' | 'deregistration';
-        deposit: string | null;
-        meta_url: string | null;
-        meta_hash: string | null;
-        epoch_no?: number;
-      }>
-    >('/drep_updates', {
-      method: 'POST',
-      body: JSON.stringify({ _drep_ids: drepIds }),
-    });
-    return data || [];
-  } catch (err) {
-    // drep_updates endpoint removed from Koios v1 — return empty gracefully
-    const msg = err instanceof Error ? err.message : String(err);
-    if (msg.includes('404')) {
-      logger.warn('[Koios] drep_updates endpoint unavailable (404), returning empty', {
-        drepCount: drepIds.length,
-      });
-      return [];
-    }
-    throw err;
+export async function fetchDRepUpdates(drepIds?: string[]): Promise<KoiosDRepUpdate[]> {
+  const all: KoiosDRepUpdate[] = [];
+  let offset = 0;
+
+  // Build filter param if DRep IDs specified
+  const drepFilter = drepIds && drepIds.length > 0 ? `&_drep_id=in.(${drepIds.join(',')})` : '';
+
+  while (true) {
+    const url = `/drep_updates?limit=${DREP_UPDATES_PAGE_SIZE}&offset=${offset}${drepFilter}`;
+    const data = await koiosFetch<KoiosDRepUpdate[]>(url);
+    const pageData = data || [];
+
+    all.push(...pageData);
+
+    if (pageData.length < DREP_UPDATES_PAGE_SIZE) break;
+    offset += DREP_UPDATES_PAGE_SIZE;
   }
+
+  return all;
 }
 
 /**
