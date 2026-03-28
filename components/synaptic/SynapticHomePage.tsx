@@ -13,7 +13,7 @@
  * narrating, calm when complete.
  */
 
-import { useRef, useCallback, useState } from 'react';
+import { useRef, useCallback, useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useUserConstellationNode } from '@/hooks/useUserConstellationNode';
 import { useConstellationProposals } from '@/hooks/useConstellationProposals';
@@ -47,6 +47,16 @@ export function SynapticHomePage() {
   // Seneca state — drives globe visual state
   const isStreaming = useSynapticStore((s) => s.isStreaming);
   const phase = useSynapticStore((s) => s.phase);
+
+  // Listen for globe commands from SenecaMatch (CustomEvent bridge)
+  useEffect(() => {
+    function handleSenecaGlobeCmd(e: Event) {
+      const detail = (e as CustomEvent).detail;
+      if (detail) bridge.executeGlobeCommand(detail);
+    }
+    window.addEventListener('senecaGlobeCommand', handleSenecaGlobeCmd);
+    return () => window.removeEventListener('senecaGlobeCommand', handleSenecaGlobeCmd);
+  }, [bridge]);
 
   // Globe visual state derived from Seneca activity:
   // - idle/minimized: gentle breathing, low urgency
