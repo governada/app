@@ -26,7 +26,6 @@ import {
 import { createHash } from 'crypto';
 
 const DELEGATOR_CONCURRENCY = 5;
-const DREP_UPDATE_BATCH = 50;
 
 // ---------------------------------------------------------------------------
 // 1. DRep Delegator Snapshots
@@ -196,57 +195,66 @@ export async function syncDRepLifecycleEvents(): Promise<{
 
   const errors: string[] = [];
   let eventsStored = 0;
-  let drepsProcessed = 0;
 
   try {
-    // Get all DRep IDs
-    const { data: dreps } = await supabase.from('dreps').select('id');
+    // Fetch ALL lifecycle events in one paginated call (GET, ~3-4K records).
+    // The old POST /drep_updates was removed from Koios v1 — this uses the
+    // GET endpoint which returns all DRep registration/update/deregistration events.
+    const updates = await fetchDRepUpdates();
 
-    if (!dreps?.length) {
-      await syncLog.finalize(true, null, { eventsStored: 0 });
+    if (updates.length === 0) {
+      await syncLog.finalize(true, null, { eventsStored: 0, note: 'no_events_returned' });
       return { eventsStored: 0, drepsProcessed: 0, errors: [] };
     }
 
-    const drepIds = dreps.map((d) => d.id);
+    const uniqueDreps = new Set(updates.map((u) => u.drep_id));
 
-    // Batch fetch lifecycle events from Koios
-    for (let i = 0; i < drepIds.length; i += DREP_UPDATE_BATCH) {
-      const batch = drepIds.slice(i, i + DREP_UPDATE_BATCH);
+    // Map Koios action values to DB CHECK constraint values:
+    // Koios returns 'registered'/'deregistered'/'updated'
+    // DB CHECK expects 'registration'/'deregistration'/'update'
+    const actionMap: Record<string, string> = {
+      registered: 'registration',
+      deregistered: 'deregistration',
+      updated: 'update',
+    };
+
+    const rows = updates.map((u) => ({
+      drep_id: u.drep_id,
+      action: actionMap[u.action] ?? u.action,
+      tx_hash: u.update_tx_hash,
+      epoch_no: u.block_time ? blockTimeToEpoch(u.block_time) : 0,
+      block_time: u.block_time,
+      deposit: u.deposit,
+      anchor_url: u.meta_url,
+      anchor_hash: u.meta_hash,
+    }));
+
+    // Batch upsert (unique constraint: drep_id + tx_hash)
+    for (let i = 0; i < rows.length; i += 200) {
+      const batch = rows.slice(i, i + 200);
       try {
-        const updates = await fetchDRepUpdates(batch);
-        drepsProcessed += batch.length;
-
-        if (updates.length === 0) continue;
-
-        const rows = updates.map((u) => ({
-          drep_id: u.drep_id,
-          action: u.action_type,
-          tx_hash: u.update_tx_hash,
-          epoch_no: u.epoch_no ?? (u.block_time ? blockTimeToEpoch(u.block_time) : 0),
-          block_time: u.block_time,
-          deposit: u.deposit,
-          anchor_url: u.meta_url,
-          anchor_hash: u.meta_hash,
-        }));
-
         const result = await batchUpsert(
           supabase,
           'drep_lifecycle_events',
-          rows,
+          batch,
           'drep_id,tx_hash',
-          `lifecycle-batch-${Math.floor(i / DREP_UPDATE_BATCH)}`,
+          `lifecycle-batch-${Math.floor(i / 200)}`,
         );
         eventsStored += result.success;
       } catch (err) {
-        errors.push(`Lifecycle batch ${Math.floor(i / DREP_UPDATE_BATCH)}: ${errMsg(err)}`);
+        errors.push(`Lifecycle batch ${Math.floor(i / 200)}: ${errMsg(err)}`);
       }
     }
 
-    const metrics = { eventsStored, drepsProcessed, totalDreps: drepIds.length };
+    const metrics = {
+      eventsStored,
+      drepsProcessed: uniqueDreps.size,
+      totalEvents: updates.length,
+    };
     await syncLog.finalize(errors.length === 0, errors.length ? errors.join('; ') : null, metrics);
-    return { eventsStored, drepsProcessed, errors };
+    return { eventsStored, drepsProcessed: uniqueDreps.size, errors };
   } catch (err) {
-    await syncLog.finalize(false, errMsg(err), { eventsStored, drepsProcessed });
+    await syncLog.finalize(false, errMsg(err), { eventsStored });
     throw err;
   }
 }
