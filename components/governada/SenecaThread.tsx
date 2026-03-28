@@ -20,7 +20,11 @@ import { SenecaResearch } from '@/components/governada/panel/SenecaResearch';
 import { SenecaInput } from '@/components/governada/panel/SenecaInput';
 import { AIResponse } from '@/components/commandpalette/AIResponse';
 import type { ThreadMessage } from '@/stores/senecaThreadStore';
+import { useSenecaThreadStore } from '@/stores/senecaThreadStore';
 import type { PanelRoute } from '@/hooks/useSenecaThread';
+import { useEpochContext } from '@/hooks/useEpochContext';
+import { useSegment } from '@/components/providers/SegmentProvider';
+import { readAdvisorStream } from '@/lib/intelligence/streamAdvisor';
 import { cn } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
@@ -295,15 +299,15 @@ export function SenecaThread({
   mode,
   persona,
   panelRoute,
-  entityId: _entityId,
+  entityId,
   pendingQuery,
   messages,
   onStartConversation,
   onStartResearch,
   onStartMatch,
   onReturnToIdle,
-  onAddMessage: _onAddMessage,
-  onUpdateLastAssistant: _onUpdateLastAssistant,
+  onAddMessage,
+  onUpdateLastAssistant,
   onClearConversation,
   onGlobeCommand,
   onEntityFocus,
@@ -313,6 +317,23 @@ export function SenecaThread({
   const prefersReducedMotion = useReducedMotion();
   const scrollRef = useRef<HTMLDivElement>(null);
   const prevRouteRef = useRef<PanelRoute>(panelRoute);
+
+  // ── Streaming state ──
+  const { epoch, day, totalDays, activeProposalCount } = useEpochContext();
+  const { segment } = useSegment();
+  const daysRemaining = totalDays - day;
+  const setPendingQuery = useSenecaThreadStore((s) => s.setPendingQuery);
+
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [toolStatus, setToolStatus] = useState<string | null>(null);
+  const isStreamingRef = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
+  const streamContentRef = useRef('');
+  // Stable ref so the streaming effect doesn't re-run when messages update
+  const messagesRef = useRef(messages);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   // Track route changes for navigation markers in conversation
   const [routeChanged, setRouteChanged] = useState(false);
@@ -324,6 +345,136 @@ export function SenecaThread({
       return () => clearTimeout(t);
     }
   }, [panelRoute]);
+
+  // ── Streaming effect: pendingQuery → AI response ──
+  useEffect(() => {
+    if (mode !== 'conversation' || !pendingQuery || isStreamingRef.current) return;
+
+    const query = pendingQuery;
+    setPendingQuery(undefined); // consume immediately — prevent double-fire
+    isStreamingRef.current = true;
+    setIsStreaming(true);
+    setToolStatus(null);
+    streamContentRef.current = '';
+
+    // Snapshot history before adding new messages
+    const historyMessages = messagesRef.current
+      .filter((m) => m.role === 'user' || m.role === 'assistant')
+      .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }));
+    historyMessages.push({ role: 'user', content: query });
+
+    // Add user + empty assistant placeholder to display
+    const userMsg: ThreadMessage = {
+      id: `user-${Date.now()}`,
+      role: 'user',
+      content: query,
+      ts: Date.now(),
+    };
+    const assistantMsg: ThreadMessage = {
+      id: `assistant-${Date.now()}`,
+      role: 'assistant',
+      content: '',
+      ts: Date.now(),
+    };
+    onAddMessage(userMsg);
+    onAddMessage(assistantMsg);
+
+    const abort = new AbortController();
+    abortRef.current = abort;
+
+    readAdvisorStream(
+      historyMessages,
+      {
+        epoch,
+        daysRemaining,
+        activeProposalCount: activeProposalCount ?? 0,
+        segment,
+        pageContext: panelRoute,
+        entityId,
+        persona: persona.id as 'navigator' | 'analyst' | 'partner' | 'guide',
+      },
+      (delta) => {
+        streamContentRef.current += delta;
+        setToolStatus(null); // clear tool status once text starts flowing
+        onUpdateLastAssistant(streamContentRef.current);
+      },
+      (error) => {
+        onUpdateLastAssistant(`_Error: ${error}. Please try again._`);
+        isStreamingRef.current = false;
+        setIsStreaming(false);
+      },
+      () => {
+        isStreamingRef.current = false;
+        setIsStreaming(false);
+      },
+      abort.signal,
+      // 1B: Globe commands — dispatch via CustomEvent so globe receives them
+      (cmd) => {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('senecaGlobeCommand', { detail: cmd }));
+        }
+        onGlobeCommand?.(cmd);
+      },
+      // 1F: Parameterized action handlers
+      (actionPayload) => {
+        const colonIdx = actionPayload.indexOf(':');
+        const actionType = colonIdx > 0 ? actionPayload.slice(0, colonIdx) : actionPayload;
+        const payload = colonIdx > 0 ? actionPayload.slice(colonIdx + 1) : '';
+        switch (actionType) {
+          case 'startMatch':
+            abort.abort();
+            isStreamingRef.current = false;
+            setIsStreaming(false);
+            onStartMatch();
+            break;
+          case 'navigate':
+            if (payload) router.push(payload);
+            break;
+          case 'research':
+            if (payload) onStartResearch(payload);
+            break;
+        }
+      },
+      // 1C: Tool status display
+      (status) => {
+        setToolStatus(status);
+      },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, pendingQuery]);
+
+  // Abort stream when leaving conversation mode
+  useEffect(() => {
+    if (mode !== 'conversation') {
+      abortRef.current?.abort();
+      isStreamingRef.current = false;
+      setIsStreaming(false);
+      setToolStatus(null);
+    }
+  }, [mode]);
+
+  // Abort on unmount
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, []);
+
+  // 1D: Entity focus — navigate to entity page (or use prop callback if provided)
+  const handleEntityFocus = useCallback(
+    (entityType: string, id: string) => {
+      if (onEntityFocus) {
+        onEntityFocus(entityType, id);
+        return;
+      }
+      if (entityType === 'drep') {
+        router.push(`/drep/${encodeURIComponent(id)}`);
+      } else if (entityType === 'proposal') {
+        router.push(`/proposal/${id}`);
+      }
+    },
+    [onEntityFocus, router],
+  );
 
   // Auto-scroll on new messages
   useEffect(() => {
@@ -519,10 +670,12 @@ export function SenecaThread({
               {mode === 'conversation' && (
                 <ConversationContent
                   messages={messagesWithMarkers}
-                  onEntityFocus={onEntityFocus}
+                  onEntityFocus={handleEntityFocus}
                   routeChanged={routeChanged}
                   routeLabel={ROUTE_LABELS[panelRoute]}
                   accentColor={persona.accentColor}
+                  isStreaming={isStreaming}
+                  toolStatus={toolStatus}
                 />
               )}
 
@@ -564,7 +717,7 @@ export function SenecaThread({
                   <SenecaInput
                     panelRoute={panelRoute}
                     onSubmit={(query) => onStartConversation(query)}
-                    disabled={false}
+                    disabled={isStreaming}
                   />
                 ) : (
                   /* Anonymous: semantic search input (no AI API cost) */
@@ -678,12 +831,16 @@ function ConversationContent({
   routeChanged,
   routeLabel,
   accentColor,
+  isStreaming,
+  toolStatus,
 }: {
   messages: ThreadMessage[];
   onEntityFocus?: (entityType: string, entityId: string) => void;
   routeChanged: boolean;
   routeLabel: string;
   accentColor?: string;
+  isStreaming: boolean;
+  toolStatus: string | null;
 }) {
   return (
     <div className="flex flex-col">
@@ -698,7 +855,7 @@ function ConversationContent({
         </div>
       )}
 
-      {messages.map((msg) => {
+      {messages.map((msg, idx) => {
         if (msg.role === 'user') {
           return (
             <div key={msg.id} className="flex justify-end px-3 py-2">
@@ -714,24 +871,36 @@ function ConversationContent({
           );
         }
 
-        // Assistant message
-        const isStreaming = msg.content === '' || msg.content.endsWith('\u200B');
+        // Assistant message — last one may be actively streaming
+        const isLastMsg = idx === messages.length - 1;
+        const msgIsStreaming = isLastMsg && isStreaming;
 
         return (
           <div key={msg.id} className="flex gap-2 items-start px-3 py-2">
             <div className="shrink-0 mt-1">
               <CompassSigil
-                state={isStreaming ? 'thinking' : 'idle'}
+                state={msgIsStreaming ? 'thinking' : 'idle'}
                 size={14}
                 accentColor={accentColor}
               />
             </div>
             <div className="flex-1 min-w-0">
-              <AIResponse
-                content={msg.content}
-                isStreaming={isStreaming}
-                onEntityFocus={onEntityFocus}
-              />
+              {/* 1C: Tool status — shown when tool executes before text arrives */}
+              {msgIsStreaming && toolStatus && msg.content === '' ? (
+                <motion.span
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-[11px] text-muted-foreground/50 animate-pulse"
+                >
+                  {toolStatus}
+                </motion.span>
+              ) : (
+                <AIResponse
+                  content={msg.content}
+                  isStreaming={msgIsStreaming}
+                  onEntityFocus={onEntityFocus}
+                />
+              )}
             </div>
           </div>
         );

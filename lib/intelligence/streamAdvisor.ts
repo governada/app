@@ -13,6 +13,7 @@ export interface AdvisorContext {
   segment: string;
   pageContext?: string;
   entityId?: string;
+  persona?: 'navigator' | 'analyst' | 'partner' | 'guide';
 }
 
 export interface GlobeStreamCommand {

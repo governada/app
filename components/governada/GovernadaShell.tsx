@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect } from 'react';
+import { Suspense, useCallback, useEffect } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { cn } from '@/lib/utils';
@@ -189,6 +189,13 @@ function SenecaOrbAndThread({
           ? ('thinking' as const)
           : ('idle' as const);
 
+  // 1B: Stable globe command bridge — dispatches CustomEvent to globe listeners
+  const handleGlobeCommand = useCallback((cmd: unknown) => {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('senecaGlobeCommand', { detail: cmd }));
+    }
+  }, []);
+
   // Homepage has its own Seneca surfaces: SynapticBriefPanel (auth) or the globe itself (anon).
   // Don't render the floating thread there — it competes with purpose-built homepage UX.
   if (isHomepage) return null;
@@ -223,6 +230,7 @@ function SenecaOrbAndThread({
         onAddMessage={seneca.addMessage}
         onUpdateLastAssistant={seneca.updateLastAssistant}
         onClearConversation={seneca.clearConversation}
+        onGlobeCommand={handleGlobeCommand}
         isAuthenticated={isAuthenticated}
       />
     </>
