@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft, RotateCcw, Microscope } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { AIResponse } from '@/components/commandpalette/AIResponse';
@@ -10,6 +11,7 @@ import type { AdvisorMessage } from '@/lib/intelligence/streamAdvisor';
 import { useIntelligencePanel, type PanelRoute } from '@/hooks/useIntelligencePanel';
 import { useEpochContext } from '@/hooks/useEpochContext';
 import { useSegment } from '@/components/providers/SegmentProvider';
+import { useSenecaThreadStore } from '@/stores/senecaThreadStore';
 import { cn } from '@/lib/utils';
 
 /** Heuristic: show "Go deeper" if response is substantive and query implies analysis. */
@@ -47,6 +49,7 @@ export function SenecaConversation({
   const streamContentRef = useRef('');
   const didSendInitial = useRef(false);
 
+  const router = useRouter();
   const { epoch, day, totalDays, activeProposalCount } = useEpochContext();
   const { segment } = useSegment();
   const { startResearch } = useIntelligencePanel();
@@ -117,6 +120,27 @@ export function SenecaConversation({
           setIsStreaming(false);
         },
         abort.signal,
+        undefined, // onGlobeCommand
+        (actionPayload) => {
+          // Parse parameterized actions: "startMatch", "navigate:/path", "research:query"
+          const colonIdx = actionPayload.indexOf(':');
+          const actionType = colonIdx > 0 ? actionPayload.slice(0, colonIdx) : actionPayload;
+          const payload = colonIdx > 0 ? actionPayload.slice(colonIdx + 1) : '';
+
+          switch (actionType) {
+            case 'startMatch':
+              abortRef.current?.abort();
+              setIsStreaming(false);
+              useSenecaThreadStore.getState().startMatch();
+              break;
+            case 'navigate':
+              if (payload) router.push(payload);
+              break;
+            case 'research':
+              if (payload) startResearch(payload);
+              break;
+          }
+        },
       );
     },
     [
