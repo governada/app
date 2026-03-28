@@ -639,7 +639,7 @@ export function GovernadaHeader() {
               </Link>
             )}
             <Link
-              href="/governance"
+              href="/g"
               className={cn(
                 'flex items-center gap-1.5 px-3 py-1 rounded-full text-[13px] font-medium transition-all',
                 currentSection === 'governance'

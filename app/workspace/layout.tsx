@@ -12,7 +12,7 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
 
   return (
     <>
-      {!isStudioMode && <SectionTabBar section="home" />}
+      {!isStudioMode && <SectionTabBar section="workspace" />}
       {!isStudioMode && <SectionSpotlightTrigger section="workspace" />}
       {children}
     </>
