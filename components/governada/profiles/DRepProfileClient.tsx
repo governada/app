@@ -15,6 +15,8 @@ import { DiscoveryMode } from './DiscoveryMode';
 import { ActivityHeatmap } from '@/components/ActivityHeatmap';
 import { RecordSummaryCard } from './RecordSummaryCard';
 import { TrajectoryCard } from './TrajectoryCard';
+import { SenecaAnnotationStack } from '@/components/governada/annotations/SenecaAnnotation';
+import { useSenecaAnnotations } from '@/hooks/useSenecaAnnotations';
 
 /* ─── Types ───────────────────────────────────────────── */
 
@@ -199,8 +201,21 @@ export function DRepProfileClient({
 
   const trendLabel = classifyDelegationTrend(delegationTrend);
 
+  // 2D: Ambient Seneca annotations for DRep profiles
+  const { annotations: senecaAnnotations, dismiss: dismissAnnotation } = useSenecaAnnotations({
+    pageContext: 'drep',
+    entityId: drepId,
+  });
+
   return (
     <div className="space-y-6">
+      {/* 2D: Ambient Seneca annotations */}
+      <SenecaAnnotationStack
+        annotations={senecaAnnotations}
+        onDismiss={dismissAnnotation}
+        className="mb-2"
+      />
+
       {/* ── Decision Engine or Discovery Mode ── */}
       {hasAlignment ? (
         alignmentLoading ? (

@@ -21,3 +21,5 @@ export type { ScoreExplanation, ScoreFactor } from './ScoreExplainer';
 
 export { RelevanceBadge } from './RelevanceBadge';
 export type { RelevanceData } from './RelevanceBadge';
+
+export { SenecaAnnotation, SenecaAnnotationStack } from './SenecaAnnotation';
