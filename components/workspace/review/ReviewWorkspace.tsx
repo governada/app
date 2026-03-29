@@ -31,6 +31,7 @@ import {
 import { IntelligenceStrip } from '@/components/workspace/review/IntelligenceStrip';
 import { SenecaSummary } from '@/components/workspace/review/SenecaSummary';
 import { DecisionPanel } from '@/components/workspace/review/DecisionPanel';
+import { MobileVoteBar } from '@/components/workspace/review/MobileVoteBar';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { AgentChatPanel } from '@/components/workspace/agent/AgentChatPanel';
 import { IntelPanel } from '@/components/studio/IntelPanel';
@@ -670,7 +671,12 @@ function StudioReviewInner({
 
             {/* Editor area */}
             <div className="flex-1 min-w-0">
-              <div className={cn('mx-auto px-6 py-6', isFullWidth ? 'max-w-6xl' : 'max-w-4xl')}>
+              <div
+                className={cn(
+                  'mx-auto px-4 py-4 lg:px-6 lg:py-6',
+                  isFullWidth ? 'max-w-6xl' : 'max-w-4xl',
+                )}
+              >
                 {/* Intelligence strip — compact AI-enriched metadata */}
                 <IntelligenceStrip
                   interBodyVotes={selectedItem.interBodyVotes}
@@ -777,20 +783,15 @@ function StudioReviewInner({
         }
       />
 
-      {/* Mobile: DecisionPanel as bottom sheet (context panel is hidden lg:block) */}
-      {!currentVoted && (
-        <button
-          type="button"
-          onClick={() => {
-            setMobileVoteOpen(true);
-            posthog.capture('workspace_mobile_vote_opened');
-          }}
-          className="fixed bottom-20 right-4 z-40 lg:hidden flex items-center justify-center h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors"
-          aria-label="Open vote panel"
-        >
-          <Vote className="h-5 w-5" />
-        </button>
-      )}
+      {/* Mobile: persistent vote bar + DecisionPanel as bottom sheet */}
+      <MobileVoteBar
+        onVoteSelect={(choice) => {
+          handleVoteSelect(choice);
+          setMobileVoteOpen(true);
+        }}
+        hasVoted={currentVoted}
+        currentVote={selectedVote}
+      />
       <Sheet open={mobileVoteOpen} onOpenChange={setMobileVoteOpen}>
         <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto lg:hidden">
           <SheetHeader>
@@ -973,6 +974,32 @@ export function ReviewWorkspace({ initialProposalKey }: ReviewWorkspaceProps = {
     });
   }, [items, getStatus]);
 
+  // Skip to previous unreviewed proposal ([ shortcut)
+  const goPrevUnreviewed = useCallback(() => {
+    setSelectedIndex((prev) => {
+      // Search backward from current position
+      for (let i = prev - 1; i >= 0; i--) {
+        if (
+          getStatus(items[i].txHash, items[i].proposalIndex) !== 'voted' &&
+          !items[i].existingVote
+        ) {
+          return i;
+        }
+      }
+      // Wrap around: search from end
+      for (let i = items.length - 1; i > prev; i--) {
+        if (
+          getStatus(items[i].txHash, items[i].proposalIndex) !== 'voted' &&
+          !items[i].existingVote
+        ) {
+          return i;
+        }
+      }
+      // No unreviewed found — stay
+      return prev;
+    });
+  }, [items, getStatus]);
+
   // Vote success handler — auto-advances to next unreviewed proposal after 1.5s
   const handleVoteSuccess = useCallback(
     (vote: VoteChoice) => {
@@ -1013,6 +1040,7 @@ export function ReviewWorkspace({ initialProposalKey }: ReviewWorkspaceProps = {
     onNext: goNext,
     onPrev: goPrev,
     onNextUnreviewed: goNextUnreviewed,
+    onPrevUnreviewed: goPrevUnreviewed,
   });
 
   // Derive the agent userRole from segment

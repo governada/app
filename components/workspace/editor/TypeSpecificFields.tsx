@@ -1,5 +1,8 @@
 'use client';
 
+import { useState } from 'react';
+import { ChevronDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -9,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import type { ProposalType } from '@/lib/workspace/types';
 
 // ---------------------------------------------------------------------------
@@ -149,6 +153,37 @@ export interface TypeSpecificFieldsPanelProps {
   readOnly?: boolean;
 }
 
+/** Compact summary for collapsed mobile view */
+function CollapsedSummary({
+  proposalType,
+  typeSpecific,
+}: {
+  proposalType: string;
+  typeSpecific: Record<string, unknown>;
+}) {
+  if (proposalType === 'TreasuryWithdrawals') {
+    const amount = typeSpecific.withdrawalAmountAda as number | undefined;
+    const addr = (typeSpecific.receivingAddress as string) ?? '';
+    return (
+      <span className="text-xs text-muted-foreground truncate">
+        {amount ? `₳${Number(amount).toLocaleString()}` : 'No amount'}{' '}
+        {addr ? `→ ${addr.slice(0, 12)}...` : ''}
+      </span>
+    );
+  }
+  if (proposalType === 'ParameterChange') {
+    const param = (typeSpecific.parameterName as string) ?? 'No parameter';
+    const value = (typeSpecific.proposedValue as string) ?? '';
+    return (
+      <span className="text-xs text-muted-foreground truncate">
+        {param}
+        {value ? ` → ${value}` : ''}
+      </span>
+    );
+  }
+  return null;
+}
+
 export function TypeSpecificFieldsPanel({
   proposalType,
   typeSpecific,
@@ -156,31 +191,51 @@ export function TypeSpecificFieldsPanel({
   onBlur,
   readOnly,
 }: TypeSpecificFieldsPanelProps) {
-  if (proposalType === 'TreasuryWithdrawals') {
-    return (
-      <div className="border-t border-border pt-4 mt-4">
-        <TreasuryFields
-          typeSpecific={typeSpecific}
-          onChange={onChange}
-          onBlur={onBlur}
-          readOnly={readOnly}
-        />
-      </div>
-    );
-  }
+  const [mobileOpen, setMobileOpen] = useState(false);
 
-  if (proposalType === 'ParameterChange') {
-    return (
-      <div className="border-t border-border pt-4 mt-4">
-        <ParameterChangeFields
-          typeSpecific={typeSpecific}
-          onChange={onChange}
-          onBlur={onBlur}
-          readOnly={readOnly}
-        />
-      </div>
-    );
-  }
+  const hasFields = proposalType === 'TreasuryWithdrawals' || proposalType === 'ParameterChange';
+  if (!hasFields) return null;
 
-  return null;
+  const fields =
+    proposalType === 'TreasuryWithdrawals' ? (
+      <TreasuryFields
+        typeSpecific={typeSpecific}
+        onChange={onChange}
+        onBlur={onBlur}
+        readOnly={readOnly}
+      />
+    ) : (
+      <ParameterChangeFields
+        typeSpecific={typeSpecific}
+        onChange={onChange}
+        onBlur={onBlur}
+        readOnly={readOnly}
+      />
+    );
+
+  return (
+    <div className="border-t border-border pt-4 mt-4">
+      {/* Desktop: always expanded */}
+      <div className="hidden lg:block">{fields}</div>
+
+      {/* Mobile: collapsible */}
+      <Collapsible open={mobileOpen} onOpenChange={setMobileOpen} className="lg:hidden">
+        <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 py-1">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-sm font-semibold text-muted-foreground shrink-0">
+              {proposalType === 'TreasuryWithdrawals' ? 'Treasury Details' : 'Parameter Details'}
+            </span>
+            <CollapsedSummary proposalType={proposalType} typeSpecific={typeSpecific} />
+          </div>
+          <ChevronDown
+            className={cn(
+              'h-4 w-4 text-muted-foreground shrink-0 transition-transform duration-150',
+              mobileOpen && 'rotate-180',
+            )}
+          />
+        </CollapsibleTrigger>
+        <CollapsibleContent className="pt-2">{fields}</CollapsibleContent>
+      </Collapsible>
+    </div>
+  );
 }
