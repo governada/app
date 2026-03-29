@@ -225,6 +225,15 @@ export const GlobeConstellation = forwardRef<
   if (_sharedFocus !== sceneState.focus) {
     _sharedFocus = sceneState.focus;
     _sharedFocusVersion++;
+    // Expose to window for debugging — check window.__gf in console
+    if (typeof window !== 'undefined') {
+      (window as unknown as Record<string, unknown>).__gf = {
+        v: _sharedFocusVersion,
+        active: sceneState.focus.active,
+        ids: sceneState.focus.focusedIds.size,
+        scan: sceneState.focus.scanProgress,
+      };
+    }
   }
 
   const { data: apiData } = useGovernanceConstellation();
@@ -1623,6 +1632,16 @@ function NodePoints({
       targetBuffersRef.current = newTargets;
       geo.setAttribute('position', new THREE.Float32BufferAttribute(newTargets.positions, 3));
       geo.computeBoundingSphere();
+      // Expose useFrame-side diagnostic — check window.__gfFrame in console
+      if (typeof window !== 'undefined') {
+        const dimCount = Array.from(newTargets.dimmedArr).filter((v) => v > 0.5).length;
+        (window as unknown as Record<string, unknown>).__gfFrame = {
+          v: currentVersion,
+          nodeCount: nodes.length,
+          dimmed: dimCount,
+          active: _sharedFocus.active,
+        };
+      }
     }
 
     // Use shared targets if available (focus changed), otherwise fall back to initial buffers
