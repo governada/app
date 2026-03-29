@@ -714,8 +714,8 @@ export const GlobeConstellation = forwardRef<
       }
 
       // Map radial distance to activation delay: inner nodes first, outer nodes last
-      // 1.0s total wave propagation creates expanding sphere of light
-      const WAVE_DURATION = 1.0;
+      // 0.3s total wave propagation — fast enough that all nodes are lit before Q1 is read
+      const WAVE_DURATION = 0.3;
       for (const { id, dist } of drepDistances) {
         const normalizedDist = maxDist > 0 ? dist / maxDist : 0;
         activationDelays.set(id, normalizedDist * WAVE_DURATION);
@@ -1097,13 +1097,17 @@ export const GlobeConstellation = forwardRef<
               <Bloom
                 mipmapBlur
                 intensity={
-                  overlayColorMode === 'urgent'
-                    ? 2.2
-                    : overlayColorMode === 'proposals'
-                      ? 2.0
-                      : overlayColorMode === 'network'
-                        ? 1.8
-                        : 1.6
+                  // Match mode: reduce bloom so 800 DRep nodes stay individually distinct,
+                  // not merged into one orange wash. Per-node emissive is also reduced to match.
+                  sceneState.focus.nodeTypeFilter === 'drep'
+                    ? 0.55
+                    : overlayColorMode === 'urgent'
+                      ? 2.2
+                      : overlayColorMode === 'proposals'
+                        ? 2.0
+                        : overlayColorMode === 'network'
+                          ? 1.8
+                          : 1.6
                 }
                 luminanceThreshold={0.15}
                 luminanceSmoothing={0.9}
@@ -1651,7 +1655,13 @@ function NodePoints({
           const blendedR = tmpColor.r + (matchColor.r - tmpColor.r) * blend;
           const blendedG = tmpColor.g + (matchColor.g - tmpColor.g) * blend;
           const blendedB = tmpColor.b + (matchColor.b - tmpColor.b) * blend;
-          const matchEmissive = emissive * (1 + intensity * 1.2);
+          // During match mode (DRep-only filter), cap emissive to prevent bloom wash —
+          // hundreds of nodes at emissive 3.4+ merge into one undifferentiated glow.
+          // Reduced emissive keeps individual nodes visually distinct.
+          const matchEmissive =
+            focusState.nodeTypeFilter === 'drep'
+              ? emissive * (0.65 + intensity * 0.45) // match mode: max ~2.1 vs default 3.44
+              : emissive * (1 + intensity * 1.2);
           colors[i * 3] = blendedR * matchEmissive;
           colors[i * 3 + 1] = blendedG * matchEmissive;
           colors[i * 3 + 2] = blendedB * matchEmissive;
@@ -1671,7 +1681,10 @@ function NodePoints({
         const baseSize = isPulsing ? node.scale * 1.8 : isHovered ? node.scale * 1.6 : node.scale;
         let finalSize: number;
         if (isFocused) {
-          finalSize = baseSize * (1 + 0.5 * intensity + focusState.scanProgress * 0.3);
+          // Match mode: boost size so 800 nodes are individually visible (not just bloom wash)
+          const matchSizeBoost = focusState.nodeTypeFilter === 'drep' ? 2.2 : 1.0;
+          finalSize =
+            baseSize * (1 + 0.5 * intensity + focusState.scanProgress * 0.3) * matchSizeBoost;
         } else if (isIntermediate) {
           // "Maybe" nodes: partially shrunk based on brightness level
           finalSize = baseSize * (0.3 + intermediateLevel * 0.2);
