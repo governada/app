@@ -2,7 +2,7 @@
 
 /**
  * SectionTransition — wraps page content with a subtle fade when the user
- * navigates between the Four Worlds (Home, Workspace, Governance, You).
+ * navigates between the Three Worlds (Home, Workspace, You).
  *
  * Uses framer-motion AnimatePresence keyed on the current section so that
  * intra-section navigation (e.g., Proposals → Representatives) is instant

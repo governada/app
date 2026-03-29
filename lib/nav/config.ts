@@ -310,18 +310,20 @@ function filterGroupsByDepth(
     .filter((g) => g.items.length > 0);
 }
 
+/** SPO items not already present in the DRep list (deduped by href). */
+const DEDUPED_SPO_ITEMS = WORKSPACE_SPO_ITEMS.filter(
+  (i) => !WORKSPACE_DREP_ITEMS.some((d) => d.href === i.href),
+);
+
 /**
  * Build deduplicated dual-role Workspace groups.
  * Items that appear in both lists (matched by href) are shown only in the
  * DRep group to avoid visual clutter.
  */
 function buildDualRoleWorkspaceGroups(): NavItemGroup[] {
-  const drepHrefs = new Set(WORKSPACE_DREP_ITEMS.map((i) => i.href));
-  const dedupedSpoItems = WORKSPACE_SPO_ITEMS.filter((i) => !drepHrefs.has(i.href));
-
   return [
     { id: 'ws-drep', label: 'DRep', items: WORKSPACE_DREP_ITEMS },
-    { id: 'ws-pool', label: 'Pool', items: dedupedSpoItems },
+    { id: 'ws-pool', label: 'Pool', items: DEDUPED_SPO_ITEMS },
   ];
 }
 
@@ -503,12 +505,7 @@ export function getPillBarItems(
   if (pathname.startsWith('/workspace')) {
     const isDualRole = !!(context?.drepId && context?.poolId);
     if (isDualRole) {
-      const drepHrefs = new Set(WORKSPACE_DREP_ITEMS.map((i) => i.href));
-      const combined = [
-        ...WORKSPACE_DREP_ITEMS,
-        ...WORKSPACE_SPO_ITEMS.filter((i) => !drepHrefs.has(i.href)),
-      ];
-      return filterByDepth(combined, depth);
+      return filterByDepth([...WORKSPACE_DREP_ITEMS, ...DEDUPED_SPO_ITEMS], depth);
     }
     if (segment === 'drep') return filterByDepth(WORKSPACE_DREP_ITEMS, depth);
     if (segment === 'spo') return filterByDepth(WORKSPACE_SPO_ITEMS, depth);
