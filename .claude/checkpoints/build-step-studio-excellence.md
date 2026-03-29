@@ -1,9 +1,9 @@
 # Build Step: Studio Excellence — World-Class Author & Review (Layer 2)
 
-**Status:** PHASE_5_COMPLETE
+**Status:** PHASE_6_COMPLETE ✅
 **Started:** 2026-03-29
-**Current Phase:** 6 of 6 (Polish, Mobile, Role Adaptation)
-**PR chain:** #700 (Phase 1), #704 (Phase 2), #708 (Phase 3), #715/#717/#721 (Phase 4A/B/C), #729/#732/#733 (Phase 5A/B/C)
+**Current Phase:** 6 of 6 — COMPLETE
+**PR chain:** #700 (Phase 1), #704 (Phase 2), #708 (Phase 3), #715/#717/#721 (Phase 4A/B/C), #729/#732/#733 (Phase 5A/B/C), #737/#739 (Phase 6A/B)
 **Predecessor:** `.claude/checkpoints/workspace-studio-upgrade.md` (Phases 1-5 DEPLOYED)
 
 ---
@@ -228,6 +228,38 @@ If your context window is filling up:
 - Passage prediction is deterministic (no AI) — uses CIP-1694 governance thresholds per proposal type
 - `]` is "next unreviewed" distinct from `j` which is "next in list"
 - `review_sessions` table has UNIQUE on `(voter_id, started_at)` for upsert support
+
+---
+
+## Phase 6 Complete (2026-03-29)
+
+### What shipped:
+
+**PR #737 — Phase 6A: Mobile UX, Keyboard Shortcuts, Role Adaptation**
+
+- `hooks/useRegisterEditorCommands.ts` (NEW) — 5 author shortcuts: s (save version), c (constitutional check), d (diff mode), r (respond to review), p (CIP-108 preview)
+- `[` shortcut added to `useRegisterReviewCommands.ts` — previous unreviewed (mirrors `]` but backward)
+- `components/workspace/review/MobileVoteBar.tsx` (NEW) — persistent bottom vote bar replacing FAB
+- TypeSpecificFields: collapsible on mobile with summary preview
+- Mobile padding optimization (px-4/py-4 mobile, px-6/py-6 desktop)
+- `components/intelligence/sections/NetworkImpactSection.tsx` (NEW) — SPO-specific network impact for ParameterChange/HardFork proposals
+- Role-adaptive section ordering in `getReviewSections()` — SPOs see network impact after executive summary
+- `components/ui/collapsible.tsx` (NEW) — shadcn collapsible primitive wrapper
+
+**PR #739 — Phase 6B: Motion, Spring Physics, Compass Typography**
+
+- 4 CSS keyframe animations in globals.css: diff-accept, diff-reject, vote-celebrate, slide-up-enter
+- Animation utility classes: `.animate-diff-accept`, `.animate-diff-reject`, `.animate-vote-celebrate`, `.animate-slide-up-enter`
+- DecisionPanel: vote button spring bounce on selection, Fraunces heading
+- StudioPanel: spring-eased open/close with `--ease-out-spring` + `--duration-enter` tokens
+- SectionBlock: Fraunces display font for section labels
+- StudioHeader: Fraunces display font for proposal title
+- MobileVoteBar: slide-up entrance animation
+- All animations wrapped in `@media (prefers-reduced-motion: no-preference)`
+
+### Build status: ALL 6 PHASES COMPLETE
+
+The Studio Excellence build is fully deployed. 11 PRs total across 6 phases.
 
 ---
 
