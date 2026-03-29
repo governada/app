@@ -48,8 +48,8 @@ export function useProactiveAnalysis({
   const contentHashRef = useRef('');
   const skill = useAISkill<ProactiveAnalysisOutput>();
 
-  // Hash content to detect real changes
-  const contentHash = `${proposalContent.title}|${proposalContent.abstract}|${proposalContent.motivation}|${proposalContent.rationale}`;
+  // Hash content to detect real changes (null byte separator can't appear in text content)
+  const contentHash = `${proposalContent.title}\0${proposalContent.abstract}\0${proposalContent.motivation}\0${proposalContent.rationale}`;
 
   // Debounced analysis trigger on content change
   useEffect(() => {
