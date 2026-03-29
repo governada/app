@@ -77,22 +77,22 @@ export function MatchResultOverlay({
         exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 20, scale: 0.97 }}
         transition={{ type: 'spring', stiffness: 260, damping: 28 }}
         className={cn(
-          // Desktop: card positioned in lower half so node glows above it
-          'fixed z-[45] w-full max-w-[420px]',
-          'left-1/2 bottom-[8%] -translate-x-1/2',
+          // Desktop: compact card in lower portion, below the glowing match node
+          'fixed z-[45] w-full max-w-[360px] max-h-[50vh] overflow-y-auto',
+          'left-1/2 bottom-[6%] -translate-x-1/2',
           // Mobile: bottom sheet
           'max-lg:top-auto max-lg:bottom-0 max-lg:left-0 max-lg:right-0',
-          'max-lg:max-w-none max-lg:translate-x-0 max-lg:translate-y-0',
+          'max-lg:max-w-none max-lg:max-h-[60vh] max-lg:translate-x-0 max-lg:translate-y-0',
           'max-lg:rounded-t-2xl max-lg:rounded-b-none',
           // Card styling
           'rounded-2xl border border-white/[0.1]',
-          'bg-black/80 backdrop-blur-2xl',
+          'bg-black/85 backdrop-blur-2xl',
           'shadow-2xl shadow-black/60',
-          'p-5',
+          'p-4',
         )}
       >
         {/* Close + back controls */}
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-2">
           {!isTopMatch ? (
             <button
               onClick={onBackToTop}
@@ -124,7 +124,7 @@ export function MatchResultOverlay({
             initial={prefersReducedMotion ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.15 }}
-            className="text-center mb-4"
+            className="text-center mb-2"
           >
             <p className="text-xl font-display font-bold" style={{ color: result.identityColor }}>
               {result.personalityLabel}
@@ -133,7 +133,7 @@ export function MatchResultOverlay({
         )}
 
         {/* Match rank label */}
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-2 mb-2">
           <span
             className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
             style={{ backgroundColor: focusedMatch.identityColor }}
@@ -147,7 +147,7 @@ export function MatchResultOverlay({
 
         {/* DRep card */}
         <div
-          className="rounded-xl border p-4 space-y-3"
+          className="rounded-xl border p-3 space-y-2"
           style={{
             borderColor: `${focusedMatch.identityColor}30`,
             background: `linear-gradient(135deg, ${focusedMatch.identityColor}08, transparent)`,
@@ -207,7 +207,7 @@ export function MatchResultOverlay({
         </div>
 
         {/* CTAs */}
-        <div className="flex gap-2 mt-4">
+        <div className="flex gap-2 mt-3">
           <DelegateButton drepId={focusedMatch.drepId} drepName={displayName} className="flex-1" />
           <Button variant="outline" size="default" asChild className="gap-1.5">
             <Link href={`/drep/${encodeURIComponent(focusedMatch.drepId)}`}>
