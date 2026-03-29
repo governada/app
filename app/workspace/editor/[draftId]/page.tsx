@@ -57,6 +57,7 @@ import { ProposalAlignmentCard } from '@/components/intelligence/ProposalAlignme
 import { VersionCompareDialog } from '@/components/workspace/author/VersionCompareDialog';
 import { AuthorBrief } from '@/components/intelligence/AuthorBrief';
 import { useAmbientConstitutionalCheck } from '@/hooks/useAmbientConstitutionalCheck';
+import { useRegisterEditorCommands } from '@/hooks/useRegisterEditorCommands';
 import { useSuggestionAnnotations } from '@/hooks/useSuggestionAnnotations';
 import { useSectionAnalysis } from '@/hooks/useSectionAnalysis';
 import { useTeam } from '@/hooks/useTeam';
@@ -201,6 +202,19 @@ function AuthorActionBarWrapper({
       contextActions={contextActions}
     />
   );
+}
+
+// ---------------------------------------------------------------------------
+// EditorPanelShortcuts — registers c/p shortcuts that need StudioProvider
+// ---------------------------------------------------------------------------
+
+function EditorPanelShortcuts() {
+  const { togglePanel } = useStudio();
+  useRegisterEditorCommands({
+    onConstitutionalCheck: () => togglePanel('readiness'),
+    onCIP108Preview: () => togglePanel('intel'),
+  });
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -464,6 +478,18 @@ function WorkspaceEditorPage() {
       handleSuggestionReject(mapping.annotationId, mapping.editId);
     }
   }, [suggestionMappings, handleSuggestionReject]);
+
+  // ---------------------------------------------------------------------------
+  // Keyboard shortcuts (s/c/d/r/p)
+  // ---------------------------------------------------------------------------
+  // Note: Panel toggle actions (c → readiness, p → intel) are wired via
+  // EditorKeyboardShortcuts component rendered inside StudioProvider below.
+  // Here we register non-panel shortcuts that don't need StudioProvider context.
+  useRegisterEditorCommands({
+    onSaveVersion: canEdit && !readOnly ? () => setShowJustificationFlow(true) : undefined,
+    onDiffMode: canEdit ? () => setMode(mode === 'diff' ? 'edit' : 'diff') : undefined,
+    onRespondToReview: isResponseRevision ? () => setMode('edit') : undefined,
+  });
 
   // ---------------------------------------------------------------------------
   // Version diff on return (reviewer sees what changed since their review)
@@ -854,6 +880,7 @@ function WorkspaceEditorPage() {
       )}
 
       <StudioProvider>
+        <EditorPanelShortcuts />
         <WorkspacePanels
           layoutId="editor"
           toolbar={
@@ -871,7 +898,7 @@ function WorkspaceEditorPage() {
             />
           }
           main={
-            <div className="max-w-3xl mx-auto px-6 py-6 transition-opacity duration-150">
+            <div className="max-w-3xl mx-auto px-4 py-4 lg:px-6 lg:py-6 transition-opacity duration-150">
               {draft.supersedesId && <LineageBanner supersedesId={draft.supersedesId} />}
               {!isOwner && stakeAddress && (
                 <ReReviewBanner

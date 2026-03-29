@@ -29,7 +29,8 @@ export type SectionId =
   | 'proposer-profile'
   | 'key-questions'
   | 'cc-express'
-  | 'passage-prediction';
+  | 'passage-prediction'
+  | 'network-impact';
 
 /** Configuration for a single section in the brief. */
 export interface SectionConfig {

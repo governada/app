@@ -22,6 +22,7 @@ import { SimilarProposalsSection } from './sections/SimilarProposalsSection';
 import { ProposerProfileSection } from './sections/ProposerProfileSection';
 import { KeyQuestionsSection } from './sections/KeyQuestionsSection';
 import { PassagePrediction } from './sections/PassagePrediction';
+import { NetworkImpactSection } from './sections/NetworkImpactSection';
 import { CCExpressPanel } from '@/components/workspace/review/CCExpressPanel';
 import { useIntelligenceCache } from '@/hooks/useIntelligenceCache';
 
@@ -56,6 +57,7 @@ interface ReviewIntelBriefProps {
   epochsRemaining?: number | null;
   isUrgent?: boolean;
   voterRole: string;
+  typeSpecific?: Record<string, unknown>;
   /** Callback when CC member accepts constitutional assessment (populates rationale) */
   onCCAccept?: (rationaleText: string) => void;
 }
@@ -77,9 +79,13 @@ export function ReviewIntelBrief({
   epochsRemaining,
   isUrgent,
   voterRole,
+  typeSpecific,
   onCCAccept,
 }: ReviewIntelBriefProps) {
-  const sections = useMemo(() => getReviewSections(voterRole), [voterRole]);
+  const sections = useMemo(
+    () => getReviewSections(voterRole, proposalType),
+    [voterRole, proposalType],
+  );
 
   // Pre-computed intelligence cache
   const { data: cache } = useIntelligenceCache(proposalId, proposalIndex);
@@ -164,6 +170,8 @@ export function ReviewIntelBrief({
             cachedPrecedentSummary={cache?.key_questions?.precedentSummary ?? null}
           />
         );
+      case 'network-impact':
+        return <NetworkImpactSection proposalType={proposalType} typeSpecific={typeSpecific} />;
       case 'cc-express':
         return (
           <CCExpressPanel

@@ -8,6 +8,7 @@ import {
   ChevronRight,
   ChevronLeft,
   SkipForward,
+  SkipBack,
 } from 'lucide-react';
 import { commandRegistry } from '@/lib/workspace/commands';
 
@@ -19,6 +20,8 @@ interface ReviewCommandHandlers {
   onPrev?: () => void;
   /** Skip to the next unreviewed proposal (skips voted/snoozed) */
   onNextUnreviewed?: () => void;
+  /** Skip to the previous unreviewed proposal */
+  onPrevUnreviewed?: () => void;
 }
 
 /**
@@ -45,6 +48,7 @@ export function useRegisterReviewCommands(handlers: ReviewCommandHandlers) {
   const hasNext = !!handlers.onNext;
   const hasPrev = !!handlers.onPrev;
   const hasNextUnreviewed = !!handlers.onNextUnreviewed;
+  const hasPrevUnreviewed = !!handlers.onPrevUnreviewed;
 
   useEffect(() => {
     const unregisters: Array<() => void> = [];
@@ -147,10 +151,23 @@ export function useRegisterReviewCommands(handlers: ReviewCommandHandlers) {
       );
     }
 
+    if (hasPrevUnreviewed) {
+      unregisters.push(
+        commandRegistry.register({
+          id: 'review.prev-unreviewed',
+          label: 'Previous Unreviewed',
+          shortcut: '[',
+          icon: SkipBack,
+          section: 'actions',
+          execute: () => handlersRef.current.onPrevUnreviewed?.(),
+        }),
+      );
+    }
+
     return () => {
       for (const unregister of unregisters) {
         unregister();
       }
     };
-  }, [hasYes, hasNo, hasAbstain, hasNext, hasPrev, hasNextUnreviewed]);
+  }, [hasYes, hasNo, hasAbstain, hasNext, hasPrev, hasNextUnreviewed, hasPrevUnreviewed]);
 }

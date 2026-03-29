@@ -134,6 +134,14 @@ const CC_EXPRESS: SectionConfig = {
   icon: 'Shield',
 };
 
+const NETWORK_IMPACT: SectionConfig = {
+  id: 'network-impact',
+  title: 'Network Impact',
+  priority: 8,
+  defaultExpanded: true,
+  icon: 'Network',
+};
+
 // ---------------------------------------------------------------------------
 // Author brief registry
 // ---------------------------------------------------------------------------
@@ -173,7 +181,7 @@ export function getAuthorSections(stage: BriefStage): SectionConfig[] {
 }
 
 /** Get ordered sections for a review brief, optionally adjusted for role. */
-export function getReviewSections(voterRole?: string): SectionConfig[] {
+export function getReviewSections(voterRole?: string, proposalType?: string): SectionConfig[] {
   const sections = [...REVIEW_BRIEF_SECTIONS];
   // CC members: constitutional expanded by default + CC Express section
   if (voterRole === 'cc_member' || voterRole === 'CC') {
@@ -182,10 +190,14 @@ export function getReviewSections(voterRole?: string): SectionConfig[] {
     // Add CC Express Lane section at the top (priority 3)
     sections.unshift(CC_EXPRESS);
   }
-  // SPO: stakeholder landscape expanded
+  // SPO: stakeholder landscape expanded + network impact for relevant proposal types
   if (voterRole === 'SPO' || voterRole === 'spo') {
     const stakeIdx = sections.findIndex((s) => s.id === 'stakeholder-landscape');
     if (stakeIdx >= 0) sections[stakeIdx] = { ...sections[stakeIdx], defaultExpanded: true };
+    // Add network impact section for parameter/hardfork proposals
+    if (proposalType === 'ParameterChange' || proposalType === 'HardForkInitiation') {
+      sections.push(NETWORK_IMPACT);
+    }
   }
   return sections.sort((a, b) => a.priority - b.priority);
 }
