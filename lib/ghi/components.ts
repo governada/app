@@ -130,14 +130,33 @@ export async function computeDRepParticipation({
   const totalWeight = entries.reduce((s, e) => s + e.weight, 0);
   const halfWeight = totalWeight / 2;
 
-  logger.info('[ghi:drep-participation] Computing weighted median', {
-    activeCount: active.length,
-    entriesCount: entries.length,
-    totalWeight,
-    halfWeight,
-    firstEntry: entries[0],
-    lastEntry: entries[entries.length - 1],
-  });
+  // Diagnostic: write computation state to sync_log for debugging
+  try {
+    const diagSb = getSupabaseAdmin();
+    await diagSb.from('sync_log').insert({
+      sync_type: 'ghi',
+      started_at: new Date().toISOString(),
+      finished_at: new Date().toISOString(),
+      success: true,
+      metrics: {
+        _diagnostic: true,
+        activeCount: active.length,
+        entriesCount: entries.length,
+        totalWeight,
+        halfWeight,
+        first3: entries.slice(0, 3),
+        last3: entries.slice(-3),
+        sampleRaw: active.slice(0, 3).map((d) => ({
+          ep: d.effective_participation,
+          epType: typeof d.effective_participation,
+          vp: (d.info as Record<string, unknown> | null)?.votingPowerLovelace,
+          vpType: typeof (d.info as Record<string, unknown> | null)?.votingPowerLovelace,
+        })),
+      },
+    });
+  } catch {
+    // non-critical diagnostic
+  }
 
   let cumulativeWeight = 0;
   let weightedMedian = entries[0].participation;
