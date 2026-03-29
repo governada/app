@@ -914,9 +914,6 @@ export function ReviewWorkspace({ initialProposalKey }: ReviewWorkspaceProps = {
     return drafts.find((d) => d.id === selectedItem.txHash);
   }, [selectedItem, drafts]);
 
-  // Reset editor mode to 'review' when switching proposals
-  useEffect(() => {}, [selectedIndex]);
-
   // Track proposal view when selection changes
   useEffect(() => {
     if (!selectedItem) return;
@@ -1001,6 +998,9 @@ export function ReviewWorkspace({ initialProposalKey }: ReviewWorkspaceProps = {
     });
   }, [items, getStatus]);
 
+  // Batch review session tracking (must be above handleVoteSuccess which calls markReviewed)
+  const reviewSession = useReviewSession(items.length, voterId ?? undefined);
+
   // Vote success handler — auto-advances to next unreviewed proposal after 1.5s
   const handleVoteSuccess = useCallback(
     (vote: VoteChoice) => {
@@ -1029,11 +1029,8 @@ export function ReviewWorkspace({ initialProposalKey }: ReviewWorkspaceProps = {
         });
       }, 1500);
     },
-    [selectedItem, setStatus, items, getStatus],
+    [selectedItem, setStatus, items, getStatus, reviewSession],
   );
-
-  // Batch review session tracking
-  const reviewSession = useReviewSession(items.length, voterId ?? undefined);
 
   // Register review navigation shortcuts via command registry (j/k + arrows + ])
   // Vote shortcuts (y/n/a) are registered in StudioReviewInner where handleVoteSelect is available
