@@ -127,7 +127,8 @@ export function useAmbientConstitutionalCheck(
     }, 2000);
 
     return () => clearTimeout(timerRef.current);
-  }, [draft?.title, draft?.abstract, draft?.motivation, draft?.rationale, draft, runCheck]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- draft object ref changes on every TanStack refetch; individual field deps cover content
+  }, [draft?.title, draft?.abstract, draft?.motivation, draft?.rationale, runCheck]);
 
   return {
     result: localResult,
