@@ -183,15 +183,17 @@ export function getAuthorSections(stage: BriefStage): SectionConfig[] {
 /** Get ordered sections for a review brief, optionally adjusted for role. */
 export function getReviewSections(voterRole?: string, proposalType?: string): SectionConfig[] {
   const sections = [...REVIEW_BRIEF_SECTIONS];
+  const role = voterRole?.toLowerCase();
+
   // CC members: constitutional expanded by default + CC Express section
-  if (voterRole === 'cc_member' || voterRole === 'CC') {
+  if (role === 'cc_member' || role === 'cc') {
     const constIdx = sections.findIndex((s) => s.id === 'constitutional');
     if (constIdx >= 0) sections[constIdx] = { ...sections[constIdx], defaultExpanded: true };
     // Add CC Express Lane section at the top (priority 3)
     sections.unshift(CC_EXPRESS);
   }
   // SPO: stakeholder landscape expanded + network impact for relevant proposal types
-  if (voterRole === 'SPO' || voterRole === 'spo') {
+  if (role === 'spo') {
     const stakeIdx = sections.findIndex((s) => s.id === 'stakeholder-landscape');
     if (stakeIdx >= 0) sections[stakeIdx] = { ...sections[stakeIdx], defaultExpanded: true };
     // Add network impact section for parameter/hardfork proposals
