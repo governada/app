@@ -32,7 +32,13 @@ import { TaskItem } from '@tiptap/extension-task-item';
 import Document from '@tiptap/extension-document';
 
 import { SectionBlock, buildSectionDocument, extractSectionContent } from './SectionBlock';
-import { AIDiff, AIDiffAdded, AIDiffRemoved, applyProposedEdit } from './AIDiffMark';
+import {
+  AIDiff,
+  AIDiffAdded,
+  AIDiffRemoved,
+  applyProposedEdit,
+  applyReviewerEdit,
+} from './AIDiffMark';
 import { AICompletion, setCompletion, clearCompletion } from './AICompletionDecoration';
 import { SlashCommandMenu } from './SlashCommandMenu';
 import { CommandBarExtension, CommandBarUI } from './CommandBar';
@@ -100,6 +106,10 @@ export interface ProposalEditorProps {
   onDiffReject?: (editId: string) => void;
   /** Called when a completion is accepted */
   onCompletionAccept?: (text: string) => void;
+  /** Called when a reviewer suggests a tracked change */
+  onSuggestEdit?: (editId: string, proposedText: string, explanation: string) => void;
+  /** Whether to show "Suggest Edit" in selection toolbar (reviewers) */
+  showSuggestEdit?: boolean;
 
   // --- Diff mode props ---
 
@@ -171,6 +181,8 @@ export function ProposalEditor({
   onDiffAccept,
   onDiffReject,
   onCompletionAccept,
+  onSuggestEdit,
+  showSuggestEdit = false,
   diffOldContent,
   diffOldLabel,
   diffNewLabel,
@@ -205,6 +217,7 @@ export function ProposalEditor({
     onDiffReject,
     onCompletionAccept,
     onCommentDelete,
+    onSuggestEdit,
     currentUserId,
   });
   callbacksRef.current = {
@@ -214,6 +227,7 @@ export function ProposalEditor({
     onDiffReject,
     onCompletionAccept,
     onCommentDelete,
+    onSuggestEdit,
     currentUserId,
   };
 
@@ -442,6 +456,23 @@ export function ProposalEditor({
   // Comment handlers
   // -------------------------------------------------------------------------
 
+  // --- Suggest edit handler (reviewer tracked changes) ---
+  const handleSuggestEdit = useCallback(
+    (proposedText: string, explanation: string) => {
+      if (!editor) return;
+      const editId = applyReviewerEdit(
+        editor,
+        proposedText,
+        explanation,
+        currentUserId ?? 'anonymous',
+      );
+      if (editId) {
+        callbacksRef.current.onSuggestEdit?.(editId, proposedText, explanation);
+      }
+    },
+    [editor, currentUserId],
+  );
+
   const handleCommentClose = useCallback(() => {
     setActiveComment(null);
   }, []);
@@ -510,8 +541,15 @@ export function ProposalEditor({
         <EditorContent editor={editor} />
       </div>
 
-      {/* Selection toolbar — floating comment button on text selection */}
-      {editor && <SelectionToolbar editor={editor} currentUserId={currentUserId ?? 'anonymous'} />}
+      {/* Selection toolbar — floating comment/suggest-edit button on text selection */}
+      {editor && (
+        <SelectionToolbar
+          editor={editor}
+          currentUserId={currentUserId ?? 'anonymous'}
+          showSuggestEdit={showSuggestEdit}
+          onSuggestEdit={handleSuggestEdit}
+        />
+      )}
 
       {/* Command Bar overlay (Cmd+K) */}
       <CommandBarUI

@@ -18,6 +18,8 @@ interface StudioPanelProps {
   notesContent?: ReactNode;
   voteContent?: ReactNode;
   readinessContent?: ReactNode;
+  /** Persistent content rendered above the tab bar — always visible regardless of active tab */
+  headerContent?: ReactNode;
 }
 
 const BASE_TABS: Array<{ id: TabId; label: string; Icon: typeof MessageSquare }> = [
@@ -39,6 +41,7 @@ export function StudioPanel({
   notesContent,
   voteContent,
   readinessContent,
+  headerContent,
 }: StudioPanelProps) {
   const isDragging = useRef(false);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -146,6 +149,9 @@ export function StudioPanel({
             aria-label="Resize panel"
           />
 
+          {/* Persistent header (Quality Pulse, always visible) */}
+          {headerContent}
+
           {/* Tab bar */}
           <div className="flex items-center justify-between px-3 py-1.5 border-b border-border shrink-0">
             <div className="flex items-center gap-0.5">
@@ -198,6 +204,9 @@ export function StudioPanel({
         <div className="flex justify-center py-2 shrink-0">
           <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
         </div>
+
+        {/* Persistent header (Quality Pulse, always visible) */}
+        {headerContent}
 
         {/* Tab bar */}
         <div className="flex items-center justify-between px-3 pb-1.5 border-b border-border shrink-0">

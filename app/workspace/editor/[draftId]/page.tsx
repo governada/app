@@ -38,7 +38,12 @@ import { StatusBar } from '@/components/workspace/layout/StatusBar';
 import { SaveErrorBanner } from '@/components/workspace/layout/SaveErrorBanner';
 import { RevisionJustificationFlow } from '@/components/workspace/editor/RevisionJustificationFlow';
 import { ReadinessPanel } from '@/components/workspace/author/ReadinessPanel';
+import { QualityPulse } from '@/components/workspace/author/QualityPulse';
+import { ProactiveInsight } from '@/components/workspace/author/ProactiveInsight';
 import { ProposalAlignmentCard } from '@/components/intelligence/ProposalAlignmentCard';
+import { VersionCompareDialog } from '@/components/workspace/author/VersionCompareDialog';
+import { useAmbientConstitutionalCheck } from '@/hooks/useAmbientConstitutionalCheck';
+import { useSectionAnalysis } from '@/hooks/useSectionAnalysis';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PROPOSAL_TYPE_LABELS } from '@/lib/workspace/types';
 import type { ProposalType } from '@/lib/workspace/types';
@@ -116,9 +121,11 @@ function LineageBanner({ supersedesId }: { supersedesId: string }) {
 function AuthorPanelWrapper({
   agentContent,
   readinessContent,
+  headerContent,
 }: {
   agentContent: ReactNode;
   readinessContent?: ReactNode;
+  headerContent?: ReactNode;
 }) {
   const { panelOpen, activePanel, panelWidth, closePanel, togglePanel, setPanelWidth } =
     useStudio();
@@ -133,6 +140,7 @@ function AuthorPanelWrapper({
       onWidthChange={setPanelWidth}
       agentContent={agentContent}
       readinessContent={readinessContent}
+      headerContent={headerContent}
     />
   );
 }
@@ -263,6 +271,28 @@ function WorkspaceEditorPage() {
 
   // --- Feedback themes (for justification flow) ---
   const { themes: feedbackThemes } = useFeedbackThemes(submittedTxHash, submittedTxHash ? 0 : null);
+
+  // --- Quality Pulse: ambient constitutional check + section analysis ---
+  const { result: constitutionalResult, isLoading: constitutionalLoading } =
+    useAmbientConstitutionalCheck(draft);
+  const {
+    results: sectionResults,
+    loading: sectionLoading,
+    analyzeSection,
+  } = useSectionAnalysis(draft);
+
+  // --- Ambient section analysis: trigger on content changes (debounced via the hook) ---
+  const prevContentHashRef = useRef<string>('');
+  useEffect(() => {
+    if (!draft || readOnly) return;
+    const sig = `${draft.abstract?.length}|${draft.motivation?.length}|${draft.rationale?.length}`;
+    if (sig === prevContentHashRef.current) return;
+    prevContentHashRef.current = sig;
+    // The hook internally debounces 1.5s and deduplicates by content hash
+    if (draft.abstract && draft.abstract.length >= 20) analyzeSection('abstract');
+    if (draft.motivation && draft.motivation.length >= 20) analyzeSection('motivation');
+    if (draft.rationale && draft.rationale.length >= 20) analyzeSection('rationale');
+  }, [draft?.abstract, draft?.motivation, draft?.rationale, draft, readOnly, analyzeSection]);
 
   // --- Content ---
   const content = useMemo(
@@ -406,15 +436,57 @@ function WorkspaceEditorPage() {
     );
   }, [content, draftStatus, feedbackThemeCount]);
 
-  // --- Save Version button ---
-  const saveVersionButton = isOwner ? (
-    <button
-      onClick={() => setShowJustificationFlow(true)}
-      className="shrink-0 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer"
-    >
-      Save Version
-    </button>
+  // --- Toolbar actions ---
+  const toolbarActions = isOwner ? (
+    <div className="flex items-center gap-2">
+      {versions && versions.length >= 2 && <VersionCompareDialog versions={versions} />}
+      <button
+        onClick={() => setShowJustificationFlow(true)}
+        className="shrink-0 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer"
+      >
+        Save Version
+      </button>
+    </div>
   ) : undefined;
+
+  // --- Handle proactive insight "Apply" -> trigger AI improvement ---
+  const handleInsightApply = useCallback(
+    (field: string, suggestion: string) => {
+      const prompt = `Improve the ${field} section. Specific feedback: ${suggestion}`;
+      const ctx = buildEditorContext(editorRef.current, content, mode);
+      agentSendMessage(prompt, ctx);
+      posthog.capture('proactive_insight_applied', {
+        proposal_id: draftId,
+        section: field,
+      });
+    },
+    [agentSendMessage, content, mode, draftId],
+  );
+
+  // --- Quality Pulse node (persistent header above panel tabs) ---
+  const qualityPulseNode = draft ? (
+    <>
+      <QualityPulse
+        fields={content}
+        sectionResults={sectionResults}
+        sectionLoading={sectionLoading}
+        constitutionalCheck={constitutionalResult}
+        constitutionalLoading={constitutionalLoading}
+        feedbackThemeCount={feedbackThemeCount}
+        onConstitutionalClick={() => {
+          // Could toggle readiness panel for detail
+        }}
+      />
+      {isOwner && (
+        <ProactiveInsight
+          sectionResults={sectionResults}
+          isAnalyzing={Object.values(sectionLoading).some(Boolean)}
+          fields={content}
+          onApply={handleInsightApply}
+        />
+      )}
+    </>
+  ) : null;
 
   // --- Agent chat panel (rendered once, passed to panel wrapper) ---
   const agentChatNode = (
@@ -501,7 +573,7 @@ function WorkspaceEditorPage() {
               showModeSwitch={isOwner}
               mode={mode}
               onModeChange={isOwner ? setMode : undefined}
-              actions={saveVersionButton}
+              actions={toolbarActions}
               readiness={readinessBadge}
             />
           }
@@ -528,6 +600,14 @@ function WorkspaceEditorPage() {
                     edit_id: editId,
                   });
                 }}
+                showSuggestEdit={!isOwner && mode === 'review'}
+                onSuggestEdit={(editId, _proposedText, explanation) => {
+                  posthog.capture('tracked_change_proposed', {
+                    proposal_id: draftId,
+                    edit_id: editId,
+                    has_explanation: !!explanation,
+                  });
+                }}
                 currentUserId={stakeAddress ?? 'anonymous'}
                 onEditorReady={handleEditorReady}
               />
@@ -544,6 +624,7 @@ function WorkspaceEditorPage() {
                   </>
                 ) : undefined
               }
+              headerContent={qualityPulseNode}
             />
           }
           statusBar={<AuthorActionBarWrapper statusInfo={statusBarNode} />}
