@@ -98,7 +98,7 @@ function DeepLinkHandler() {
         if (drepId) router.push(`/drep/${encodeURIComponent(drepId)}`);
         break;
       case 'epoch-recap':
-        router.push('/governance/health');
+        router.push('/');
         break;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally runs once on mount for deep link handling
@@ -255,22 +255,12 @@ function SenecaOrbAndThread({
 /** Derive a page context key from the pathname for Seneca's contextual awareness. */
 function derivePageContext(pathname: string): string | undefined {
   if (pathname === '/') return 'governance';
-  // Globe routes
-  if (pathname === '/g') return 'governance';
-  if (pathname.startsWith('/g/proposal/')) return 'proposals';
-  if (pathname.startsWith('/g/drep/')) return 'dreps';
-  if (pathname.startsWith('/g/pool/')) return 'spos';
-  if (pathname.startsWith('/g/cc/')) return 'governance';
-  // Legacy routes
-  if (pathname.startsWith('/governance/proposals') || pathname.startsWith('/proposal/'))
-    return 'proposals';
-  if (pathname.startsWith('/governance/representatives') || pathname.startsWith('/drep/'))
-    return 'dreps';
-  if (pathname.startsWith('/governance/treasury')) return 'treasury';
-  if (pathname.startsWith('/governance/spos') || pathname.startsWith('/spo/')) return 'spos';
-  if (pathname.startsWith('/match')) return 'match';
+  if (pathname.startsWith('/proposal/')) return 'proposals';
+  if (pathname.startsWith('/drep/')) return 'dreps';
+  if (pathname.startsWith('/pool/') || pathname.startsWith('/spo/')) return 'spos';
+  if (pathname.startsWith('/committee/')) return 'governance';
+  if (pathname.startsWith('/governance/')) return 'governance';
   if (pathname.startsWith('/my-gov') || pathname.startsWith('/you')) return 'you';
-  if (pathname.startsWith('/governance/health')) return 'governance';
   return undefined;
 }
 
@@ -282,7 +272,6 @@ export function GovernadaShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { t } = useTranslation();
   const isHomepage = pathname === '/';
-  const isGlobeMode = pathname === '/g' || pathname.startsWith('/g/');
   const isStudioMode =
     pathname === '/workspace/review' ||
     /^\/workspace\/(author|editor|amendment)\/[^/]+/.test(pathname);
@@ -312,8 +301,7 @@ export function GovernadaShell({ children }: { children: React.ReactNode }) {
             <DiscoveryHub currentPage={derivePageContext(pathname)}>
               {!isStudioMode && <GovernadaHeader />}
               {/* Global constellation globe — subtle glassmorphic background */}
-              {/* Hidden on globe mode — GlobeLayout provides its own full-viewport globe */}
-              {!isStudioMode && !isGlobeMode && (
+              {!isStudioMode && (
                 <BackgroundGlobe
                   isHomepage={isHomepage}
                   governanceTint={temporalAdaptation ? tintColor : undefined}
@@ -323,40 +311,23 @@ export function GovernadaShell({ children }: { children: React.ReactNode }) {
                 id="main-content"
                 className={cn(
                   'relative z-0',
-                  isGlobeMode
-                    ? '' // Globe mode: no min-height/padding — GlobeLayout handles viewport
-                    : isStudioMode
-                      ? 'min-h-screen'
-                      : 'min-h-screen pb-16 lg:pb-0',
+                  isStudioMode ? 'min-h-screen' : 'min-h-screen pb-16 lg:pb-0',
                   // On homepage, pull content up behind the transparent header so the
                   // globe extends to the top of the viewport and peeks through
                   isHomepage && '-mt-10',
-                  // Globe mode: pull up behind transparent header
-                  isGlobeMode && '-mt-16',
                 )}
                 tabIndex={-1}
               >
-                {isStudioMode || isGlobeMode ? (
-                  children
-                ) : (
-                  <SectionTransition>{children}</SectionTransition>
-                )}
+                {isStudioMode ? children : <SectionTransition>{children}</SectionTransition>}
               </main>
-              {!isStudioMode && !isGlobeMode && <EngagementNudge />}
-              {!isStudioMode && !isGlobeMode && <MilestoneTrigger />}
+              {!isStudioMode && <EngagementNudge />}
+              {!isStudioMode && <MilestoneTrigger />}
             </DiscoveryHub>
           </SpotlightProvider>
           {/* Seneca Orb + Thread — unified floating companion */}
-          {/* Globe mode provides its own Seneca via GlobeLayout */}
-          {!isGlobeMode && (
-            <SenecaOrbAndThread
-              seneca={seneca}
-              isStudioMode={isStudioMode}
-              isHomepage={isHomepage}
-            />
-          )}
+          <SenecaOrbAndThread seneca={seneca} isStudioMode={isStudioMode} isHomepage={isHomepage} />
 
-          {!isStudioMode && !isGlobeMode && (
+          {!isStudioMode && (
             <footer className="relative z-0 border-t border-border/40 py-4 px-4 text-center">
               <p className="text-xs text-muted-foreground/70">
                 {t(
@@ -365,10 +336,8 @@ export function GovernadaShell({ children }: { children: React.ReactNode }) {
               </p>
             </footer>
           )}
-          {!isStudioMode && !isGlobeMode && <GovernadaBottomNav />}
-          {!isStudioMode && !isGlobeMode && mobileGestures && (
-            <EdgeSwipeMenu enabled={mobileGestures} />
-          )}
+          {!isStudioMode && <GovernadaBottomNav />}
+          {!isStudioMode && mobileGestures && <EdgeSwipeMenu enabled={mobileGestures} />}
           <FeedbackWidget />
           <ShortcutOverlay />
         </ShortcutProvider>

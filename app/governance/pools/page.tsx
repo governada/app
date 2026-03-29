@@ -3,5 +3,5 @@ import { redirect } from 'next/navigation';
 export const dynamic = 'force-dynamic';
 
 export default function PoolsPage() {
-  redirect('/g?filter=spos');
+  redirect('/?filter=spos');
 }
