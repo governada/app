@@ -19,7 +19,12 @@ import { logger } from '@/lib/logger';
 import { getFeatureFlag } from '@/lib/featureFlags';
 import { runConstitutionalCheck } from '@/lib/ai/shared/constitutionalAnalysis';
 import { runResearchPrecedent } from '@/lib/ai/shared/researchPrecedent';
-import { computePassagePrediction, type PassagePredictionInput } from '@/lib/passagePrediction';
+import {
+  computePassagePrediction,
+  buildPredictionInput,
+  fetchPredictionData,
+} from '@/lib/passagePrediction';
+import { MODELS } from '@/lib/ai';
 import { createHash } from 'crypto';
 
 // ---------------------------------------------------------------------------
@@ -83,6 +88,7 @@ export const precomputeProposalIntelligence = inngest.createFunction(
     }
 
     const supabase = getSupabaseAdmin();
+    const syncStartedAt = new Date().toISOString();
 
     // Step 1: Find proposals needing pre-computation
     const proposals = await step.run('find-proposals-needing-precompute', async () => {
@@ -184,7 +190,7 @@ export const precomputeProposalIntelligence = inngest.createFunction(
                   section_type: 'constitutional',
                   content: result as unknown as Record<string, unknown>,
                   content_hash: hashProposalContent(p),
-                  model_used: 'claude-sonnet-4-6',
+                  model_used: MODELS.FAST,
                   generation_time_ms: generationTimeMs,
                   updated_at: new Date().toISOString(),
                 },
@@ -230,7 +236,7 @@ export const precomputeProposalIntelligence = inngest.createFunction(
                 section_type: 'key_questions',
                 content: result as unknown as Record<string, unknown>,
                 content_hash: hashProposalContent(p),
-                model_used: 'claude-sonnet-4-6',
+                model_used: MODELS.FAST,
                 generation_time_ms: generationTimeMs,
                 updated_at: new Date().toISOString(),
               },
@@ -250,85 +256,21 @@ export const precomputeProposalIntelligence = inngest.createFunction(
     }
 
     // Step 4: Compute passage predictions (deterministic, fast)
-    // Batch-fetch all supporting data upfront to avoid N+1 queries
+    // Uses shared batch-fetch helpers from lib/passagePrediction.ts
     const passagePredictionCount = await step.run('compute-passage-predictions', async () => {
-      const txHashes = proposals.map((p) => p.tx_hash);
-
-      // Batch-fetch vote summaries
-      const { data: allVoteSummaries } = await supabase
-        .from('proposal_voting_summary')
-        .select('*')
-        .in('proposal_tx_hash', txHashes);
-      const voteMap = new Map(
-        (allVoteSummaries ?? []).map((v) => [`${v.proposal_tx_hash}-${v.proposal_index}`, v]),
-      );
-
-      // Batch-fetch constitutional scores from cache
-      const { data: allConstCaches } = await supabase
-        .from('proposal_intelligence_cache')
-        .select('proposal_tx_hash, proposal_index, content')
-        .in('proposal_tx_hash', txHashes)
-        .eq('section_type', 'constitutional');
-      const constMap = new Map(
-        (allConstCaches ?? []).map((c) => [
-          `${c.proposal_tx_hash}-${c.proposal_index}`,
-          (c.content as Record<string, unknown>).score as string,
-        ]),
-      );
-
-      // Batch-fetch citizen sentiment
-      const entityIds = proposals.map((p) => `${p.tx_hash}-${p.proposal_index}`);
-      const { data: allSentiment } = await supabase
-        .from('engagement_signal_aggregations')
-        .select('entity_id, data')
-        .in('entity_id', entityIds)
-        .eq('entity_type', 'proposal')
-        .eq('signal_type', 'sentiment');
-      const sentimentMap = new Map(
-        (allSentiment ?? []).map((s) => [s.entity_id, s.data as Record<string, unknown>]),
-      );
+      const { voteMap, constMap, sentimentMap } = await fetchPredictionData(supabase, proposals);
 
       let count = 0;
       const upsertRows: Array<Record<string, unknown>> = [];
 
       for (const p of proposals) {
         try {
-          const key = `${p.tx_hash}-${p.proposal_index}`;
-          const voteSummary = voteMap.get(key);
-          const constScore = constMap.get(key) ?? null;
-          const sentimentData = sentimentMap.get(key) ?? null;
-
-          const predInput: PassagePredictionInput = {
-            proposalType: p.proposal_type,
-            drepVotes: {
-              yes: (voteSummary?.drep_yes as number) ?? 0,
-              no: (voteSummary?.drep_no as number) ?? 0,
-              abstain: (voteSummary?.drep_abstain as number) ?? 0,
-            },
-            spoVotes: {
-              yes: (voteSummary?.spo_yes as number) ?? 0,
-              no: (voteSummary?.spo_no as number) ?? 0,
-              abstain: (voteSummary?.spo_abstain as number) ?? 0,
-            },
-            ccVotes: {
-              yes: (voteSummary?.cc_yes as number) ?? 0,
-              no: (voteSummary?.cc_no as number) ?? 0,
-              abstain: (voteSummary?.cc_abstain as number) ?? 0,
-            },
-            constitutionalScore:
-              constScore === 'pass' || constScore === 'warning' || constScore === 'fail'
-                ? constScore
-                : null,
-            citizenSentiment: sentimentData
-              ? {
-                  support: (sentimentData.support as number) ?? 0,
-                  oppose: (sentimentData.oppose as number) ?? 0,
-                  total: (sentimentData.total as number) ?? 0,
-                }
-              : null,
-            withdrawalAmount: p.withdrawal_amount,
-          };
-
+          const { input: predInput, voteHash } = buildPredictionInput(
+            p,
+            voteMap,
+            constMap,
+            sentimentMap,
+          );
           const prediction = computePassagePrediction(predInput);
 
           upsertRows.push({
@@ -336,7 +278,7 @@ export const precomputeProposalIntelligence = inngest.createFunction(
             proposal_index: p.proposal_index,
             section_type: 'passage_prediction',
             content: prediction as unknown as Record<string, unknown>,
-            content_hash: `votes-${(voteSummary?.drep_yes ?? 0) + (voteSummary?.drep_no ?? 0)}`,
+            content_hash: voteHash,
             updated_at: new Date().toISOString(),
           });
           count++;
@@ -348,7 +290,6 @@ export const precomputeProposalIntelligence = inngest.createFunction(
         }
       }
 
-      // Batch upsert all predictions
       if (upsertRows.length > 0) {
         await supabase
           .from('proposal_intelligence_cache')
@@ -362,7 +303,7 @@ export const precomputeProposalIntelligence = inngest.createFunction(
     await step.run('log-sync', async () => {
       await supabase.from('sync_log').insert({
         sync_type: 'intelligence_precompute',
-        started_at: new Date().toISOString(),
+        started_at: syncStartedAt,
         finished_at: new Date().toISOString(),
         success: true,
         details: {

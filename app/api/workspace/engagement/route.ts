@@ -42,14 +42,16 @@ export const GET = withRouteHandler(
         .eq('proposal_index', proposalIndex)
         .eq('event_type', 'view');
 
-      // Unique viewers
+      // Unique viewers — select only user_id, deduplicate in JS
+      // PostgREST doesn't support COUNT(DISTINCT); volume is low (<100 viewers/proposal)
       const { data: uniqueData } = await supabase
         .from('proposal_engagement_events')
         .select('user_id')
         .eq('proposal_tx_hash', txHash)
         .eq('proposal_index', proposalIndex)
         .eq('event_type', 'view')
-        .not('user_id', 'is', null);
+        .not('user_id', 'is', null)
+        .limit(1000);
 
       const uniqueViewerIds = new Set((uniqueData ?? []).map((r) => r.user_id));
 
