@@ -412,12 +412,26 @@ From the plan (lines 245-284):
 - `components/intelligence/sections/FeedbackTriageBoard.tsx` — wire to agent synthesis
 - `components/workspace/review/DecisionPanel.tsx` — rationale co-generation UI
 
-## CRITICAL: Plan before building
+## CRITICAL: Plan ONLY — do NOT build until plan is approved
 
-Phase 4 is the most ambitious phase — 6 distinct features. Use EnterPlanMode to prioritize and scope. Consider:
-- Which features have the highest standalone value?
-- Which features share infrastructure (e.g., new AI skills)?
-- What's the minimum viable version of each?
+Phase 4 is the most ambitious phase — 6 distinct features across author and review sides, touching AI skills, agent SSE, margin decorations, intelligence sections, and the decision panel. Building without a plan will waste context and produce fragmented work.
+
+**Your ONLY job in this session is to produce a detailed implementation plan:**
+
+1. Use EnterPlanMode immediately after reading the checkpoint and plan
+2. Explore the key files listed above to understand current infrastructure
+3. Design the plan with these questions answered:
+   - Which of the 6 features have the highest standalone value? Rank them.
+   - Which features share infrastructure (e.g., new AI skills that serve multiple features)?
+   - What's the minimum viable version of each? What can be deferred to Phase 6 polish?
+   - How should Phase 4 be chunked into shippable PRs? (Aim for 2-3 PRs max)
+   - What new AI skills are needed? What's the skill input/output contract?
+   - What new Inngest functions are needed (if any)?
+   - Are there any database changes required?
+4. Present the plan for user approval via ExitPlanMode
+5. Do NOT write any code, create any files, or make any commits
+
+The plan should be detailed enough that a follow-up agent can execute each PR chunk without re-exploring. Include specific file paths, function signatures for new skills, and component prop interfaces.
 
 If you run low on context, follow the checkpoint protocol documented in the checkpoint file.
 ```
