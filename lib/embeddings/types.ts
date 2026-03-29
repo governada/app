@@ -37,7 +37,9 @@ export interface EmbeddingProviderConfig {
 
 export const DEFAULT_CONFIG: EmbeddingProviderConfig = {
   model: 'text-embedding-3-large',
-  dimensions: 3072,
+  // pgvector HNSW index max = 2000 dims. text-embedding-3-large supports
+  // 1536 via Matryoshka truncation — same model, no quality loss at <10K rows.
+  dimensions: 1536,
   batchSize: 100,
 };
 
