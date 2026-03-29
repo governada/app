@@ -13,6 +13,9 @@ export interface EntityRef {
   secondaryId?: string;
 }
 
+const HEX_RE = /^[a-f0-9]+$/;
+const DIGITS_RE = /^\d+$/;
+
 export function parseEntityParam(entity: string | undefined | null): EntityRef | null {
   if (!entity) return null;
 
@@ -21,21 +24,24 @@ export function parseEntityParam(entity: string | undefined | null): EntityRef |
 
   const prefix = entity.slice(0, firstUnderscore);
   const rest = entity.slice(firstUnderscore + 1);
+  if (!rest) return null;
 
   switch (prefix) {
     case 'drep':
-      return rest ? { type: 'drep', id: rest } : null;
+      return { type: 'drep', id: rest };
     case 'pool':
-      return rest ? { type: 'pool', id: rest } : null;
+      return { type: 'pool', id: rest };
     case 'cc':
-      return rest ? { type: 'cc', id: rest } : null;
+      return { type: 'cc', id: rest };
     case 'proposal': {
       // Format: proposal_[txHash]_[index]
       const lastUnderscore = rest.lastIndexOf('_');
       if (lastUnderscore === -1) return null;
       const txHash = rest.slice(0, lastUnderscore);
       const index = rest.slice(lastUnderscore + 1);
-      return txHash && index ? { type: 'proposal', id: txHash, secondaryId: index } : null;
+      if (!txHash || !HEX_RE.test(txHash)) return null;
+      if (!index || !DIGITS_RE.test(index)) return null;
+      return { type: 'proposal', id: txHash, secondaryId: index };
     }
     default:
       return null;
@@ -56,7 +62,7 @@ export function getEntityPageUrl(ref: EntityRef): string {
     case 'drep':
       return `/drep/${encodeURIComponent(ref.id)}`;
     case 'proposal':
-      return `/proposal/${ref.id}/${ref.secondaryId ?? '0'}`;
+      return `/proposal/${encodeURIComponent(ref.id)}/${encodeURIComponent(ref.secondaryId ?? '0')}`;
     case 'pool':
       return `/pool/${encodeURIComponent(ref.id)}`;
     case 'cc':

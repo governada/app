@@ -77,17 +77,26 @@ export function SynapticHomePage({
     parseEntityParam(initialEntity),
   );
 
-  // Sync URL params to local state when they change via navigation
+  // Guard: skip URL sync when the change was initiated by our own updateUrl
+  const isInternalUpdate = useRef(false);
+
+  // Sync URL params to local state when they change via browser navigation
   useEffect(() => {
+    if (isInternalUpdate.current) {
+      isInternalUpdate.current = false;
+      return;
+    }
     const urlFilter = searchParams.get('filter');
     const urlEntity = searchParams.get('entity');
     setActiveFilter(urlFilter);
     setActiveEntity(parseEntityParam(urlEntity));
   }, [searchParams]);
 
-  // Trigger match flow from URL param on mount
+  // Trigger match flow from URL param on mount (once only)
+  const matchTriggered = useRef(false);
   useEffect(() => {
-    if (initialMatch) {
+    if (initialMatch && !matchTriggered.current) {
+      matchTriggered.current = true;
       useSenecaThreadStore.getState().startMatch();
     }
   }, [initialMatch]);
@@ -103,6 +112,7 @@ export function SynapticHomePage({
           url.searchParams.set(key, value);
         }
       }
+      isInternalUpdate.current = true;
       router.replace(url.pathname + url.search, { scroll: false });
     },
     [router],
