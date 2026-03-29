@@ -33,10 +33,12 @@ import {
 } from '@/components/studio/studioEditorHelpers';
 import { WorkspacePanels } from '@/components/workspace/layout/WorkspacePanels';
 import { ProposalEditor, injectProposedEdit } from '@/components/workspace/editor/ProposalEditor';
+import { TypeSpecificFieldsPanel } from '@/components/workspace/editor/TypeSpecificFields';
 import { AgentChatPanel } from '@/components/workspace/agent/AgentChatPanel';
 import { StatusBar } from '@/components/workspace/layout/StatusBar';
 import { SaveErrorBanner } from '@/components/workspace/layout/SaveErrorBanner';
 import { RevisionJustificationFlow } from '@/components/workspace/editor/RevisionJustificationFlow';
+import { ScaffoldForm } from '@/components/workspace/author/ScaffoldForm';
 import { ReadinessPanel } from '@/components/workspace/author/ReadinessPanel';
 import { QualityPulse } from '@/components/workspace/author/QualityPulse';
 import { ProactiveInsight } from '@/components/workspace/author/ProactiveInsight';
@@ -44,11 +46,14 @@ import { ProposalAlignmentCard } from '@/components/intelligence/ProposalAlignme
 import { VersionCompareDialog } from '@/components/workspace/author/VersionCompareDialog';
 import { useAmbientConstitutionalCheck } from '@/hooks/useAmbientConstitutionalCheck';
 import { useSectionAnalysis } from '@/hooks/useSectionAnalysis';
+import { useTeam } from '@/hooks/useTeam';
+import { useFeatureFlag } from '@/components/FeatureGate';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PROPOSAL_TYPE_LABELS } from '@/lib/workspace/types';
-import type { ProposalType } from '@/lib/workspace/types';
+import type { ProposalType, TeamRole } from '@/lib/workspace/types';
 import type {
   EditorMode,
+  MarginIndicator,
   ProposalField,
   ProposedEdit,
   ProposedComment,
@@ -217,22 +222,59 @@ function WorkspaceEditorPage() {
     [draftId],
   );
 
-  // --- Derive user role from ownership + segment ---
+  // --- Derive user role from ownership + team membership + segment ---
   const draft = data?.draft ?? null;
   const isOwner = !!stakeAddress && draft?.ownerStakeAddress === stakeAddress;
+  const { data: teamData } = useTeam(draftId);
+  const teamRole: TeamRole | null = (() => {
+    if (!stakeAddress || !teamData?.members) return null;
+    const member = teamData.members.find((m) => m.stakeAddress === stakeAddress);
+    return member?.role ?? null;
+  })();
+  const canEdit = isOwner || teamRole === 'lead' || teamRole === 'editor';
+  const stageReadOnly =
+    draft?.status === 'final_comment' ||
+    draft?.status === 'submitted' ||
+    draft?.status === 'community_review';
+  const readOnly = stageReadOnly || !canEdit;
+
   const userRole = isOwner
     ? ('proposer' as const)
     : segment === 'cc'
       ? ('cc_member' as const)
       : ('reviewer' as const);
-  const readOnly = !isOwner;
 
-  // Set initial mode based on readOnly
+  // --- ScaffoldForm state ---
+  const aiDraftEnabled = useFeatureFlag('author_ai_draft');
+  const [scaffoldDismissed, setScaffoldDismissed] = useState(false);
+  const isDraftEmpty = !draft?.title && !draft?.abstract && !draft?.motivation && !draft?.rationale;
+  const showScaffold =
+    isDraftEmpty &&
+    aiDraftEnabled === true &&
+    !scaffoldDismissed &&
+    draft?.status === 'draft' &&
+    canEdit;
+
+  // --- Type-specific fields state ---
+  const [typeSpecific, setTypeSpecific] = useState<Record<string, unknown>>({});
   useEffect(() => {
-    if (readOnly) {
+    if (draft?.typeSpecific) {
+      setTypeSpecific(draft.typeSpecific as Record<string, unknown>);
+    }
+  }, [draft?.typeSpecific]);
+
+  // Set initial mode based on lifecycle stage
+  useEffect(() => {
+    if (!draft) return;
+    const status = draft.status;
+    if (status === 'draft' && canEdit) {
+      setModeRaw('edit');
+    } else if (status === 'response_revision' && canEdit) {
+      setModeRaw('edit');
+    } else {
       setModeRaw('review');
     }
-  }, [readOnly]);
+  }, [draft?.status, canEdit, draft]);
 
   // --- Agent hook (lifted to page level so slash commands + Cmd+K can call it) ---
   const {
@@ -249,7 +291,7 @@ function WorkspaceEditorPage() {
 
   // --- Readiness badge for header (lightweight, no extra queries) ---
   const readinessBadge = useMemo(() => {
-    if (!draft || !isOwner) return undefined;
+    if (!draft || !canEdit) return undefined;
     const fields = [draft.title, draft.abstract, draft.motivation, draft.rationale];
     const filled = fields.filter((f) => f && f.trim().length > 0).length;
     const constCheck = draft.lastConstitutionalCheck?.score ?? null;
@@ -263,7 +305,7 @@ function WorkspaceEditorPage() {
           ? ('strong' as const)
           : ('moderate' as const);
     return { level, blockerCount };
-  }, [draft, isOwner]);
+  }, [draft, canEdit]);
 
   // --- Derived version data ---
   const versions = data?.versions ?? null;
@@ -318,6 +360,56 @@ function WorkspaceEditorPage() {
     },
     [updateDraft, setSaving],
   );
+
+  // --- Type-specific field change handler (auto-save with debounce) ---
+  const handleTypeSpecificChange = useCallback(
+    (ts: Record<string, unknown>) => {
+      setTypeSpecific(ts);
+      setSaving();
+      clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        updateDraft.mutate({ typeSpecific: ts });
+      }, 500);
+    },
+    [updateDraft, setSaving],
+  );
+
+  const handleTypeSpecificBlur = useCallback(() => {
+    // Force immediate save on blur (clear any pending debounce)
+    clearTimeout(debounceRef.current);
+    setSaving();
+    updateDraft.mutate({ typeSpecific });
+  }, [updateDraft, setSaving, typeSpecific]);
+
+  // --- Margin indicators from constitutional check ---
+  const marginIndicators = useMemo((): MarginIndicator[] => {
+    if (!constitutionalResult?.flags?.length) return [];
+    // Map constitutional flags to per-section indicators
+    // Each sectionBlock in ProposalEditor produces paragraph nodes.
+    // Simplified mapping: index 0=title, 1=abstract, 2=motivation, 3=rationale
+    const sectionFlags: Record<number, MarginIndicator['constitutionalRisk']> = {};
+    for (const flag of constitutionalResult.flags) {
+      // Try to map flag concern to a section
+      const concern = flag.concern.toLowerCase();
+      let idx = -1;
+      if (concern.includes('abstract') || concern.includes('summary')) idx = 1;
+      else if (concern.includes('motivation') || concern.includes('purpose')) idx = 2;
+      else if (concern.includes('rationale') || concern.includes('justification')) idx = 3;
+      else idx = 2; // Default unmapped flags to motivation (most common target)
+
+      const severity =
+        flag.severity === 'critical' ? 'red' : flag.severity === 'warning' ? 'amber' : 'green';
+      // Worst severity wins
+      const current = sectionFlags[idx];
+      if (!current || severity === 'red' || (severity === 'amber' && current !== 'red')) {
+        sectionFlags[idx] = severity;
+      }
+    }
+    return Object.entries(sectionFlags).map(([idx, risk]) => ({
+      paragraphIndex: Number(idx),
+      constitutionalRisk: risk,
+    }));
+  }, [constitutionalResult]);
 
   // --- Retry save: re-send current content to mutation ---
   const handleSaveRetry = useCallback(() => {
@@ -437,7 +529,7 @@ function WorkspaceEditorPage() {
   }, [content, draftStatus, feedbackThemeCount]);
 
   // --- Toolbar actions ---
-  const toolbarActions = isOwner ? (
+  const toolbarActions = canEdit ? (
     <div className="flex items-center gap-2">
       {versions && versions.length >= 2 && <VersionCompareDialog versions={versions} />}
       <button
@@ -477,7 +569,7 @@ function WorkspaceEditorPage() {
           // Could toggle readiness panel for detail
         }}
       />
-      {isOwner && (
+      {canEdit && (
         <ProactiveInsight
           sectionResults={sectionResults}
           isAnalyzing={Object.values(sectionLoading).some(Boolean)}
@@ -570,9 +662,9 @@ function WorkspaceEditorPage() {
               title={draft.title || 'Untitled proposal'}
               titleTransitionName={draftId ? `draft-title-${draftId}` : undefined}
               proposalType={typeLabel}
-              showModeSwitch={isOwner}
+              showModeSwitch={canEdit && !stageReadOnly}
               mode={mode}
-              onModeChange={isOwner ? setMode : undefined}
+              onModeChange={canEdit && !stageReadOnly ? setMode : undefined}
               actions={toolbarActions}
               readiness={readinessBadge}
             />
@@ -581,36 +673,50 @@ function WorkspaceEditorPage() {
             <div className="max-w-3xl mx-auto px-6 py-6 transition-opacity duration-150">
               {draft.supersedesId && <LineageBanner supersedesId={draft.supersedesId} />}
               <SaveErrorBanner onRetry={handleSaveRetry} />
-              <ProposalEditor
-                content={content}
-                mode={mode}
-                readOnly={readOnly || mode === 'review'}
-                onContentChange={readOnly ? undefined : handleContentChange}
-                onSlashCommand={handleSlashCommand}
-                onCommand={handleCommand}
-                onDiffAccept={(editId) => {
-                  posthog.capture('workspace_inline_edit_accepted', {
-                    proposal_id: draftId,
-                    edit_id: editId,
-                  });
-                }}
-                onDiffReject={(editId) => {
-                  posthog.capture('workspace_inline_edit_rejected', {
-                    proposal_id: draftId,
-                    edit_id: editId,
-                  });
-                }}
-                showSuggestEdit={!isOwner && mode === 'review'}
-                onSuggestEdit={(editId, _proposedText, explanation) => {
-                  posthog.capture('tracked_change_proposed', {
-                    proposal_id: draftId,
-                    edit_id: editId,
-                    has_explanation: !!explanation,
-                  });
-                }}
-                currentUserId={stakeAddress ?? 'anonymous'}
-                onEditorReady={handleEditorReady}
-              />
+              {showScaffold ? (
+                <ScaffoldForm draft={draft} onComplete={() => setScaffoldDismissed(true)} />
+              ) : (
+                <>
+                  <ProposalEditor
+                    content={content}
+                    mode={mode}
+                    readOnly={readOnly || mode === 'review'}
+                    onContentChange={readOnly ? undefined : handleContentChange}
+                    onSlashCommand={handleSlashCommand}
+                    onCommand={handleCommand}
+                    onDiffAccept={(editId) => {
+                      posthog.capture('workspace_inline_edit_accepted', {
+                        proposal_id: draftId,
+                        edit_id: editId,
+                      });
+                    }}
+                    onDiffReject={(editId) => {
+                      posthog.capture('workspace_inline_edit_rejected', {
+                        proposal_id: draftId,
+                        edit_id: editId,
+                      });
+                    }}
+                    showSuggestEdit={!isOwner && mode === 'review'}
+                    onSuggestEdit={(editId, _proposedText, explanation) => {
+                      posthog.capture('tracked_change_proposed', {
+                        proposal_id: draftId,
+                        edit_id: editId,
+                        has_explanation: !!explanation,
+                      });
+                    }}
+                    currentUserId={stakeAddress ?? 'anonymous'}
+                    onEditorReady={handleEditorReady}
+                    marginIndicators={marginIndicators}
+                  />
+                  <TypeSpecificFieldsPanel
+                    proposalType={draft.proposalType}
+                    typeSpecific={typeSpecific}
+                    onChange={handleTypeSpecificChange}
+                    onBlur={handleTypeSpecificBlur}
+                    readOnly={readOnly || mode === 'review'}
+                  />
+                </>
+              )}
             </div>
           }
           context={
