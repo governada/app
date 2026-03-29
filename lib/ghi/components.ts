@@ -13,7 +13,6 @@
  * are included. This ensures GHI is defensible under public scrutiny.
  */
 
-import { createClient } from '@/lib/supabase';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { calculateTreasuryHealthScore } from '@/lib/treasury';
 import { computeEDI, type EDIResult } from './ediMetrics';
@@ -26,7 +25,7 @@ import { logger } from '@/lib/logger';
 // ---------------------------------------------------------------------------
 
 export interface ComponentInput {
-  supabase: ReturnType<typeof createClient>;
+  supabase: ReturnType<typeof getSupabaseAdmin>;
   currentEpoch: number;
 }
 
