@@ -26,7 +26,6 @@ import {
   Wallet,
   ChevronDown,
   Briefcase,
-  Landmark,
   CircleUser,
   Link2,
 } from 'lucide-react';
@@ -584,9 +583,7 @@ export function GovernadaHeader() {
   const ambientTint =
     currentSection === 'workspace'
       ? 'shadow-[inset_0_-1px_0_oklch(0.78_0.14_75/0.12),0_1px_8px_oklch(0.78_0.14_75/0.04)]'
-      : currentSection === 'governance'
-        ? 'shadow-[inset_0_-1px_0_oklch(0.72_0.14_192/0.12),0_1px_8px_oklch(0.72_0.14_192/0.04)]'
-        : '';
+      : '';
 
   // Mobile: scroll-direction-aware show/hide (X/Twitter pattern)
   const scrollDirection = useScrollDirection(10);
@@ -638,20 +635,7 @@ export function GovernadaHeader() {
                 {!headerCompact && <span className="hidden md:inline">Workspace</span>}
               </Link>
             )}
-            <Link
-              href="/g"
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-1 rounded-full text-[13px] font-medium transition-all',
-                currentSection === 'governance'
-                  ? 'text-foreground bg-primary/10'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-accent/50',
-                headerTransparent && 'nav-text-shadow',
-              )}
-              aria-current={currentSection === 'governance' ? 'page' : undefined}
-            >
-              <Landmark className="h-3.5 w-3.5" />
-              {!headerCompact && <span className="hidden md:inline">Governance</span>}
-            </Link>
+            {/* Governance pill removed — Home is the unified globe+discovery surface */}
           </nav>
         </div>
 

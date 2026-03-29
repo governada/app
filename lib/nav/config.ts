@@ -264,7 +264,7 @@ export const HELP_ITEMS: NavItem[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Sidebar sections — Four Worlds: Home, Workspace, Governance, You
+// Sidebar sections — Three Worlds: Home, Workspace, You
 // ---------------------------------------------------------------------------
 
 /** Context for sidebar generation — supports dual-role detection */
@@ -310,30 +310,26 @@ function filterGroupsByDepth(
     .filter((g) => g.items.length > 0);
 }
 
+/** SPO items not already present in the DRep list (deduped by href). */
+const DEDUPED_SPO_ITEMS = WORKSPACE_SPO_ITEMS.filter(
+  (i) => !WORKSPACE_DREP_ITEMS.some((d) => d.href === i.href),
+);
+
 /**
  * Build deduplicated dual-role Workspace groups.
  * Items that appear in both lists (matched by href) are shown only in the
  * DRep group to avoid visual clutter.
  */
 function buildDualRoleWorkspaceGroups(): NavItemGroup[] {
-  const drepHrefs = new Set(WORKSPACE_DREP_ITEMS.map((i) => i.href));
-  const dedupedSpoItems = WORKSPACE_SPO_ITEMS.filter((i) => !drepHrefs.has(i.href));
-
   return [
     { id: 'ws-drep', label: 'DRep', items: WORKSPACE_DREP_ITEMS },
-    { id: 'ws-pool', label: 'Pool', items: dedupedSpoItems },
+    { id: 'ws-pool', label: 'Pool', items: DEDUPED_SPO_ITEMS },
   ];
 }
 
-/** Returns true when a persona should see the Workspace section.
- *  All authenticated users get Workspace — any citizen can author proposals. */
+/** All authenticated users get Workspace — any citizen can author proposals. */
 function hasWorkspace(ctx: NavContext): boolean {
-  const { segment, drepId, poolId } = ctx;
-  if (segment === 'anonymous') return false;
-  if (segment === 'drep' || segment === 'spo') return true;
-  if (drepId || poolId) return true; // dual-role detection
-  // All authenticated users (citizen, cc) get Workspace for Author + Review
-  return true;
+  return ctx.segment !== 'anonymous';
 }
 
 export function getSidebarSections(
@@ -468,7 +464,7 @@ export function getBottomBarItems(
     case 'anonymous':
       return BOTTOM_BAR_ANONYMOUS;
     case 'citizen':
-      // Delegated citizens (hands-off+ depth) get Workspace; undelegated get Match
+      // Delegated citizens (hands-off+ depth) get You; undelegated get Home + Workspace only
       return isHandsOff ? BOTTOM_BAR_CITIZEN_DELEGATED : BOTTOM_BAR_CITIZEN;
     case 'drep':
       return BOTTOM_BAR_DREP;
@@ -493,7 +489,7 @@ export function getPillBarItems(
   const depth = context?.depth;
 
   // Homepage shows governance discovery pill bar
-  if (pathname === '/' || pathname.startsWith('/?')) {
+  if (pathname === '/') {
     return filterByDepth(HOME_DISCOVERY_ITEMS, depth);
   }
   // Legacy governance routes also show discovery items (until fully migrated)
@@ -509,12 +505,7 @@ export function getPillBarItems(
   if (pathname.startsWith('/workspace')) {
     const isDualRole = !!(context?.drepId && context?.poolId);
     if (isDualRole) {
-      const drepHrefs = new Set(WORKSPACE_DREP_ITEMS.map((i) => i.href));
-      const combined = [
-        ...WORKSPACE_DREP_ITEMS,
-        ...WORKSPACE_SPO_ITEMS.filter((i) => !drepHrefs.has(i.href)),
-      ];
-      return filterByDepth(combined, depth);
+      return filterByDepth([...WORKSPACE_DREP_ITEMS, ...DEDUPED_SPO_ITEMS], depth);
     }
     if (segment === 'drep') return filterByDepth(WORKSPACE_DREP_ITEMS, depth);
     if (segment === 'spo') return filterByDepth(WORKSPACE_SPO_ITEMS, depth);
