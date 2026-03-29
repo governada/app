@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Geist, Geist_Mono, Space_Grotesk, Fraunces } from 'next/font/google';
+import { Geist, Space_Grotesk, Fraunces } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Providers } from '@/components/Providers';
@@ -16,11 +16,6 @@ import { ModeProvider } from '@/components/providers/ModeProvider';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
-  subsets: ['latin'],
-});
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
   subsets: ['latin'],
 });
 
@@ -82,7 +77,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${spaceGrotesk.variable} ${fraunces.variable} antialiased`}
+        className={`${geistSans.variable} ${spaceGrotesk.variable} ${fraunces.variable} antialiased`}
         suppressHydrationWarning
       >
         <ThemeProvider
