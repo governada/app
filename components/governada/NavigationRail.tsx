@@ -1,9 +1,9 @@
 'use client';
 
 /**
- * NavigationRail — 48px fixed-width icon rail replacing the 240px sidebar.
+ * NavigationRail — 48px fixed-width icon rail.
  *
- * Four Worlds: Home, Workspace, Governance, You
+ * Three Worlds: Home, Workspace, You
  * Feature-flagged behind `navigation_rail`.
  *
  * - Radix tooltips with keyboard shortcut hints
@@ -35,7 +35,6 @@ import type { LucideIcon } from 'lucide-react';
 const SECTION_SHORTCUTS: Record<string, string> = {
   home: 'G H',
   workspace: 'G W',
-  governance: 'G G',
   you: 'G Y',
 };
 

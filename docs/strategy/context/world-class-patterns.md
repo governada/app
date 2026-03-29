@@ -1442,6 +1442,44 @@ _(Patterns for viral sharing, temporal identity, social proof)_
 - **Applicable to**: "Epoch Wrapped" — per-user governance participation cards. Globe time-lapse of epoch activity. "You aligned with 73% of passed proposals." Vertical format, Compass palette, shareable to Twitter/X.
 - **Adoption difficulty**: Medium — data exists, need card rendering pipeline + share flow
 
+### Spatial + Conversational AI Fusion
+
+#### Bloomberg ASKB — Parallel Agent Orchestration Over Dense Data
+
+- **Source**: Bloomberg Terminal ASKB — https://www.tradersmagazine.com/xtra/bloomberg-introduces-agentic-ai-to-the-terminal/
+- **Discovered**: 2026-03-29 (explore-feature: homepage+globe unification)
+- **What they do**: Conversational AI coordinates a network of parallel agents that dynamically access data, news, research, and analytics. Users describe research objectives ("pre-earnings prep") in natural language; the system assembles structured multi-format output (text + charts + tables + annotations). ASKB Workflows automate multi-step research activities. MAPS function adds geographic spatial context to data queries.
+- **Why it's world-class**: Solves the "terminal complexity" problem not by simplifying but by adding a conversational layer that navigates the complexity for you. Multiple agents work in parallel, producing richer output than a single model. The spatial (MAPS) + conversational (ASKB) combination is the closest precedent to Governada's globe+Seneca model.
+- **Applicable to**: Seneca should coordinate parallel intelligence agents (vote analysis, alignment scoring, treasury modeling, community sentiment) to produce multi-format responses: narrative text + globe spatial visualization + entity cards + trend charts. "Prepare me for governance this epoch" as a single Seneca workflow.
+- **Adoption difficulty**: Medium — intelligence pipeline exists, need multi-agent orchestration and multi-format response rendering
+
+#### Apple Maps Explore — Continuous Spatial Scale Without Mode Switching
+
+- **Source**: Apple Maps — https://www.apple.com/maps/
+- **Discovered**: 2026-03-29 (explore-feature: homepage+globe unification)
+- **What they do**: Same spatial surface handles global overview and street-level detail with continuous zoom — no modal switch. "Explore Nearby" overlays categorized discovery (restaurants, hotels, etc.) as colored badges directly onto the spatial canvas. Flyover transitions between 2D and 3D are continuous, not mode changes.
+- **Why it's world-class**: Eliminates the list-vs-map dichotomy. Discovery happens ON the spatial surface, not in a separate panel. Category filters change what's emphasized on the map, not what page you're on.
+- **Applicable to**: Globe filter chips should act as "lenses" that change what's emphasized on the constellation, not separate list views. Entity detail should be a smooth camera zoom, not a page navigation. Zoom-level progressive disclosure: zoomed out = cluster labels, medium = node labels, close = entity cards.
+- **Adoption difficulty**: Medium — globe rendering exists, need zoom-level LOD and overlay rendering
+
+#### Figma — Canvas as Organizing System with Zoom-Level Disclosure
+
+- **Source**: Figma — https://www.figma.com/blog/building-figmas-code-layers/
+- **Discovered**: 2026-03-29 (explore-feature: homepage+globe unification)
+- **What they do**: Infinite canvas where everything is a spatial primitive. Zoom level drives progressive disclosure: galaxy level = project structure; ground level = pixel-perfect detail. The canvas IS the organizing system — no separate navigation tree mirrors it. Multiplayer cursors create ambient awareness.
+- **Why it's world-class**: Proves that spatial organization scales to complex professional workflows. Eliminates the need for a separate hierarchy by making spatial position and zoom level the organizing principle.
+- **Applicable to**: The governance globe should function as a Figma canvas — zoom out for governance health constellation, medium for cluster analysis (DReps by philosophy), zoom in for individual entity cards with stats and actions. Spatial position derived from PCA coordinates encodes governance philosophy.
+- **Adoption difficulty**: Hard — requires PCA-to-3D mapping, zoom-level LOD rendering, and spatial card materialization
+
+#### Arc Browser — Spaces + Universal Command Bar
+
+- **Source**: Arc Browser — https://resources.arc.net/hc/en-us/articles/19228064149143-Spaces-Distinct-Browsing-Areas
+- **Discovered**: 2026-03-29 (explore-feature: homepage+globe unification)
+- **What they do**: Spaces provide spatial context separation with distinct visual identities. A Spotlight-like Command Bar exists ABOVE the spatial hierarchy, letting users jump to anything regardless of current Space. Split-screen puts multiple views in spatial relationship.
+- **Why it's world-class**: Solves the tension between spatial organization (gives context) and universal access (gives speed). The Command Bar transcends the hierarchy while Spaces provide structure.
+- **Applicable to**: Governada's four-world navigation (Home/Workspace/Governance/You) maps to Spaces. Seneca functions as the Command Bar — transcending the current "world" to access anything. Globe could support split-view: globe + entity detail maintaining spatial context.
+- **Adoption difficulty**: Easy-Medium — Seneca input already exists as universal access, need route-transcending intent handling
+
 ## Update Protocol
 
 When adding a pattern, use this format:

@@ -1,19 +1,20 @@
 /**
- * Navigation configuration — Four Worlds model.
+ * Navigation configuration — Three Worlds model.
  *
- * Four conceptual worlds:
- *   Home      = "What needs my attention?" (briefing, alerts, status)
+ * Three conceptual worlds:
+ *   Home      = "What's happening + explore governance" (briefing, globe, discovery, matching)
  *   Workspace = "Do my governance work" (author, review, manage)
- *   Governance = "What's happening?" (universal exploration)
  *   You       = "Who am I in governance?" (identity, reflection, settings)
  *
- * Home is a single briefing surface for all personas.
+ * Home is a unified globe + Seneca surface for both briefing AND discovery.
+ * Governance exploration lives on the homepage via filter params (?filter=proposals, etc.).
+ * Matching lives on the homepage via Seneca match mode.
  * Workspace is a separate section for governance operators (DRep, SPO,
  * delegated citizens). Author and Review are peer sub-sections within it.
  *
  * This is the single source of truth for all navigation surfaces:
  * - Desktop sidebar / icon rail
- * - Mobile bottom bar (3-4 items, persona-adaptive)
+ * - Mobile bottom bar (1-3 items, persona-adaptive)
  * - Mobile pill bar (section sub-pages)
  * - Header help dropdown
  *
@@ -23,9 +24,7 @@
 import type { LucideIcon } from 'lucide-react';
 import {
   Home,
-  Globe,
   User,
-  Compass,
   HelpCircle,
   FileText,
   Users,
@@ -177,20 +176,24 @@ export const WORKSPACE_CITIZEN_ITEMS: NavItem[] = [
   },
 ];
 
-export const GOVERNANCE_ITEMS: NavItem[] = [
+/**
+ * Home discovery sub-items — shown in pill bar on the homepage.
+ * Each sets a ?filter= URL param on / to activate the discovery overlay + globe highlighting.
+ */
+export const HOME_DISCOVERY_ITEMS: NavItem[] = [
   {
-    href: '/g?filter=proposals',
+    href: '/?filter=proposals',
     label: 'Proposals',
     icon: FileText,
     sublabelKey: 'gov.activeProposals',
   },
   {
-    href: '/g?filter=dreps',
+    href: '/?filter=dreps',
     label: 'Representatives',
     icon: Users,
     sublabelKey: 'gov.activeDreps',
   },
-  { href: '/g?filter=spos', label: 'Pools', icon: Building2, sublabelKey: 'gov.activePools' },
+  { href: '/?filter=spos', label: 'Pools', icon: Building2, sublabelKey: 'gov.activePools' },
   {
     href: '/governance/observatory',
     label: 'Observatory',
@@ -253,7 +256,7 @@ export function getYouItems(
 
 /** Help items — used in header dropdown (no longer in sidebar) */
 export const HELP_ITEMS: NavItem[] = [
-  { href: '/match', label: 'Get Started', icon: Rocket },
+  { href: '/?match=true', label: 'Get Started', icon: Rocket },
   { href: '/help', label: 'FAQ', icon: HelpCircle },
   { href: '/help/glossary', label: 'Glossary', icon: BookOpen },
   { href: '/help/methodology', label: 'Methodology', icon: BarChart3 },
@@ -398,16 +401,7 @@ export function getSidebarSections(
     }
   }
 
-  // ── World 3: Governance (The Constellation) ─────────────────────────
-  sections.push({
-    id: 'governance',
-    label: 'Governance',
-    icon: Globe,
-    href: '/g',
-    items: filterByDepth(GOVERNANCE_ITEMS, depth),
-  });
-
-  // ── World 4: You ──────────────────────────────────────────────────────
+  // ── World 3: You ──────────────────────────────────────────────────────
   if (segment !== 'anonymous') {
     sections.push({
       id: 'you',
@@ -426,50 +420,40 @@ export function getSidebarSections(
 // Bottom bar — 3 or 4 items, persona-adaptive
 // ---------------------------------------------------------------------------
 
-/** Anonymous: Home | Governance | Match */
-const BOTTOM_BAR_ANONYMOUS: NavItem[] = [
-  { href: '/', label: 'Home', icon: Home },
-  { href: '/g', label: 'Governance', icon: Globe },
-  { href: '/match', label: 'Match', icon: Compass },
-];
+/** Anonymous: Home only (match is a Seneca mode on Home) */
+const BOTTOM_BAR_ANONYMOUS: NavItem[] = [{ href: '/', label: 'Home', icon: Home }];
 
-/** Citizen (undelegated): Home | Workspace | Governance | Match */
+/** Citizen (undelegated): Home | Workspace */
 const BOTTOM_BAR_CITIZEN: NavItem[] = [
   { href: '/', label: 'Home', icon: Home },
   { href: '/workspace/author', label: 'Workspace', icon: Briefcase },
-  { href: '/g', label: 'Governance', icon: Globe },
-  { href: '/match', label: 'Match', icon: Compass },
 ];
 
-/** Citizen (delegated): Home | Workspace | Governance | You */
+/** Citizen (delegated): Home | Workspace | You */
 const BOTTOM_BAR_CITIZEN_DELEGATED: NavItem[] = [
   { href: '/', label: 'Home', icon: Home },
   { href: '/workspace/author', label: 'Workspace', icon: Briefcase },
-  { href: '/g', label: 'Governance', icon: Globe },
   { href: '/you', label: 'You', icon: User, badge: 'unread' },
 ];
 
-/** DRep: Home | Workspace | Governance | You */
+/** DRep: Home | Workspace | You */
 const BOTTOM_BAR_DREP: NavItem[] = [
   { href: '/', label: 'Home', icon: Home },
   { href: '/workspace', label: 'Workspace', icon: Briefcase, badge: 'actions' },
-  { href: '/g', label: 'Governance', icon: Globe },
   { href: '/you', label: 'You', icon: User, badge: 'unread' },
 ];
 
-/** SPO: Home | Workspace | Governance | You */
+/** SPO: Home | Workspace | You */
 const BOTTOM_BAR_SPO: NavItem[] = [
   { href: '/', label: 'Home', icon: Home },
   { href: '/workspace', label: 'Workspace', icon: Briefcase },
-  { href: '/g', label: 'Governance', icon: Globe },
   { href: '/you', label: 'You', icon: User, badge: 'unread' },
 ];
 
-/** CC: Home | Workspace | Governance | You */
+/** CC: Home | Workspace | You */
 const BOTTOM_BAR_CC: NavItem[] = [
   { href: '/', label: 'Home', icon: Home },
   { href: '/workspace/author', label: 'Workspace', icon: Briefcase },
-  { href: '/g', label: 'Governance', icon: Globe },
   { href: '/you', label: 'You', icon: User, badge: 'unread' },
 ];
 
@@ -508,13 +492,18 @@ export function getPillBarItems(
 ): NavItem[] | null {
   const depth = context?.depth;
 
+  // Homepage shows governance discovery pill bar
+  if (pathname === '/' || pathname.startsWith('/?')) {
+    return filterByDepth(HOME_DISCOVERY_ITEMS, depth);
+  }
+  // Legacy governance routes also show discovery items (until fully migrated)
   if (
     pathname === '/g' ||
     pathname.startsWith('/g/') ||
     pathname.startsWith('/g?') ||
     pathname.startsWith('/governance')
   ) {
-    return filterByDepth(GOVERNANCE_ITEMS, depth);
+    return filterByDepth(HOME_DISCOVERY_ITEMS, depth);
   }
   // Workspace routes show workspace sub-items in the pill bar
   if (pathname.startsWith('/workspace')) {
@@ -550,10 +539,11 @@ export function getPillBarItems(
 export function getCurrentSection(pathname: string): string | null {
   if (pathname === '/') return 'home';
   if (pathname.startsWith('/workspace')) return 'workspace';
-  if (pathname === '/g' || pathname.startsWith('/g/')) return 'governance';
-  if (pathname.startsWith('/governance')) return 'governance';
+  // Globe and governance routes are now part of Home
+  if (pathname === '/g' || pathname.startsWith('/g/')) return 'home';
+  if (pathname.startsWith('/governance')) return 'home';
+  if (pathname.startsWith('/match')) return 'home';
   if (pathname.startsWith('/you')) return 'you';
-  if (pathname.startsWith('/match')) return 'match';
   if (pathname.startsWith('/help')) return 'help';
   return null;
 }
@@ -564,7 +554,7 @@ export function getCurrentSection(pathname: string): string | null {
 
 /** Maps section IDs to the primary sidebar-metric key for that section's summary. */
 export const SECTION_METRIC_KEYS: Record<string, string> = {
+  home: 'gov.activeProposals',
   workspace: 'workspace.pendingVotes',
-  governance: 'gov.activeProposals',
   you: 'you.drepScore',
 };
