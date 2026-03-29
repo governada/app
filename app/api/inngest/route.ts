@@ -61,6 +61,13 @@ import { precomputeProposalIntelligence } from '@/inngest/functions/precompute-p
 import { updatePassagePredictions } from '@/inngest/functions/update-passage-predictions';
 export const { GET, POST, PUT } = serve({
   client: inngest,
+  // Self-hosted: tell the Inngest server to reach this app via Railway private network
+  ...(process.env.INNGEST_SERVE_ORIGIN && {
+    serveOrigin: process.env.INNGEST_SERVE_ORIGIN,
+  }),
+  ...(process.env.INNGEST_SERVE_PATH && {
+    servePath: process.env.INNGEST_SERVE_PATH,
+  }),
   functions: [
     syncProposals,
     syncDreps,

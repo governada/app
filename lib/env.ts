@@ -18,6 +18,7 @@ const optionalEnv = z.object({
   TELEGRAM_BOT_TOKEN: z.string().min(1).optional(),
   KOIOS_API_KEY: z.string().min(1).optional(),
   ADMIN_WALLETS: z.string().optional(),
+  INNGEST_BASE_URL: z.string().url().optional(),
   INNGEST_SIGNING_KEY: z.string().min(1).optional(),
   INNGEST_EVENT_KEY: z.string().min(1).optional(),
   VAPID_PRIVATE_KEY: z.string().min(1).optional(),
