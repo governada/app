@@ -72,6 +72,27 @@ export async function computeDRepParticipation({
         }>;
         const prev = comps.find((c) => c.name === 'DRep Participation');
         if (prev) {
+          // Diagnostic: staleness guard is carrying forward
+          try {
+            const diagSb = getSupabaseAdmin();
+            await diagSb.from('sync_log').insert({
+              sync_type: 'ghi',
+              started_at: new Date().toISOString(),
+              finished_at: new Date().toISOString(),
+              success: true,
+              metrics: {
+                _diagnostic: true,
+                _branch: 'staleness_carryforward',
+                staleMins,
+                lastSuccess: syncHealth.last_success,
+                lastRun: syncHealth.last_run,
+                threshold: DREP_STALE_THRESHOLD_MINS,
+                carriedValue: prev.value,
+              },
+            });
+          } catch {
+            /* non-critical */
+          }
           return {
             raw: prev.value,
             detail: { carriedForward: 1, staleMinutes: staleMins, originalValue: prev.value },
@@ -94,9 +115,27 @@ export async function computeDRepParticipation({
 
   const active = dreps ?? [];
   if (active.length === 0) {
-    logger.warn('[ghi:drep-participation] No active DReps returned', {
-      drepsError: drepsError?.message,
-    });
+    try {
+      const diagSb = getSupabaseAdmin();
+      await diagSb.from('sync_log').insert({
+        sync_type: 'ghi',
+        started_at: new Date().toISOString(),
+        finished_at: new Date().toISOString(),
+        success: true,
+        metrics: {
+          _diagnostic: true,
+          _branch: 'active_empty',
+          drepsNull: dreps === null,
+          drepsUndefined: dreps === undefined,
+          drepsError: drepsError?.message ?? null,
+          drepsErrorCode: drepsError?.code ?? null,
+          drepsErrorHint: drepsError?.hint ?? null,
+          drepsLength: dreps?.length ?? -1,
+        },
+      });
+    } catch {
+      /* non-critical */
+    }
     return { raw: 0 };
   }
 
@@ -212,6 +251,28 @@ export async function computeDRepParticipation({
     participationValues.length % 2 === 0
       ? (participationValues[mid - 1] + participationValues[mid]) / 2
       : participationValues[mid];
+
+  // Diagnostic: capture the final computed value
+  try {
+    const diagSb = getSupabaseAdmin();
+    await diagSb.from('sync_log').insert({
+      sync_type: 'ghi',
+      started_at: new Date().toISOString(),
+      finished_at: new Date().toISOString(),
+      success: true,
+      metrics: {
+        _diagnostic: true,
+        _branch: 'final_result',
+        weightedMedian,
+        unweightedMedian,
+        clamped: Math.min(100, Math.max(0, weightedMedian)),
+        activeCount: active.length,
+        entriesCount: entries.length,
+      },
+    });
+  } catch {
+    /* non-critical */
+  }
 
   return {
     raw: Math.min(100, Math.max(0, weightedMedian)),
