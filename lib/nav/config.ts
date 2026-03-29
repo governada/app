@@ -264,7 +264,7 @@ export const HELP_ITEMS: NavItem[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Sidebar sections — Four Worlds: Home, Workspace, Governance, You
+// Sidebar sections — Three Worlds: Home, Workspace, You
 // ---------------------------------------------------------------------------
 
 /** Context for sidebar generation — supports dual-role detection */
@@ -325,15 +325,9 @@ function buildDualRoleWorkspaceGroups(): NavItemGroup[] {
   ];
 }
 
-/** Returns true when a persona should see the Workspace section.
- *  All authenticated users get Workspace — any citizen can author proposals. */
+/** All authenticated users get Workspace — any citizen can author proposals. */
 function hasWorkspace(ctx: NavContext): boolean {
-  const { segment, drepId, poolId } = ctx;
-  if (segment === 'anonymous') return false;
-  if (segment === 'drep' || segment === 'spo') return true;
-  if (drepId || poolId) return true; // dual-role detection
-  // All authenticated users (citizen, cc) get Workspace for Author + Review
-  return true;
+  return ctx.segment !== 'anonymous';
 }
 
 export function getSidebarSections(
@@ -468,7 +462,7 @@ export function getBottomBarItems(
     case 'anonymous':
       return BOTTOM_BAR_ANONYMOUS;
     case 'citizen':
-      // Delegated citizens (hands-off+ depth) get Workspace; undelegated get Match
+      // Delegated citizens (hands-off+ depth) get You; undelegated get Home + Workspace only
       return isHandsOff ? BOTTOM_BAR_CITIZEN_DELEGATED : BOTTOM_BAR_CITIZEN;
     case 'drep':
       return BOTTOM_BAR_DREP;
@@ -493,7 +487,7 @@ export function getPillBarItems(
   const depth = context?.depth;
 
   // Homepage shows governance discovery pill bar
-  if (pathname === '/' || pathname.startsWith('/?')) {
+  if (pathname === '/') {
     return filterByDepth(HOME_DISCOVERY_ITEMS, depth);
   }
   // Legacy governance routes also show discovery items (until fully migrated)
