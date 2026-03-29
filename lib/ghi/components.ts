@@ -18,7 +18,6 @@ import { calculateTreasuryHealthScore } from '@/lib/treasury';
 import { computeEDI, type EDIResult } from './ediMetrics';
 import { computePairwiseDiversity } from '@/lib/embeddings/quality';
 import { cosineSimilarity } from '@/lib/embeddings/query';
-import { logger } from '@/lib/logger';
 
 // ---------------------------------------------------------------------------
 // Shared types
@@ -72,27 +71,6 @@ export async function computeDRepParticipation({
         }>;
         const prev = comps.find((c) => c.name === 'DRep Participation');
         if (prev) {
-          // Diagnostic: staleness guard is carrying forward
-          try {
-            const diagSb = getSupabaseAdmin();
-            await diagSb.from('sync_log').insert({
-              sync_type: 'ghi',
-              started_at: new Date().toISOString(),
-              finished_at: new Date().toISOString(),
-              success: true,
-              metrics: {
-                _diagnostic: true,
-                _branch: 'staleness_carryforward',
-                staleMins,
-                lastSuccess: syncHealth.last_success,
-                lastRun: syncHealth.last_run,
-                threshold: DREP_STALE_THRESHOLD_MINS,
-                carriedValue: prev.value,
-              },
-            });
-          } catch {
-            /* non-critical */
-          }
           return {
             raw: prev.value,
             detail: { carriedForward: 1, staleMinutes: staleMins, originalValue: prev.value },
@@ -103,41 +81,19 @@ export async function computeDRepParticipation({
     }
   }
 
-  const { data: dreps, error: drepsError } = await supabase
+  // Fetch all DReps with info, filter voting power in JS.
+  // PostgREST JSONB path filters (.gt('info->votingPowerLovelace', '0'))
+  // return inconsistent results when run in parallel via Promise.all.
+  const { data: dreps } = await supabase
     .from('dreps')
     .select('effective_participation, info')
-    .not('info', 'is', null)
-    .gt('info->votingPowerLovelace', '0');
+    .not('info', 'is', null);
 
-  if (drepsError) {
-    logger.error('[ghi:drep-participation] Query failed', { error: drepsError.message });
-  }
-
-  const active = dreps ?? [];
-  if (active.length === 0) {
-    try {
-      const diagSb = getSupabaseAdmin();
-      await diagSb.from('sync_log').insert({
-        sync_type: 'ghi',
-        started_at: new Date().toISOString(),
-        finished_at: new Date().toISOString(),
-        success: true,
-        metrics: {
-          _diagnostic: true,
-          _branch: 'active_empty',
-          drepsNull: dreps === null,
-          drepsUndefined: dreps === undefined,
-          drepsError: drepsError?.message ?? null,
-          drepsErrorCode: drepsError?.code ?? null,
-          drepsErrorHint: drepsError?.hint ?? null,
-          drepsLength: dreps?.length ?? -1,
-        },
-      });
-    } catch {
-      /* non-critical */
-    }
-    return { raw: 0 };
-  }
+  const active = (dreps ?? []).filter((d) => {
+    const vp = (d.info as Record<string, unknown> | null)?.votingPowerLovelace;
+    return vp != null && parseInt(String(vp), 10) > 0;
+  });
+  if (active.length === 0) return { raw: 0 };
 
   // Participation-weighted median: weight each DRep's participation by their
   // voting power so that DReps with more delegation carry proportionally more
@@ -155,82 +111,10 @@ export async function computeDRepParticipation({
     .filter((e) => e.weight > 0)
     .sort((a, b) => a.participation - b.participation);
 
-  if (entries.length === 0) {
-    // Diagnostic: capture WHY all entries were filtered out
-    const sample = active.slice(0, 5).map((d) => {
-      const info = d.info as Record<string, unknown> | null;
-      const vpRaw = info?.votingPowerLovelace;
-      const vpStr = String(vpRaw || '0');
-      const vpParsed = parseInt(vpStr, 10);
-      return {
-        ep: d.effective_participation,
-        vpRaw,
-        vpType: typeof vpRaw,
-        vpStr,
-        vpParsed,
-        infoType: typeof d.info,
-        infoKeys: info ? Object.keys(info).slice(0, 5) : [],
-      };
-    });
-    try {
-      const diagSb = getSupabaseAdmin();
-      await diagSb.from('sync_log').insert({
-        sync_type: 'ghi',
-        started_at: new Date().toISOString(),
-        finished_at: new Date().toISOString(),
-        success: true,
-        metrics: {
-          _diagnostic: true,
-          _branch: 'entries_empty',
-          activeCount: active.length,
-          entriesBeforeFilter: active
-            .map((d) => ({
-              p: (d.effective_participation as number) ?? 0,
-              w: parseInt(
-                String((d.info as Record<string, unknown> | null)?.votingPowerLovelace || '0'),
-                10,
-              ),
-            }))
-            .slice(0, 10),
-          sample,
-        },
-      });
-    } catch {
-      /* non-critical */
-    }
-    return { raw: 0 };
-  }
+  if (entries.length === 0) return { raw: 0 };
 
   const totalWeight = entries.reduce((s, e) => s + e.weight, 0);
   const halfWeight = totalWeight / 2;
-
-  // Diagnostic: write computation state to sync_log for debugging
-  try {
-    const diagSb = getSupabaseAdmin();
-    await diagSb.from('sync_log').insert({
-      sync_type: 'ghi',
-      started_at: new Date().toISOString(),
-      finished_at: new Date().toISOString(),
-      success: true,
-      metrics: {
-        _diagnostic: true,
-        activeCount: active.length,
-        entriesCount: entries.length,
-        totalWeight,
-        halfWeight,
-        first3: entries.slice(0, 3),
-        last3: entries.slice(-3),
-        sampleRaw: active.slice(0, 3).map((d) => ({
-          ep: d.effective_participation,
-          epType: typeof d.effective_participation,
-          vp: (d.info as Record<string, unknown> | null)?.votingPowerLovelace,
-          vpType: typeof (d.info as Record<string, unknown> | null)?.votingPowerLovelace,
-        })),
-      },
-    });
-  } catch {
-    // non-critical diagnostic
-  }
 
   let cumulativeWeight = 0;
   let weightedMedian = entries[0].participation;
@@ -251,28 +135,6 @@ export async function computeDRepParticipation({
     participationValues.length % 2 === 0
       ? (participationValues[mid - 1] + participationValues[mid]) / 2
       : participationValues[mid];
-
-  // Diagnostic: capture the final computed value
-  try {
-    const diagSb = getSupabaseAdmin();
-    await diagSb.from('sync_log').insert({
-      sync_type: 'ghi',
-      started_at: new Date().toISOString(),
-      finished_at: new Date().toISOString(),
-      success: true,
-      metrics: {
-        _diagnostic: true,
-        _branch: 'final_result',
-        weightedMedian,
-        unweightedMedian,
-        clamped: Math.min(100, Math.max(0, weightedMedian)),
-        activeCount: active.length,
-        entriesCount: entries.length,
-      },
-    });
-  } catch {
-    /* non-critical */
-  }
 
   return {
     raw: Math.min(100, Math.max(0, weightedMedian)),
@@ -300,12 +162,11 @@ export async function computeCitizenEngagement({
   // --- Sub-signal 1: Delegation rate (50%) ---
   let delegationRateScore = 50; // neutral fallback
   if (circulatingSupply && circulatingSupply > 0) {
-    const { data: dreps } = await supabase
-      .from('dreps')
-      .select('info')
-      .not('info', 'is', null)
-      .gt('info->votingPowerLovelace', '0');
-    const activeDreps = dreps ?? [];
+    const { data: dreps } = await supabase.from('dreps').select('info').not('info', 'is', null);
+    const activeDreps = (dreps ?? []).filter((d) => {
+      const vp = (d.info as Record<string, unknown> | null)?.votingPowerLovelace;
+      return vp != null && parseInt(String(vp), 10) > 0;
+    });
     const totalDelegatedLovelace = activeDreps.reduce(
       (sum, d) =>
         sum +
@@ -427,13 +288,28 @@ export async function computeDeliberationQuality({
 
   // --- Sub-signal 3: Voting independence (20%) ---
   // Simplified: % of proposals where top 10 DReps by voting power all voted the same way
-  const { data: topDreps } = await supabase
+  // Get top DReps by voting power — filter and sort in JS to avoid PostgREST JSONB inconsistency
+  const { data: allDrepsForIndep } = await supabase
     .from('dreps')
     .select('id, info')
-    .not('info', 'is', null)
-    .gt('info->votingPowerLovelace', '0')
-    .order('info->votingPowerLovelace', { ascending: false })
-    .limit(10);
+    .not('info', 'is', null);
+  const topDreps = (allDrepsForIndep ?? [])
+    .filter((d) => {
+      const vp = (d.info as Record<string, unknown> | null)?.votingPowerLovelace;
+      return vp != null && parseInt(String(vp), 10) > 0;
+    })
+    .sort((a, b) => {
+      const vpA = parseInt(
+        String((a.info as Record<string, unknown> | null)?.votingPowerLovelace || '0'),
+        10,
+      );
+      const vpB = parseInt(
+        String((b.info as Record<string, unknown> | null)?.votingPowerLovelace || '0'),
+        10,
+      );
+      return vpB - vpA;
+    })
+    .slice(0, 10);
 
   let independenceScore = 50;
   if (topDreps?.length && recentVotes?.length) {
@@ -697,13 +573,15 @@ export async function computePowerDistribution({
   supabase,
   currentEpoch,
 }: ComponentInput): Promise<ComponentScore & { edi: EDIResult }> {
-  const { data: dreps } = await supabase
+  const { data: allDrepsForPower } = await supabase
     .from('dreps')
     .select('id, info, score')
-    .not('info', 'is', null)
-    .gt('info->votingPowerLovelace', '0');
+    .not('info', 'is', null);
 
-  const activeDreps = dreps ?? [];
+  const activeDreps = (allDrepsForPower ?? []).filter((d) => {
+    const vp = (d.info as Record<string, unknown> | null)?.votingPowerLovelace;
+    return vp != null && parseInt(String(vp), 10) > 0;
+  });
   const votingPowers = activeDreps
     .map((d) =>
       parseInt(String((d.info as Record<string, unknown> | null)?.votingPowerLovelace || '0'), 10),
