@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { CheckCircle2, Clock, AlertTriangle, ExternalLink, Vote } from 'lucide-react';
+import { CheckCircle2, Vote } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSegment } from '@/components/providers/SegmentProvider';
 import { useWallet } from '@/utils/wallet';
@@ -17,13 +17,16 @@ import { StudioActionBar } from '@/components/studio/StudioActionBar';
 import { StudioPanel } from '@/components/studio/StudioPanel';
 import { buildEditorContext, injectInlineComment } from '@/components/studio/studioEditorHelpers';
 import { SearchPopover } from '@/components/studio/SearchPopover';
-import { VotePanel } from '@/components/studio/VotePanel';
+// VotePanel replaced by DecisionPanel (Phase 3)
 import { WorkspacePanels } from '@/components/workspace/layout/WorkspacePanels';
 import { ProposalEditor, injectProposedEdit } from '@/components/workspace/editor/ProposalEditor';
 import {
   AmendmentReviewWrapper,
   AmendmentIntelContent,
 } from '@/components/workspace/review/AmendmentReviewWrapper';
+import { IntelligenceStrip } from '@/components/workspace/review/IntelligenceStrip';
+import { SenecaSummary } from '@/components/workspace/review/SenecaSummary';
+import { DecisionPanel } from '@/components/workspace/review/DecisionPanel';
 import { AgentChatPanel } from '@/components/workspace/agent/AgentChatPanel';
 import { IntelPanel } from '@/components/studio/IntelPanel';
 import { NotesPanel } from '@/components/studio/NotesPanel';
@@ -70,68 +73,7 @@ function draftToQueueItem(draft: import('@/lib/workspace/types').ProposalDraft):
   };
 }
 
-// ---------------------------------------------------------------------------
-// ProposalMetaStrip — key context about the proposal being reviewed
-// ---------------------------------------------------------------------------
-
-function ProposalMetaStrip({ item }: { item: ReviewQueueItem }) {
-  return (
-    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mb-4">
-      {/* Type badge (visible on mobile where header hides title) */}
-      <span className="bg-muted/50 text-muted-foreground rounded px-1.5 py-0.5 font-medium">
-        {PROPOSAL_TYPE_LABELS[item.proposalType as ProposalType] ?? item.proposalType}
-      </span>
-
-      {/* Epochs remaining */}
-      {item.epochsRemaining != null && (
-        <span className="flex items-center gap-1">
-          <Clock className="h-3 w-3" />
-          {item.epochsRemaining} epochs remaining
-        </span>
-      )}
-
-      {/* Urgent flag */}
-      {item.isUrgent && (
-        <span className="flex items-center gap-1 text-amber-400">
-          <AlertTriangle className="h-3 w-3" />
-          Urgent
-        </span>
-      )}
-
-      {/* Treasury withdrawal amount */}
-      {item.withdrawalAmount != null && (
-        <span className="flex items-center gap-1 tabular-nums">
-          ₳ {Number(item.withdrawalAmount).toLocaleString()}
-        </span>
-      )}
-
-      {/* Treasury tier */}
-      {item.treasuryTier && (
-        <span className="bg-muted/50 text-muted-foreground rounded px-1.5 py-0.5">
-          {item.treasuryTier}
-        </span>
-      )}
-
-      {/* References */}
-      {item.references && Array.isArray(item.references) && item.references.length > 0 && (
-        <div className="flex items-center gap-1">
-          <ExternalLink className="h-3 w-3" />
-          {item.references.slice(0, 2).map((ref, i) => (
-            <a
-              key={i}
-              href={ref.uri}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
-            >
-              {ref.label || 'Reference'}
-            </a>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+// ProposalMetaStrip removed — replaced by IntelligenceStrip + SenecaSummary
 
 // ---------------------------------------------------------------------------
 // SectionTOC — floating table of contents for proposal sections
@@ -497,29 +439,6 @@ function StudioReviewInner({
     };
   }, [selectedItem]);
 
-  // VotePanel content for the side panel
-  const voteContent = (
-    <VotePanel
-      selectedVote={selectedVote}
-      onVoteChange={setSelectedVote}
-      onSubmit={() => {
-        // Vote submitted via side panel
-      }}
-      onCancel={() => {
-        setSelectedVote(null);
-        setRationaleText('');
-      }}
-      isSubmitting={false}
-      rationale={rationaleText}
-      onRationaleChange={setRationaleText}
-      onAIDraft={handleAIDraft}
-      isDraftingRationale={isDraftingRationale}
-      proposalTitle={selectedItem.title || 'Untitled'}
-      drepId={voterId ?? ''}
-      voterRole={segment === 'spo' ? 'SPO' : 'DRep'}
-    />
-  );
-
   return (
     <>
       <WorkspacePanels
@@ -589,8 +508,18 @@ function StudioReviewInner({
             {/* Editor area */}
             <div className="flex-1 min-w-0">
               <div className={cn('mx-auto px-6 py-6', isFullWidth ? 'max-w-6xl' : 'max-w-4xl')}>
-                {/* Proposal metadata strip */}
-                <ProposalMetaStrip item={selectedItem} />
+                {/* Intelligence strip — compact AI-enriched metadata */}
+                <IntelligenceStrip
+                  interBodyVotes={selectedItem.interBodyVotes}
+                  citizenSentiment={selectedItem.citizenSentiment}
+                  withdrawalAmount={selectedItem.withdrawalAmount}
+                  treasuryTier={selectedItem.treasuryTier}
+                  epochsRemaining={selectedItem.epochsRemaining}
+                  isUrgent={selectedItem.isUrgent}
+                />
+
+                {/* Seneca AI summary */}
+                <SenecaSummary summary={selectedItem.aiSummary} />
 
                 <div
                   key={`proposal-${selectedItem.txHash}-${selectedItem.proposalIndex}`}
@@ -620,30 +549,36 @@ function StudioReviewInner({
         }
         context={
           !isFullWidth ? (
-            <StudioPanelWrapper
-              proposalId={selectedItem.txHash}
-              proposalType={selectedItem.proposalType}
-              proposalIndex={selectedItem.proposalIndex}
-              userRole={agentUserRole}
-              content={itemContent}
-              editorRef={editorRef}
-              readOnly={true}
-              interBodyVotes={selectedItem.interBodyVotes}
-              citizenSentiment={selectedItem.citizenSentiment}
-              voterId={voterId ?? null}
-              voteContent={voteContent}
-              existingVote={selectedItem.existingVote}
-              votingPowerSummary={estimatedVotingPower}
-              amendmentDraft={currentDraft}
+            <DecisionPanel
+              selectedVote={selectedVote}
+              onVoteChange={handleVoteSelect}
+              onSubmit={() => {}}
+              isSubmitting={false}
+              hasVoted={currentVoted}
+              currentVoteChoice={currentVoteChoice}
+              rationale={rationaleText}
+              onRationaleChange={setRationaleText}
+              onAIDraft={handleAIDraft}
+              isDraftingRationale={isDraftingRationale}
+              proposalTitle={selectedItem.title || 'Untitled'}
+              voterId={voterId ?? ''}
+              voterRole={segment === 'spo' ? 'SPO' : 'DRep'}
+              intelContent={
+                <IntelPanel
+                  proposalId={selectedItem.txHash}
+                  proposalType={selectedItem.proposalType}
+                  proposalContent={itemContent}
+                  interBodyVotes={selectedItem.interBodyVotes}
+                  citizenSentiment={selectedItem.citizenSentiment}
+                  votingPowerSummary={estimatedVotingPower}
+                />
+              }
             />
           ) : undefined
         }
         statusBar={
           <StudioActionBar
             mode="review"
-            currentVote={currentVoted ? currentVoteChoice : null}
-            onVoteSelect={handleVoteSelect}
-            voteDisabled={currentVoted}
             statusInfo={
               <span className="flex items-center gap-2 text-xs text-muted-foreground tabular-nums">
                 <span>
@@ -652,7 +587,7 @@ function StudioReviewInner({
                 {currentVoted && (
                   <span className="inline-flex items-center gap-1 text-emerald-400">
                     <CheckCircle2 className="h-3 w-3" />
-                    <span className="hidden sm:inline">Voted</span>
+                    <span className="hidden sm:inline">Voted: {currentVoteChoice}</span>
                   </span>
                 )}
                 {selectedItem.isUrgent && !currentVoted && (
