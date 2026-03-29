@@ -23,6 +23,7 @@ import { useSenecaGlobeBridge, type GlobeCommand } from '@/hooks/useSenecaGlobeB
 import { useSynapticStore } from '@/stores/synapticStore';
 import { useSenecaThreadStore } from '@/stores/senecaThreadStore';
 import { fetchTemporalData, type TemporalEpochData } from '@/lib/constellation/fetchTemporalData';
+import { posthog } from '@/lib/posthog';
 import { parseEntityParam, encodeEntityParam } from '@/lib/homepage/parseEntityParam';
 import type { EntityRef } from '@/lib/homepage/parseEntityParam';
 import type { GlobeStreamCommand } from '@/lib/intelligence/streamAdvisor';
@@ -54,6 +55,7 @@ export function SynapticHomePage({
   filter: initialFilter,
   entity: initialEntity,
   match: initialMatch,
+  sort: initialSort,
 }: SynapticHomePageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -120,6 +122,13 @@ export function SynapticHomePage({
       const parsed = parseEntityParam(entityParam);
       setActiveEntity(parsed);
       updateUrl({ entity: entityParam });
+      if (parsed) {
+        posthog.capture('entity_selected', {
+          type: parsed.type,
+          id: parsed.id,
+          source: 'homepage',
+        });
+      }
 
       // Fly globe to entity node
       if (parsed) {
@@ -297,6 +306,7 @@ export function SynapticHomePage({
       {/* Discovery overlay — shows entity list when filter is active */}
       <DiscoveryOverlay
         filter={activeFilter}
+        initialSort={initialSort}
         onEntitySelect={handleEntitySelect}
         onClose={handleFilterClose}
       />

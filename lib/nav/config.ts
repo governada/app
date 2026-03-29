@@ -492,15 +492,6 @@ export function getPillBarItems(
   if (pathname === '/') {
     return filterByDepth(HOME_DISCOVERY_ITEMS, depth);
   }
-  // Legacy governance routes also show discovery items (until fully migrated)
-  if (
-    pathname === '/g' ||
-    pathname.startsWith('/g/') ||
-    pathname.startsWith('/g?') ||
-    pathname.startsWith('/governance')
-  ) {
-    return filterByDepth(HOME_DISCOVERY_ITEMS, depth);
-  }
   // Workspace routes show workspace sub-items in the pill bar
   if (pathname.startsWith('/workspace')) {
     const isDualRole = !!(context?.drepId && context?.poolId);
@@ -530,10 +521,6 @@ export function getPillBarItems(
 export function getCurrentSection(pathname: string): string | null {
   if (pathname === '/') return 'home';
   if (pathname.startsWith('/workspace')) return 'workspace';
-  // Globe and governance routes are now part of Home
-  if (pathname === '/g' || pathname.startsWith('/g/')) return 'home';
-  if (pathname.startsWith('/governance')) return 'home';
-  if (pathname.startsWith('/match')) return 'home';
   if (pathname.startsWith('/you')) return 'you';
   if (pathname.startsWith('/help')) return 'help';
   return null;
