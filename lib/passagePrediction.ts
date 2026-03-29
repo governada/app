@@ -248,3 +248,128 @@ export function computePassagePrediction(input: PassagePredictionInput): Passage
 function clamp01(n: number): number {
   return Math.max(0, Math.min(1, n));
 }
+
+// ---------------------------------------------------------------------------
+// Shared data-fetching helpers (used by both Inngest functions)
+// ---------------------------------------------------------------------------
+
+/** Extract { yes, no, abstain } from a vote summary row for a given body prefix. */
+function extractTally(
+  row: Record<string, unknown> | null | undefined,
+  prefix: string,
+): { yes: number; no: number; abstain: number } {
+  return {
+    yes: (row?.[`${prefix}_yes`] as number) ?? 0,
+    no: (row?.[`${prefix}_no`] as number) ?? 0,
+    abstain: (row?.[`${prefix}_abstain`] as number) ?? 0,
+  };
+}
+
+/** Parse a constitutional score string into a typed value or null. */
+function parseConstScore(score: string | null | undefined): 'pass' | 'warning' | 'fail' | null {
+  if (score === 'pass' || score === 'warning' || score === 'fail') return score;
+  return null;
+}
+
+/**
+ * Build a PassagePredictionInput from pre-fetched lookup maps.
+ * Eliminates duplication between precompute-proposal-intelligence and
+ * update-passage-predictions Inngest functions.
+ */
+export function buildPredictionInput(
+  proposal: {
+    tx_hash: string;
+    proposal_index: number;
+    proposal_type: string;
+    withdrawal_amount: number | null;
+  },
+  voteMap: Map<string, Record<string, unknown>>,
+  constMap: Map<string, string>,
+  sentimentMap: Map<string, Record<string, unknown>>,
+): { input: PassagePredictionInput; voteHash: string } {
+  const key = `${proposal.tx_hash}-${proposal.proposal_index}`;
+  const voteSummary = voteMap.get(key) ?? null;
+
+  const input: PassagePredictionInput = {
+    proposalType: proposal.proposal_type,
+    drepVotes: extractTally(voteSummary, 'drep'),
+    spoVotes: extractTally(voteSummary, 'spo'),
+    ccVotes: extractTally(voteSummary, 'cc'),
+    constitutionalScore: parseConstScore(constMap.get(key)),
+    citizenSentiment: sentimentMap.has(key)
+      ? {
+          support: (sentimentMap.get(key)!.support as number) ?? 0,
+          oppose: (sentimentMap.get(key)!.oppose as number) ?? 0,
+          total: (sentimentMap.get(key)!.total as number) ?? 0,
+        }
+      : null,
+    withdrawalAmount: proposal.withdrawal_amount,
+  };
+
+  const totalVoteCount =
+    ((voteSummary?.drep_yes as number) ?? 0) +
+    ((voteSummary?.drep_no as number) ?? 0) +
+    ((voteSummary?.spo_yes as number) ?? 0) +
+    ((voteSummary?.cc_yes as number) ?? 0);
+
+  return { input, voteHash: `votes-${totalVoteCount}` };
+}
+
+/**
+ * Batch-fetch all supporting data for passage predictions.
+ * Returns lookup maps keyed by "txHash-proposalIndex".
+ */
+export async function fetchPredictionData(
+  supabase: { from: (table: string) => unknown },
+  proposals: Array<{ tx_hash: string; proposal_index: number }>,
+): Promise<{
+  voteMap: Map<string, Record<string, unknown>>;
+  constMap: Map<string, string>;
+  sentimentMap: Map<string, Record<string, unknown>>;
+}> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
+  const txHashes = proposals.map((p) => p.tx_hash);
+  const entityIds = proposals.map((p) => `${p.tx_hash}-${p.proposal_index}`);
+
+  // Batch-fetch vote summaries
+  const { data: allVotes } = await sb
+    .from('proposal_voting_summary')
+    .select('*')
+    .in('proposal_tx_hash', txHashes);
+  const voteMap = new Map<string, Record<string, unknown>>(
+    (allVotes ?? []).map((v: Record<string, unknown>) => [
+      `${v.proposal_tx_hash}-${v.proposal_index}`,
+      v,
+    ]),
+  );
+
+  // Batch-fetch constitutional scores from cache
+  const { data: allConst } = await sb
+    .from('proposal_intelligence_cache')
+    .select('proposal_tx_hash, proposal_index, content')
+    .in('proposal_tx_hash', txHashes)
+    .eq('section_type', 'constitutional');
+  const constMap = new Map<string, string>(
+    (allConst ?? []).map((c: Record<string, unknown>) => [
+      `${c.proposal_tx_hash}-${c.proposal_index}`,
+      ((c.content as Record<string, unknown>)?.score as string) ?? '',
+    ]),
+  );
+
+  // Batch-fetch citizen sentiment
+  const { data: allSentiment } = await sb
+    .from('engagement_signal_aggregations')
+    .select('entity_id, data')
+    .in('entity_id', entityIds)
+    .eq('entity_type', 'proposal')
+    .eq('signal_type', 'sentiment');
+  const sentimentMap = new Map<string, Record<string, unknown>>(
+    (allSentiment ?? []).map((s: Record<string, unknown>) => [
+      s.entity_id as string,
+      s.data as Record<string, unknown>,
+    ]),
+  );
+
+  return { voteMap, constMap, sentimentMap };
+}

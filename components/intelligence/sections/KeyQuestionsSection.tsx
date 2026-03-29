@@ -45,7 +45,7 @@ export function KeyQuestionsSection({
   proposalContent,
   proposalType,
   cachedQuestions,
-  cachedPrecedentSummary,
+  cachedPrecedentSummary: _cachedPrecedentSummary,
 }: KeyQuestionsSectionProps) {
   const skill = useAISkill<ResearchPrecedentOutput>();
   const hasFetched = useRef(false);
@@ -83,7 +83,6 @@ export function KeyQuestionsSection({
   const questions = hasCachedData
     ? cachedQuestions
     : (skill.data?.output?.questionsToConsider ?? []);
-  void cachedPrecedentSummary; // Available for future use (tooltip/detail)
 
   if (questions.length === 0) {
     return <p className="text-xs text-muted-foreground/60 py-1">No key questions generated</p>;

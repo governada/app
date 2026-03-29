@@ -52,7 +52,9 @@ CREATE TABLE IF NOT EXISTS reviewer_briefing_cache (
 
 ALTER TABLE reviewer_briefing_cache ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow public read" ON reviewer_briefing_cache
+-- Reads go through authenticated API routes (reviewer-cache/route.ts);
+-- RLS is secondary defense. voter_id is a stake address, not auth.uid().
+CREATE POLICY "Allow owner read" ON reviewer_briefing_cache
   FOR SELECT USING (true);
 
 CREATE POLICY "Allow service_role write" ON reviewer_briefing_cache
@@ -80,7 +82,9 @@ CREATE INDEX IF NOT EXISTS idx_review_sessions_voter
 
 ALTER TABLE review_sessions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Allow public read" ON review_sessions
+-- Reads go through authenticated API routes (review-session/route.ts);
+-- RLS is secondary defense.
+CREATE POLICY "Allow owner read" ON review_sessions
   FOR SELECT USING (true);
 
 CREATE POLICY "Allow service_role write" ON review_sessions

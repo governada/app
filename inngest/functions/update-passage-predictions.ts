@@ -13,7 +13,11 @@ import { inngest } from '@/lib/inngest';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
 import { getFeatureFlag } from '@/lib/featureFlags';
-import { computePassagePrediction, type PassagePredictionInput } from '@/lib/passagePrediction';
+import {
+  computePassagePrediction,
+  buildPredictionInput,
+  fetchPredictionData,
+} from '@/lib/passagePrediction';
 
 export const updatePassagePredictions = inngest.createFunction(
   {
@@ -44,6 +48,7 @@ export const updatePassagePredictions = inngest.createFunction(
     }
 
     const supabase = getSupabaseAdmin();
+    const syncStartedAt = new Date().toISOString();
 
     const result = await step.run('recompute-predictions', async () => {
       // Get all open proposals
@@ -60,86 +65,30 @@ export const updatePassagePredictions = inngest.createFunction(
         return { updated: 0 };
       }
 
+      // Batch-fetch all supporting data
+      const { voteMap, constMap, sentimentMap } = await fetchPredictionData(supabase, proposals);
+
       let updated = 0;
+      const upsertRows: Array<Record<string, unknown>> = [];
 
       for (const p of proposals) {
         try {
-          // Fetch vote tallies
-          const { data: voteSummary } = await supabase
-            .from('proposal_voting_summary')
-            .select('*')
-            .eq('proposal_tx_hash', p.tx_hash)
-            .eq('proposal_index', p.proposal_index)
-            .maybeSingle();
-
-          // Fetch constitutional score from cache
-          const { data: constCache } = await supabase
-            .from('proposal_intelligence_cache')
-            .select('content')
-            .eq('proposal_tx_hash', p.tx_hash)
-            .eq('proposal_index', p.proposal_index)
-            .eq('section_type', 'constitutional')
-            .maybeSingle();
-
-          const constScore = constCache?.content
-            ? ((constCache.content as Record<string, unknown>).score as string)
-            : null;
-
-          // Fetch citizen sentiment
-          const { data: sentiment } = await supabase
-            .from('engagement_signal_aggregations')
-            .select('data')
-            .eq('entity_type', 'proposal')
-            .eq('entity_id', `${p.tx_hash}-${p.proposal_index}`)
-            .eq('signal_type', 'sentiment')
-            .maybeSingle();
-
-          const sentimentData = sentiment?.data as Record<string, unknown> | null;
-
-          const predInput: PassagePredictionInput = {
-            proposalType: p.proposal_type,
-            drepVotes: {
-              yes: (voteSummary?.drep_yes as number) ?? 0,
-              no: (voteSummary?.drep_no as number) ?? 0,
-              abstain: (voteSummary?.drep_abstain as number) ?? 0,
-            },
-            spoVotes: {
-              yes: (voteSummary?.spo_yes as number) ?? 0,
-              no: (voteSummary?.spo_no as number) ?? 0,
-              abstain: (voteSummary?.spo_abstain as number) ?? 0,
-            },
-            ccVotes: {
-              yes: (voteSummary?.cc_yes as number) ?? 0,
-              no: (voteSummary?.cc_no as number) ?? 0,
-              abstain: (voteSummary?.cc_abstain as number) ?? 0,
-            },
-            constitutionalScore:
-              constScore === 'pass' || constScore === 'warning' || constScore === 'fail'
-                ? constScore
-                : null,
-            citizenSentiment: sentimentData
-              ? {
-                  support: (sentimentData.support as number) ?? 0,
-                  oppose: (sentimentData.oppose as number) ?? 0,
-                  total: (sentimentData.total as number) ?? 0,
-                }
-              : null,
-            withdrawalAmount: p.withdrawal_amount,
-          };
-
+          const { input: predInput, voteHash } = buildPredictionInput(
+            p,
+            voteMap,
+            constMap,
+            sentimentMap,
+          );
           const prediction = computePassagePrediction(predInput);
 
-          await supabase.from('proposal_intelligence_cache').upsert(
-            {
-              proposal_tx_hash: p.tx_hash,
-              proposal_index: p.proposal_index,
-              section_type: 'passage_prediction',
-              content: prediction as unknown as Record<string, unknown>,
-              content_hash: `votes-${(voteSummary?.drep_yes ?? 0) + (voteSummary?.drep_no ?? 0) + (voteSummary?.spo_yes ?? 0) + (voteSummary?.cc_yes ?? 0)}`,
-              updated_at: new Date().toISOString(),
-            },
-            { onConflict: 'proposal_tx_hash,proposal_index,section_type' },
-          );
+          upsertRows.push({
+            proposal_tx_hash: p.tx_hash,
+            proposal_index: p.proposal_index,
+            section_type: 'passage_prediction',
+            content: prediction as unknown as Record<string, unknown>,
+            content_hash: voteHash,
+            updated_at: new Date().toISOString(),
+          });
           updated++;
         } catch (err) {
           logger.error('[passage-predictions] Failed for proposal', {
@@ -149,6 +98,13 @@ export const updatePassagePredictions = inngest.createFunction(
         }
       }
 
+      // Batch upsert all predictions
+      if (upsertRows.length > 0) {
+        await supabase
+          .from('proposal_intelligence_cache')
+          .upsert(upsertRows, { onConflict: 'proposal_tx_hash,proposal_index,section_type' });
+      }
+
       return { updated };
     });
 
@@ -156,7 +112,7 @@ export const updatePassagePredictions = inngest.createFunction(
     await step.run('log-sync', async () => {
       await supabase.from('sync_log').insert({
         sync_type: 'passage_predictions',
-        started_at: new Date().toISOString(),
+        started_at: syncStartedAt,
         finished_at: new Date().toISOString(),
         success: true,
         details: result,
