@@ -1056,8 +1056,11 @@ export const GlobeConstellation = forwardRef<
               }}
               activityMap={activityMap}
             />
-            <ConstellationEdges edges={sceneState.edges} focusActive={sceneState.focus.active} />
-            {quality !== 'low' && (
+            {/* Hide edges during match mode — they create a starburst that masks node dots */}
+            {sceneState.focus.nodeTypeFilter !== 'drep' && (
+              <ConstellationEdges edges={sceneState.edges} focusActive={sceneState.focus.active} />
+            )}
+            {quality !== 'low' && sceneState.focus.nodeTypeFilter !== 'drep' && (
               <NeuralMesh nodes={sceneState.nodes} focusActive={sceneState.focus.active} />
             )}
             <NetworkEdgeLines nodes={sceneState.nodes} visible={overlayColorMode === 'network'} />
@@ -1078,7 +1081,7 @@ export const GlobeConstellation = forwardRef<
             {quality !== 'low' && (
               <MatchedEdgeGlow nodes={sceneState.nodes} focus={sceneState.focus} />
             )}
-            {quality !== 'low' && (
+            {quality !== 'low' && sceneState.focus.nodeTypeFilter !== 'drep' && (
               <NetworkPulses edges={sceneState.edges} focusActive={sceneState.focus.active} />
             )}
 
@@ -1100,7 +1103,7 @@ export const GlobeConstellation = forwardRef<
                   // Match mode: reduce bloom so 800 DRep nodes stay individually distinct,
                   // not merged into one orange wash. Per-node emissive is also reduced to match.
                   sceneState.focus.nodeTypeFilter === 'drep'
-                    ? 0.55
+                    ? 0.3
                     : overlayColorMode === 'urgent'
                       ? 2.2
                       : overlayColorMode === 'proposals'
@@ -1660,7 +1663,7 @@ function NodePoints({
           // Reduced emissive keeps individual nodes visually distinct.
           const matchEmissive =
             focusState.nodeTypeFilter === 'drep'
-              ? emissive * (0.65 + intensity * 0.45) // match mode: max ~2.1 vs default 3.44
+              ? emissive * (0.5 + intensity * 0.35) // match mode: max ~1.4 — distinct dots, not wash
               : emissive * (1 + intensity * 1.2);
           colors[i * 3] = blendedR * matchEmissive;
           colors[i * 3 + 1] = blendedG * matchEmissive;
@@ -1681,8 +1684,8 @@ function NodePoints({
         const baseSize = isPulsing ? node.scale * 1.8 : isHovered ? node.scale * 1.6 : node.scale;
         let finalSize: number;
         if (isFocused) {
-          // Match mode: boost size so 800 nodes are individually visible (not just bloom wash)
-          const matchSizeBoost = focusState.nodeTypeFilter === 'drep' ? 2.2 : 1.0;
+          // Match mode: boost size so 800 nodes are individually visible as distinct glowing orbs
+          const matchSizeBoost = focusState.nodeTypeFilter === 'drep' ? 3.5 : 1.0;
           finalSize =
             baseSize * (1 + 0.5 * intensity + focusState.scanProgress * 0.3) * matchSizeBoost;
         } else if (isIntermediate) {
