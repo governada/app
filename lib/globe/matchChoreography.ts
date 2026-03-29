@@ -50,7 +50,7 @@ export function buildMatchStartSequence(): GlobeCommand {
       // Phase 1: Brief total darkness — the "powering down" before powering up
       { command: { type: 'dim' }, delayMs: 0 },
       // Phase 2: DReps illuminate outward as expanding shockwave (delays computed in matchStart)
-      { command: { type: 'matchStart' }, delayMs: 400 },
+      { command: { type: 'matchStart' }, delayMs: 200 },
       // Phase 3: Cinematic pullback — slow orbit, camera retreats for panoramic view
       {
         command: {
