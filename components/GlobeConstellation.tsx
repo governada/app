@@ -1522,8 +1522,25 @@ function NodePoints({
     }
 
     return { positions, colors, sizes, dimmedArr };
+    // Deps use primitive/identity values to ensure useMemo fires on focus changes.
+    // focus.focusedIds and focus.intensities are new refs each setSceneState call,
+    // but we also include focus.active and focus.scanProgress as primitives for safety.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- tmpColor/matchColor are stable refs
-  }, [nodes, focus, hoveredNodeId, visitedNodeIds, pulseId, getColor, emissive, activityMap]);
+  }, [
+    nodes,
+    focus.active,
+    focus.focusedIds,
+    focus.intensities,
+    focus.scanProgress,
+    focus.colorOverrides,
+    focus.nodeTypeFilter,
+    hoveredNodeId,
+    visitedNodeIds,
+    pulseId,
+    getColor,
+    emissive,
+    activityMap,
+  ]);
 
   const geoRef = useRef<THREE.BufferGeometry>(null);
 
