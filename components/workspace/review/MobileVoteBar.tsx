@@ -1,5 +1,6 @@
 'use client';
 
+import type { ComponentType } from 'react';
 import { ThumbsUp, ThumbsDown, MinusCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { posthog } from '@/lib/posthog';
@@ -14,7 +15,7 @@ interface MobileVoteBarProps {
 const VOTE_OPTIONS: Array<{
   choice: VoteChoice;
   label: string;
-  icon: typeof ThumbsUp;
+  icon: ComponentType<{ className?: string }>;
   color: string;
   activeColor: string;
 }> = [

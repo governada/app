@@ -1318,16 +1318,18 @@ button:not(:disabled):active,
   0% {
     opacity: 1;
     background: transparent;
+    transform: scaleY(1);
+    transform-origin: top;
   }
   30% {
+    opacity: 1;
     background: oklch(0.62 0.12 245 / 0.2);
+    transform: scaleY(1);
   }
   100% {
     opacity: 0;
-    max-height: 0;
-    padding: 0;
-    margin: 0;
-    overflow: hidden;
+    transform: scaleY(0);
+    transform-origin: top;
   }
 }
 
@@ -1335,17 +1337,19 @@ button:not(:disabled):active,
   0% {
     opacity: 1;
     background: transparent;
+    transform: scaleY(1);
+    transform-origin: top;
   }
   30% {
+    opacity: 1;
     background: oklch(0.62 0.1 50 / 0.2);
     text-decoration: line-through;
+    transform: scaleY(1);
   }
   100% {
     opacity: 0;
-    max-height: 0;
-    padding: 0;
-    margin: 0;
-    overflow: hidden;
+    transform: scaleY(0);
+    transform-origin: top;
   }
 }
 
