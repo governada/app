@@ -197,9 +197,10 @@ If your context window is filling up:
 ```
 You are building Phase 2 of the Studio Excellence build for Governada — Intelligence Architecture (persistent brief + decision panel improvements).
 
-FIRST: Read both checkpoint files from main:
-  git show main:.claude/checkpoints/build-step-studio-excellence.md
-  git show main:.claude/checkpoints/workspace-studio-upgrade.md
+FIRST: Read both checkpoint files (in your worktree, committed to main):
+  cat .claude/checkpoints/build-step-studio-excellence.md
+  cat .claude/checkpoints/workspace-studio-upgrade.md
+  (If not found: git fetch origin main && git checkout origin/main -- .claude/checkpoints/)
 
 THEN: Read the full 6-phase plan:
   cat "C:\Users\dalto\.claude-personal\plans\imperative-pondering-glade.md"
