@@ -18,9 +18,13 @@ import {
   buildMatchStartSequence,
   buildAnswerSequence,
   buildRevealSequence,
+  buildSpatialRevealSequence,
   buildMatchCleanupSequence,
   getRevealDurationMs,
+  getSpatialRevealDurationMs,
 } from '@/lib/globe/matchChoreography';
+import { computeUserNodePosition, findClosestCluster } from '@/lib/globe/userNodePlacement';
+import { useFeatureFlag } from '@/components/FeatureGate';
 import posthog from 'posthog-js';
 
 /* ─── Question definitions ─── */
@@ -101,6 +105,8 @@ const ACKNOWLEDGEMENTS = [
 interface SenecaMatchProps {
   onBack: () => void;
   onGlobeCommand?: (cmd: GlobeCommand) => void;
+  /** Transition to Seneca conversation mode with a pre-filled query (spatial match chips) */
+  onStartConversation?: (query: string) => void;
 }
 
 type MatchStep = 'intro' | number | 'loading' | 'revealing' | 'results' | 'error';
@@ -114,8 +120,9 @@ function getAnswerLabel(questionId: string, value: string): string {
 
 /* ─── Component ─── */
 
-export function SenecaMatch({ onBack, onGlobeCommand }: SenecaMatchProps) {
+export function SenecaMatch({ onBack, onGlobeCommand, onStartConversation }: SenecaMatchProps) {
   const prefersReducedMotion = useReducedMotion();
+  const spatialMatch = useFeatureFlag('globe_spatial_match');
   const [step, setStep] = useState<MatchStep>('intro');
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [result, setResult] = useState<QuickMatchResponse | null>(null);
@@ -129,6 +136,13 @@ export function SenecaMatch({ onBack, onGlobeCommand }: SenecaMatchProps) {
     focusedMatch: MatchResult;
     focusedRank: number;
     isTopMatch: boolean;
+  } | null>(null);
+
+  // Spatial match state (Chunk 3)
+  const userPositionRef = useRef<[number, number, number] | null>(null);
+  const [clusterContext, setClusterContext] = useState<{
+    name: string;
+    neighborCount: number;
   } | null>(null);
 
   // Track the last alignment vector for reveal sequence
@@ -219,7 +233,7 @@ export function SenecaMatch({ onBack, onGlobeCommand }: SenecaMatchProps) {
         }, 400);
       }
     },
-    [answers, sendGlobeCommand, prefersReducedMotion, scheduleTimer], // eslint-disable-line react-hooks/exhaustive-deps
+    [answers, sendGlobeCommand, prefersReducedMotion, scheduleTimer, spatialMatch], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   // Submit answers to API
@@ -256,10 +270,44 @@ export function SenecaMatch({ onBack, onGlobeCommand }: SenecaMatchProps) {
         if (data.matches.length > 0) {
           const topMatches = data.matches.slice(0, 5).map((m) => ({ nodeId: m.drepId }));
 
+          // Spatial match: compute user position + fetch cluster context
+          if (spatialMatch) {
+            const alignmentScores = buildAlignmentFromAnswers(finalAnswers);
+            const pos = computeUserNodePosition(alignmentScores);
+            userPositionRef.current = pos;
+
+            // Parallel cluster fetch (fail silently — graceful degradation)
+            fetch('/api/governance/constellation/clusters')
+              .then((r) => (r.ok ? r.json() : null))
+              .then((clusterData) => {
+                if (clusterData?.clusters) {
+                  const userVector = alignmentsToArray(alignmentScores);
+                  const closest = findClosestCluster(userVector, clusterData.clusters);
+                  if (closest) setClusterContext(closest);
+                }
+              })
+              .catch(() => {});
+
+            posthog.capture('match_spatial_reveal_started');
+          }
+
           if (prefersReducedMotion) {
             // Skip countdown — go straight to results
             setStep('results');
-            sendGlobeCommand({ type: 'matchFlyTo', nodeId: data.matches[0].drepId });
+            if (spatialMatch && userPositionRef.current) {
+              sendGlobeCommand({
+                type: 'placeUserNode',
+                position: userPositionRef.current,
+                intensity: 1.0,
+              });
+              sendGlobeCommand({
+                type: 'flyToPosition',
+                target: userPositionRef.current,
+                distance: 3.5,
+              });
+            } else {
+              sendGlobeCommand({ type: 'matchFlyTo', nodeId: data.matches[0].drepId });
+            }
             scheduleTimer(() => {
               setOverlayState({
                 focusedMatch: data.matches[0],
@@ -268,14 +316,28 @@ export function SenecaMatch({ onBack, onGlobeCommand }: SenecaMatchProps) {
               });
             }, 1500);
           } else {
-            // Theatrical reveal: countdown 5→1 then fly to #1
+            // Theatrical reveal: countdown 5→1 then fly to #1 (+ spatial extension)
             setStep('revealing');
             posthog.capture('match_countdown_viewed');
 
-            sendGlobeCommand(buildRevealSequence(topMatches, lastAlignmentRef.current, 0));
+            if (spatialMatch && userPositionRef.current) {
+              sendGlobeCommand(
+                buildSpatialRevealSequence(
+                  topMatches,
+                  lastAlignmentRef.current,
+                  0,
+                  userPositionRef.current,
+                ),
+              );
+            } else {
+              sendGlobeCommand(buildRevealSequence(topMatches, lastAlignmentRef.current, 0));
+            }
 
             // Sync overlay to appear after the full reveal sequence completes
-            const revealDuration = getRevealDurationMs(topMatches.length);
+            const revealDuration =
+              spatialMatch && userPositionRef.current
+                ? getSpatialRevealDurationMs(topMatches.length)
+                : getRevealDurationMs(topMatches.length);
             scheduleTimer(() => {
               setStep('results');
               setOverlayState({
@@ -286,6 +348,7 @@ export function SenecaMatch({ onBack, onGlobeCommand }: SenecaMatchProps) {
               posthog.capture('match_reveal_completed', {
                 match_count: topMatches.length,
                 top_match_score: data.matches[0]?.matchScore ?? 0,
+                spatial: !!spatialMatch,
               });
             }, revealDuration);
           }
@@ -309,6 +372,8 @@ export function SenecaMatch({ onBack, onGlobeCommand }: SenecaMatchProps) {
     setError(null);
     setExpandedMatch(null);
     setOverlayState(null);
+    setClusterContext(null);
+    userPositionRef.current = null;
     setStep('intro');
     if (prefersReducedMotion) {
       sendGlobeCommand({ type: 'clear' });
@@ -559,6 +624,8 @@ export function SenecaMatch({ onBack, onGlobeCommand }: SenecaMatchProps) {
                 onFocusOverlay={(match, rank) =>
                   setOverlayState({ focusedMatch: match, focusedRank: rank, isTopMatch: false })
                 }
+                spatialMode={!!spatialMatch}
+                onStartConversation={onStartConversation}
               />
             </motion.div>
           )}
@@ -585,6 +652,8 @@ export function SenecaMatch({ onBack, onGlobeCommand }: SenecaMatchProps) {
               }
             }}
             onDismiss={() => setOverlayState(null)}
+            clusterContext={spatialMatch ? clusterContext : undefined}
+            spatialMode={!!spatialMatch}
           />,
           document.body,
         )}
@@ -620,6 +689,8 @@ interface MatchResultsProps {
   onGlobeCommand: (cmd: GlobeCommand) => void;
   onRestart: () => void;
   onFocusOverlay: (match: MatchResult, rank: number) => void;
+  spatialMode?: boolean;
+  onStartConversation?: (query: string) => void;
 }
 
 function MatchResults({
@@ -628,6 +699,8 @@ function MatchResults({
   onGlobeCommand,
   onRestart,
   onFocusOverlay,
+  spatialMode,
+  onStartConversation,
 }: MatchResultsProps) {
   // Focus a different match — fly globe + show overlay after flyTo settles (snappy 800ms)
   const handleFocusMatch = useCallback(
@@ -640,29 +713,70 @@ function MatchResults({
     [onExpandMatch, onGlobeCommand, onFocusOverlay],
   );
 
+  const handleChipClick = useCallback(
+    (query: string, chipLabel: string) => {
+      posthog.capture('match_suggestion_chip_tapped', { chip: chipLabel });
+      onStartConversation?.(query);
+    },
+    [onStartConversation],
+  );
+
+  const topMatchName = result.matches[0]?.drepName || 'your top match';
+
   return (
     <>
       {/* Seneca message */}
       <div className="shrink-0">
         <SenecaBubble>
-          Your #1 match is on the globe. Here are your other top matches &mdash; tap any to explore.
+          {spatialMode
+            ? 'This is where you belong in Cardano\u2019s governance. Explore your neighborhood \u2014 ask me anything.'
+            : 'Your #1 match is on the globe. Here are your other top matches \u2014 tap any to explore.'}
         </SenecaBubble>
       </div>
 
-      {/* Remaining match cards (#2-5) — #1 is shown in the overlay */}
-      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin scrollbar-thumb-border/30 scrollbar-track-transparent space-y-1.5">
-        <p className="text-xs text-muted-foreground font-medium px-1">Other matches</p>
-        {result.matches.slice(1, 5).map((match, idx) => (
-          <CompactMatchCard
-            key={match.drepId}
-            match={match}
-            rank={idx + 2}
-            expanded={false}
-            onExpand={() => handleFocusMatch(match, idx + 2)}
-            userAlignments={result.userAlignments}
-          />
-        ))}
-      </div>
+      {/* Spatial mode: suggestion chips for Seneca-driven exploration */}
+      {spatialMode ? (
+        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin scrollbar-thumb-border/30 scrollbar-track-transparent space-y-2 py-1">
+          <p className="text-xs text-muted-foreground font-medium px-1">
+            Explore your neighborhood
+          </p>
+          <div className="space-y-1.5">
+            <SuggestionChip
+              label={`Tell me about ${topMatchName}`}
+              onClick={() =>
+                handleChipClick(`Tell me about ${topMatchName}`, 'tell_me_about_match')
+              }
+            />
+            <SuggestionChip
+              label="Who else is near me?"
+              onClick={() =>
+                handleChipClick('Who else is near me in governance space?', 'who_else_near_me')
+              }
+            />
+            <SuggestionChip
+              label="Show me a different cluster"
+              onClick={() =>
+                handleChipClick('Show me a different governance faction', 'different_cluster')
+              }
+            />
+          </div>
+        </div>
+      ) : (
+        /* Classic mode: compact match cards (#2-5) */
+        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin scrollbar-thumb-border/30 scrollbar-track-transparent space-y-1.5">
+          <p className="text-xs text-muted-foreground font-medium px-1">Other matches</p>
+          {result.matches.slice(1, 5).map((match, idx) => (
+            <CompactMatchCard
+              key={match.drepId}
+              match={match}
+              rank={idx + 2}
+              expanded={false}
+              onExpand={() => handleFocusMatch(match, idx + 2)}
+              userAlignments={result.userAlignments}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Actions — always anchored at bottom */}
       <div className="shrink-0 pt-1">
@@ -678,6 +792,23 @@ function MatchResults({
         </button>
       </div>
     </>
+  );
+}
+
+/* ─── Suggestion chip for post-reveal exploration ─── */
+
+function SuggestionChip({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'w-full rounded-xl border border-primary/20 bg-primary/5',
+        'hover:bg-primary/10 px-4 py-2.5 text-left text-sm text-primary/90',
+        'transition-colors min-h-[40px]',
+      )}
+    >
+      {label}
+    </button>
   );
 }
 
