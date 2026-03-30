@@ -33,6 +33,8 @@ import { SynapticBriefPanel } from './SynapticBriefPanel';
 import { TemporalScrubber } from './TemporalScrubber';
 import { EntityDetailSheet } from '@/components/hub/EntityDetailSheet';
 import { DiscoveryOverlay } from '@/components/hub/DiscoveryOverlay';
+import { SinceLastVisit } from '@/components/SinceLastVisit';
+import { useSegment } from '@/components/providers/SegmentProvider';
 
 const ConstellationScene = dynamic(
   () => import('@/components/ConstellationScene').then((m) => ({ default: m.ConstellationScene })),
@@ -61,6 +63,15 @@ export function SynapticHomePage({
   const searchParams = useSearchParams();
   const globeRef = useRef<ConstellationRef>(null);
   const bridge = useSenecaGlobeBridge(globeRef);
+
+  // User context for SinceLastVisit
+  const { segment, drepId: delegatedDrepId } = useSegment();
+  const [previousVisitAt, setPreviousVisitAt] = useState<string | null>(null);
+  useEffect(() => {
+    if (typeof window === 'undefined' || segment === 'anonymous') return;
+    const ts = localStorage.getItem('drepscore_last_visit');
+    if (ts) setPreviousVisitAt(new Date(Number(ts)).toISOString());
+  }, [segment]);
 
   // Globe data
   const { userNode, delegationBond } = useUserConstellationNode();
@@ -323,6 +334,13 @@ export function SynapticHomePage({
 
       {/* Entity detail sheet — shows when an entity is selected */}
       <EntityDetailSheet entity={activeEntity} onClose={handleEntityClose} />
+
+      {/* Since last visit — compact activity summary for returning users */}
+      {previousVisitAt && segment !== 'anonymous' && (
+        <div className="fixed bottom-[calc(theme(spacing.6)+14rem)] left-6 z-40 w-[min(440px,calc(100vw-3rem))] max-md:bottom-[calc(14rem)] max-md:left-4 max-md:right-4 max-md:w-auto">
+          <SinceLastVisit previousVisitAt={previousVisitAt} delegatedDrepId={delegatedDrepId} />
+        </div>
+      )}
 
       {/* Seneca briefing panel — bottom-left, responsive */}
       <SynapticBriefPanel onGlobeCommand={handleGlobeCommand} onFilterChange={handleFilterChange} />

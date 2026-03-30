@@ -26,8 +26,6 @@ import {
   Wallet,
   ChevronDown,
   Briefcase,
-  CircleUser,
-  Link2,
 } from 'lucide-react';
 import { useQuickConnect } from '@/hooks/useQuickConnect';
 import { GovernadaWordmark } from '@/components/ui/GovernadaWordmark';
@@ -703,39 +701,10 @@ export function GovernadaHeader() {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
-                {/* You world links */}
-                <DropdownMenuItem asChild>
-                  <Link href="/you/identity">
-                    <CircleUser className="h-4 w-4" />
-                    {t('My Identity')}
-                  </Link>
-                </DropdownMenuItem>
-                {(segment === 'drep' || (realSegment === 'drep' && hasOverride)) && (
-                  <DropdownMenuItem asChild>
-                    <Link href="/you/drep">
-                      <Users className="h-4 w-4" />
-                      {t('DRep Scorecard')}
-                    </Link>
-                  </DropdownMenuItem>
-                )}
-                {(segment === 'spo' || (realSegment === 'spo' && hasOverride)) && (
-                  <DropdownMenuItem asChild>
-                    <Link href="/you/spo">
-                      <ShieldCheck className="h-4 w-4" />
-                      {t('Pool Scorecard')}
-                    </Link>
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuItem asChild>
-                  <Link href="/you/delegation">
-                    <Link2 className="h-4 w-4" />
-                    {t('Delegation')}
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
+                {/* Utilities only — You tab bar handles Identity/Scorecard/Record navigation */}
                 <DropdownMenuItem onSelect={() => router.push('/you/settings')}>
                   <User className="h-4 w-4" />
-                  {t('Profile & Settings')}
+                  {t('Settings')}
                 </DropdownMenuItem>
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger>

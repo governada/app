@@ -1,19 +1,8 @@
-import type { Metadata } from 'next';
-import { PageViewTracker } from '@/components/PageViewTracker';
-import { WorkspacePoolProfilePage } from '@/components/hub/WorkspacePoolProfilePage';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: 'Pool Profile — Governada',
-  description: 'Manage your pool governance identity.',
-};
-
+/** Pool profile management moved to You/Settings. Redirect for backwards compat. */
 export default function WorkspacePoolProfile() {
-  return (
-    <>
-      <PageViewTracker event="workspace_pool_profile_viewed" />
-      <WorkspacePoolProfilePage />
-    </>
-  );
+  redirect('/you/settings');
 }

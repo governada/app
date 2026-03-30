@@ -1,19 +1,8 @@
-import type { Metadata } from 'next';
-import { PageViewTracker } from '@/components/PageViewTracker';
-import { WorkspacePerformancePage } from '@/components/hub/WorkspacePerformancePage';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: 'Performance — Governada',
-  description: 'Your DRep score breakdown and competitive position.',
-};
-
+/** Performance absorbed into You/Scorecard. Redirect for backwards compat. */
 export default function WorkspacePerformance() {
-  return (
-    <>
-      <PageViewTracker event="workspace_performance_viewed" />
-      <WorkspacePerformancePage />
-    </>
-  );
+  redirect('/you/scorecard');
 }

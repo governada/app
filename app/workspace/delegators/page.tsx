@@ -1,19 +1,8 @@
-import type { Metadata } from 'next';
-import { PageViewTracker } from '@/components/PageViewTracker';
-import { WorkspaceDelegatorsPage } from '@/components/hub/WorkspaceDelegatorsPage';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: 'Delegators — Governada',
-  description: 'Your delegator summary and recent changes.',
-};
-
+/** Delegators absorbed into You/Scorecard. Redirect for backwards compat. */
 export default function WorkspaceDelegators() {
-  return (
-    <>
-      <PageViewTracker event="workspace_delegators_viewed" />
-      <WorkspaceDelegatorsPage />
-    </>
-  );
+  redirect('/you/scorecard');
 }

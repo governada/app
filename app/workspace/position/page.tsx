@@ -1,19 +1,8 @@
-import type { Metadata } from 'next';
-import { PageViewTracker } from '@/components/PageViewTracker';
-import { WorkspacePositionPage } from '@/components/hub/WorkspacePositionPage';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: 'Competitive Position — Governada',
-  description: 'See where your pool ranks in governance participation.',
-};
-
+/** Position absorbed into You/Scorecard. Redirect for backwards compat. */
 export default function WorkspacePosition() {
-  return (
-    <>
-      <PageViewTracker event="workspace_position_viewed" />
-      <WorkspacePositionPage />
-    </>
-  );
+  redirect('/you/scorecard');
 }

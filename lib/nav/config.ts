@@ -1,16 +1,15 @@
 /**
- * Navigation configuration — Three Worlds model.
+ * Navigation configuration — Three Worlds model (task-shaped).
  *
  * Three conceptual worlds:
- *   Home      = "What's happening + explore governance" (briefing, globe, discovery, matching)
- *   Workspace = "Do my governance work" (author, review, manage)
- *   You       = "Who am I in governance?" (identity, reflection, settings)
+ *   Home      = Seneca-powered command center + governance discovery
+ *   Workspace = Actions only: Review proposals, Author proposals
+ *   You       = Identity, Scorecard, Record, Settings
  *
- * Home is a unified globe + Seneca surface for both briefing AND discovery.
- * Governance exploration lives on the homepage via filter params (?filter=proposals, etc.).
- * Matching lives on the homepage via Seneca match mode.
- * Workspace is a separate section for governance operators (DRep, SPO,
- * delegated citizens). Author and Review are peer sub-sections within it.
+ * Home is a unified globe + Seneca surface for briefing, discovery, and matching.
+ * Seneca delivers personalized intelligence (pending votes, score changes, delegator trends).
+ * Workspace is strictly for governance actions (voting, rationale submission, drafting).
+ * You is identity + performance reflection + preferences.
  *
  * This is the single source of truth for all navigation surfaces:
  * - Desktop sidebar / icon rail
@@ -29,11 +28,8 @@ import {
   FileText,
   Users,
   Building2,
-  Vote,
   ScrollText,
   BarChart3,
-  Building,
-  Trophy,
   UserCog,
   Settings,
   BadgeCheck,
@@ -99,20 +95,14 @@ export interface BottomBarConfig {
 }
 
 // ---------------------------------------------------------------------------
-// Workspace section definitions — Author & Review as peer sub-sections
+// Workspace section definitions — Actions only: Review + Author
 // ---------------------------------------------------------------------------
 
 /**
- * DRep workspace: Review-first (their #1 JTBD), then Author, then operational tools.
- * The /workspace landing doubles as a DRep action queue / dashboard.
+ * Operator workspace (DRep / SPO): Review-first (their #1 JTBD), then Author.
+ * Homepage serves as the command center — workspace is strictly for actions.
  */
-export const WORKSPACE_DREP_ITEMS: NavItem[] = [
-  {
-    href: '/workspace',
-    label: 'Dashboard',
-    icon: Vote,
-    sublabelKey: 'workspace.pendingVotes',
-  },
+export const WORKSPACE_OPERATOR_ITEMS: NavItem[] = [
   {
     href: '/workspace/review',
     label: 'Review',
@@ -120,45 +110,6 @@ export const WORKSPACE_DREP_ITEMS: NavItem[] = [
     sublabelKey: 'workspace.pendingReview',
   },
   { href: '/workspace/author', label: 'Author', icon: PenLine, sublabelKey: 'workspace.drafts' },
-  {
-    href: '/workspace/votes',
-    label: 'Voting Record',
-    icon: ScrollText,
-    sublabelKey: 'workspace.totalVotes',
-  },
-  {
-    href: '/workspace/delegators',
-    label: 'Delegators',
-    icon: Users,
-    sublabelKey: 'workspace.delegatedAda',
-  },
-];
-
-/**
- * SPO workspace: Gov Score dashboard, then Review, Author, and pool management.
- */
-export const WORKSPACE_SPO_ITEMS: NavItem[] = [
-  {
-    href: '/workspace',
-    label: 'Gov Score',
-    icon: BarChart3,
-    sublabelKey: 'workspace.govScore',
-  },
-  {
-    href: '/workspace/review',
-    label: 'Review',
-    icon: FileText,
-    sublabelKey: 'workspace.pendingReview',
-  },
-  { href: '/workspace/author', label: 'Author', icon: PenLine, sublabelKey: 'workspace.drafts' },
-  { href: '/workspace/pool-profile', label: 'Pool Profile', icon: Building },
-  {
-    href: '/workspace/delegators',
-    label: 'Delegators',
-    icon: Users,
-    sublabelKey: 'workspace.delegatedAda',
-  },
-  { href: '/workspace/position', label: 'Position', icon: Trophy },
 ];
 
 /**
@@ -175,6 +126,12 @@ export const WORKSPACE_CITIZEN_ITEMS: NavItem[] = [
     disabledTooltip: 'Connect as a DRep or SPO to review and vote on proposals',
   },
 ];
+
+// Legacy exports for backwards compatibility (referenced by tests or other modules)
+/** @deprecated Use WORKSPACE_OPERATOR_ITEMS */
+export const WORKSPACE_DREP_ITEMS = WORKSPACE_OPERATOR_ITEMS;
+/** @deprecated Use WORKSPACE_OPERATOR_ITEMS */
+export const WORKSPACE_SPO_ITEMS = WORKSPACE_OPERATOR_ITEMS;
 
 /**
  * Home discovery sub-items — shown in pill bar on the homepage.
@@ -202,44 +159,69 @@ export const HOME_DISCOVERY_ITEMS: NavItem[] = [
   },
 ];
 
-/** Base You items — all authenticated personas */
-const YOU_BASE: NavItem[] = [
-  { href: '/you', label: 'Identity', icon: UserCog },
-  { href: '/you/settings', label: 'Settings', icon: Settings },
-];
-
-/** Build persona-specific You items (adds scorecard links for DReps/SPOs, delegation for citizens) */
+/**
+ * Build persona-specific You items.
+ *
+ * You = Identity + Performance + Preferences:
+ *   - Identity: Governance Rings, milestones, civic profile
+ *   - Scorecard: Pillar breakdown, tier, competitive rank, delegator summary (DRep/SPO)
+ *   - Record: Voting history + rationale coverage (DRep/SPO)
+ *   - Delegation: DRep performance, alignment drift (Citizens)
+ *   - Settings: Governance tuner, notifications, profile editing
+ */
 export function getYouItems(
   segment: UserSegment,
   context?: { drepId?: string | null; poolId?: string | null; isDelegated?: boolean },
 ): NavItem[] {
-  const items = [...YOU_BASE];
   const hasDrep = segment === 'drep' || !!context?.drepId;
   const hasSpo = segment === 'spo' || !!context?.poolId;
+  const isDualRole = hasDrep && hasSpo;
 
-  // Insert after Identity: scorecards and delegation
-  const insertItems: NavItem[] = [];
+  const items: NavItem[] = [{ href: '/you', label: 'Identity', icon: UserCog }];
 
-  if (hasDrep)
-    insertItems.push({
-      href: '/you/drep',
+  if (isDualRole) {
+    // Dual-role: show both scorecards with disambiguating labels
+    items.push({
+      href: '/you/scorecard?role=drep',
       label: 'DRep Scorecard',
       icon: BadgeCheck,
-      segments: ['drep'],
       sublabelKey: 'you.drepScore',
     });
-  if (hasSpo)
-    insertItems.push({
-      href: '/you/spo',
+    items.push({
+      href: '/you/scorecard?role=spo',
       label: 'Pool Scorecard',
       icon: BarChart3,
-      segments: ['spo'],
       sublabelKey: 'you.spoScore',
     });
+  } else if (hasDrep) {
+    items.push({
+      href: '/you/scorecard',
+      label: 'Scorecard',
+      icon: BadgeCheck,
+      sublabelKey: 'you.drepScore',
+    });
+  } else if (hasSpo) {
+    items.push({
+      href: '/you/scorecard',
+      label: 'Scorecard',
+      icon: BarChart3,
+      sublabelKey: 'you.spoScore',
+    });
+  }
 
-  // Add delegation page for citizens (and DRep/SPO who are also citizens)
-  if (segment === 'citizen' || hasDrep || hasSpo) {
-    insertItems.push({
+  // Voting record for operators
+  if (hasDrep || hasSpo) {
+    items.push({
+      href: '/you/record',
+      label: 'Record',
+      icon: ScrollText,
+      sublabelKey: 'you.totalVotes',
+    });
+  }
+
+  // Delegation health for citizens (not for DRep/SPO — they have Scorecard with delegator metrics)
+  if (segment === 'citizen') {
+    items.push({
       href: '/you/delegation',
       label: 'Delegation',
       icon: Link2,
@@ -247,9 +229,7 @@ export function getYouItems(
     });
   }
 
-  if (insertItems.length > 0) {
-    items.splice(1, 0, ...insertItems); // Insert after Identity
-  }
+  items.push({ href: '/you/settings', label: 'Settings', icon: Settings });
 
   return items;
 }
@@ -299,34 +279,6 @@ function filterByDepth(items: NavItem[], depth: GovernanceDepth | undefined): Na
   return items.filter((item) => meetsDepth(item, depth));
 }
 
-/** Filter nav item groups by governance depth. */
-function filterGroupsByDepth(
-  groups: NavItemGroup[],
-  depth: GovernanceDepth | undefined,
-): NavItemGroup[] {
-  if (!depth) return groups;
-  return groups
-    .map((g) => ({ ...g, items: filterByDepth(g.items, depth) }))
-    .filter((g) => g.items.length > 0);
-}
-
-/** SPO items not already present in the DRep list (deduped by href). */
-const DEDUPED_SPO_ITEMS = WORKSPACE_SPO_ITEMS.filter(
-  (i) => !WORKSPACE_DREP_ITEMS.some((d) => d.href === i.href),
-);
-
-/**
- * Build deduplicated dual-role Workspace groups.
- * Items that appear in both lists (matched by href) are shown only in the
- * DRep group to avoid visual clutter.
- */
-function buildDualRoleWorkspaceGroups(): NavItemGroup[] {
-  return [
-    { id: 'ws-drep', label: 'DRep', items: WORKSPACE_DREP_ITEMS },
-    { id: 'ws-pool', label: 'Pool', items: DEDUPED_SPO_ITEMS },
-  ];
-}
-
 /** All authenticated users get Workspace — any citizen can author proposals. */
 function hasWorkspace(ctx: NavContext): boolean {
   return ctx.segment !== 'anonymous';
@@ -340,8 +292,6 @@ export function getSidebarSections(
     typeof segmentOrContext === 'string' ? { segment: segmentOrContext } : segmentOrContext;
   const { segment, drepId, poolId, depth } = ctx;
 
-  const isDualRole = !!(drepId && poolId);
-
   const sections: NavSection[] = [];
 
   // ── World 1: Home — briefing surface (always a single link) ───────────
@@ -352,49 +302,19 @@ export function getSidebarSections(
     href: '/',
   });
 
-  // ── World 2: Workspace — governance work surface ──────────────────────
-  // Appears for all authenticated users. Author & Review are peer
-  // sub-sections; persona determines default landing and item order.
+  // ── World 2: Workspace — actions only (Review + Author) ───────────────
+  // Operators (DRep/SPO) get Review + Author. Citizens get Author + disabled Review.
   if (hasWorkspace(ctx)) {
-    if (isDualRole) {
-      const filteredGroups = filterGroupsByDepth(buildDualRoleWorkspaceGroups(), depth);
-      sections.push({
-        id: 'workspace',
-        label: 'Workspace',
-        icon: Briefcase,
-        href: '/workspace',
-        groups: filteredGroups.length > 0 ? filteredGroups : undefined,
-        requiresAuth: true,
-      });
-    } else if (segment === 'drep' || (drepId && !poolId)) {
-      sections.push({
-        id: 'workspace',
-        label: 'Workspace',
-        icon: Briefcase,
-        href: '/workspace',
-        items: filterByDepth(WORKSPACE_DREP_ITEMS, depth),
-        requiresAuth: true,
-      });
-    } else if (segment === 'spo' || (!drepId && poolId)) {
-      sections.push({
-        id: 'workspace',
-        label: 'Workspace',
-        icon: Briefcase,
-        href: '/workspace',
-        items: filterByDepth(WORKSPACE_SPO_ITEMS, depth),
-        requiresAuth: true,
-      });
-    } else {
-      // Citizen / CC — Author-first workspace
-      sections.push({
-        id: 'workspace',
-        label: 'Workspace',
-        icon: Briefcase,
-        href: '/workspace/author',
-        items: filterByDepth(WORKSPACE_CITIZEN_ITEMS, depth),
-        requiresAuth: true,
-      });
-    }
+    const isOperator = segment === 'drep' || segment === 'spo' || !!drepId || !!poolId;
+    const workspaceItems = isOperator ? WORKSPACE_OPERATOR_ITEMS : WORKSPACE_CITIZEN_ITEMS;
+    sections.push({
+      id: 'workspace',
+      label: 'Workspace',
+      icon: Briefcase,
+      href: isOperator ? '/workspace' : '/workspace/author',
+      items: filterByDepth(workspaceItems, depth),
+      requiresAuth: true,
+    });
   }
 
   // ── World 3: You ──────────────────────────────────────────────────────
@@ -494,15 +414,10 @@ export function getPillBarItems(
   }
   // Workspace routes show workspace sub-items in the pill bar
   if (pathname.startsWith('/workspace')) {
-    const isDualRole = !!(context?.drepId && context?.poolId);
-    if (isDualRole) {
-      return filterByDepth([...WORKSPACE_DREP_ITEMS, ...DEDUPED_SPO_ITEMS], depth);
-    }
-    if (segment === 'drep') return filterByDepth(WORKSPACE_DREP_ITEMS, depth);
-    if (segment === 'spo') return filterByDepth(WORKSPACE_SPO_ITEMS, depth);
-    if (segment === 'citizen' || segment === 'cc')
-      return filterByDepth(WORKSPACE_CITIZEN_ITEMS, depth);
-    return filterByDepth(WORKSPACE_DREP_ITEMS, depth);
+    const isOperator =
+      segment === 'drep' || segment === 'spo' || !!context?.drepId || !!context?.poolId;
+    const workspaceItems = isOperator ? WORKSPACE_OPERATOR_ITEMS : WORKSPACE_CITIZEN_ITEMS;
+    return filterByDepth(workspaceItems, depth);
   }
   if (pathname.startsWith('/you')) {
     return filterByDepth(getYouItems(segment, context), depth);
