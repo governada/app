@@ -9,11 +9,23 @@ Argument: `$ARGUMENTS`
 - **Required**: Feature name (e.g., "Quick Match", "DRep profile", "delegation flow", "treasury pulse")
 - If empty: Ask user what feature to explore
 
+## Phase 0: Registry Check (MANDATORY)
+
+Before any exploration, read `docs/strategy/context/product-registry.md`. For the feature domain being explored, also read the relevant `docs/strategy/context/registry/<domain>.md` file.
+
+State explicitly in your output:
+
+- **"Registry check: [feature] already exists at [files/routes]"** — cite what's shipped
+- **"Related features in this domain: [list]"** — cite adjacent features from the registry
+- **"Connections to other subsystems: [list]"** — cite cross-domain dependencies
+
+Skipping this step invalidates all subsequent recommendations. You cannot explore "what could this become" without first knowing what it IS.
+
 ## Phase 1: Current State Snapshot
 
-Map the feature quickly (lighter than audit-feature Phase 1.1):
+Map the feature quickly (lighter than audit-feature Phase 1.1), starting from the registry data:
 
-- Routes, key components, data sources, personas served
+- Routes, key components, data sources, personas served (registry gives you the starting list — verify in code)
 - Current score (reference most recent audit result in `.claude/audit-results/` if available)
 - The core JTBD this feature serves (reference `docs/strategy/context/ux-constraints.md`)
 - What's working well (don't reinvent what's strong)
