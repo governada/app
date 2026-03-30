@@ -10,6 +10,7 @@ import { readAdvisorStream } from '@/lib/intelligence/streamAdvisor';
 import type { GlobeStreamCommand } from '@/lib/intelligence/streamAdvisor';
 import { useSegment } from '@/components/providers/SegmentProvider';
 import { useEpochContext } from '@/hooks/useEpochContext';
+import { useGovernanceState } from '@/hooks/useGovernanceState';
 import { BriefingText } from './BriefingText';
 import { BriefingChips } from './BriefingChips';
 import { SenecaInput } from '@/components/governada/panel/SenecaInput';
@@ -31,6 +32,33 @@ const DEFAULT_CHIPS: Record<string, string[]> = {
   spo: ['Check my governance score', "Show my pool's activity", 'Compare with peers'],
   cc: ['Show recent votes', 'Constitutional alignment check', 'Inter-body dynamics'],
 };
+
+/** Generate contextual chips based on actual user state (overrides defaults when available). */
+function getContextualChips(
+  segment: string,
+  userState: { pendingVotes: number; drepScore: number | null; hasPendingActions: boolean } | null,
+): string[] | null {
+  if (!userState) return null;
+  const chips: string[] = [];
+
+  if (segment === 'drep' || segment === 'spo') {
+    if (userState.pendingVotes > 0) {
+      chips.push(
+        `Review ${userState.pendingVotes} pending vote${userState.pendingVotes > 1 ? 's' : ''}`,
+      );
+    }
+    if (userState.drepScore !== null) {
+      chips.push('Show my scorecard');
+    }
+    chips.push('How do I compare?');
+  } else if (segment === 'citizen') {
+    chips.push('Find my DRep match');
+    chips.push('What proposals matter to me?');
+    chips.push("How's my DRep doing?");
+  }
+
+  return chips.length > 0 ? chips : null;
+}
 
 // ---------------------------------------------------------------------------
 // Chip marker parsing
@@ -64,6 +92,7 @@ export function SynapticBriefPanel({
 }: SynapticBriefPanelProps) {
   const { segment } = useSegment();
   const { epoch, day, totalDays, activeProposalCount } = useEpochContext();
+  const { userState } = useGovernanceState();
   const daysRemaining = totalDays - day;
 
   // Match mode — when Seneca triggers a match flow, render SenecaMatch in place of briefing
@@ -112,14 +141,38 @@ export function SynapticBriefPanel({
     store.startBriefing();
     let accumulated = '';
 
+    // Build personalized briefing prompt with user state when available
+    const userContextParts: string[] = [];
+    if (userState) {
+      if (userState.pendingVotes > 0)
+        userContextParts.push(`${userState.pendingVotes} pending votes requiring action`);
+      if (userState.drepScore !== null)
+        userContextParts.push(`governance score: ${userState.drepScore}`);
+      if (userState.drepRank !== null)
+        userContextParts.push(`ranked #${userState.drepRank} among active participants`);
+      if (userState.delegatedDrepId)
+        userContextParts.push(`delegated to DRep ${userState.delegatedDrepId.slice(0, 12)}...`);
+    }
+    const userContextStr =
+      userContextParts.length > 0
+        ? `\n\nUser state: ${userContextParts.join(', ')}. Incorporate these specifics into your briefing — be personal, not generic.`
+        : '';
+
+    const briefingPrompt =
+      segment === 'anonymous'
+        ? 'Brief me on governance. Keep it to 2-3 sentences.'
+        : `Brief me on what needs my attention in governance right now. Be personal and specific — reference my pending votes, score, and delegation status. Keep it to 2-3 sentences.${userContextStr}`;
+
     readAdvisorStream(
-      [{ role: 'user', content: 'Brief me on governance. Keep it to 2-3 sentences.' }],
+      [{ role: 'user', content: briefingPrompt }],
       {
         epoch: epoch ?? 0,
         daysRemaining,
         activeProposalCount: activeProposalCount ?? 0,
         segment: segment ?? 'citizen',
         mode: 'briefing',
+        pageContext:
+          userContextParts.length > 0 ? `User: ${userContextParts.join('; ')}` : undefined,
       },
       // onDelta
       (text) => {
@@ -138,15 +191,18 @@ export function SynapticBriefPanel({
           useSynapticStore.setState({ briefingText: cleanText });
           store.setChips(chips);
         } else {
-          // Use persona-specific defaults
-          store.setChips(DEFAULT_CHIPS[segment ?? 'citizen'] ?? DEFAULT_CHIPS.citizen);
+          // Use contextual chips based on actual user state, or persona defaults
+          const contextual = getContextualChips(segment ?? 'citizen', userState);
+          store.setChips(
+            contextual ?? DEFAULT_CHIPS[segment ?? 'citizen'] ?? DEFAULT_CHIPS.citizen,
+          );
         }
         store.finishBriefing();
       },
       controller.signal,
       onGlobeCommand,
     );
-  }, [epoch, daysRemaining, activeProposalCount, segment, store, onGlobeCommand]);
+  }, [epoch, daysRemaining, activeProposalCount, segment, store, onGlobeCommand, userState]);
 
   // -------------------------------------------------------------------------
   // Follow-up conversation

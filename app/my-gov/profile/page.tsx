@@ -1,17 +1,8 @@
+import { redirect } from 'next/navigation';
+
 export const dynamic = 'force-dynamic';
 
-import type { Metadata } from 'next';
-import { GovernadaProfile } from '@/components/governada/mygov/GovernadaProfile';
-
-export const metadata: Metadata = {
-  title: 'Governada — Profile & Settings',
-  description: 'Manage your governance identity, notification preferences, and account settings.',
-};
-
+/** Profile moved to You/Settings. */
 export default function ProfilePage() {
-  return (
-    <div className="mx-auto max-w-2xl px-4 sm:px-6 py-8">
-      <GovernadaProfile />
-    </div>
-  );
+  redirect('/you/settings');
 }
