@@ -3,7 +3,6 @@ import { withRouteHandler } from '@/lib/api/withRouteHandler';
 import { createClient } from '@/lib/supabase';
 import { cached } from '@/lib/redis';
 import type { ActivityEvent } from '@/lib/intelligence/idleActivity';
-import type { GlobeCommand } from '@/lib/globe/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,19 +16,43 @@ export const GET = withRouteHandler(async () => {
 
 async function fetchRecentActivity(): Promise<ActivityEvent[]> {
   const supabase = createClient();
+
+  // Run all queries in parallel — they're independent
+  const [votesRes, ghiRes, scoresRes, proposalsRes] = await Promise.all([
+    // 1. Recent votes (filter null block_time to avoid NaN sort)
+    supabase
+      .from('drep_votes')
+      .select(
+        'drep_id, vote, proposal_tx_hash, proposal_index, block_time, proposals!inner(title, type)',
+      )
+      .not('block_time', 'is', null)
+      .order('block_time', { ascending: false })
+      .limit(10),
+    // 2. GHI snapshots (last 2 epochs)
+    supabase
+      .from('ghi_snapshots')
+      .select('epoch_no, score, band')
+      .order('epoch_no', { ascending: false })
+      .limit(2),
+    // 3. Score snapshots (last 2 epochs for delta comparison)
+    supabase
+      .from('drep_score_snapshots')
+      .select('drep_id, score, epoch_no')
+      .order('epoch_no', { ascending: false })
+      .limit(100),
+    // 4. Active proposals
+    supabase
+      .from('proposals')
+      .select('tx_hash, index, title, type, status')
+      .in('status', ['active', 'voting'])
+      .limit(20),
+  ]);
+
   const events: ActivityEvent[] = [];
 
   // 1. Recent notable votes (proposal_vote)
-  const { data: recentVotes } = await supabase
-    .from('drep_votes')
-    .select(
-      'drep_id, vote, proposal_tx_hash, proposal_index, block_time, proposals!inner(title, type)',
-    )
-    .order('block_time', { ascending: false })
-    .limit(10);
-
+  const recentVotes = votesRes.data;
   if (recentVotes && recentVotes.length > 0) {
-    // Group by proposal — find the proposal with most recent votes
     const proposalVoteCounts = new Map<
       string,
       { count: number; title: string; hash: string; index: number; time: string }
@@ -37,11 +60,11 @@ async function fetchRecentActivity(): Promise<ActivityEvent[]> {
     for (const v of recentVotes) {
       const key = `${v.proposal_tx_hash}_${v.proposal_index}`;
       const existing = proposalVoteCounts.get(key);
-      const proposal = v.proposals as unknown as { title: string; type: string } | null;
+      const proposal = v.proposals as unknown as { title: string; type: string };
       if (!existing) {
         proposalVoteCounts.set(key, {
           count: 1,
-          title: proposal?.title ?? 'Governance Proposal',
+          title: proposal.title ?? 'Governance Proposal',
           hash: v.proposal_tx_hash,
           index: v.proposal_index,
           time: v.block_time,
@@ -51,36 +74,26 @@ async function fetchRecentActivity(): Promise<ActivityEvent[]> {
       }
     }
 
-    // Pick the proposal with most recent activity
     const top = [...proposalVoteCounts.values()].sort(
       (a, b) => new Date(b.time).getTime() - new Date(a.time).getTime(),
     )[0];
 
     if (top) {
-      const globeCmd: GlobeCommand = {
-        type: 'voteSplit',
-        proposalRef: `${top.hash}_${top.index}`,
-      };
       events.push({
         type: 'proposal_vote',
         headline: `${top.count} new vote${top.count > 1 ? 's' : ''} on "${truncate(top.title, 50)}"`,
         subLabel: 'Proposal',
         entityId: top.hash,
         entityType: 'proposal',
-        globeCommand: globeCmd,
+        globeCommand: { type: 'voteSplit', proposalRef: `${top.hash}_${top.index}` },
         timestamp: top.time,
         icon: 'vote',
       });
     }
   }
 
-  // 2. GHI change (ghi_change)
-  const { data: ghiSnapshots } = await supabase
-    .from('ghi_snapshots')
-    .select('epoch_no, score, band')
-    .order('epoch_no', { ascending: false })
-    .limit(2);
-
+  // 2. GHI change
+  const ghiSnapshots = ghiRes.data;
   if (ghiSnapshots && ghiSnapshots.length >= 2) {
     const current = ghiSnapshots[0];
     const previous = ghiSnapshots[1];
@@ -102,39 +115,45 @@ async function fetchRecentActivity(): Promise<ActivityEvent[]> {
     }
   }
 
-  // 3. Score milestones (score_milestone) — DReps crossing 80-point threshold
-  const { data: highScorers } = await supabase
-    .from('dreps')
-    .select('id, score, info')
-    .gte('score', 80)
-    .order('score', { ascending: false })
-    .limit(3);
+  // 3. Score milestones — DReps with biggest score gain between epochs
+  const scoreSnapshots = scoresRes.data;
+  if (scoreSnapshots && scoreSnapshots.length > 0) {
+    const epochs = [...new Set(scoreSnapshots.map((s) => s.epoch_no))].sort((a, b) => b - a);
+    if (epochs.length >= 2) {
+      const currentEpoch = epochs[0];
+      const prevEpoch = epochs[1];
+      const current = scoreSnapshots.filter((s) => s.epoch_no === currentEpoch);
+      const prevMap = new Map(
+        scoreSnapshots.filter((s) => s.epoch_no === prevEpoch).map((s) => [s.drep_id, s.score]),
+      );
 
-  if (highScorers && highScorers.length > 0) {
-    const drep = highScorers[0];
-    const info = drep.info as Record<string, unknown> | null;
-    const name = (info?.name as string) || (info?.handle as string) || drep.id.slice(0, 12) + '...';
-    events.push({
-      type: 'score_milestone',
-      headline: `${name} leads with a score of ${Math.round(drep.score ?? 0)}`,
-      subLabel: 'Top representative',
-      entityId: drep.id,
-      entityType: 'drep',
-      globeCommand: { type: 'flyTo', nodeId: `drep_${drep.id}` },
-      timestamp: new Date().toISOString(),
-      icon: 'milestone',
-    });
+      let bestGain = { drepId: '', gain: 0, newScore: 0 };
+      for (const s of current) {
+        const prev = prevMap.get(s.drep_id) ?? 0;
+        const gain = (s.score ?? 0) - prev;
+        if (gain > bestGain.gain) {
+          bestGain = { drepId: s.drep_id, gain, newScore: s.score ?? 0 };
+        }
+      }
+
+      if (bestGain.gain >= 3 && bestGain.drepId) {
+        events.push({
+          type: 'score_milestone',
+          headline: `A representative gained ${Math.round(bestGain.gain)} points this epoch (now ${Math.round(bestGain.newScore)})`,
+          subLabel: 'Score milestone',
+          entityId: bestGain.drepId,
+          entityType: 'drep',
+          globeCommand: { type: 'flyTo', nodeId: `drep_${bestGain.drepId}` },
+          timestamp: new Date().toISOString(),
+          icon: 'milestone',
+        });
+      }
+    }
   }
 
-  // 4. Threshold approach — proposals close to passing
-  const { data: activeProposals } = await supabase
-    .from('proposals')
-    .select('tx_hash, index, title, type, status')
-    .in('status', ['active', 'voting'])
-    .limit(20);
-
+  // 4. Active proposals accepting votes
+  const activeProposals = proposalsRes.data;
   if (activeProposals && activeProposals.length > 0) {
-    // Pick the most recently added active proposal
     const proposal = activeProposals[0];
     events.push({
       type: 'threshold_approach',

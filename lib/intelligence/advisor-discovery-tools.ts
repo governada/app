@@ -21,13 +21,12 @@ export async function executeHighlightCluster(
   input: Record<string, unknown>,
 ): Promise<Omit<ToolResult, 'displayStatus'>> {
   try {
-    // Fetch cluster data from Chunk 1 API
-    const { BASE_URL } = await import('@/lib/constants');
-    const res = await fetch(`${BASE_URL}/api/governance/constellation/clusters`, {
-      next: { revalidate: 0 },
-    });
+    // Read cluster data directly from Redis cache (same key the clusters API writes to)
+    const { cached } = await import('@/lib/redis');
+    const { getFeatureFlag } = await import('@/lib/featureFlags');
 
-    if (!res.ok) {
+    const enabled = await getFeatureFlag('globe_alignment_layout', false);
+    if (!enabled) {
       return {
         result:
           'Cluster detection is currently unavailable. The globe spatially groups DReps by governance alignment — DReps who share similar priorities appear near each other in the constellation.',
@@ -35,16 +34,23 @@ export async function executeHighlightCluster(
       };
     }
 
-    const data = await res.json();
-    const clusters = data.clusters as Array<{
-      id: string;
-      name: string;
-      description: string;
-      centroid6D: number[];
-      memberCount: number;
-      dominantDimension: string;
-      memberIds: string[];
-    }>;
+    // Use cached() with same key as the clusters API route — hits Redis without HTTP roundtrip
+    const data = await cached<{
+      clusters: Array<{
+        id: string;
+        name: string;
+        description: string;
+        centroid6D: number[];
+        memberCount: number;
+        dominantDimension: string;
+        memberIds: string[];
+      }>;
+    }>('clusters:constellation:latest', 3600, async () => {
+      // Cache miss fallback: return empty — the Inngest epoch job populates this
+      return { clusters: [] };
+    });
+
+    const clusters = data.clusters;
 
     if (!clusters || clusters.length === 0) {
       return {
@@ -163,23 +169,17 @@ export async function executeShowNeighborhood(
     return `${i + 1}. ${name} — Score: ${d.drepScore ?? 0}, Distance: ${Math.round(d._dist)} | ID: ${d.drepId.slice(0, 24)}`;
   });
 
-  // Globe: narrow to target + neighbors
-  const neighborIds = [target.drepId, ...neighbors.map((n) => n.drepId)];
+  // Globe: showNeighborhood behavior handles the narrowTo + pulse choreography
+  const neighborNodeIds = [target.drepId, ...neighbors.map((n) => n.drepId)].map(
+    (id) => `drep_${id}`,
+  );
   const globeCommands: GlobeCommand[] = [
     {
-      type: 'showNeighborhood',
-      entityId: target.drepId,
-      entityType: 'drep',
-      count,
+      type: 'narrowTo',
+      nodeIds: neighborNodeIds,
+      fly: true,
     },
   ];
-
-  // Also pass narrowTo for immediate visual effect
-  globeCommands.push({
-    type: 'narrowTo',
-    nodeIds: neighborIds.map((id) => `drep_${id}`),
-    fly: true,
-  });
 
   return {
     result: `**${targetName}'s ${count} nearest neighbors** in governance alignment space:\n${lines.join('\n')}`,
