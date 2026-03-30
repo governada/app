@@ -17,6 +17,8 @@ import { useQuery } from '@tanstack/react-query';
 import * as THREE from 'three';
 import { computeGlobeLayout } from '@/lib/constellation/globe-layout';
 import { DelegationBond as DelegationBondComponent } from '@/components/globe/DelegationBond';
+import { GlobeAtmosphere } from '@/components/globe/GlobeAtmosphere';
+import { AmbientStarfield, RaycastConfig } from '@/components/globe/GlobeAmbient';
 // CCCrownRing removed — CC members now render as sentinel nodes within the constellation
 import type {
   ConstellationApiData,
@@ -25,14 +27,38 @@ import type {
   ConstellationEdge3D,
 } from '@/lib/constellation/types';
 
-export type { ConstellationRef } from '@/components/GovernanceConstellation';
+// Types re-exported from canonical location — existing external imports still work
+export type { ConstellationRef } from '@/lib/globe/types';
 
-const DREP_COLOR = '#2dd4bf';
-const SPO_COLOR = '#a78bfa'; // purple — visually distinct from teal DReps
-// CC_COLOR moved to CCCrownRing.tsx
-const USER_COLOR = '#f0e6d0'; // warm white-gold — personal, clearly "you"
-const PROPOSAL_COLOR = '#d4a050'; // warm amber — active governance events within the constellation
-const MATCH_COLOR = '#f59e0b'; // Warm amber — distinct from teal, purple, gold
+// Colors, constants, and types imported from canonical modules
+import {
+  DREP_COLOR,
+  SPO_COLOR,
+  USER_COLOR,
+  PROPOSAL_COLOR,
+  MATCH_COLOR,
+  AXIAL_TILT,
+  INITIAL_CAMERA,
+  INITIAL_TARGET,
+  DEFAULT_ROTATION_SPEED,
+  POINT_SCALE,
+  NETWORK_EDGE_COLORS,
+  PULSE_COLORS,
+  PULSE_COUNT,
+  DEFAULT_FOCUS,
+} from '@/lib/globe/types';
+import type { FocusState, SceneState } from '@/lib/globe/types';
+import { getSharedFocus, setSharedFocus, getSharedFocusVersion } from '@/lib/globe/focusState';
+import {
+  ATMOSPHERE_VERT,
+  ATMOSPHERE_FRAG,
+  NODE_VERT,
+  NODE_FRAG,
+  SPO_FRAG,
+  PULSE_VERT,
+  PULSE_FRAG,
+} from '@/lib/globe/shaders';
+import { rotateAroundY, sleep, estimateGPUTier } from '@/lib/globe/helpers';
 
 interface GlobeConstellationProps {
   interactive?: boolean;
@@ -77,93 +103,7 @@ interface GlobeConstellationProps {
   visitedNodeIds?: Set<string>;
 }
 
-/**
- * FocusState — Universal focus/unfocus abstraction for the globe.
- *
- * Every visual mode (match flow, single node flyTo, vote split, temporal replay,
- * warm topic, overlay modes) writes to this single state. NodePoints reads ONLY
- * this to decide how to render each node — producing consistent "Cerebro" visuals
- * regardless of the trigger.
- */
-export interface FocusState {
-  /** Whether any focus mode is active — when true, unfocused nodes dim */
-  active: boolean;
-  /** Set of node IDs that are "in focus" — these glow, everything else dims */
-  focusedIds: Set<string>;
-  /** Per-node intensity (0-1) for focused nodes — drives glow strength, size boost */
-  intensities: Map<string, number>;
-  /** 0-1 scan progress — drives progressive unfocused fade (match flow advances this) */
-  scanProgress: number;
-  /** Optional color override per node (vote split colors, overlay modes) */
-  colorOverrides: Map<string, string> | null;
-  /** When set, only this node type can be focused — others are always unfocused */
-  nodeTypeFilter: string | null;
-  /** Staggered activation delays (seconds) per node — enables shockwave/sweep effects */
-  activationDelays: Map<string, number> | null;
-  /** Intermediate-brightness nodes ("maybes") with brightness level 0-1 */
-  intermediateIds: Map<string, number> | null;
-}
-
-const DEFAULT_FOCUS: FocusState = {
-  active: false,
-  focusedIds: new Set(),
-  intensities: new Map(),
-  scanProgress: 0,
-  colorOverrides: null,
-  nodeTypeFilter: null,
-  activationDelays: null,
-  intermediateIds: null,
-};
-
-// Window-level shared focus state — bridges React outer tree ↔ R3F Canvas tree.
-// R3F's reconciler doesn't re-render components inside <Canvas> when parent state
-// changes. Module-level variables can be duplicated by bundler chunk splitting.
-// Window globals are truly shared — no boundary issues possible.
-const FOCUS_KEY = '__globeFocusState' as const;
-const FOCUS_VER_KEY = '__globeFocusVersion' as const;
-
-function getSharedFocus(): FocusState {
-  if (typeof window === 'undefined') return DEFAULT_FOCUS;
-  return ((window as unknown as Record<string, unknown>)[FOCUS_KEY] as FocusState) ?? DEFAULT_FOCUS;
-}
-
-function setSharedFocus(focus: FocusState): void {
-  if (typeof window === 'undefined') return;
-  const w = window as unknown as Record<string, unknown>;
-  w[FOCUS_KEY] = focus;
-  w[FOCUS_VER_KEY] = ((w[FOCUS_VER_KEY] as number) ?? 0) + 1;
-}
-
-function getSharedFocusVersion(): number {
-  if (typeof window === 'undefined') return 0;
-  return ((window as unknown as Record<string, unknown>)[FOCUS_VER_KEY] as number) ?? 0;
-}
-
-interface SceneState {
-  nodes: ConstellationNode3D[];
-  edges: ConstellationEdge3D[];
-  nodeMap: Map<string, ConstellationNode3D>;
-  pulseId: string | null;
-  animating: boolean;
-  flyToTarget: [number, number, number] | null;
-  flyToActive: boolean;
-  /** Universal focus state — the single source of truth for node visual treatment */
-  focus: FocusState;
-  /** Raw vote data — feeds into focus.colorOverrides but needed by temporal scrubber UI */
-  voteSplitMap: Map<string, 'Yes' | 'No' | 'Abstain'> | null;
-  /** Temporal replay: 0-1 progress through an epoch's governance events */
-  temporalProgress: number;
-  /** Temporal replay: cumulative vote map built as progress advances */
-  temporalVoteMap: Map<string, 'Yes' | 'No' | 'Abstain'>;
-  /** Whether temporal replay mode is active */
-  temporalActive: boolean;
-}
-
-// Earth-like axial tilt: 23.4 degrees
-const AXIAL_TILT = 23.4 * (Math.PI / 180);
-const INITIAL_CAMERA: [number, number, number] = [0, 3, 14];
-const INITIAL_TARGET: [number, number, number] = [0, 0, 0];
-const DEFAULT_ROTATION_SPEED = 0.005; // slow, contemplative rotation (~21 min/revolution)
+// FocusState, SceneState, constants, and focus bridge functions are now imported from lib/globe/
 
 export const GlobeConstellation = forwardRef<
   import('@/components/GovernanceConstellation').ConstellationRef,
@@ -1146,157 +1086,15 @@ export const GlobeConstellation = forwardRef<
   );
 });
 
-// --- Atmospheric glow shell (fresnel rim effect) ---
-
-const ATMOSPHERE_VERT = /* glsl */ `
-varying vec3 vNormal;
-varying vec3 vWorldPosition;
-
-void main() {
-  vNormal = normalize(normalMatrix * normal);
-  vec4 worldPos = modelMatrix * vec4(position, 1.0);
-  vWorldPosition = worldPos.xyz;
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-}
-`;
-
-const ATMOSPHERE_FRAG = /* glsl */ `
-uniform vec3 uColor;
-uniform float uIntensity;
-varying vec3 vNormal;
-varying vec3 vWorldPosition;
-
-void main() {
-  // Fresnel: bright at edges, transparent in center
-  vec3 viewDir = normalize(cameraPosition - vWorldPosition);
-  float fresnel = 1.0 - abs(dot(viewDir, vNormal));
-  float rim = pow(fresnel, 3.0) * uIntensity;
-  gl_FragColor = vec4(uColor, rim);
-}
-`;
-
-function GlobeAtmosphere({
-  radius,
-  color,
-  warmColor,
-  intensity,
-  matchProgress = 0,
-}: {
-  radius: number;
-  color: string;
-  warmColor?: string;
-  intensity: number;
-  matchProgress?: number;
-}) {
-  const lerpedColor = useMemo(() => {
-    if (!warmColor || matchProgress <= 0) return new THREE.Color(color);
-    return new THREE.Color(color).lerp(new THREE.Color(warmColor), matchProgress);
-  }, [color, warmColor, matchProgress]);
-
-  const uniforms = useMemo(
-    () => ({
-      uColor: { value: lerpedColor },
-      uIntensity: { value: intensity },
-    }),
-    [lerpedColor, intensity],
-  );
-
-  return (
-    <mesh>
-      <sphereGeometry args={[radius, 48, 48]} />
-      <shaderMaterial
-        vertexShader={ATMOSPHERE_VERT}
-        fragmentShader={ATMOSPHERE_FRAG}
-        uniforms={uniforms}
-        transparent
-        side={THREE.FrontSide}
-        depthWrite={false}
-        blending={THREE.AdditiveBlending}
-        toneMapped={false}
-      />
-    </mesh>
-  );
-}
-
 // GlobeWireframe removed — the latitude lines (especially the equator ring) were visually
 // distracting and didn't clearly convey meaning. The atmosphere shells and node positions
 // provide sufficient spatial reference.
 
-// --- Point sprite shaders (same as original constellation) ---
-
-const POINT_SCALE = 3.0;
-
-const NODE_VERT = /* glsl */ `
-attribute float aSize;
-attribute float aDimmed;
-attribute vec3 aNodeColor;
-varying vec3 vColor;
-varying float vAlpha;
-varying float vDimmed;
-
-void main() {
-  vColor = aNodeColor;
-  vDimmed = aDimmed;
-  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-  gl_PointSize = aSize * 600.0 / -mvPosition.z;
-  gl_PointSize = clamp(gl_PointSize, 1.0, 128.0);
-  vAlpha = mix(1.0, 0.06, smoothstep(0.0, 1.0, aDimmed));
-  gl_Position = projectionMatrix * mvPosition;
-}
-`;
-
-const NODE_FRAG = /* glsl */ `
-varying vec3 vColor;
-varying float vAlpha;
-varying float vDimmed;
-
-void main() {
-  float dist = length(gl_PointCoord - vec2(0.5));
-  if (dist > 0.5) discard;
-  float glow = 1.0 - smoothstep(0.0, 0.5, dist);
-  float core = 1.0 - smoothstep(0.0, 0.15, dist);
-  vec3 col = vColor * (1.0 + core * 1.5);
-  // Continuous desaturation — supports intermediate "maybe" states
-  float dimAmount = smoothstep(0.3, 0.8, vDimmed);
-  float lum = dot(col, vec3(0.299, 0.587, 0.114));
-  col = mix(col, vec3(lum * 0.15), dimAmount);
-  gl_FragColor = vec4(col, glow * vAlpha);
-}
-`;
-
-// Diamond-shaped fragment shader for SPO infrastructure nodes
-const SPO_FRAG = /* glsl */ `
-varying vec3 vColor;
-varying float vAlpha;
-varying float vDimmed;
-
-void main() {
-  vec2 p = gl_PointCoord - vec2(0.5);
-  // Diamond (rotated square) distance: |x| + |y|
-  float diamond = abs(p.x) + abs(p.y);
-  if (diamond > 0.5) discard;
-  float glow = 1.0 - smoothstep(0.0, 0.5, diamond);
-  float core = 1.0 - smoothstep(0.0, 0.15, diamond);
-  vec3 col = vColor * (1.0 + core * 2.0);
-  // Continuous desaturation — supports intermediate "maybe" states
-  float dimAmount = smoothstep(0.3, 0.8, vDimmed);
-  float lum = dot(col, vec3(0.299, 0.587, 0.114));
-  col = mix(col, vec3(lum * 0.15), dimAmount);
-  gl_FragColor = vec4(col, glow * vAlpha);
-}
-`;
-
-// CC sentinel shader removed — CC symbology TBD, using standard node shader for now
-
-// CC_FRAG removed — CC nodes now rendered via CCCrownRing (golden crown) instead of point sprites
+// Node and SPO shaders imported from lib/globe/shaders.ts
 
 // --- Network edge lines (rendered inside TiltedGlobeGroup) ---
 
-const NETWORK_EDGE_COLORS: Record<string, string> = {
-  delegation: '#2dd4bf',
-  alignment: '#fbbf24',
-  'cc-drep': '#a78bfa',
-};
+// NETWORK_EDGE_COLORS imported from lib/globe/types
 
 function NetworkEdgeLines({ nodes, visible }: { nodes: ConstellationNode3D[]; visible: boolean }) {
   // Fetch edge data from API
@@ -1381,15 +1179,7 @@ function NetworkEdgeLines({ nodes, visible }: { nodes: ConstellationNode3D[]; vi
 }
 
 // --- Scene sub-components ---
-
-function RaycastConfig() {
-  const raycaster = useThree((s) => s.raycaster);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/immutability -- Three.js raycaster params must be mutated directly
-    raycaster.params.Points = { threshold: 1.8 };
-  }, [raycaster]);
-  return null;
-}
+// RaycastConfig extracted to components/globe/GlobeAmbient.tsx
 
 function ConstellationNodes({
   nodes,
@@ -2147,114 +1937,14 @@ function NeuralMesh({
   );
 }
 
-// --- Ambient starfield (same as original) ---
-
-function seededRandom(seed: number) {
-  let s = seed;
-  return () => {
-    s = (s * 16807 + 0) % 2147483647;
-    return (s - 1) / 2147483646;
-  };
-}
-
-function makeCircleTexture() {
-  const canvas = document.createElement('canvas');
-  canvas.width = 32;
-  canvas.height = 32;
-  const ctx = canvas.getContext('2d')!;
-  const g = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
-  g.addColorStop(0, 'rgba(255,255,255,1)');
-  g.addColorStop(0.5, 'rgba(255,255,255,0.4)');
-  g.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, 32, 32);
-  return new THREE.CanvasTexture(canvas);
-}
-
-function AmbientStarfield({ count }: { count: number }) {
-  const circleMap = useMemo(() => makeCircleTexture(), []);
-
-  const points = useMemo(() => {
-    const rand = seededRandom(42);
-    const positions = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-      const r = 20 + rand() * 30;
-      const theta = rand() * Math.PI * 2;
-      const phi = Math.acos(2 * rand() - 1);
-      positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
-      positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
-      positions[i * 3 + 2] = r * Math.cos(phi);
-    }
-    return positions;
-  }, [count]);
-
-  return (
-    <points>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" args={[points, 3]} />
-      </bufferGeometry>
-      <pointsMaterial
-        size={0.06}
-        map={circleMap}
-        color="#c0d0ff"
-        transparent
-        opacity={0.5}
-        sizeAttenuation
-        toneMapped={false}
-        blending={THREE.AdditiveBlending}
-        depthWrite={false}
-      />
-    </points>
-  );
-}
+// AmbientStarfield extracted to components/globe/GlobeAmbient.tsx
 
 // --- Subtle inner glow (planet core visible through translucent surface) ---
 
 // InnerGlow removed — the center opaque sphere was visually distracting.
 // Point light preserved inline in the scene tree.
 
-// --- Network pulse particles (light flowing along edges) ---
-
-const PULSE_COUNT = 70;
-
-const PULSE_VERT = /* glsl */ `
-attribute float aSize;
-attribute float aAlpha;
-attribute vec3 aPulseColor;
-varying float vAlpha;
-varying vec3 vPulseColor;
-
-void main() {
-  vAlpha = aAlpha;
-  vPulseColor = aPulseColor;
-  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-  gl_PointSize = aSize * 600.0 / -mvPosition.z;
-  gl_PointSize = clamp(gl_PointSize, 2.0, 48.0);
-  gl_Position = projectionMatrix * mvPosition;
-}
-`;
-
-const PULSE_FRAG = /* glsl */ `
-varying float vAlpha;
-varying vec3 vPulseColor;
-
-void main() {
-  float dist = length(gl_PointCoord - vec2(0.5));
-  if (dist > 0.5) discard;
-  float glow = 1.0 - smoothstep(0.0, 0.5, dist);
-  float core = 1.0 - smoothstep(0.0, 0.15, dist);
-  vec3 col = vPulseColor * (1.0 + core * 2.0);
-  gl_FragColor = vec4(col, glow * vAlpha);
-}
-`;
-
-// Color for each edge type's pulses
-const PULSE_COLORS: Record<string, [number, number, number]> = {
-  orbital: [1.0, 0.75, 0.15], // gold
-  infrastructure: [0.65, 0.55, 0.95], // purple
-  proximity: [0.18, 0.83, 0.75], // teal
-  lastmile: [0.3, 0.5, 0.6], // muted blue
-};
+// Pulse shaders, PULSE_COUNT, PULSE_COLORS imported from lib/globe/shaders.ts and lib/globe/types.ts
 
 function NetworkPulses({
   edges,
@@ -2609,144 +2299,12 @@ function GloryRing({
   );
 }
 
-// --- Globe rotation group: Y-axis with Earth-like axial tilt ---
-
-/**
- * Subtle camera wobble: gentle oscillation of azimuth angle
- * to make the globe feel alive even when Seneca is idle.
- * Amplitude ~0.0003 rad/frame, period ~12s.
- */
-function IdleCameraWobble({
-  controlsRef,
-}: {
-  controlsRef: React.RefObject<CameraControls | null>;
-}) {
-  useFrame(({ clock }) => {
-    if (!controlsRef.current) return;
-    const t = clock.getElapsedTime();
-    // Gentle azimuth drift
-    controlsRef.current.azimuthAngle += Math.sin(t * 0.52) * 0.0002;
-  });
-  return null;
-}
-
-/**
- * CinematicCamera — Per-frame smooth camera motion for theatrical choreography.
- * Continuously orbits at configurable speed and smoothly dolly-zooms to target distance.
- * Only active when orbitSpeed > 0 or dollyTarget differs from current.
- */
-function CinematicCamera({
-  controlsRef,
-  orbitSpeed,
-  dollyTarget,
-}: {
-  controlsRef: React.RefObject<CameraControls | null>;
-  orbitSpeed: number;
-  dollyTarget: number;
-}) {
-  const currentDolly = useRef(14);
-
-  useFrame((_, delta) => {
-    const controls = controlsRef.current;
-    if (!controls) return;
-
-    // Smooth orbit: per-frame azimuth accumulation (cinematic takes over from idle wobble)
-    if (Math.abs(orbitSpeed) > 0.001) {
-      controls.azimuthAngle += orbitSpeed * delta;
-    }
-
-    // Smooth dolly: exponential smoothing toward target distance
-    const dollyDiff = dollyTarget - currentDolly.current;
-    if (Math.abs(dollyDiff) > 0.05) {
-      // Frame-rate independent exponential decay: approaches target smoothly
-      const factor = 1 - Math.pow(0.05, delta);
-      currentDolly.current += dollyDiff * factor;
-      controls.dollyTo(currentDolly.current, false);
-    }
-  });
-
-  return null;
-}
-
-function TiltedGlobeGroup({
-  rotationRef,
-  speedRef,
-  breathing,
-  urgency,
-  children,
-}: {
-  rotationRef: React.RefObject<number>;
-  speedRef: React.RefObject<number>;
-  breathing?: boolean;
-  urgency?: number;
-  children: React.ReactNode;
-}) {
-  const groupRef = useRef<THREE.Group>(null);
-  const currentSpeedRef = useRef(0);
-
-  useFrame(({ clock }, delta) => {
-    if (groupRef.current) {
-      // Smooth rotation speed transitions — eased start/stop instead of abrupt
-      const targetSpeed = speedRef.current;
-      currentSpeedRef.current +=
-        (targetSpeed - currentSpeedRef.current) * (1 - Math.pow(0.01, delta));
-      rotationRef.current += delta * currentSpeedRef.current;
-
-      // Apply axial tilt on X, then spin on Y (local)
-      groupRef.current.rotation.x = AXIAL_TILT;
-      groupRef.current.rotation.y = rotationRef.current;
-
-      // Breathing: gentle rhythmic scale pulse
-      if (breathing) {
-        // Heartbeat rate: 8-16 bpm based on urgency (0-100)
-        const bpm = 8 + ((urgency ?? 30) / 100) * 8;
-        const freq = bpm / 60; // Hz
-        const t = clock.getElapsedTime();
-        // Double-bump heartbeat shape: two quick pulses then rest
-        const phase = (t * freq) % 1;
-        const beat =
-          phase < 0.1
-            ? Math.sin((phase * Math.PI) / 0.1) * 0.003
-            : phase < 0.2
-              ? Math.sin(((phase - 0.1) * Math.PI) / 0.1) * 0.0015
-              : 0;
-        const scale = 1 + beat;
-        groupRef.current.scale.setScalar(scale);
-      }
-    }
-  });
-
-  return <group ref={groupRef}>{children}</group>;
-}
+import {
+  IdleCameraWobble,
+  CinematicCamera,
+  TiltedGlobeGroup,
+} from '@/components/globe/GlobeCamera';
 
 // HeartbeatPulse and InnerGlow removed — visually distracting
 
-// --- Helpers ---
-
-function rotateAroundY(pos: [number, number, number], angle: number): [number, number, number] {
-  const c = Math.cos(angle);
-  const s = Math.sin(angle);
-  // Also account for axial tilt
-  const x1 = pos[0] * c + pos[2] * s;
-  const z1 = -pos[0] * s + pos[2] * c;
-  // Apply tilt
-  const y2 = pos[1] * Math.cos(AXIAL_TILT) - z1 * Math.sin(AXIAL_TILT);
-  const z2 = pos[1] * Math.sin(AXIAL_TILT) + z1 * Math.cos(AXIAL_TILT);
-  return [x1, y2, z2];
-}
-
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function estimateGPUTier(): 'low' | 'mid' | 'high' {
-  if (typeof window === 'undefined') return 'mid';
-  const canvas = document.createElement('canvas');
-  const gl = canvas.getContext('webgl');
-  if (!gl) return 'low';
-  const ext = gl.getExtension('WEBGL_debug_renderer_info');
-  const renderer = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL).toLowerCase() : '';
-  if (/swiftshader|llvmpipe|mesa/i.test(renderer)) return 'low';
-  if (window.innerWidth < 768) return 'mid';
-  return 'high';
-}
+// Helpers (rotateAroundY, sleep, estimateGPUTier) imported from lib/globe/helpers.ts
