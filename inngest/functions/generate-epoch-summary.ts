@@ -8,6 +8,11 @@ import { getSupabaseAdmin } from '@/lib/supabase';
 import { blockTimeToEpoch } from '@/lib/koios';
 import { errMsg } from '@/lib/sync-utils';
 import { logger } from '@/lib/logger';
+import { detectClusters } from '@/lib/globe/clusterDetection';
+import { nameAllClusters } from '@/lib/globe/clusterNaming';
+import { extractAlignments, alignmentsToArray, getDominantDimension } from '@/lib/drepIdentity';
+import { getRedis } from '@/lib/redis';
+import type { LayoutInput } from '@/lib/constellation/globe-layout';
 
 const USER_BATCH = 50;
 
@@ -51,6 +56,90 @@ export const generateEpochSummary = inngest.createFunction(
     }
 
     const epoch = epochInfo.previousEpoch;
+
+    // Pre-compute governance faction clusters for the globe (step 1: K-means)
+    const clusterResult = await step.run('detect-governance-clusters', async () => {
+      const supabase = getSupabaseAdmin();
+      const { data: dreps } = await supabase
+        .from('dreps')
+        .select(
+          'id, score, info, alignment_treasury_conservative, alignment_treasury_growth, alignment_decentralization, alignment_security, alignment_innovation, alignment_transparency',
+        )
+        .gt('info->>votingPowerLovelace', '0')
+        .order('id')
+        .limit(700);
+
+      if (!dreps || dreps.length < 10) {
+        logger.warn('Too few DReps for cluster detection', { count: dreps?.length });
+        return null;
+      }
+
+      const maxPower = Math.max(
+        ...dreps.map((d) => {
+          const info = d.info as Record<string, unknown> | null;
+          return parseInt((info?.votingPowerLovelace as string) || '0', 10) || 0;
+        }),
+        1,
+      );
+
+      const inputs: LayoutInput[] = dreps.map((d) => {
+        const info = d.info as Record<string, unknown> | null;
+        const raw = parseInt((info?.votingPowerLovelace as string) || '0', 10) || 0;
+        const alignments = extractAlignments(d);
+        const arr = alignmentsToArray(alignments);
+        return {
+          id: (d.id as string).slice(0, 16),
+          fullId: d.id as string,
+          name: (info?.name as string) || (info?.ticker as string) || null,
+          power: raw / maxPower,
+          score: d.score || 0,
+          dominant: getDominantDimension(alignments),
+          alignments: arr,
+          nodeType: 'drep' as const,
+        };
+      });
+
+      const result = detectClusters(inputs);
+      logger.info('Cluster detection complete', {
+        k: result.k,
+        silhouette: result.silhouetteScore.toFixed(3),
+        clusters: result.clusters.length,
+      });
+      return result;
+    });
+
+    // Pre-compute governance faction clusters (step 2: AI naming + cache)
+    if (clusterResult) {
+      await step.run('name-and-cache-clusters', async () => {
+        const names = await nameAllClusters(clusterResult.clusters);
+
+        const payload = {
+          clusters: clusterResult.clusters.map((c) => {
+            const n = names.get(c.id) ?? {
+              name: `${c.dominantDimension} Faction`,
+              description: `A group of ${c.memberCount} DReps.`,
+            };
+            return {
+              id: c.id,
+              name: n.name,
+              description: n.description,
+              centroid6D: c.centroid6D,
+              centroidSphere: c.centroidSphere,
+              centroid3D: c.centroid3D,
+              memberCount: c.memberCount,
+              dominantDimension: c.dominantDimension,
+              memberIds: c.memberIds,
+            };
+          }),
+          silhouetteScore: clusterResult.silhouetteScore,
+          k: clusterResult.k,
+        };
+
+        const redis = getRedis();
+        await redis.set('clusters:constellation:latest', payload, { ex: 7 * 24 * 3600 });
+        return { clusters: clusterResult.clusters.length };
+      });
+    }
 
     const proposalStats = await step.run('gather-proposal-stats', async () => {
       const supabase = getSupabaseAdmin();

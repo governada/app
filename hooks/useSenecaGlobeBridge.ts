@@ -21,6 +21,7 @@ import type { BehaviorContext } from '@/lib/globe/behaviors/types';
 import { createMatchBehavior } from '@/lib/globe/behaviors/matchBehavior';
 import { createVoteSplitBehavior } from '@/lib/globe/behaviors/voteSplitBehavior';
 import { createTopicWarmBehavior } from '@/lib/globe/behaviors/topicWarmBehavior';
+import { createClusterBehavior } from '@/lib/globe/behaviors/clusterBehavior';
 
 // GlobeCommand is now canonically defined in lib/globe/types.ts.
 // Re-export for backwards compatibility — existing imports of GlobeCommand from this file still work.
@@ -49,10 +50,12 @@ export function useSenecaGlobeBridge(
     registerBehavior(createMatchBehavior(getGlobe));
     registerBehavior(createVoteSplitBehavior(getGlobe));
     registerBehavior(createTopicWarmBehavior(getGlobe));
+    registerBehavior(createClusterBehavior(getGlobe));
     return () => {
       unregisterBehavior('match');
       unregisterBehavior('voteSplit');
       unregisterBehavior('topicWarm');
+      unregisterBehavior('cluster');
     };
   }, [globeRef]);
 
@@ -150,6 +153,22 @@ export function useSenecaGlobeBridge(
 
         case 'cinematic':
           globe.setCinematicState(command.state);
+          break;
+
+        case 'flyToPosition':
+          globe.flyToPosition(command.target, {
+            distance: command.distance,
+            duration: command.duration,
+          });
+          break;
+
+        case 'narrowTo':
+          globe.narrowTo(command.nodeIds, {
+            cameraAngle: command.cameraAngle,
+            cameraElevation: command.cameraElevation,
+            scanProgress: command.scanProgress,
+            fly: command.fly,
+          });
           break;
       }
     },
