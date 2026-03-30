@@ -26,7 +26,7 @@ import { fetchTemporalData, type TemporalEpochData } from '@/lib/constellation/f
 import { parseEntityParam, encodeEntityParam } from '@/lib/homepage/parseEntityParam';
 import type { EntityRef } from '@/lib/homepage/parseEntityParam';
 import type { GlobeStreamCommand } from '@/lib/intelligence/streamAdvisor';
-import type { ConstellationRef } from '@/components/GovernanceConstellation';
+import type { ConstellationRef } from '@/lib/globe/types';
 import type { ConstellationNode3D } from '@/lib/constellation/types';
 import { useGlobeCommandListener } from '@/hooks/useGlobeCommandListener';
 import { SynapticBriefPanel } from './SynapticBriefPanel';

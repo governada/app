@@ -18,7 +18,7 @@
 import { useRef, useCallback, useEffect, useState } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import type { ConstellationRef } from '@/components/GovernanceConstellation';
+import type { ConstellationRef } from '@/lib/globe/types';
 import type { ConstellationNode3D } from '@/lib/constellation/types';
 import { useSenecaGlobeBridge } from '@/hooks/useSenecaGlobeBridge';
 import { useSenecaThread } from '@/hooks/useSenecaThread';

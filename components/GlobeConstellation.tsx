@@ -31,8 +31,7 @@ import type {
   ConstellationNode3D,
 } from '@/lib/constellation/types';
 
-// Types re-exported from canonical location — existing external imports still work
-export type { ConstellationRef } from '@/lib/globe/types';
+// ConstellationRef is now imported directly from '@/lib/globe/types' by all consumers
 
 import {
   INITIAL_CAMERA,
@@ -90,7 +89,7 @@ interface GlobeConstellationProps {
 // FocusState, SceneState, constants, and focus bridge functions are now imported from lib/globe/
 
 export const GlobeConstellation = forwardRef<
-  import('@/components/GovernanceConstellation').ConstellationRef,
+  import('@/lib/globe/types').ConstellationRef,
   GlobeConstellationProps
 >(function GlobeConstellation(
   {
