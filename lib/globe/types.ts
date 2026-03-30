@@ -122,6 +122,8 @@ export interface FocusState {
   activationDelays: Map<string, number> | null;
   /** Intermediate-brightness nodes ("maybes") with brightness level 0-1 */
   intermediateIds: Map<string, number> | null;
+  /** Match-derived user node position + glow intensity (spatial match flow) */
+  userNode?: { position: [number, number, number]; intensity: number } | null;
 }
 
 export const DEFAULT_FOCUS: FocusState = {
@@ -133,6 +135,7 @@ export const DEFAULT_FOCUS: FocusState = {
   nodeTypeFilter: null,
   activationDelays: null,
   intermediateIds: null,
+  userNode: null,
 };
 
 // ---------------------------------------------------------------------------
@@ -230,7 +233,9 @@ export type GlobeCommand =
   /** Discovery: show voting controversy on a proposal — colored by stance */
   | { type: 'showControversy'; proposalId: string }
   /** Discovery: highlight recently active entities */
-  | { type: 'showActiveEntities'; entityType: string; entityIds: string[] };
+  | { type: 'showActiveEntities'; entityType: string; entityIds: string[] }
+  /** Place match-derived user node on the globe (spatial match reveal) */
+  | { type: 'placeUserNode'; position: [number, number, number]; intensity: number };
 
 // ---------------------------------------------------------------------------
 // Color constants

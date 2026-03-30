@@ -595,6 +595,11 @@ export function SenecaThread({
                       | ((cmd: import('@/hooks/useSenecaGlobeBridge').GlobeCommand) => void)
                       | undefined
                   }
+                  onStartConversation={(query) => {
+                    onReturnToIdle();
+                    // Brief delay to let mode transition settle before starting conversation
+                    setTimeout(() => onStartConversation(query), 100);
+                  }}
                 />
               )}
 

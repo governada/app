@@ -32,6 +32,10 @@ interface MatchResultOverlayProps {
   onBackToTop: () => void;
   /** Called when user dismisses the overlay */
   onDismiss: () => void;
+  /** Cluster/neighborhood context from spatial match (Chunk 3) */
+  clusterContext?: { name: string; neighborCount: number } | null;
+  /** Whether spatial match mode is active (changes rank labels) */
+  spatialMode?: boolean;
 }
 
 /* ─── Dimension labels ─── */
@@ -63,6 +67,8 @@ export function MatchResultOverlay({
   isTopMatch,
   onBackToTop,
   onDismiss,
+  clusterContext,
+  spatialMode,
 }: MatchResultOverlayProps) {
   const prefersReducedMotion = useReducedMotion();
   const displayName = focusedMatch.drepName || focusedMatch.drepId.slice(0, 16) + '\u2026';
@@ -132,6 +138,18 @@ export function MatchResultOverlay({
           </motion.div>
         )}
 
+        {/* Cluster / neighborhood context (spatial match) */}
+        {clusterContext && (
+          <div className="flex items-center gap-2 mb-2 px-1">
+            <div className="h-1.5 w-1.5 rounded-full bg-primary/60 shrink-0" />
+            <span className="text-xs text-muted-foreground">
+              {clusterContext.name || 'Your neighborhood'} —{' '}
+              <span className="text-foreground/80">{clusterContext.neighborCount}</span> nearby
+              DReps
+            </span>
+          </div>
+        )}
+
         {/* Match rank label */}
         <div className="flex items-center gap-2 mb-2">
           <span
@@ -141,7 +159,11 @@ export function MatchResultOverlay({
             {focusedRank}
           </span>
           <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
-            {isTopMatch ? 'Your Top Match' : `Match #${focusedRank}`}
+            {spatialMode && isTopMatch
+              ? 'Closest Match'
+              : isTopMatch
+                ? 'Your Top Match'
+                : `Match #${focusedRank}`}
           </span>
         </div>
 

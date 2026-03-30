@@ -17,6 +17,7 @@ import { computeGlobeLayout } from '@/lib/constellation/globe-layout';
 import { DelegationBond as DelegationBondComponent } from '@/components/globe/DelegationBond';
 import { GlobeAtmosphere } from '@/components/globe/GlobeAtmosphere';
 import { AmbientStarfield } from '@/components/globe/GlobeAmbient';
+import { MatchUserNode } from '@/components/globe/MatchUserNode';
 import { NetworkEdgeLines, ConstellationEdges, NeuralMesh } from '@/components/globe/GlobeEdges';
 import {
   NetworkPulses,
@@ -1124,6 +1125,14 @@ export const GlobeConstellation = forwardRef<
 
             {/* R3F children (e.g., Html cluster labels) — rendered inside the tilted group */}
             {children}
+
+            {/* Match-derived user node (spatial match reveal — Chunk 3) */}
+            {sceneState.focus.userNode && (
+              <MatchUserNode
+                position={sceneState.focus.userNode.position}
+                intensity={sceneState.focus.userNode.intensity}
+              />
+            )}
           </TiltedGlobeGroup>
 
           {quality !== 'low' && (

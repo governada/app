@@ -23,6 +23,7 @@ import { createVoteSplitBehavior } from '@/lib/globe/behaviors/voteSplitBehavior
 import { createTopicWarmBehavior } from '@/lib/globe/behaviors/topicWarmBehavior';
 import { createClusterBehavior } from '@/lib/globe/behaviors/clusterBehavior';
 import { createDiscoveryBehavior } from '@/lib/globe/behaviors/discoveryBehavior';
+import { createSpatialMatchBehavior } from '@/lib/globe/behaviors/spatialMatchBehavior';
 
 // GlobeCommand is now canonically defined in lib/globe/types.ts.
 // Re-export for backwards compatibility — existing imports of GlobeCommand from this file still work.
@@ -53,12 +54,14 @@ export function useSenecaGlobeBridge(
     registerBehavior(createTopicWarmBehavior(getGlobe));
     registerBehavior(createClusterBehavior(getGlobe));
     registerBehavior(createDiscoveryBehavior(getGlobe));
+    registerBehavior(createSpatialMatchBehavior());
     return () => {
       unregisterBehavior('match');
       unregisterBehavior('voteSplit');
       unregisterBehavior('topicWarm');
       unregisterBehavior('cluster');
       unregisterBehavior('discovery');
+      unregisterBehavior('spatialMatch');
     };
   }, [globeRef]);
 

@@ -163,6 +163,77 @@ export function buildRevealSequence(
 }
 
 // ---------------------------------------------------------------------------
+// Stage 5b: Spatial Reveal — extends reveal with user node + neighborhood
+// ---------------------------------------------------------------------------
+
+/** Additional duration added by the spatial reveal steps. */
+const SPATIAL_EXTEND_MS = 3500;
+
+/**
+ * Total duration for the spatial reveal variant (existing reveal + spatial steps).
+ */
+export function getSpatialRevealDurationMs(matchCount: number): number {
+  return getRevealDurationMs(matchCount) + SPATIAL_EXTEND_MS;
+}
+
+/**
+ * Build the spatial match reveal sequence — existing reveal sequence plus
+ * user node placement, camera reframe to user position, and neighborhood glow.
+ *
+ * The key shift: the user's position becomes the destination, not the DRep's.
+ */
+export function buildSpatialRevealSequence(
+  topMatches: Array<{ nodeId: string }>,
+  alignment: number[],
+  threshold: number,
+  userPosition: [number, number, number],
+): GlobeCommand {
+  // Get the existing reveal sequence steps
+  const baseReveal = buildRevealSequence(topMatches, alignment, threshold);
+  const baseSteps: SequenceStep[] = baseReveal.type === 'sequence' ? baseReveal.steps : [];
+
+  // Append spatial steps after the existing reveal
+  const spatialSteps: SequenceStep[] = [
+    // User node appears with warm gold glow
+    {
+      command: { type: 'placeUserNode', position: userPosition, intensity: 1.0 },
+      delayMs: 800,
+    },
+    // Camera flies to the user's position — "here's where YOU belong"
+    {
+      command: { type: 'flyToPosition', target: userPosition, distance: 3.5, duration: 2.0 },
+      delayMs: 400,
+    },
+    // Neighborhood DReps glow with match intensity
+    {
+      command: {
+        type: 'highlight',
+        alignment,
+        threshold: 9999,
+        topN: 15,
+        drepOnly: true,
+        noZoom: true,
+        scanProgressOverride: 0.15,
+      },
+      delayMs: 1500,
+    },
+    // Gentle pullback to show the neighborhood
+    {
+      command: {
+        type: 'cinematic',
+        state: { orbitSpeed: 0.003, dollyTarget: 6, dimTarget: 0.3, transitionDuration: 1.5 },
+      },
+      delayMs: 800,
+    },
+  ];
+
+  return {
+    type: 'sequence',
+    steps: [...baseSteps, ...spatialSteps],
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Cleanup: restore globe to normal
 // ---------------------------------------------------------------------------
 
