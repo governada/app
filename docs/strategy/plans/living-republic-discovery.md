@@ -57,6 +57,24 @@ The choreographer (`lib/globe/choreographer.ts`) handles timing, cancellation, a
 **5. Debug overlay for verification.**
 Each chunk should include a `__DEV__` mode overlay rendering FocusState, active behaviors, and pending choreographies as JSON in a fixed panel. Agents verify globe state by reading this data, not by interpreting screenshots.
 
+**6. CRITICAL: Read all existing infrastructure before building anything.**
+Before proposing any new files in `lib/globe/` or `lib/constellation/`, the agent MUST read ALL existing files in those directories and document what each one does:
+
+```
+lib/constellation/*.ts
+lib/globe/**/*.ts
+components/globe/*.tsx
+hooks/useSenecaGlobeBridge.ts
+```
+
+Building a parallel system that duplicates existing functionality will be rejected. The codebase was recently refactored (50% code reduction) to be clean and maintainable. The goal is always to **extend and refine**, never to build a second version alongside the first.
+
+**7. Pure functions stay pure. Never inject window globals into computation functions.**
+Functions in `lib/constellation/globe-layout.ts` (`computeGlobeLayout`, `computeSpherePosition`) are pure layout computations — they take input data and return position data with **no side effects**. Never add `window.*` reads, `getSharedFocus()`, React state reads, or any environmental dependencies inside these functions. If runtime configuration is needed (e.g., layout mode selector), pass it as an **explicit parameter** to the function. Violation example: adding `if (getLayoutState() === 'alignment') {...}` inside `computeGlobeLayout()` is forbidden.
+
+**8. No `key` prop re-mounting as a proxy for animation.**
+Never use React `key` prop changes to force re-mounting components as a substitute for animated transitions. Re-mounting `ConstellationScene` destroys and recreates the entire Three.js scene (GPU resources, textures, geometries, all actor state). State transitions must flow through the behavior → FocusState → `useFrame` pattern. If a smooth animated transition to a new state is not yet possible, that is a gap to document and address, not a reason to use `key`.
+
 ### Visual Quality Standard: "Holographic Data Energy"
 
 NOT weather/nature metaphors. The visual language is:
@@ -119,12 +137,14 @@ Only potential addition: **simplex noise GLSL function** for smooth regional gra
 - **Peek system**: PeekDrawerProvider + entity-specific peeks (DRep, Pool, Proposal, CC). **Keep for quick glances.**
 - **ListOverlay**: Left panel with filtered entity list + sort. **Keep as a secondary discovery path.**
 
-### Globe Layout (Foundation — Keep)
+### Globe Layout (Foundation — Keep and Extend, Never Replace)
 
+- **`lib/constellation/globe-layout.ts`**: The layout engine. `computeGlobeLayout()` is a pure function that already positions nodes by governance alignment. `computeSpherePosition()` maps each node's 6D alignment vector to lon/lat using weighted directional accumulation across 6 dimension sectors (60° longitude bands each). **This is the alignment layout. It already works. Do not duplicate it.**
+- **`lib/constellation/types.ts`**: `LayoutInput`, `ConstellationNode3D`, `LayoutResult`, `GovernanceNodeType`
 - **GlobeLayout.tsx**: Full-viewport globe with z-layered overlays, URL state, command listener, Seneca integration
 - **ConstellationScene.tsx**: Thin wrapper for the R3F globe
 - **GlobeControls.tsx**: Floating top-left controls
-- **Status:** Solid orchestration. The URL state system, overlay management, and command listener are well-structured.
+- **Status:** Solid orchestration. The URL state system, overlay management, and command listener are well-structured. The spatial layout is alignment-based and correct — what's missing is cluster detection (naming the factions), cluster labels, and cross-feature metadata.
 
 ### Seneca Thread (Keep + Extend)
 
@@ -142,81 +162,100 @@ Each chunk is independently plannable, buildable, and deployable behind feature 
 
 ### Chunk 1: Semantic Spatial Layout — "The Geography"
 
-**JTBD:** Make the globe reveal governance structure through spatial organization. DReps who think alike are neighbors. Governance factions are visible as clusters.
+**JTBD:** Make the governance factions that already exist in the spatial layout _visible_ — named, labelled, and Seneca-accessible — so users can understand what the clusters mean, not just see that nodes are grouped.
 
-**Why this is foundational:** Every subsequent chunk depends on governance entities being spatially organized by alignment rather than arbitrary type clusters. Without this, regional energy, faction narratives, and spatial match reveals are meaningless.
+**CRITICAL: What already exists — read this before touching any code.**
+
+`lib/constellation/globe-layout.ts` contains two critical functions that ALREADY implement alignment-based positioning. Do NOT duplicate or replace them:
+
+- **`computeSpherePosition(input: LayoutInput): [lon, lat]`** — maps a node's 6D alignment vector to a sphere position via weighted directional accumulation. Each of the 6 governance dimensions (`alignment_treasury_conservative`, `alignment_treasury_growth`, `alignment_decentralization`, `alignment_security`, `alignment_innovation`, `alignment_transparency`) maps to a longitude sector (60° apart). The weighted directional vector of all dimension scores determines the final longitude + ±30° jitter. Specialization strength (how opinionated the node is) drives latitude toward the poles.
+
+- **`computeGlobeLayout(inputs, nodeLimit)`** — the full layout engine. Calls `computeSpherePosition()` for every DRep/CC, uses geo coordinates for SPOs. Returns `{ nodes, edges, nodeMap }`. This is a **pure function** — no window globals, no React state.
+
+The globe IS already alignment-aware. DReps who align with the same governance dimension ARE already spatial neighbors. What's missing is:
+
+1. No explicit cluster detection (we can't name the factions or show their centroids)
+2. No cluster labels visible on the globe
+3. No API endpoint serving cluster metadata to Seneca or other features
+4. No way for Seneca to reference "the Innovation Quarter" or "Treasury Conservatives" as named places
+
+**Why this is foundational:** Chunks 2-6 reference named factions (Seneca says "You're in the Innovation Quarter"), regional energy needs cluster centroids, and spatial match needs cluster context. Chunk 1 provides the faction metadata that everything else points to.
+
+**What Chunk 1 is NOT:**
+
+- NOT a new layout engine (the layout works and should not be replaced)
+- NOT a PCA rewrite (the existing weighted-direction approach outperforms PCA for this use case: PCA explained variance in the first 2 components was measured at only ~22%, well below the 50% threshold — the current sectored-longitude approach already captures governance-relevant structure better)
+- NOT a smooth transition animation between "old" and "new" layouts (there is one layout; the animation question only arises if a toggle is later added, which is deferred)
 
 **Scope:**
 
-1. Compute PCA-2D projection of 6D alignment vectors → node x,y positions on globe surface
-2. K-means cluster detection (k=5-8) on alignment vectors → faction boundaries
-3. Cluster naming via Claude (one-shot per epoch, cached)
-4. Smooth animated transition between current type-based layout and alignment layout
-5. Layout toggle in GlobeControls (type clusters vs. alignment geography)
-6. Cluster labels rendered as floating text near cluster centroids
-7. URL state: `?layout=alignment` (default for authenticated) or `?layout=type` (default for anon first visit)
-8. Feature flag: `globe_alignment_layout`
+1. **Cluster detection on existing positions:** Run K-means (k=5-8) on the existing alignment vectors (the same 6D space `computeSpherePosition()` uses) to identify governance factions. Output: `{ clusterId, centroid6D, centroidSphere[lon,lat], memberIds, dominantDimension, memberCount }[]`
+2. **Cluster naming via Claude:** One-shot prompt per detected cluster, cached per epoch. Input: cluster centroid's dimension weights + top member alignment patterns. Output: faction name (e.g., "Treasury Conservatives", "Infrastructure Advocates") + 1-sentence description.
+3. **Clusters API endpoint:** `GET /api/governance/constellation/clusters` — returns cluster metadata (name, centroid, member count, dominant dimension). Cached in Redis, TTL = 1 epoch.
+4. **Cluster labels on the globe:** Floating text labels at cluster centroids, visible at medium-low zoom, fade at close zoom. Rendered as R3F `<Html>` elements (same pattern as existing node tooltips). Labels are the faction name in `font-mono text-xs text-muted-foreground/60`.
+5. **Cluster highlight command:** New command `highlightCluster` that dims non-member nodes and pulses member nodes. Used by Seneca in Chunk 2.
+6. **Pre-compute in Inngest:** Add a step to the existing epoch sync function to pre-compute + cache cluster data at each epoch boundary.
+7. Feature flag: `globe_alignment_layout`
 
 **Files to create:**
 
-- `lib/globe/alignmentLayout.ts` — PCA projection + sphere surface mapping
-- `lib/globe/clusterDetection.ts` — K-means + cluster metadata + Claude naming
-- `lib/globe/behaviors/layoutBehavior.ts` — handles `setLayout` command type
-- `app/api/governance/constellation/clusters/route.ts` — cluster data endpoint (cached)
-- Inngest function step in existing sync: pre-compute layout + clusters at epoch boundary
+- `lib/globe/clusterDetection.ts` — pure K-means on 6D alignment vectors: `detectClusters(inputs: LayoutInput[]) → Cluster[]`. Uses K-means++ initialization for stability. No external library needed (k=5-8, n≤700 is fast in pure TS).
+- `lib/globe/behaviors/clusterBehavior.ts` — handles `highlightCluster` command: dims non-members, highlights cluster members, pulses centroid
+- `app/api/governance/constellation/clusters/route.ts` — serve cached cluster data (force-dynamic)
 
 **Files to modify (minimal, no rendering layer):**
 
-- `lib/globe/types.ts` — add `setLayout` command type, add `layoutMode` to GlobeCommand union
-- `useSenecaGlobeBridge.ts` — register layoutBehavior
+- `lib/globe/types.ts` — add `highlightCluster` command type with `{ clusterId: string }` payload
+- `hooks/useSenecaGlobeBridge.ts` — register clusterBehavior (one line)
+- Existing Inngest epoch sync function — add cluster pre-computation step
 
-**Data computation (server-side, pure math):**
+**Files to NOT modify:**
 
-- PCA already exists in `lib/alignment/pca.ts` — reuse for dimensionality reduction
-- New: `computeAlignmentPositions(dreps[], spos[])` → `{ nodeId, x, y, z }[]` using PCA first 2 components projected onto sphere surface
-- New: `detectClusters(positions[])` → `{ clusterId, centroid, memberCount, name, dominantDimension }[]`
-- SPOs positioned by their alignment vectors too (same 6D space via `spo_alignment_snapshots`)
-- Proposals positioned near the cluster centroid of their most-relevant dimension
-- CC members positioned near the governance center (they span all dimensions)
-- Cache: Redis or `alignment_layout_cache` Supabase table, TTL = 1 epoch
+- `lib/constellation/globe-layout.ts` — DO NOT touch. The layout is correct and pure. If you believe it needs changing, stop and document the justification before proceeding.
+- `GlobeConstellation.tsx`, `NodePoints.tsx`, `GlobeCamera.tsx` — rendering layer, NEVER modify.
 
-**How the layout transition works (no rendering changes needed):**
+**How cluster detection works:**
 
-- Node positions are already per-instance attributes in NodePoints
-- The layout behavior computes new positions and dispatches a `setNodePositions` command
-- GlobeConstellation already interpolates (lerps) positions in `useFrame` when positions change
-- Transition duration: 2 seconds (configurable)
+- Input: `LayoutInput[]` — each has `alignments: number[]` (6D, 0-100 percentile each)
+- Run K-means on raw 6D alignment vectors (not projected positions — work in native alignment space)
+- k-selection: try k=5 through k=8, pick k that maximizes silhouette score
+- `centroidSphere` is computed by calling `computeSpherePosition()` on a synthetic `LayoutInput` whose `alignments` = cluster centroid6D (import the function from `globe-layout.ts`)
 
 **How cluster labels work:**
 
-- Rendered as Three.js `<Html>` elements (R3F's HTML-in-3D bridge) at cluster centroid positions
-- These follow the camera naturally and fade by distance
-- Low complexity — same pattern as existing node tooltips
+- One `<Html>` element per cluster, positioned at the `centroidSphere` coordinates projected to 3D via `sphereToCartesian()` (exported from `globe-layout.ts`)
+- Labels fade when camera is very close (< r=4 from centroid) to avoid clutter during node inspection
 
 **Agent guidance:**
 
-- Start by reading `lib/alignment/pca.ts` and `lib/alignment/dimensions.ts`
-- Position computation is pure math — no Three.js knowledge needed
-- The layout behavior dispatches position updates. NodePoints already handles position interpolation.
-- Test: compute positions for 10 DReps, verify that DReps with similar alignment vectors get nearby positions
-- Cluster detection is standard K-means — use a simple TS implementation (no library needed for k=5-8, n=700)
+- **Step 1 (REQUIRED before writing code):** Read `lib/constellation/globe-layout.ts` in full. Understand `computeSpherePosition()`, `computeGlobeLayout()`, `LayoutInput`, and `sphereToCartesian`. These are the source of truth for how nodes are positioned.
+- **Step 2:** Read `lib/globe/behaviors/` to understand the behavior pattern
+- **Step 3:** Read `hooks/useSenecaGlobeBridge.ts` to understand behavior registration
+- **Step 4:** Write and test `clusterDetection.ts` in isolation — pure function, no globe imports needed
+- **Step 5:** The behavior is minimal: receive `highlightCluster { clusterId }`, look up member IDs from cached cluster data, dispatch `dim` for non-members and `highlight` for members
 
-**Pre-build validation:**
-Before building, compute PCA explained variance on current production data. If first 2 components explain <50% of variance, the spatial layout won't create meaningful clusters. Check this with a simple SQL query + PCA computation.
+**Validation gate (run before writing any UI code):**
+
+After writing `clusterDetection.ts`, run it against real DRep alignment data (query `drep_alignment_snapshots` for the latest epoch). Verify:
+
+- Silhouette score > 0.25 (indicates meaningful separation)
+- Cluster centroids map to visually distinct sphere positions (different lon/lat bands)
+- Each cluster has ≥5 members (no singleton clusters)
+
+If silhouette < 0.15 for all k values, stop and document. Do not proceed with cluster labels until the clusters are meaningful.
 
 **Acceptance criteria:**
 
-- [ ] Toggle to alignment layout → nodes smoothly reposition over 2s
-- [ ] Visible clusters form (DReps with similar voting patterns are spatially grouped)
-- [ ] 5-8 clusters detected with AI-generated names (e.g., "Innovation Quarter," "Treasury Conservatives")
-- [ ] Cluster labels visible near centroids, fade appropriately with zoom
-- [ ] SPOs, proposals, CC members positioned meaningfully (not random)
-- [ ] URL state preserved → shareable alignment view
-- [ ] Performance: layout computation <500ms, transition animation 60fps
+- [ ] `clusterDetection.ts` is a pure function, fully testable without Three.js
+- [ ] Cluster data API returns ≥5 named clusters with centroids, member counts, and dominant dimensions
+- [ ] Cluster labels appear on the globe at correct spatial positions, fade at close zoom
+- [ ] `highlightCluster` command dims non-members, highlights members with cluster-color glow
+- [ ] Clusters pre-computed in Inngest at epoch boundary (not on every page load)
+- [ ] `computeGlobeLayout()` in `globe-layout.ts` remains unchanged — pure function, no side effects added
 - [ ] No regressions in existing match flow, vote split, or other behaviors
-- [ ] Feature flag `globe_alignment_layout` controls the toggle
+- [ ] Feature flag `globe_alignment_layout` controls cluster label visibility and highlight behavior
 
-**Effort:** M (5-7 days)
+**Effort:** S-M (3-5 days — smaller than originally estimated because the layout already exists)
 
 ---
 
@@ -858,11 +897,13 @@ Before building, compute PCA explained variance on current production data. If f
 ## Dependency Graph
 
 ```
-Chunk 1 (Semantic Layout) ← FOUNDATION — ships first
-    ├── Chunk 2 (Entity Discovery via Globe) ← needs cluster data
-    ├── Chunk 3 (Spatial Match) ← needs PCA projection
-    ├── Chunk 4 (Regional Energy) ← needs cluster centroids
-    └── Chunk 6 (Globe Entity Elevation) ← needs spatial context
+Chunk 1 (Cluster Detection + Labels) ← FOUNDATION — ships first
+    ├── NOTE: The alignment layout itself already exists in lib/constellation/globe-layout.ts
+    ├── Chunk 1 adds: cluster detection, naming, API endpoint, globe labels, highlightCluster command
+    ├── Chunk 2 (Entity Discovery via Globe) ← needs cluster data + highlightCluster command
+    ├── Chunk 3 (Spatial Match) ← needs cluster context for spatial reveal narrative
+    ├── Chunk 4 (Regional Energy) ← needs cluster centroids for atmosphere shader
+    └── Chunk 6 (Globe Entity Elevation) ← needs spatial context (cluster membership per node)
 
 Chunk 5 (Ambient Intelligence) ← independent, ship any time
 
@@ -946,7 +987,7 @@ Chunk 8 (Anonymous Journey) ← requires Chunks 1 + 2 + 3 + 7 to be meaningful
 
 | Chunk                           | Effort          | Wave                         |
 | ------------------------------- | --------------- | ---------------------------- |
-| 1. Semantic Layout              | M (5-7d)        | 1                            |
+| 1. Cluster Detection + Labels   | S-M (3-5d)      | 1                            |
 | 7a. Treasury Surface            | M (5-7d)        | 1                            |
 | 7c. GHI Discovery               | M (5-7d)        | 1                            |
 | 3. Spatial Match                | L (8-10d)       | 2                            |
