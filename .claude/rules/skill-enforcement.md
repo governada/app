@@ -60,6 +60,22 @@ What you should do at step 2:
 - **User explicitly says "just do it"**: Respect the request, but note which skill was skipped
 - **Mid-skill execution**: Don't invoke a skill recursively (e.g., don't run `/diagnose` inside `/build-step` Phase 4 unless a genuine unexpected bug appears)
 
+## Verify Before Hypothesizing — Anti-Assumption Rule
+
+**NEVER form a hypothesis about what's wrong before checking the actual data.** This is the single most expensive agent failure pattern — it wastes hours across sessions as each agent inherits the previous agent's wrong assumption.
+
+The discipline:
+
+1. **"What does the data say?"** — Run the most direct diagnostic command FIRST. For diff issues: `git status --short`, `git diff --stat`. For errors: read the actual error message and stack trace. For UI bugs: screenshot first. For performance: measure first.
+
+2. **Name your evidence.** When proposing a cause, cite the specific output/file/line that proves it. "I believe X because line Y of file Z shows..." — if you can't complete this sentence, you're guessing.
+
+3. **If your first fix doesn't work, your hypothesis is probably wrong.** Do NOT iterate on the same hypothesis with variations. Go back to raw data and start fresh.
+
+4. **Contextual clues are not evidence.** "There are CRLF warnings in the output" does not mean "the diff is caused by CRLF." Correlation is not causation. Verify.
+
+Anti-pattern: Three agents across multiple sessions assumed a +3872 diff was CRLF because CRLF warnings appeared in the hook output. None of them ran `git status --short` to check what the diff actually contained. It was untracked `perf-snapshots/` files — completely unrelated to CRLF.
+
 ## Prevention-First Thinking (Proactive, Not Reactive)
 
 The whack-a-mole detector above triggers when the user catches you treating symptoms. But the goal is to **never need the user to catch you**. Every fix, feature, and change must proactively include a prevention layer.
