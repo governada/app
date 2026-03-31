@@ -279,7 +279,7 @@ function NodePoints({
 
         // COLOR
         if (isUnfocused && !isIntermediate) {
-          const dimVal = 0.012 - focusState.scanProgress * 0.007;
+          const dimVal = 0.04 - focusState.scanProgress * 0.035;
           colors[i * 3] = Math.max(0.005, dimVal);
           colors[i * 3 + 1] = Math.max(0.005, dimVal);
           colors[i * 3 + 2] = Math.max(0.005, dimVal);
@@ -333,12 +333,12 @@ function NodePoints({
             baseSize * (1 + 0.5 * intensity + focusState.scanProgress * 0.3) * matchSizeBoost;
         } else if (isIntermediate) {
           // "Maybe" nodes: partially shrunk based on brightness level
-          finalSize = baseSize * (0.3 + intermediateLevel * 0.2);
+          finalSize = baseSize * (0.4 + intermediateLevel * 0.35);
         } else if (isUnfocused) {
           // Non-DRep filtered types shrink aggressively during match
           finalSize = isFilteredType
             ? baseSize * 0.15
-            : baseSize * (0.5 - focusState.scanProgress * 0.1);
+            : baseSize * (0.45 - focusState.scanProgress * 0.4);
         } else {
           finalSize = baseSize;
         }
@@ -544,14 +544,22 @@ function NodePoints({
       }
     }
 
-    // Lerp sizes — dimming nodes shrink faster
+    // Lerp sizes — dimming nodes shrink faster, focused nodes breathe
+    const elapsedTime = clock.getElapsedTime();
+    const currentFocus = getSharedFocus();
     for (let i = 0; i < count; i++) {
       const isDimming = targetDimmed[i] > 0.5;
       const f = isDimming ? fastFactor : factor;
 
       const nodeDelay = delays?.get(nodes[i].id) ?? 0;
       const isDelayed = delays != null && elapsed < nodeDelay;
-      const effectiveTarget = isDelayed ? nodes[i].scale * 0.15 * POINT_SCALE : targetSizes[i];
+      let effectiveTarget = isDelayed ? nodes[i].scale * 0.15 * POINT_SCALE : targetSizes[i];
+
+      // Breathing pulse on focused nodes — 2Hz, ±6% amplitude
+      if (currentFocus.active && currentFocus.focusedIds.has(nodes[i].id)) {
+        const breathe = 1 + 0.06 * Math.sin(elapsedTime * 4 * Math.PI);
+        effectiveTarget *= breathe;
+      }
 
       const diff = effectiveTarget - curSizes[i];
       if (Math.abs(diff) > 0.001) {

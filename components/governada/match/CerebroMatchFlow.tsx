@@ -2,12 +2,12 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronRight, Sparkles, ArrowRight, User } from 'lucide-react';
+import { X, ChevronRight, Sparkles, ArrowRight, User, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import type { AlignmentScores } from '@/lib/drepIdentity';
 import { buildAlignmentFromAnswers } from '@/lib/matching/answerVectors';
-import type { MatchResult, QuickMatchAnswers, QuickMatchResponse } from '@/hooks/useQuickMatch';
+import type { MatchResult, QuickMatchResponse } from '@/hooks/useQuickMatch';
 import {
   buildMatchStartSequence,
   buildAnswerSequence,
@@ -32,98 +32,86 @@ interface CerebroMatchFlowProps {
 
 /* ─── State Machine ───────────────────────────────────────── */
 
-type MatchPhase =
-  | 'idle'
-  | 'round1'
-  | 'round2'
-  | 'round3'
-  | 'round4'
-  | 'computing'
-  | 'results'
-  | 'done';
+type MatchPhase = 'idle' | 'questioning' | 'computing' | 'results' | 'done';
 
 /* ─── Round Definitions ───────────────────────────────────── */
 
-interface RoundOption {
-  label: string;
-  answerKey: string;
-  questionId: keyof QuickMatchAnswers;
-}
-
-interface Round {
+interface RoundDef {
   question: string;
-  questionId: keyof QuickMatchAnswers;
-  options: RoundOption[];
-  /** Globe highlight threshold after this round completes */
-  highlightThreshold: number;
+  questionId: string;
+  options: Array<{ label: string; answerKey: string }>;
 }
 
-const ROUNDS: Round[] = [
+const ROUNDS: RoundDef[] = [
   {
     question: 'What matters most to you in Cardano governance?',
     questionId: 'treasury',
-    highlightThreshold: 180,
     options: [
-      { label: 'Protecting the treasury', answerKey: 'conservative', questionId: 'treasury' },
-      { label: 'Funding innovation', answerKey: 'growth', questionId: 'treasury' },
-      { label: 'Balanced approach', answerKey: 'balanced', questionId: 'treasury' },
+      { label: 'Protecting the treasury', answerKey: 'conservative' },
+      { label: 'Funding innovation', answerKey: 'growth' },
+      { label: 'Balanced approach', answerKey: 'balanced' },
     ],
   },
   {
     question: 'How should Cardano approach protocol changes?',
     questionId: 'protocol',
-    highlightThreshold: 140,
     options: [
-      { label: 'Security and caution first', answerKey: 'caution', questionId: 'protocol' },
-      { label: 'Move fast, embrace innovation', answerKey: 'innovation', questionId: 'protocol' },
-      { label: 'Case by case evaluation', answerKey: 'case_by_case', questionId: 'protocol' },
+      { label: 'Security and caution first', answerKey: 'caution' },
+      { label: 'Move fast, embrace innovation', answerKey: 'innovation' },
+      { label: 'Case by case evaluation', answerKey: 'case_by_case' },
     ],
   },
   {
     question: 'How important is transparency in governance?',
     questionId: 'transparency',
-    highlightThreshold: 100,
     options: [
-      {
-        label: 'Essential — full visibility',
-        answerKey: 'essential',
-        questionId: 'transparency',
-      },
-      {
-        label: 'Nice to have',
-        answerKey: 'nice_to_have',
-        questionId: 'transparency',
-      },
-      {
-        label: "Doesn't matter much",
-        answerKey: 'doesnt_matter',
-        questionId: 'transparency',
-      },
+      { label: 'Essential — full visibility', answerKey: 'essential' },
+      { label: 'Nice to have', answerKey: 'nice_to_have' },
+      { label: "Doesn't matter much", answerKey: 'doesnt_matter' },
     ],
   },
   {
     question: 'How should voting power be distributed?',
     questionId: 'decentralization',
-    highlightThreshold: 60,
     options: [
-      {
-        label: 'Spread as widely as possible',
-        answerKey: 'spread_widely',
-        questionId: 'decentralization',
-      },
-      {
-        label: 'Concentrate with experts',
-        answerKey: 'concentrated',
-        questionId: 'decentralization',
-      },
-      {
-        label: 'Current balance is fine',
-        answerKey: 'current_fine',
-        questionId: 'decentralization',
-      },
+      { label: 'Spread as widely as possible', answerKey: 'spread_widely' },
+      { label: 'Concentrate with experts', answerKey: 'concentrated' },
+      { label: 'Current balance is fine', answerKey: 'current_fine' },
+    ],
+  },
+  {
+    question: "What's the biggest risk facing Cardano governance?",
+    questionId: 'governance_risk',
+    options: [
+      { label: 'Voter apathy', answerKey: 'voter_apathy' },
+      { label: 'Plutocracy (whale dominance)', answerKey: 'plutocracy' },
+      { label: 'Moving too slowly', answerKey: 'too_slow' },
+      { label: 'Lack of accountability', answerKey: 'lack_accountability' },
+    ],
+  },
+  {
+    question: 'How should DReps engage with their delegators?',
+    questionId: 'drep_engagement',
+    options: [
+      { label: 'Regular updates & rationales', answerKey: 'regular_updates' },
+      { label: 'Only on major decisions', answerKey: 'major_decisions_only' },
+      { label: 'Delegators should trust and verify independently', answerKey: 'trust_and_verify' },
+    ],
+  },
+  {
+    question: "What's your priority for treasury spending this year?",
+    questionId: 'spending_priority',
+    options: [
+      { label: 'Developer tooling & infrastructure', answerKey: 'dev_tooling' },
+      { label: 'Community education & outreach', answerKey: 'community_education' },
+      { label: 'DeFi & ecosystem growth', answerKey: 'defi_growth' },
+      { label: 'Constitutional development', answerKey: 'constitutional_dev' },
     ],
   },
 ];
+
+/** Minimum questions before "Match me now" appears */
+const MIN_QUESTIONS_FOR_MATCH = 2;
 
 /* ─── Helpers ─────────────────────────────────────────────── */
 
@@ -138,36 +126,12 @@ function alignmentToArray(scores: AlignmentScores): number[] {
   ];
 }
 
-function phaseToRoundIndex(phase: MatchPhase): number {
-  switch (phase) {
-    case 'round1':
-      return 0;
-    case 'round2':
-      return 1;
-    case 'round3':
-      return 2;
-    case 'round4':
-      return 3;
-    default:
-      return -1;
-  }
-}
-
-const PHASE_SEQUENCE: MatchPhase[] = [
-  'idle',
-  'round1',
-  'round2',
-  'round3',
-  'round4',
-  'computing',
-  'results',
-  'done',
-];
-
-function nextPhase(current: MatchPhase): MatchPhase {
-  const idx = PHASE_SEQUENCE.indexOf(current);
-  if (idx < 0 || idx >= PHASE_SEQUENCE.length - 1) return current;
-  return PHASE_SEQUENCE[idx + 1];
+function getConfidenceLabel(answeredCount: number): { label: string; pct: number } {
+  if (answeredCount >= 7) return { label: 'Deep match', pct: 95 };
+  if (answeredCount >= 5) return { label: 'Strong match', pct: 85 };
+  if (answeredCount >= 4) return { label: 'Good match', pct: 75 };
+  if (answeredCount >= 2) return { label: 'Basic match', pct: 50 };
+  return { label: 'Warming up', pct: 25 };
 }
 
 /* ─── Component ───────────────────────────────────────────── */
@@ -178,23 +142,22 @@ export function CerebroMatchFlow({
   onCancel,
 }: CerebroMatchFlowProps) {
   const [phase, setPhase] = useState<MatchPhase>('idle');
-  const [answers, setAnswers] = useState<QuickMatchAnswers>({});
+  const [roundIndex, setRoundIndex] = useState(0);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
   const [results, setResults] = useState<MatchResult[]>([]);
   const [error, setError] = useState<string | null>(null);
   const submittingRef = useRef(false);
 
-  /* ── Build current alignment from accumulated answers ── */
-  const currentAlignment = buildAlignmentFromAnswers(answers as Record<string, string>);
+  const answeredCount = Object.keys(answers).length;
 
   /* ── Submit match request ── */
   const submitMatch = useCallback(
-    async (finalAnswers: QuickMatchAnswers) => {
+    async (finalAnswers: Record<string, string>) => {
       if (submittingRef.current) return;
       submittingRef.current = true;
       setPhase('computing');
       setError(null);
 
-      // Dramatic dimming while computing
       onGlobeCommand({ type: 'dim' });
 
       try {
@@ -206,6 +169,9 @@ export function CerebroMatchFlow({
             protocol: finalAnswers.protocol,
             transparency: finalAnswers.transparency,
             decentralization: finalAnswers.decentralization,
+            governance_risk: finalAnswers.governance_risk,
+            drep_engagement: finalAnswers.drep_engagement,
+            spending_priority: finalAnswers.spending_priority,
           }),
         });
 
@@ -218,8 +184,7 @@ export function CerebroMatchFlow({
         setResults(topMatches);
         setPhase('results');
 
-        // Theatrical reveal: countdown 5→4→3→2→1, camera sweeps to #1
-        const finalAlignment = buildAlignmentFromAnswers(finalAnswers as Record<string, string>);
+        const finalAlignment = buildAlignmentFromAnswers(finalAnswers);
         onGlobeCommand(
           buildRevealSequence(
             topMatches.map((m) => ({ nodeId: m.drepId })),
@@ -231,7 +196,7 @@ export function CerebroMatchFlow({
         onMatchComplete?.(topMatches);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Match failed');
-        setPhase('round4'); // Allow retry from last round
+        setPhase('questioning'); // Allow retry
       } finally {
         submittingRef.current = false;
       }
@@ -241,61 +206,47 @@ export function CerebroMatchFlow({
 
   /* ── Handle pill selection ── */
   const handleSelect = useCallback(
-    (questionId: keyof QuickMatchAnswers, answerKey: string) => {
+    (questionId: string, answerKey: string) => {
       const updated = { ...answers, [questionId]: answerKey };
       setAnswers(updated);
 
-      const roundIdx = phaseToRoundIndex(phase);
-      if (roundIdx < 0) return;
-
-      const round = ROUNDS[roundIdx];
-
-      // Theatrical choreography for this answer round
-      const updatedAlignment = buildAlignmentFromAnswers(updated as Record<string, string>);
+      // Globe choreography for this answer
+      const updatedAlignment = buildAlignmentFromAnswers(updated);
       onGlobeCommand(
-        buildAnswerSequence(roundIdx, alignmentToArray(updatedAlignment), round.highlightThreshold),
+        buildAnswerSequence(roundIndex, alignmentToArray(updatedAlignment), 9999, ROUNDS.length),
       );
 
-      // Advance to next round after a brief pause for the globe animation
+      // Advance to next round after brief pause
       setTimeout(() => {
-        const next = nextPhase(phase);
-        if (next === 'computing') {
+        const nextIdx = roundIndex + 1;
+        if (nextIdx >= ROUNDS.length) {
+          // All questions answered — auto-submit
           submitMatch(updated);
         } else {
-          setPhase(next);
+          setRoundIndex(nextIdx);
         }
       }, 600);
     },
-    [answers, phase, onGlobeCommand, submitMatch],
+    [answers, roundIndex, onGlobeCommand, submitMatch],
   );
 
-  /* ── Skip to results with current alignment ── */
-  const handleSkip = useCallback(() => {
-    // Need at least treasury and protocol for a meaningful match
-    if (!answers.treasury || !answers.protocol) {
-      // Fill defaults for required fields
-      const filled: QuickMatchAnswers = {
-        treasury: answers.treasury || 'balanced',
-        protocol: answers.protocol || 'case_by_case',
-        transparency: answers.transparency || 'nice_to_have',
-        decentralization: answers.decentralization,
-      };
-      setAnswers(filled);
-      submitMatch(filled);
-    } else {
-      const filled: QuickMatchAnswers = {
-        ...answers,
-        transparency: answers.transparency || 'nice_to_have',
-      };
-      setAnswers(filled);
-      submitMatch(filled);
-    }
+  /* ── "Match me now" — early exit with current answers ── */
+  const handleMatchNow = useCallback(() => {
+    // Fill defaults for missing core questions
+    const filled: Record<string, string> = {
+      ...answers,
+      treasury: answers.treasury || 'balanced',
+      protocol: answers.protocol || 'case_by_case',
+    };
+    setAnswers(filled);
+    submitMatch(filled);
   }, [answers, submitMatch]);
 
   /* ── Cancel ── */
   const handleCancel = useCallback(() => {
     onGlobeCommand(buildMatchCleanupSequence());
     setPhase('idle');
+    setRoundIndex(0);
     setAnswers({});
     setResults([]);
     onCancel?.();
@@ -304,7 +255,8 @@ export function CerebroMatchFlow({
   /* ── Start flow ── */
   const handleStart = useCallback(() => {
     onGlobeCommand(buildMatchStartSequence());
-    setPhase('round1');
+    setPhase('questioning');
+    setRoundIndex(0);
     setAnswers({});
     setResults([]);
     setError(null);
@@ -317,8 +269,10 @@ export function CerebroMatchFlow({
 
   /* ─── Render ────────────────────────────────────────────── */
 
-  const roundIdx = phaseToRoundIndex(phase);
-  const currentRound = roundIdx >= 0 ? ROUNDS[roundIdx] : null;
+  const currentRound =
+    phase === 'questioning' && roundIndex < ROUNDS.length ? ROUNDS[roundIndex] : null;
+  const showMatchNow = answeredCount >= MIN_QUESTIONS_FOR_MATCH && phase === 'questioning';
+  const confidence = getConfidenceLabel(answeredCount);
 
   return (
     <AnimatePresence mode="wait">
@@ -351,7 +305,7 @@ export function CerebroMatchFlow({
       {/* ── Round Questions ── */}
       {currentRound && (
         <motion.div
-          key={`round-${roundIdx}`}
+          key={`round-${roundIndex}`}
           initial={{ opacity: 0, y: 30, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -20, scale: 0.95 }}
@@ -366,15 +320,16 @@ export function CerebroMatchFlow({
           <div className="mb-1 flex items-center justify-between">
             <div className="flex items-center gap-2">
               {/* Round indicators */}
-              <div className="flex gap-1.5">
+              <div className="flex gap-1">
                 {ROUNDS.map((_, i) => (
                   <div
                     key={i}
                     className={cn(
-                      'h-1.5 w-6 rounded-full transition-colors duration-300',
-                      i < roundIdx
+                      'h-1.5 rounded-full transition-colors duration-300',
+                      i < ROUNDS.length ? 'w-4' : 'w-4',
+                      i < roundIndex
                         ? 'bg-teal-400'
-                        : i === roundIdx
+                        : i === roundIndex
                           ? 'bg-teal-400/60'
                           : 'bg-muted-foreground/20',
                     )}
@@ -382,7 +337,7 @@ export function CerebroMatchFlow({
                 ))}
               </div>
               <span className="ml-2 text-xs text-muted-foreground">
-                {roundIdx + 1}/{ROUNDS.length}
+                {roundIndex + 1}/{ROUNDS.length}
               </span>
             </div>
             <button
@@ -393,6 +348,21 @@ export function CerebroMatchFlow({
               <X className="h-4 w-4" />
             </button>
           </div>
+
+          {/* Confidence indicator */}
+          {answeredCount > 0 && (
+            <div className="mb-2 flex items-center gap-2">
+              <div className="h-1 flex-1 rounded-full bg-muted-foreground/10">
+                <motion.div
+                  className="h-full rounded-full bg-teal-500/50"
+                  initial={{ width: '0%' }}
+                  animate={{ width: `${confidence.pct}%` }}
+                  transition={{ duration: 0.4 }}
+                />
+              </div>
+              <span className="text-[10px] text-muted-foreground">{confidence.label}</span>
+            </div>
+          )}
 
           {/* Question */}
           <h3 className="mb-4 mt-3 font-[family-name:var(--font-heading)] text-lg font-semibold text-foreground">
@@ -423,14 +393,23 @@ export function CerebroMatchFlow({
             ))}
           </div>
 
-          {/* Skip */}
-          {roundIdx > 0 && (
-            <button
-              onClick={handleSkip}
-              className="mt-3 w-full text-center text-xs text-muted-foreground transition-colors hover:text-foreground"
+          {/* "Match me now" CTA — appears after MIN_QUESTIONS_FOR_MATCH */}
+          {showMatchNow && (
+            <motion.button
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              onClick={handleMatchNow}
+              className={cn(
+                'mt-3 flex w-full items-center justify-center gap-2 rounded-full px-4 py-2.5',
+                'bg-teal-500/15 text-sm font-semibold text-teal-400',
+                'border border-teal-500/30',
+                'transition-all hover:bg-teal-500/25 hover:border-teal-500/50',
+              )}
             >
-              Skip to results with current answers
-            </button>
+              <Zap className="h-4 w-4" />
+              Match me now ({confidence.label.toLowerCase()})
+            </motion.button>
           )}
         </motion.div>
       )}

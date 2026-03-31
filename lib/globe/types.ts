@@ -168,7 +168,7 @@ export interface SceneState {
 
 export type GlobeCommand =
   | { type: 'flyTo'; nodeId: string }
-  | { type: 'pulse'; nodeId: string }
+  | { type: 'pulse'; nodeId?: string; intensity?: number; durationMs?: number }
   | {
       type: 'highlight';
       alignment: number[];

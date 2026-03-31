@@ -427,10 +427,46 @@ export const GlobeConstellation = forwardRef<
           intermediateIds.set(scored[i].id, level);
         }
 
-        // Scanning sweep: nodes activate by rank — best matches first
-        const SWEEP_DURATION = 0.6; // seconds for the entire sweep
+        // Scanning sweep: spatial from centroid — nodes closer to matched center activate first
+        const SWEEP_DURATION = 0.6;
+        // Compute centroid of matched nodes
+        let scx = 0,
+          scy = 0,
+          scz = 0;
+        let scount = 0;
+        for (let i = 0; i < Math.min(options.topN, scored.length); i++) {
+          const node = sceneState.nodes.find((n) => n.id === scored[i].id);
+          if (node) {
+            scx += node.position[0];
+            scy += node.position[1];
+            scz += node.position[2];
+            scount++;
+          }
+        }
+        if (scount > 0) {
+          scx /= scount;
+          scy /= scount;
+          scz /= scount;
+        }
+        // Assign delays by 3D distance from centroid
+        let maxSpatialDist = 0;
+        const spatialDists: number[] = [];
         for (let i = 0; i < scored.length; i++) {
-          activationDelays.set(scored[i].id, (i / scored.length) * SWEEP_DURATION);
+          const node = sceneState.nodes.find((n) => n.id === scored[i].id);
+          if (node) {
+            const dx = node.position[0] - scx,
+              dy = node.position[1] - scy,
+              dz = node.position[2] - scz;
+            const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            spatialDists[i] = d;
+            if (d > maxSpatialDist) maxSpatialDist = d;
+          } else {
+            spatialDists[i] = maxSpatialDist;
+          }
+        }
+        for (let i = 0; i < scored.length; i++) {
+          const normalizedDist = maxSpatialDist > 0 ? spatialDists[i] / maxSpatialDist : 0;
+          activationDelays.set(scored[i].id, normalizedDist * SWEEP_DURATION);
         }
       } else {
         // Threshold mode: include all within distance
@@ -500,7 +536,9 @@ export const GlobeConstellation = forwardRef<
 
           // Camera pulls closer as the cluster narrows — funneling toward the match
           // Uses scanProgress (0.15→0.95) not threshold, which is always 9999 in topN mode
-          const camDist = 13 - sp * 5; // 12.25 (Q1) → 11 (Q2) → 9.5 (Q3) → 8.25 (Q4)
+          // Exponential camera curve: dramatic dive into constellation
+          // Q1(0.35)→8.5, Q2(0.6)→5.8, Q3(0.85)→4.3, Q4(0.95)→4.0
+          const camDist = 4 + 9 * Math.pow(1 - sp, 2.2);
 
           // Camera position: facing the centroid, offset by dive angle for variety
           let camX = nx * camDist;
@@ -522,7 +560,6 @@ export const GlobeConstellation = forwardRef<
           }
 
           // Progressive camera smoothTime: slower approach early, faster convergence later
-          // Round 0 (sp≈0.15): 1.5s, Round 1 (sp≈0.4): 1.2s, Round 2 (sp≈0.7): 0.9s, Round 3 (sp≈0.95): 0.8s
           const controls = cameraControlsRef.current;
           controls.smoothTime = Math.max(0.8, 1.5 - sp * 0.8);
           controls.setLookAt(camX, camY, camZ, cx * 0.7, cy * 0.7, cz * 0.7, true);
@@ -698,11 +735,11 @@ export const GlobeConstellation = forwardRef<
       // Slow rotation to "scanning" pace
       rotationSpeedRef.current = DEFAULT_ROTATION_SPEED * 0.6;
 
-      // Shift camera left for Seneca panel, close enough to see DRep nodes
+      // Shift camera left for Seneca panel, pull back so Q1 dive feels dramatic
       if (cameraControlsRef.current) {
-        cameraControlsRef.current.setLookAt(-2, 1.5, 13, -1, 0, 0, true);
+        cameraControlsRef.current.setLookAt(-2, 1.5, 15, -1, 0, 0, true);
       }
-      setCinematicDollyTarget(13);
+      setCinematicDollyTarget(15);
     },
 
     clearMatches: () => {
@@ -952,7 +989,7 @@ export const GlobeConstellation = forwardRef<
 
         rotationSpeedRef.current = DEFAULT_ROTATION_SPEED * Math.max(0.05, 0.4 - sp * 0.35);
 
-        const camDist = 13 - sp * 5;
+        const camDist = 4 + 9 * Math.pow(1 - sp, 2.2);
         let camX = nx * camDist;
         let camY = ny * camDist + 1.5;
         let camZ = nz * camDist;
@@ -1212,6 +1249,7 @@ export const GlobeConstellation = forwardRef<
             controlsRef={cameraControlsRef}
             orbitSpeed={cinematicOrbitSpeed}
             dollyTarget={cinematicDollyTarget}
+            matchActive={sceneState.focus.nodeTypeFilter === 'drep' && sceneState.focus.active}
           />
         </Canvas>
       )}
