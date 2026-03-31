@@ -21,10 +21,11 @@ Modes:
 Read these files to establish situational awareness. Do NOT skip this — you cannot think strategically without current state.
 
 1. `docs/strategy/context/strategic-state.md` — Current strategic focus, open questions, recent decisions (MOST IMPORTANT — this is your memory)
-2. `docs/strategy/context/build-manifest.md` — What's shipped, what's pending, phase completion status
-3. `docs/strategy/context/competitive-landscape.md` — Competitor positioning
-4. `docs/strategy/context/persona-quick-ref.md` — Who we serve and their JTBDs
-5. `.claude/rules/product-strategy.md` — Non-negotiable principles
+2. `docs/strategy/context/product-registry.md` — What features exist and where. Read this before recommending ANYTHING.
+3. `docs/strategy/context/build-manifest.md` — What's shipped, what's pending, phase completion status
+4. `docs/strategy/context/competitive-landscape.md` — Competitor positioning
+5. `docs/strategy/context/persona-quick-ref.md` — Who we serve and their JTBDs
+6. `.claude/rules/product-strategy.md` — Non-negotiable principles
 
 **For `compete` mode**, also do a web search for recent Cardano governance tooling news, GovTool updates, and competitor launches.
 

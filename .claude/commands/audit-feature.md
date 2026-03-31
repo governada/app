@@ -8,11 +8,19 @@ Argument: `$ARGUMENTS`
 - If empty: Ask user what feature to audit
 - If prefixed with "refine:": Skip Phase 1, reuse previous feature map, focus on re-scoring + delta
 
+## Phase 0: Registry Check (MANDATORY)
+
+Before any audit, read `docs/strategy/context/product-registry.md`. For the feature domain being audited, also read the relevant `docs/strategy/context/registry/<domain>.md` file.
+
+State explicitly: **"Registry check: [feature] implementation at [files/routes]. Connected to: [subsystems]."**
+
+This gives you the complete artifact map BEFORE code exploration, saving context and preventing you from missing existing features.
+
 ## Phase 1: Feature Discovery
 
 ### 1.1 Map the Feature
 
-Identify: pages/routes, components, data functions (`lib/data.ts`, API routes), backend logic (scoring, sync, alignment, matching), database tables, Inngest functions, entry points, personas served, upstream dependencies, downstream consumers.
+Start from registry data, then verify and extend by reading code. Identify: pages/routes, components, data functions (`lib/data.ts`, API routes), backend logic (scoring, sync, alignment, matching), database tables, Inngest functions, entry points, personas served, upstream dependencies, downstream consumers.
 
 ### 1.2 Define World-Class (The Target)
 

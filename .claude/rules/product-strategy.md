@@ -18,6 +18,8 @@ North star: `docs/strategy/ultimate-vision.md` (V2). All feature decisions align
 
 | Need                                    | Read This                                     | Lines    |
 | --------------------------------------- | --------------------------------------------- | -------- |
+| What features exist (planning agents)   | `docs/strategy/context/product-registry.md`   | ~200     |
+| Feature domain detail                   | `docs/strategy/context/registry/<domain>.md`  | ~100     |
 | Build progress, what's shipped, gaps    | `docs/strategy/context/build-manifest.md`     | ~170     |
 | Persona requirements (compact)          | `docs/strategy/context/persona-quick-ref.md`  | ~60      |
 | Audit scoring criteria & benchmarks     | `docs/strategy/context/audit-rubric.md`       | ~180     |
@@ -25,7 +27,7 @@ North star: `docs/strategy/ultimate-vision.md` (V2). All feature decisions align
 | Full persona deep dive                  | `docs/strategy/personas/<persona>.md`         | ~200-400 |
 | Updating vision / strategic audit       | `docs/strategy/ultimate-vision.md`            | ~950     |
 
-**Default:** This rules file + manifest + persona-quick-ref are sufficient for 95% of feature decisions. Only read the full vision doc when doing strategic audits or updating the vision itself. Use the audit rubric when running `/audit`.
+**Default:** This rules file + product-registry + manifest + persona-quick-ref are sufficient for 95% of feature decisions. Read the product registry before any planning or audit to understand what already exists. Only read the full vision doc when doing strategic audits or updating the vision itself. Use the audit rubric when running `/audit`.
 
 ## Vision
 

@@ -112,27 +112,30 @@ C:\Users\dalto\governada\
 
 ## Scripts
 
-| Script                   | Purpose                                                     |
-| ------------------------ | ----------------------------------------------------------- |
-| `preflight`              | format:check + lint + type-check + test                     |
-| `gen:types`              | Supabase types after migrations                             |
-| `inngest:status`         | Verify function registration                                |
-| `posthog:check`          | Verify analytics events                                     |
-| `smoke-test`             | Production health checks + response time assertions         |
-| `pre-merge-check.sh`     | Block merge if CI running, branch behind, or errors spiking |
-| `cleanup.sh`             | Worktree/dir cleanup (dry-run or --clean)                   |
-| `notify.sh`              | Alert founder via Discord/Telegram at decision gates        |
-| `rollback.sh`            | Automated Railway rollback with health verification         |
-| `check-deploy-health.sh` | Post-deploy health + response time validation               |
-| `check-error-rate.sh`    | Sentry error rate gate (blocks merge if elevated)           |
-| `uptime-check.sh`        | Ping BetterStack heartbeat URLs                             |
-| `test-migration.sh`      | Supabase branch database migration testing guide            |
+| Script                       | Purpose                                                     |
+| ---------------------------- | ----------------------------------------------------------- |
+| `preflight`                  | format:check + lint + type-check + test                     |
+| `gen:types`                  | Supabase types after migrations                             |
+| `inngest:status`             | Verify function registration                                |
+| `posthog:check`              | Verify analytics events                                     |
+| `smoke-test`                 | Production health checks + response time assertions         |
+| `pre-merge-check.sh`         | Block merge if CI running, branch behind, or errors spiking |
+| `cleanup.sh`                 | Worktree/dir cleanup (dry-run or --clean)                   |
+| `generate-registry-index.sh` | Product registry staleness detection (--check for CI)       |
+| `notify.sh`                  | Alert founder via Discord/Telegram at decision gates        |
+| `rollback.sh`                | Automated Railway rollback with health verification         |
+| `check-deploy-health.sh`     | Post-deploy health + response time validation               |
+| `check-error-rate.sh`        | Sentry error rate gate (blocks merge if elevated)           |
+| `uptime-check.sh`            | Ping BetterStack heartbeat URLs                             |
+| `test-migration.sh`          | Supabase branch database migration testing guide            |
 
 ## Context Files (Agent-Optimized)
 
 | Need                                      | File                                               | Lines |
 | ----------------------------------------- | -------------------------------------------------- | ----- |
 | Strategic state (CTO memory)              | `docs/strategy/context/strategic-state.md`         | ~80   |
+| Feature registry (what exists & where)    | `docs/strategy/context/product-registry.md`        | ~200  |
+| Feature domain detail (8 domains)         | `docs/strategy/context/registry/<domain>.md`       | ~100  |
 | Build status / audit checklist            | `docs/strategy/context/build-manifest.md`          | ~250  |
 | Navigation architecture spec              | `docs/strategy/context/navigation-architecture.md` | ~530  |
 | UX constraints (per-page JTBD)            | `docs/strategy/context/ux-constraints.md`          | ~220  |

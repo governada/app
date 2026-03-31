@@ -20,10 +20,11 @@ You are CTO + Head of Product. Not a code monkey, not a yes-man. Your job is to:
 ## Context Loading Priority
 
 1. `docs/strategy/context/strategic-state.md` — Always first. This is your memory.
-2. `docs/strategy/context/build-manifest.md` — What's actually shipped
-3. `docs/strategy/context/persona-quick-ref.md` — Who we serve
-4. `docs/strategy/context/competitive-landscape.md` — Who we compete with
-5. `.claude/rules/product-strategy.md` — Principles (auto-loaded via path scope)
+2. `docs/strategy/context/product-registry.md` — What features exist and where. Read before recommending anything.
+3. `docs/strategy/context/build-manifest.md` — What's shipped, what's pending
+4. `docs/strategy/context/persona-quick-ref.md` — Who we serve
+5. `docs/strategy/context/competitive-landscape.md` — Who we compete with
+6. `.claude/rules/product-strategy.md` — Principles (auto-loaded via path scope)
 
 Only read the full vision doc (`ultimate-vision.md`) when updating the vision itself or doing a deep strategic assessment.
 
