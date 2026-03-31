@@ -15,7 +15,6 @@ import { dispatchGlobeCommand } from '@/lib/globe/globeCommandBus';
 import type { QuickMatchResponse, MatchResult } from '@/hooks/useQuickMatch';
 import { MatchResultOverlay } from '@/components/governada/MatchResultOverlay';
 import {
-  buildMatchStartSequence,
   buildAnswerSequence,
   buildRevealSequence,
   buildSpatialRevealSequence,
@@ -243,23 +242,37 @@ export function SenecaMatch({ onBack, onGlobeCommand, onStartConversation }: Sen
     return id;
   }, []);
 
-  const sendGlobeCommand = useCallback(
-    (cmd: GlobeCommand) => {
-      onGlobeCommand?.(cmd);
-      dispatchGlobeCommand(cmd);
-    },
-    [onGlobeCommand],
-  );
+  const sendGlobeCommand = useCallback((cmd: GlobeCommand) => {
+    // Single dispatch via command bus only — onGlobeCommand prop ALSO dispatches
+    // to the same bus (via GovernadaShell), causing every command to execute twice.
+    // The double-dispatch creates a choreographer race condition where the second
+    // play() cancels the first's pending setTimeout(0) commands.
+    dispatchGlobeCommand(cmd);
+  }, []);
 
-  // Auto-start the globe match choreography on mount (intro step was removed)
+  // Auto-start the globe match choreography on mount.
+  // CRITICAL: Send matchStart as a DIRECT command, not wrapped in a sequence.
+  // If wrapped in a sequence, the choreographer schedules it via setTimeout(0),
+  // and any subsequent sequence.play() (e.g., the first answer) cancels the
+  // pending matchStart before it executes — the globe never enters Cerebro mode.
+  // Direct commands go through the queue → flush → behavior synchronously.
   const hasStartedRef = useRef(false);
   useEffect(() => {
     if (hasStartedRef.current) return;
     hasStartedRef.current = true;
-    if (prefersReducedMotion) {
-      sendGlobeCommand({ type: 'matchStart' });
-    } else {
-      sendGlobeCommand(buildMatchStartSequence());
+    // matchStart: direct command — synchronous execution, can't be cancelled
+    sendGlobeCommand({ type: 'matchStart' });
+    if (!prefersReducedMotion) {
+      // Cinematic state: delayed separately so it doesn't fight matchStart's camera
+      sendGlobeCommand({
+        type: 'cinematic',
+        state: {
+          orbitSpeed: 0.015,
+          dollyTarget: 15,
+          dimTarget: 0.7,
+          transitionDuration: 1.5,
+        },
+      });
     }
     posthog.capture('match_started', { source: 'seneca_panel' });
     posthog.capture('match_cerebro_entered');
