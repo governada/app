@@ -11,11 +11,12 @@ import { buildAlignmentFromAnswers } from '@/lib/matching/answerVectors';
 import { alignmentsToArray } from '@/lib/drepIdentity';
 import type { AlignmentScores } from '@/lib/drepIdentity';
 import type { GlobeCommand } from '@/lib/globe/types';
+import { DEFAULT_INTENT } from '@/lib/globe/types';
 import { dispatchGlobeCommand } from '@/lib/globe/globeCommandBus';
+import { setSharedIntent } from '@/lib/globe/focusIntent';
 import type { QuickMatchResponse, MatchResult } from '@/hooks/useQuickMatch';
 import { MatchResultOverlay } from '@/components/governada/MatchResultOverlay';
 import {
-  buildAnswerSequence,
   buildRevealSequence,
   buildSpatialRevealSequence,
   buildMatchCleanupSequence,
@@ -149,8 +150,12 @@ const MATCH_QUESTIONS: QuestionDef[] = [
 
 const TOTAL_QUESTIONS = MATCH_QUESTIONS.length;
 
-/** Progressive narrowing — top N closest DReps per round (used in reduced-motion fallback) */
+/** Progressive narrowing — top N closest DReps per round */
 const TOP_N_PER_ROUND = [200, 80, 30, 15, 10, 7, 5];
+/** Scan progress per round (0-1): drives unfocused node fade intensity */
+const SCAN_PROGRESS_PER_ROUND = [0.15, 0.3, 0.45, 0.6, 0.75, 0.88, 0.95];
+/** Camera dive angles per round — each approaches from a different direction */
+const DIVE_ANGLES = [0.35, -0.5, 0.15, 0, -0.3, 0.1, -0.15];
 
 /** Minimum questions before "Match me now" CTA appears */
 const MIN_QUESTIONS_FOR_MATCH = 2;
@@ -231,7 +236,13 @@ export function SenecaMatch({ onBack, onGlobeCommand, onStartConversation }: Sen
     pendingTimersRef.current.clear();
   }, []);
 
-  useEffect(() => clearPendingTimers, [clearPendingTimers]);
+  useEffect(
+    () => () => {
+      clearPendingTimers();
+      setSharedIntent(DEFAULT_INTENT);
+    },
+    [clearPendingTimers],
+  );
 
   const scheduleTimer = useCallback((fn: () => void, ms: number) => {
     const id = setTimeout(() => {
@@ -260,23 +271,19 @@ export function SenecaMatch({ onBack, onGlobeCommand, onStartConversation }: Sen
   useEffect(() => {
     if (hasStartedRef.current) return;
     hasStartedRef.current = true;
-    // matchStart: direct command — synchronous execution, can't be cancelled
-    sendGlobeCommand({ type: 'matchStart' });
-    if (!prefersReducedMotion) {
-      // Cinematic state: delayed separately so it doesn't fight matchStart's camera
-      sendGlobeCommand({
-        type: 'cinematic',
-        state: {
-          orbitSpeed: 0.015,
-          dollyTarget: 15,
-          dimTarget: 0.7,
-          transitionDuration: 1.5,
-        },
-      });
-    }
+    // Reactive: set focus intent — engine derives FocusState + camera
+    setSharedIntent({
+      focusedIds: 'all-dreps',
+      dimStrength: 0.7,
+      nodeTypeFilter: 'drep',
+      scanProgress: 0,
+      cameraProximity: 'overview',
+      flyToFocus: true,
+      orbitSpeedOverride: 0.015,
+    });
     posthog.capture('match_started', { source: 'seneca_panel' });
     posthog.capture('match_cerebro_entered');
-  }, [sendGlobeCommand, prefersReducedMotion]);
+  }, [prefersReducedMotion]);
 
   // Handle answer selection
   const handleAnswer = useCallback(
@@ -301,20 +308,18 @@ export function SenecaMatch({ onBack, onGlobeCommand, onStartConversation }: Sen
         remaining_count: topN,
       });
 
-      if (prefersReducedMotion) {
-        // Simplified: direct highlight without scan/dive theatrics
-        sendGlobeCommand({
-          type: 'highlight',
-          alignment: vector,
-          threshold: 9999,
-          drepOnly: true,
-          zoomToCluster: true,
-          topN,
-          scanProgressOverride: [0.15, 0.4, 0.7, 0.95][questionIndex] ?? 0.95,
-        });
-      } else {
-        sendGlobeCommand(buildAnswerSequence(questionIndex, vector, 0, TOTAL_QUESTIONS));
-      }
+      // Reactive: update focus intent — engine derives FocusState + camera
+      setSharedIntent({
+        focusedIds: 'from-alignment',
+        alignmentVector: vector,
+        topN,
+        dimStrength: 0.7,
+        nodeTypeFilter: 'drep',
+        scanProgress: SCAN_PROGRESS_PER_ROUND[questionIndex] ?? 0.95,
+        cameraProximity: questionIndex >= 4 ? 'tight' : 'cluster',
+        flyToFocus: true,
+        approachAngle: prefersReducedMotion ? undefined : DIVE_ANGLES[questionIndex],
+      });
 
       // Advance to next question or submit — snappy transitions
       if (questionIndex < TOTAL_QUESTIONS - 1) {
@@ -386,6 +391,9 @@ export function SenecaMatch({ onBack, onGlobeCommand, onStartConversation }: Sen
 
             posthog.capture('match_spatial_reveal_started');
           }
+
+          // Clear reactive engine before reveal — choreographer takes control
+          setSharedIntent(DEFAULT_INTENT);
 
           if (prefersReducedMotion) {
             // Skip countdown — go straight to results
@@ -476,6 +484,7 @@ export function SenecaMatch({ onBack, onGlobeCommand, onStartConversation }: Sen
   // Restart the quiz
   const handleRestart = useCallback(() => {
     clearPendingTimers();
+    setSharedIntent(DEFAULT_INTENT);
     setAnswers({});
     setResult(null);
     setError(null);

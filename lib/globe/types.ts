@@ -139,6 +139,60 @@ export const DEFAULT_FOCUS: FocusState = {
 };
 
 // ---------------------------------------------------------------------------
+// FocusIntent — reactive input API for the focus engine
+// ---------------------------------------------------------------------------
+
+/**
+ * Declarative description of "what's relevant right now." Producers write a
+ * FocusIntent; the focus engine derives FocusState + camera from it.
+ *
+ * Special sentinel values for focusedIds:
+ * - `null` — engine idle, legacy commands take over
+ * - `'all-dreps'` — all DRep nodes focused (match entry)
+ * - `'all'` — all nodes focused
+ * - `'from-alignment'` — engine resolves via alignmentVector + topN
+ * - `Set<string>` — explicit node IDs
+ */
+export interface FocusIntent {
+  /** What nodes should be focused */
+  focusedIds: Set<string> | 'all-dreps' | 'all' | 'from-alignment' | null;
+  /** Per-node intensity (0-1). If omitted, derived from distance to centroid */
+  intensities?: Map<string, number>;
+  /** How aggressively to dim unfocused nodes (0 = subtle, 1 = near-black) */
+  dimStrength?: number;
+  /** Only focus this node type (dims all other types hard) */
+  nodeTypeFilter?: string | null;
+  /** Color override per node (vote split, faction colors) */
+  colorOverrides?: Map<string, string> | null;
+  /** "Maybe" nodes — partially visible, between focused and unfocused */
+  intermediateIds?: Map<string, number> | null;
+  /** User node position (spatial match) */
+  userNode?: { position: [number, number, number]; intensity: number } | null;
+
+  // --- Camera hints (reactive engine derives final position) ---
+  /** Camera proximity level — engine derives distance from focus count if omitted */
+  cameraProximity?: 'overview' | 'cluster' | 'tight' | 'locked';
+  /** Should camera fly to the focus centroid? (default: true when focusedIds changes) */
+  flyToFocus?: boolean;
+  /** Camera approach angle variation (radians) — prevents same-angle repetition */
+  approachAngle?: number;
+  /** 0-1 scan progress — drives progressive unfocused fade */
+  scanProgress?: number;
+  /** Staggered activation delays per node — enables shockwave/sweep effects */
+  activationDelays?: Map<string, number> | null;
+  /** Override orbit speed (radians/sec) instead of deriving from proximity */
+  orbitSpeedOverride?: number;
+
+  // --- Alignment resolution (for 'from-alignment' sentinel) ---
+  /** 6-D alignment vector for resolving to concrete node IDs */
+  alignmentVector?: number[];
+  /** Take top N closest nodes when resolving from alignment */
+  topN?: number;
+}
+
+export const DEFAULT_INTENT: FocusIntent = { focusedIds: null };
+
+// ---------------------------------------------------------------------------
 // SceneState — internal state of the globe component
 // ---------------------------------------------------------------------------
 

@@ -15,10 +15,6 @@ import type { GlobeCommand } from '@/lib/globe/types';
 
 type SequenceStep = { command: GlobeCommand; delayMs: number };
 
-// Camera dive waypoints per round — each approaches from a different angle
-const DIVE_ANGLES = [0.35, -0.5, 0.15, 0, -0.3, 0.1, -0.15]; // azimuth offset (radians)
-const DIVE_ELEVATIONS = [0.2, 0, -0.15, 0, 0.1, -0.1, 0]; // vertical offset (radians)
-
 // ---------------------------------------------------------------------------
 // Reveal timing — exported so SenecaMatch can sync overlay/countdown UI
 // ---------------------------------------------------------------------------
@@ -40,89 +36,8 @@ export function getRevealDurationMs(matchCount: number): number {
 }
 
 // ---------------------------------------------------------------------------
-// Stage 0: Match Start — light all DReps, dim rest, camera pulls back
-// ---------------------------------------------------------------------------
-
-export function buildMatchStartSequence(): GlobeCommand {
-  return {
-    type: 'sequence',
-    steps: [
-      // Phase 1: DReps illuminate immediately — nodeTypeFilter='drep' set at frame 0, edges hidden
-      { command: { type: 'matchStart' }, delayMs: 0 },
-      // Phase 2: Cinematic pullback — slow orbit, camera retreats for panoramic view
-      {
-        command: {
-          type: 'cinematic',
-          state: {
-            orbitSpeed: 0.015, // slower, more deliberate scanning feel
-            dollyTarget: 13,
-            dimTarget: 0.7,
-            transitionDuration: 1.5,
-          },
-        },
-        delayMs: 400,
-      },
-    ],
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Stages 1-4: Dive-through camera — weaving toward DRep cluster
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
-// Dynamic topN and scanProgress — scales to any round count
-// ---------------------------------------------------------------------------
-
-/** Compute how many DRep nodes to highlight for a given round.
- *  Exponential decay: 200 → 5 across the full question set. */
-export function getTopNForRound(roundIndex: number, totalRounds: number): number {
-  const progress = roundIndex / Math.max(1, totalRounds - 1);
-  return Math.max(5, Math.round(200 * Math.pow(0.025, progress)));
-}
-
-/** Compute scan progress (0-1) for a given round.
- *  Drives unfocused node fade + camera distance. Starts aggressive (0.35). */
-export function getScanProgressForRound(roundIndex: number, totalRounds: number): number {
-  const progress = roundIndex / Math.max(1, totalRounds - 1);
-  return 0.35 + 0.6 * Math.pow(progress, 0.7);
-}
-
-export function buildAnswerSequence(
-  roundIndex: number,
-  alignment: number[],
-  _threshold: number,
-  totalRounds: number = 7,
-): GlobeCommand {
-  const topN = getTopNForRound(roundIndex, totalRounds);
-  const scanProgress = getScanProgressForRound(roundIndex, totalRounds);
-
-  // Highlight command — globe computes closest N DReps and flies camera to centroid
-  const highlightCmd: GlobeCommand = {
-    type: 'highlight',
-    alignment,
-    threshold: 9999, // ignored when topN is set, but required by type
-    drepOnly: true,
-    zoomToCluster: true,
-    cameraAngle: DIVE_ANGLES[roundIndex] ?? 0,
-    cameraElevation: DIVE_ELEVATIONS[roundIndex] ?? 0,
-    topN,
-    scanProgressOverride: scanProgress,
-  };
-
-  // Wrap in sequence: recalibration flash → highlight
-  // The flash briefly pulses focused nodes brighter, communicating "system recalculated"
-  return {
-    type: 'sequence',
-    steps: [
-      { command: { type: 'pulse', intensity: 1.3, durationMs: 200 }, delayMs: 0 },
-      { command: highlightCmd, delayMs: 250 },
-    ],
-  };
-}
-
-// ---------------------------------------------------------------------------
 // Stage 5: Match Reveal — blackout → countdown 5→4→3→2→1 → fly to #1
+// (Match start + Q&A phases migrated to reactive FocusIntent engine)
 // ---------------------------------------------------------------------------
 
 export function buildRevealSequence(
