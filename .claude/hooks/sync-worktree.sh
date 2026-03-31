@@ -180,9 +180,36 @@ setup_git_credentials() {
 # snapshot the diff at session start, so we must clean phantom diffs ASAP.
 # Then git sync (which also calls cleanup_crlf_phantoms after fetch, in case
 # the fetch itself introduces new CRLF mismatches).
+# --- Diff health check ---
+# Warn loudly if the worktree has a large diff so agents investigate the
+# actual cause instead of assuming (and chasing the wrong problem).
+check_diff_health() {
+  local UNTRACKED_LINES MODIFIED_LINES TOTAL
+  UNTRACKED_LINES=$(git ls-files --others --exclude-standard 2>/dev/null \
+    | xargs wc -l 2>/dev/null | tail -1 | awk '{print $1}')
+  MODIFIED_LINES=$(git diff --stat HEAD 2>/dev/null | tail -1 \
+    | sed -n 's/.*\([0-9]\+\) insertion.*/\1/p')
+  MODIFIED_LINES=${MODIFIED_LINES:-0}
+  TOTAL=$(( ${UNTRACKED_LINES:-0} + ${MODIFIED_LINES:-0} ))
+  if [ "$TOTAL" -gt 500 ]; then
+    echo ""
+    echo "⚠️  LARGE DIFF DETECTED: ~${TOTAL} lines of uncommitted/untracked changes"
+    echo "   Breakdown:"
+    echo "   Untracked files:"
+    git ls-files --others --exclude-standard 2>/dev/null | head -10
+    echo "   Modified files:"
+    git diff --name-only HEAD 2>/dev/null | head -10
+    echo ""
+    echo "   This will show in the session diff display. If unexpected,"
+    echo "   add to .gitignore or delete before starting work."
+    echo ""
+  fi
+}
+
 echo "=== Worktree setup: $(git rev-parse --abbrev-ref HEAD) ==="
 cleanup_crlf_phantoms
 sync_git
 setup_dev_env || true
 setup_git_credentials || true
+check_diff_health
 echo "=== Setup complete ==="
