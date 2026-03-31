@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { ArrowLeft, Compass, ExternalLink, Sparkles, Loader2 } from 'lucide-react';
+import { ArrowLeft, Compass, ExternalLink, Sparkles, Loader2, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,8 @@ import {
 } from '@/lib/globe/matchChoreography';
 import { computeUserNodePosition, findClosestCluster } from '@/lib/globe/userNodePlacement';
 import { useFeatureFlag } from '@/components/FeatureGate';
+// Personality label infrastructure — available for Tier 2 (personality in results overlay)
+// import { getPersonalityLabel, getDominantDimension, getIdentityColor } from '@/lib/drepIdentity';
 import posthog from 'posthog-js';
 
 /* ─── Question definitions ─── */
@@ -71,7 +73,7 @@ const MATCH_QUESTIONS: QuestionDef[] = [
   },
   {
     id: 'decentralization',
-    senecaPrompt: 'Last one. How should governance power be distributed across the network?',
+    senecaPrompt: 'How should governance power be distributed across the network?',
     options: [
       { value: 'spread_widely', label: 'Spread widely', brief: 'No single entity should dominate' },
       {
@@ -82,12 +84,77 @@ const MATCH_QUESTIONS: QuestionDef[] = [
       { value: 'current_fine', label: 'It\u2019s fine', brief: 'Current distribution works' },
     ],
   },
+  {
+    id: 'governance_risk',
+    senecaPrompt:
+      'Getting clearer. What\u2019s the biggest risk facing Cardano governance right now?',
+    options: [
+      { value: 'voter_apathy', label: 'Voter apathy', brief: 'Not enough people participating' },
+      {
+        value: 'plutocracy',
+        label: 'Whale dominance',
+        brief: 'Too much power in too few hands',
+      },
+      { value: 'too_slow', label: 'Moving too slowly', brief: 'Governance can\u2019t keep up' },
+      {
+        value: 'lack_accountability',
+        label: 'No accountability',
+        brief: 'Representatives aren\u2019t held to account',
+      },
+    ],
+  },
+  {
+    id: 'drep_engagement',
+    senecaPrompt: 'How should DReps engage with the people who delegate to them?',
+    options: [
+      {
+        value: 'regular_updates',
+        label: 'Regular updates',
+        brief: 'Explain every major decision',
+      },
+      {
+        value: 'major_decisions_only',
+        label: 'Major decisions only',
+        brief: 'Only when stakes are high',
+      },
+      {
+        value: 'trust_and_verify',
+        label: 'Trust & verify',
+        brief: 'Delegators should check the record themselves',
+      },
+    ],
+  },
+  {
+    id: 'spending_priority',
+    senecaPrompt: 'Last one. What should the treasury prioritize this year?',
+    options: [
+      {
+        value: 'dev_tooling',
+        label: 'Developer tooling',
+        brief: 'Infrastructure and dev experience',
+      },
+      {
+        value: 'community_education',
+        label: 'Education & outreach',
+        brief: 'Grow the community\u2019s governance literacy',
+      },
+      { value: 'defi_growth', label: 'DeFi & ecosystem', brief: 'Accelerate ecosystem growth' },
+      {
+        value: 'constitutional_dev',
+        label: 'Constitutional development',
+        brief: 'Strengthen the governance framework',
+      },
+    ],
+  },
 ];
 
 const TOTAL_QUESTIONS = MATCH_QUESTIONS.length;
 
 /** Progressive narrowing — top N closest DReps per round (used in reduced-motion fallback) */
-const TOP_N_PER_ROUND = [200, 50, 10, 5];
+const TOP_N_PER_ROUND = [200, 80, 30, 15, 10, 7, 5];
+
+/** Minimum questions before "Match me now" CTA appears */
+const MIN_QUESTIONS_FOR_MATCH = 2;
 
 /* ─── Seneca acknowledgement messages (evocative, matching globe visual) ─── */
 
@@ -95,8 +162,19 @@ const ACKNOWLEDGEMENTS = [
   'The field is shifting. I can see clusters forming around your priorities\u2026',
   'Narrowing in. A pattern is emerging among the representatives\u2026',
   'Almost there. I see a clear cluster of aligned representatives\u2026',
+  'The constellation is tightening around your values\u2026',
+  'Risk tolerance tells me a lot. Your neighborhood is becoming clear\u2026',
+  'Engagement style narrows it further. Just one more\u2026',
   'Locking on to your best matches\u2026',
 ];
+
+function getConfidenceLabel(answeredCount: number): { label: string; pct: number } {
+  if (answeredCount >= 7) return { label: 'Deep match', pct: 95 };
+  if (answeredCount >= 5) return { label: 'Strong match', pct: 85 };
+  if (answeredCount >= 4) return { label: 'Good match', pct: 75 };
+  if (answeredCount >= 2) return { label: 'Basic match', pct: 50 };
+  return { label: 'Warming up', pct: 25 };
+}
 
 // Globe commands dispatched via lib/globe/globeCommandBus (imported above)
 
@@ -222,7 +300,7 @@ export function SenecaMatch({ onBack, onGlobeCommand, onStartConversation }: Sen
           scanProgressOverride: [0.15, 0.4, 0.7, 0.95][questionIndex] ?? 0.95,
         });
       } else {
-        sendGlobeCommand(buildAnswerSequence(questionIndex, vector, 0));
+        sendGlobeCommand(buildAnswerSequence(questionIndex, vector, 0, TOTAL_QUESTIONS));
       }
 
       // Advance to next question or submit — snappy transitions
@@ -254,6 +332,9 @@ export function SenecaMatch({ onBack, onGlobeCommand, onStartConversation }: Sen
             protocol: finalAnswers.protocol,
             transparency: finalAnswers.transparency,
             decentralization: finalAnswers.decentralization,
+            governance_risk: finalAnswers.governance_risk,
+            drep_engagement: finalAnswers.drep_engagement,
+            spending_priority: finalAnswers.spending_priority,
             match_type: 'drep',
           }),
           signal: controller.signal,
@@ -365,6 +446,19 @@ export function SenecaMatch({ onBack, onGlobeCommand, onStartConversation }: Sen
     },
     [sendGlobeCommand, prefersReducedMotion, scheduleTimer],
   );
+
+  // "Match me now" — early exit with collected answers
+  const handleMatchNow = useCallback(() => {
+    const filled: Record<string, string> = {
+      ...answers,
+      treasury: answers.treasury || 'balanced',
+      protocol: answers.protocol || 'case_by_case',
+    };
+    setAnswers(filled);
+    posthog.capture('match_early_exit', { questions_answered: Object.keys(answers).length });
+    setStep('loading');
+    submitMatch(filled);
+  }, [answers, submitMatch]);
 
   // Restart the quiz
   const handleRestart = useCallback(() => {
@@ -481,7 +575,8 @@ export function SenecaMatch({ onBack, onGlobeCommand, onStartConversation }: Sen
             >
               {step === 0 && (
                 <SenecaBubble delay={0}>
-                  Four quick questions to find your governance match.
+                  A few questions to find your governance match. You can match early after the first
+                  two.
                 </SenecaBubble>
               )}
               <SenecaBubble delay={step === 0 ? 0.15 : 0}>
@@ -507,6 +602,46 @@ export function SenecaMatch({ onBack, onGlobeCommand, onStartConversation }: Sen
                   </motion.button>
                 ))}
               </div>
+
+              {/* Confidence indicator + "Match me now" CTA */}
+              {Object.keys(answers).length >= MIN_QUESTIONS_FOR_MATCH && (
+                <>
+                  {/* Confidence bar */}
+                  <div className="flex items-center gap-2 mt-1">
+                    <div className="h-1 flex-1 rounded-full bg-white/10 overflow-hidden">
+                      <motion.div
+                        className="h-full rounded-full bg-primary/50"
+                        initial={{ width: '0%' }}
+                        animate={{
+                          width: `${getConfidenceLabel(Object.keys(answers).length).pct}%`,
+                        }}
+                        transition={{ duration: 0.4 }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-muted-foreground shrink-0">
+                      {getConfidenceLabel(Object.keys(answers).length).label}
+                    </span>
+                  </div>
+
+                  {/* Match me now CTA */}
+                  <motion.button
+                    initial={prefersReducedMotion ? false : { opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.25 }}
+                    onClick={handleMatchNow}
+                    className={cn(
+                      'w-full flex items-center justify-center gap-2 rounded-xl border',
+                      'border-primary/30 bg-primary/10 hover:bg-primary/20',
+                      'px-4 py-2 text-sm font-medium text-primary',
+                      'transition-colors min-h-[40px]',
+                    )}
+                  >
+                    <Zap className="h-3.5 w-3.5" />
+                    Match me now (
+                    {getConfidenceLabel(Object.keys(answers).length).label.toLowerCase()})
+                  </motion.button>
+                </>
+              )}
 
               {/* Acknowledgement from previous round fades in at top */}
               {step > 0 && (
