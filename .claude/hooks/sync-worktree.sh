@@ -17,31 +17,22 @@ if [ -d ".git" ]; then
 fi
 
 # --- CRLF phantom diff cleanup ---
-# After .gitattributes changes (eol=lf), working tree files may still have CRLF
-# while the index expects LF. `git add --renormalize .` aligns the index with
-# .gitattributes rules, eliminating phantom diffs that would otherwise block
-# auto-rebase. This is idempotent — if nothing needs renormalizing, it's a no-op.
+# On Windows, `git worktree add` can check out files with CRLF even when
+# .gitattributes says eol=lf (global core.autocrlf=true leaks through).
+# These show as unstaged modifications with 0 real content changes per numstat.
+# `git checkout -- .` replaces working-tree CRLF with index LF, clearing them.
 cleanup_crlf_phantoms() {
-  if [ ! -f ".gitattributes" ]; then
-    return 0
-  fi
+  # Fast path: no unstaged changes at all
+  git diff --quiet HEAD 2>/dev/null && return 0
 
-  # Check: are there unstaged "modifications" that are actually zero-byte diffs?
-  local TOTAL_MODS REAL_MODS
-  TOTAL_MODS=$(git diff --name-only 2>/dev/null | wc -l)
-  REAL_MODS=$(git diff --numstat 2>/dev/null | awk '$1 != 0 || $2 != 0' | wc -l)
-
-  if [ "$TOTAL_MODS" -gt 0 ] && [ "$REAL_MODS" -eq 0 ]; then
-    echo "CRLF phantom diffs detected (${TOTAL_MODS} files) — renormalizing..."
-    git add --renormalize . 2>/dev/null
-    # If renormalize staged changes, commit them so the tree is clean
-    if ! git diff --cached --quiet 2>/dev/null; then
-      git commit -m "fix: renormalize line endings to LF" --no-verify --quiet 2>/dev/null \
-        && echo "CRLF: committed renormalization ✓" \
-        || { git reset HEAD --quiet 2>/dev/null; echo "CRLF: renormalize staged but commit skipped"; }
-    else
-      echo "CRLF: phantom diffs resolved ✓"
-    fi
+  # Check if ALL modifications are zero-content (CRLF-only)
+  local REAL
+  REAL=$(git diff --numstat HEAD 2>/dev/null | awk '$1 != 0 || $2 != 0 { print }' | head -1)
+  if [ -z "$REAL" ]; then
+    local COUNT
+    COUNT=$(git diff --name-only HEAD 2>/dev/null | wc -l)
+    git checkout -- . 2>/dev/null
+    echo "Git: discarded ${COUNT} CRLF phantom diffs ✓"
   fi
 }
 
@@ -123,16 +114,6 @@ sync_git() {
     exit 2
   fi
 
-  # Auto-discard CRLF-only phantom diffs before rebasing.
-  # We already know IS_DIRTY=false (no real content changes), but git rebase
-  # does its own working-tree check and refuses to run if it sees ANY unstaged
-  # changes — including zero-content CRLF normalization diffs. Silently clean
-  # them so the rebase can proceed.
-  if ! git diff --quiet HEAD 2>/dev/null; then
-    git checkout -- . 2>/dev/null
-    echo "Git: discarded CRLF phantom diffs (0 real content changes) ✓"
-  fi
-
   if ! git rebase origin/main --quiet 2>/dev/null; then
     git rebase --abort 2>/dev/null || true
     echo ""
@@ -195,9 +176,12 @@ setup_git_credentials() {
   fi
 }
 
-# Git sync runs first and can HARD BLOCK (exit 2) if behind + dirty.
-# Dev env and credential setup only run if sync passes.
+# CRLF cleanup runs FIRST, before anything else — the Claude Code UI may
+# snapshot the diff at session start, so we must clean phantom diffs ASAP.
+# Then git sync (which also calls cleanup_crlf_phantoms after fetch, in case
+# the fetch itself introduces new CRLF mismatches).
 echo "=== Worktree setup: $(git rev-parse --abbrev-ref HEAD) ==="
+cleanup_crlf_phantoms
 sync_git
 setup_dev_env || true
 setup_git_credentials || true
