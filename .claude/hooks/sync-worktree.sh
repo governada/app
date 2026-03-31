@@ -3,7 +3,9 @@
 # Only runs in worktrees (not the main checkout) to avoid rebasing main itself.
 #
 # IMPORTANT: No `set -e` — this is a session-start hook and must be maximally
-# forgiving. A git sync failure must never prevent dev env setup.
+# forgiving for dev-env setup. But git sync DOES hard-block when the worktree
+# is behind origin/main and can't auto-rebase (dirty tree). Planning on stale
+# code wastes the entire session.
 
 set -uo pipefail
 
@@ -34,15 +36,44 @@ sync_git() {
     return 0
   fi
 
-  # Skip rebase if working tree is dirty — don't risk conflicts or data loss
+  # Check if working tree is dirty
+  local IS_DIRTY=false
   if ! git diff --quiet HEAD 2>/dev/null || ! git diff --cached --quiet HEAD 2>/dev/null; then
+    IS_DIRTY=true
+  fi
+
+  if [ "$IS_DIRTY" = "true" ]; then
+    # HARD BLOCK: behind origin/main + dirty tree = planning on stale code.
+    # The agent will read outdated files and produce a plan that doesn't match
+    # what's actually on main. This wastes the entire session.
     echo ""
-    echo "⚠️  WORKTREE BEHIND origin/main by ${BEHIND_COUNT} commits (working tree dirty — auto-rebase skipped)."
-    echo "   ACTION REQUIRED: Commit or stash your changes, then run:"
-    echo "     git rebase origin/main"
-    echo "   Skipping now — rebase before pushing to avoid conflicts."
+    echo "========================================================================="
+    echo "BLOCKED: Worktree is ${BEHIND_COUNT} commit(s) behind origin/main"
+    echo "         AND has uncommitted changes (auto-rebase not possible)."
     echo ""
-    return 0
+    echo "Planning or coding on stale code wastes the session — you'll hit"
+    echo "conflicts on every file that changed on main since you branched."
+    echo ""
+    echo "Fix (pick one):"
+    echo ""
+    echo "  Option A — Stash, rebase, pop:"
+    echo "    git stash"
+    echo "    git rebase origin/main"
+    echo "    git stash pop"
+    echo ""
+    echo "  Option B — Commit WIP first, then rebase:"
+    echo "    git add -A && git commit -m 'wip: save progress'"
+    echo "    git rebase origin/main"
+    echo ""
+    echo "  Option C — Discard local changes and rebase (DESTRUCTIVE):"
+    echo "    git checkout -- ."
+    echo "    git rebase origin/main"
+    echo ""
+    echo "Uncommitted files:"
+    git status --short | head -10
+    echo "========================================================================="
+    echo ""
+    exit 2
   fi
 
   if ! git rebase origin/main --quiet 2>/dev/null; then
@@ -107,9 +138,10 @@ setup_git_credentials() {
   fi
 }
 
-# Always run all steps — failure in one must not block the others
+# Git sync runs first and can HARD BLOCK (exit 2) if behind + dirty.
+# Dev env and credential setup only run if sync passes.
 echo "=== Worktree setup: $(git rev-parse --abbrev-ref HEAD) ==="
-sync_git || true
+sync_git
 setup_dev_env || true
 setup_git_credentials || true
 echo "=== Setup complete ==="
