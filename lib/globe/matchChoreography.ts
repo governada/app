@@ -16,8 +16,8 @@ import type { GlobeCommand } from '@/lib/globe/types';
 type SequenceStep = { command: GlobeCommand; delayMs: number };
 
 // Camera dive waypoints per round — each approaches from a different angle
-const DIVE_ANGLES = [0.5, -0.8, 0.2, 0]; // azimuth offset (radians)
-const DIVE_ELEVATIONS = [0.3, 0, -0.25, 0]; // vertical offset (radians)
+const DIVE_ANGLES = [0.35, -0.5, 0.15, 0, -0.3, 0.1, -0.15]; // azimuth offset (radians)
+const DIVE_ELEVATIONS = [0.2, 0, -0.15, 0, 0.1, -0.1, 0]; // vertical offset (radians)
 
 // ---------------------------------------------------------------------------
 // Reveal timing — exported so SenecaMatch can sync overlay/countdown UI
@@ -70,24 +70,35 @@ export function buildMatchStartSequence(): GlobeCommand {
 // Stages 1-4: Dive-through camera — weaving toward DRep cluster
 // ---------------------------------------------------------------------------
 
-/** Progressive narrowing: how many DRep nodes to highlight per round.
- *  Q1: wide field (200). Q2: focused cluster (50). Q3: tight group (10). Q4: finalists (5). */
-const TOP_N_PER_ROUND = [200, 50, 10, 5];
+// ---------------------------------------------------------------------------
+// Dynamic topN and scanProgress — scales to any round count
+// ---------------------------------------------------------------------------
 
-/** Scan progress per round (0-1): drives unfocused node fade intensity */
-const SCAN_PROGRESS_PER_ROUND = [0.15, 0.4, 0.7, 0.95];
+/** Compute how many DRep nodes to highlight for a given round.
+ *  Exponential decay: 200 → 5 across the full question set. */
+export function getTopNForRound(roundIndex: number, totalRounds: number): number {
+  const progress = roundIndex / Math.max(1, totalRounds - 1);
+  return Math.max(5, Math.round(200 * Math.pow(0.025, progress)));
+}
+
+/** Compute scan progress (0-1) for a given round.
+ *  Drives unfocused node fade + camera distance. Starts aggressive (0.35). */
+export function getScanProgressForRound(roundIndex: number, totalRounds: number): number {
+  const progress = roundIndex / Math.max(1, totalRounds - 1);
+  return 0.35 + 0.6 * Math.pow(progress, 0.7);
+}
 
 export function buildAnswerSequence(
   roundIndex: number,
   alignment: number[],
   _threshold: number,
+  totalRounds: number = 7,
 ): GlobeCommand {
-  const topN = TOP_N_PER_ROUND[roundIndex] ?? 5;
-  const scanProgress = SCAN_PROGRESS_PER_ROUND[roundIndex] ?? 0.95;
+  const topN = getTopNForRound(roundIndex, totalRounds);
+  const scanProgress = getScanProgressForRound(roundIndex, totalRounds);
 
-  // Single highlight command with topN — the globe computes the closest N DReps
-  // and flies the camera to their centroid. Each round approaches from a different angle.
-  return {
+  // Highlight command — globe computes closest N DReps and flies camera to centroid
+  const highlightCmd: GlobeCommand = {
     type: 'highlight',
     alignment,
     threshold: 9999, // ignored when topN is set, but required by type
@@ -97,6 +108,16 @@ export function buildAnswerSequence(
     cameraElevation: DIVE_ELEVATIONS[roundIndex] ?? 0,
     topN,
     scanProgressOverride: scanProgress,
+  };
+
+  // Wrap in sequence: recalibration flash → highlight
+  // The flash briefly pulses focused nodes brighter, communicating "system recalculated"
+  return {
+    type: 'sequence',
+    steps: [
+      { command: { type: 'pulse', intensity: 1.3, durationMs: 200 }, delayMs: 0 },
+      { command: highlightCmd, delayMs: 250 },
+    ],
   };
 }
 

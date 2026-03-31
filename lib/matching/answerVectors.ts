@@ -32,6 +32,23 @@ export const ANSWER_VECTORS: Record<string, Record<string, Partial<AlignmentScor
       decentralization: 50,
     },
   },
+  governance_risk: {
+    voter_apathy: { transparency: 80, decentralization: 75 },
+    plutocracy: { decentralization: 90, treasuryConservative: 65 },
+    too_slow: { innovation: 85, security: 30 },
+    lack_accountability: { transparency: 90, treasuryConservative: 70 },
+  },
+  drep_engagement: {
+    regular_updates: { transparency: 90, decentralization: 70 },
+    major_decisions_only: { transparency: 50, innovation: 60 },
+    trust_and_verify: { transparency: 30, security: 65, decentralization: 55 },
+  },
+  spending_priority: {
+    dev_tooling: { innovation: 85, treasuryGrowth: 70, security: 60 },
+    community_education: { decentralization: 80, transparency: 70, treasuryGrowth: 55 },
+    defi_growth: { innovation: 80, treasuryGrowth: 85 },
+    constitutional_dev: { security: 80, transparency: 75, treasuryConservative: 60 },
+  },
 };
 
 /**

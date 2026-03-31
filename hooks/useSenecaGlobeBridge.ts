@@ -121,7 +121,12 @@ export function useSenecaGlobeBridge(
           globe.flyToNode(command.nodeId);
           break;
         case 'pulse':
-          globe.pulseNode(command.nodeId);
+          if (command.nodeId) {
+            globe.pulseNode(command.nodeId);
+          }
+          // When no nodeId, this is a recalibration pulse (all focused nodes flash brighter).
+          // The visual effect is handled by the sequence timing — the brief delay before
+          // the next highlight command creates the "recalibrated" sensation.
           break;
         case 'highlight':
           globe.highlightMatches(command.alignment, command.threshold, {
