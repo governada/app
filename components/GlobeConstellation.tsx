@@ -47,6 +47,8 @@ import {
 } from '@/lib/globe/types';
 import type { FocusState, SceneState } from '@/lib/globe/types';
 import { getSharedFocus, setSharedFocus, getSharedFocusVersion } from '@/lib/globe/focusState';
+import { getSharedIntent, getSharedIntentVersion } from '@/lib/globe/focusIntent';
+import { deriveFromIntent } from '@/lib/globe/focusEngine';
 import { rotateAroundY, sleep, estimateGPUTier } from '@/lib/globe/helpers';
 
 interface GlobeConstellationProps {
@@ -142,6 +144,11 @@ export const GlobeConstellation = forwardRef<
   const [cinematicOrbitSpeed, setCinematicOrbitSpeed] = useState(0);
   const [cinematicDollyTarget, setCinematicDollyTarget] = useState(14);
 
+  // Reactive focus engine state
+  const lastIntentVersionRef = useRef(0);
+  const engineActiveRef = useRef(false);
+  const prevEngineDollyRef = useRef(14);
+
   // Effective camera position/target — allow overrides from props
   const effectiveCamera = useMemo(
     () => initialCameraPosition ?? INITIAL_CAMERA,
@@ -181,9 +188,15 @@ export const GlobeConstellation = forwardRef<
   // fields set externally by behaviors (userNode from spatialMatchBehavior).
   // Without this merge, the forward sync clobbers behavior writes before the
   // reverse sync interval can detect them.
-  const shared = getSharedFocus();
-  if (shared !== sceneState.focus) {
-    setSharedFocus({ ...sceneState.focus, userNode: shared.userNode ?? sceneState.focus.userNode });
+  // SKIP when reactive focus engine is active — it writes FocusState directly.
+  if (!engineActiveRef.current) {
+    const shared = getSharedFocus();
+    if (shared !== sceneState.focus) {
+      setSharedFocus({
+        ...sceneState.focus,
+        userNode: shared.userNode ?? sceneState.focus.userNode,
+      });
+    }
   }
 
   // Reverse sync: detect when behaviors (e.g., spatialMatchBehavior) write to
@@ -206,6 +219,61 @@ export const GlobeConstellation = forwardRef<
     }, 50); // Poll at 20Hz — fast enough for visual updates, light on CPU
     return () => clearInterval(interval);
   }, []);
+
+  // Reactive focus engine tick — reads FocusIntent, derives FocusState + camera.
+  // Runs at 20Hz. CinematicCamera/CameraControls handle per-frame smooth interpolation.
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const intentVersion = getSharedIntentVersion();
+      if (intentVersion === lastIntentVersionRef.current) return;
+      lastIntentVersionRef.current = intentVersion;
+
+      const intent = getSharedIntent();
+
+      // Null intent = engine idle, yield to legacy commands
+      if (intent.focusedIds === null) {
+        engineActiveRef.current = false;
+        return;
+      }
+
+      // Derive FocusState + camera from intent
+      const output = deriveFromIntent(
+        intent,
+        sceneState.nodes,
+        rotationAngleRef.current,
+        prevEngineDollyRef.current,
+      );
+
+      // Write FocusState to React state + window global
+      setSceneState((prev) => ({ ...prev, focus: output.focus }));
+      setSharedFocus(output.focus);
+
+      // Apply camera if engine derived one and flyToFocus is not disabled
+      if (output.camera && intent.flyToFocus !== false) {
+        const controls = cameraControlsRef.current;
+        if (controls) {
+          rotationSpeedRef.current = output.camera.orbitSpeed;
+          controls.smoothTime = output.camera.transitionSpeed;
+          controls.setLookAt(
+            output.camera.position[0],
+            output.camera.position[1],
+            output.camera.position[2],
+            output.camera.target[0],
+            output.camera.target[1],
+            output.camera.target[2],
+            true,
+          );
+        }
+        setCinematicDollyTarget(output.camera.distance);
+        prevEngineDollyRef.current = output.camera.distance;
+      }
+
+      engineActiveRef.current = true;
+    }, 50);
+    return () => clearInterval(interval);
+    // sceneState.nodes changes when API data loads — engine must re-resolve intents
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sceneState.nodes]);
 
   const { data: apiData } = useGovernanceConstellation();
 
@@ -391,13 +459,9 @@ export const GlobeConstellation = forwardRef<
         scanProgressOverride?: number;
       },
     ) => {
-      // eslint-disable-next-line no-console
-      console.log('%c[Globe] highlightMatches', 'color: yellow', {
-        topN: options?.topN,
-        sp: options?.scanProgressOverride,
-        zoom: options?.zoomToCluster,
-        nodes: sceneState.nodes.length,
-      });
+      // When reactive engine is active, it handles alignment-based focus
+      if (engineActiveRef.current) return;
+
       const matched = new Set<string>();
       const intensities = new Map<string, number>();
 
@@ -696,10 +760,9 @@ export const GlobeConstellation = forwardRef<
     },
 
     matchStart: () => {
-      // eslint-disable-next-line no-console
-      console.log('%c[Globe] matchStart called', 'color: magenta', {
-        nodesCount: sceneState.nodes.length,
-      });
+      // When reactive engine is active, it handles the match-start intent
+      if (engineActiveRef.current) return;
+
       // "Entering Cerebro" — light up all DRep nodes with shockwave propagation
       const drepIds = new Set<string>();
       const intensities = new Map<string, number>();
