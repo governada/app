@@ -86,13 +86,18 @@ The server accepts connections immediately but holds requests until the route co
 
 The `sync-worktree.sh` hook runs on session start and handles:
 
-- Rebasing onto latest `origin/main`
+- Fetching + rebasing onto `origin/main` (skips with warning if working tree is dirty)
 - Copying `.env.local` from the main checkout (if missing)
-- Creating a `node_modules` directory junction to main checkout (if package.json matches)
+- Junctioning `node_modules` from main checkout; falls back to `npm install` if junction needs admin rights
+- Running `gh auth setup-git` to configure HTTPS push credentials
+
+Read the session-start output — `⚠️` warnings require manual action before starting work.
 
 If the hook didn't run (e.g., non-standard worktree setup), do these manually:
 
 ```bash
+git fetch origin && git rebase origin/main
 cp /c/Users/dalto/governada/governada-app/.env.local .
 npm install
+gh auth setup-git
 ```
