@@ -289,7 +289,7 @@ export const GlobeConstellation = forwardRef<
       setSharedFocus(output.focus);
 
       // DIAGNOSTIC: Remove after confirming pipeline works
-       
+
       console.warn('[GlobeEngine] Focus derived:', {
         active: output.focus.active,
         focusedCount: output.focus.focusedIds.size,

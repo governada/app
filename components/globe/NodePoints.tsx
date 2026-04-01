@@ -495,7 +495,7 @@ function NodePoints({
       lastFocusVersionRef.current = currentVersion;
       const newFocus = getSharedFocus();
       // DIAGNOSTIC: Remove after confirming pipeline works
-       
+
       console.warn('[NodePoints] Focus version changed:', {
         version: currentVersion,
         active: newFocus.active,
