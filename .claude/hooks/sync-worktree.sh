@@ -43,6 +43,13 @@ sync_git() {
     return 0
   }
 
+  # Keep local main in sync with origin/main so new worktrees start current.
+  # `fetch origin main:main` fast-forwards the local main ref without checking
+  # it out. Fails safely if main has diverged (which shouldn't happen per rules).
+  git fetch origin main:main --quiet 2>/dev/null \
+    && echo "Git: local main fast-forwarded to origin/main ✓" \
+    || true  # non-fatal — local main may already be current or have local commits
+
   # Clean CRLF phantom diffs BEFORE dirty-tree detection.
   # This prevents line-ending noise from blocking auto-rebase.
   cleanup_crlf_phantoms

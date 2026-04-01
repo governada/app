@@ -7,7 +7,7 @@ paths:
 
 ## Branch Hygiene
 
-- **Always start from fresh main.** Before any development: `git checkout main && git pull origin main && git checkout -b feat/<name>`. Never develop on a stale or leftover branch.
+- **Always start from fresh origin/main.** For worktrees: `git worktree add ../governada-<name> -b feat/<name> origin/main`. For branches: `git checkout main && git pull origin main && git checkout -b feat/<name>`. Never develop on a stale or leftover branch. The sync-worktree hook auto-fast-forwards local main, but always specify `origin/main` as the start point.
 - **Clean up after yourself.** When a worktree session is complete and the PR is merged, remove the worktree. Don't leave stale branches around.
 - **Delete local branches after merge.** `gh pr merge --squash --delete-branch` only deletes the remote branch. Always follow up with `git branch -d <branch>` locally. The squash commit SHA differs from the branch commits, so use `-D` if `-d` complains about unmerged work you know was squash-merged.
 - **Prune remotes at session start.** Run `git fetch --prune` to remove stale remote tracking refs. The cleanup script does this automatically.
