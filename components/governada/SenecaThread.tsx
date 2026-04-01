@@ -590,11 +590,6 @@ export function SenecaThread({
               {mode === 'matching' && (
                 <SenecaMatch
                   onBack={onReturnToIdle}
-                  onGlobeCommand={
-                    onGlobeCommand as
-                      | ((cmd: import('@/hooks/useSenecaGlobeBridge').GlobeCommand) => void)
-                      | undefined
-                  }
                   onStartConversation={(query) => {
                     onReturnToIdle();
                     // Brief delay to let mode transition settle before starting conversation

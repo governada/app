@@ -20,9 +20,8 @@ import {
   buildRevealSequence,
   buildSpatialRevealSequence,
   buildMatchCleanupSequence,
-  getRevealDurationMs,
-  getSpatialRevealDurationMs,
 } from '@/lib/globe/matchChoreography';
+import { runSequence, flattenSequence, type SequenceHandle } from '@/lib/globe/sequencer';
 import { computeUserNodePosition, findClosestCluster } from '@/lib/globe/userNodePlacement';
 import { useFeatureFlag } from '@/components/FeatureGate';
 // Personality label infrastructure — available for Tier 2 (personality in results overlay)
@@ -186,7 +185,6 @@ function getConfidenceLabel(answeredCount: number): { label: string; pct: number
 
 interface SenecaMatchProps {
   onBack: () => void;
-  onGlobeCommand?: (cmd: GlobeCommand) => void;
   /** Transition to Seneca conversation mode with a pre-filled query (spatial match chips) */
   onStartConversation?: (query: string) => void;
 }
@@ -202,7 +200,7 @@ function getAnswerLabel(questionId: string, value: string): string {
 
 /* ─── Component ─── */
 
-export function SenecaMatch({ onBack, onGlobeCommand, onStartConversation }: SenecaMatchProps) {
+export function SenecaMatch({ onBack, onStartConversation }: SenecaMatchProps) {
   const prefersReducedMotion = useReducedMotion();
   const spatialMatch = useFeatureFlag('globe_spatial_match');
   const [step, setStep] = useState<MatchStep>(0);
@@ -230,6 +228,9 @@ export function SenecaMatch({ onBack, onGlobeCommand, onStartConversation }: Sen
   // Track the last alignment vector for reveal sequence
   const lastAlignmentRef = useRef<number[]>([50, 50, 50, 50, 50, 50]);
 
+  // Sequencer handle for cancelling active sequences on unmount/restart
+  const sequenceHandleRef = useRef<SequenceHandle | null>(null);
+
   // Clean up timers on unmount or restart
   const clearPendingTimers = useCallback(() => {
     for (const id of pendingTimersRef.current) clearTimeout(id);
@@ -239,6 +240,8 @@ export function SenecaMatch({ onBack, onGlobeCommand, onStartConversation }: Sen
   useEffect(
     () => () => {
       clearPendingTimers();
+      sequenceHandleRef.current?.cancel();
+      sequenceHandleRef.current = null;
       setSharedIntent(DEFAULT_INTENT);
     },
     [clearPendingTimers],
@@ -392,7 +395,7 @@ export function SenecaMatch({ onBack, onGlobeCommand, onStartConversation }: Sen
             posthog.capture('match_spatial_reveal_started');
           }
 
-          // Clear reactive engine before reveal — choreographer takes control
+          // Clear reactive engine before reveal — sequencer locks the engine
           setSharedIntent(DEFAULT_INTENT);
 
           if (prefersReducedMotion) {
@@ -420,29 +423,31 @@ export function SenecaMatch({ onBack, onGlobeCommand, onStartConversation }: Sen
               });
             }, 1500);
           } else {
-            // Theatrical reveal: countdown 5→1 then fly to #1 (+ spatial extension)
+            // Theatrical reveal via promise-based sequencer
+            // Locks the engine, dispatches steps, resolves when done
             setStep('revealing');
             posthog.capture('match_countdown_viewed');
 
-            if (spatialMatch && userPositionRef.current) {
-              sendGlobeCommand(
-                buildSpatialRevealSequence(
-                  topMatches,
-                  lastAlignmentRef.current,
-                  0,
-                  userPositionRef.current,
-                ),
-              );
-            } else {
-              sendGlobeCommand(buildRevealSequence(topMatches, lastAlignmentRef.current, 0));
-            }
-
-            // Sync overlay to appear after the full reveal sequence completes
-            const revealDuration =
+            const revealCmd =
               spatialMatch && userPositionRef.current
-                ? getSpatialRevealDurationMs(topMatches.length)
-                : getRevealDurationMs(topMatches.length);
-            scheduleTimer(() => {
+                ? buildSpatialRevealSequence(
+                    topMatches,
+                    lastAlignmentRef.current,
+                    0,
+                    userPositionRef.current,
+                  )
+                : buildRevealSequence(topMatches, lastAlignmentRef.current, 0);
+
+            const handle = runSequence(flattenSequence(revealCmd), dispatchGlobeCommand);
+            sequenceHandleRef.current = handle;
+
+            // Await actual completion — no more timing guesses
+            // done resolves on both completion and cancel (graceful).
+            // Check sequenceHandleRef to detect cancellation: if null, the
+            // sequence was cancelled by unmount/restart before completion.
+            handle.done.then(() => {
+              if (sequenceHandleRef.current !== handle) return; // cancelled
+              sequenceHandleRef.current = null;
               setStep('results');
               setOverlayState({
                 focusedMatch: data.matches[0],
@@ -454,7 +459,7 @@ export function SenecaMatch({ onBack, onGlobeCommand, onStartConversation }: Sen
                 top_match_score: data.matches[0]?.matchScore ?? 0,
                 spatial: !!spatialMatch,
               });
-            }, revealDuration);
+            });
           }
         } else {
           setStep('results');
@@ -484,6 +489,8 @@ export function SenecaMatch({ onBack, onGlobeCommand, onStartConversation }: Sen
   // Restart the quiz
   const handleRestart = useCallback(() => {
     clearPendingTimers();
+    sequenceHandleRef.current?.cancel();
+    sequenceHandleRef.current = null;
     setSharedIntent(DEFAULT_INTENT);
     setAnswers({});
     setResult(null);
@@ -497,7 +504,16 @@ export function SenecaMatch({ onBack, onGlobeCommand, onStartConversation }: Sen
       sendGlobeCommand({ type: 'clear' });
       sendGlobeCommand({ type: 'reset' });
     } else {
-      sendGlobeCommand(buildMatchCleanupSequence());
+      // Cleanup via sequencer WITHOUT engine lock — the user is restarting
+      // the quiz, so the reactive engine must be free to process the new
+      // match-start intent immediately. Locking here would freeze the globe
+      // during the first answer of the restarted quiz.
+      const handle = runSequence(
+        flattenSequence(buildMatchCleanupSequence()),
+        dispatchGlobeCommand,
+        { lockEngine: false },
+      );
+      sequenceHandleRef.current = handle;
     }
     posthog.capture('match_restarted');
   }, [sendGlobeCommand, clearPendingTimers, prefersReducedMotion]);

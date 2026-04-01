@@ -49,6 +49,7 @@ import type { FocusState, SceneState } from '@/lib/globe/types';
 import { getSharedFocus, setSharedFocus, getSharedFocusVersion } from '@/lib/globe/focusState';
 import { getSharedIntent, getSharedIntentVersion } from '@/lib/globe/focusIntent';
 import { deriveFromIntent } from '@/lib/globe/focusEngine';
+import { isEngineLocked } from '@/lib/globe/sequencer';
 import { rotateAroundY, sleep, estimateGPUTier } from '@/lib/globe/helpers';
 
 interface GlobeConstellationProps {
@@ -224,6 +225,10 @@ export const GlobeConstellation = forwardRef<
   // Runs at 20Hz. CinematicCamera/CameraControls handle per-frame smooth interpolation.
   useEffect(() => {
     const interval = setInterval(() => {
+      // Sequencer lock: when a theatrical sequence (reveal, cleanup) is running,
+      // the engine must not process intents — the sequencer owns the globe.
+      if (isEngineLocked()) return;
+
       const intentVersion = getSharedIntentVersion();
       if (intentVersion === lastIntentVersionRef.current) return;
       lastIntentVersionRef.current = intentVersion;
@@ -272,7 +277,6 @@ export const GlobeConstellation = forwardRef<
     }, 50);
     return () => clearInterval(interval);
     // sceneState.nodes changes when API data loads — engine must re-resolve intents
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sceneState.nodes]);
 
   const { data: apiData } = useGovernanceConstellation();
