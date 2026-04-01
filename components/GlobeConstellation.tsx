@@ -45,7 +45,7 @@ import type { FocusState, SceneState } from '@/lib/globe/types';
 import { getSharedFocus, setSharedFocus, getSharedFocusVersion } from '@/lib/globe/focusState';
 import { getSharedIntent, getSharedIntentVersion, setSharedIntent } from '@/lib/globe/focusIntent';
 import { deriveFromIntent } from '@/lib/globe/focusEngine';
-import { isEngineLocked } from '@/lib/globe/sequencer';
+import { isEngineLocked, releaseEngineLock } from '@/lib/globe/sequencer';
 import { estimateGPUTier } from '@/lib/globe/helpers';
 import { createConstellationCommands } from '@/lib/globe/constellationCommands';
 
@@ -157,15 +157,17 @@ export const GlobeConstellation = forwardRef<
 
   // Clear stale focus state when engine-enabled instance mounts/unmounts.
   // Prevents stale state from a previous route from affecting the current globe.
+  // Also releases any stuck sequencer lock — if a sequence was running when the
+  // globe unmounted, the lock would stay set and block the engine permanently.
   useEffect(() => {
     if (!engineEnabled) return;
-    // Reset shared state on mount so no stale focus persists from a previous route
     setSharedFocus(DEFAULT_FOCUS);
     setSharedIntent(DEFAULT_INTENT);
+    releaseEngineLock();
     return () => {
-      // Clean up on unmount so the next route starts fresh
       setSharedFocus(DEFAULT_FOCUS);
       setSharedIntent(DEFAULT_INTENT);
+      releaseEngineLock();
       engineActiveRef.current = false;
     };
   }, [engineEnabled]);
@@ -608,7 +610,7 @@ export const GlobeConstellation = forwardRef<
               wheel: 0 as const,
             }}
             touches={{ one: 0 as const, two: 0 as const, three: 0 as const }}
-            minDistance={8}
+            minDistance={sceneState.focus.active ? 0.5 : 8}
             maxDistance={22}
           />
           <IdleCameraWobble controlsRef={cameraControlsRef} />
