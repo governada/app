@@ -50,7 +50,7 @@ All globe interactions now use the reactive FocusIntent path:
 - **`forceActive` field** added to FocusIntent for dim-all mode
 - **33 new tests** (28 behavior + 5 engine) — 70 total globe tests
 
-### PR #798 — Seneca Streaming Tests ⏳ (CI running, needs merge)
+### PR #798 — Seneca Streaming Tests ✅
 
 - Extracted `extractActionMarkers()` and `extractGlobeMarkers()` from `streamAdvisor.ts`
 - Exported `getDisplayStatus()` from `advisor-tools.ts`
@@ -60,6 +60,21 @@ All globe interactions now use the reactive FocusIntent path:
   - `globe-commands.test.ts` (31 tests) — tool thinking commands, display status
   - `advisor-prompt.test.ts` (20 tests) — system prompt for all modes/personas
   - `tool-executors.test.ts` (17 tests) — executeAdvisorTool with mocked data
+
+### PR #801 — Adversarial Review Fixes ⏳ (CI running, needs merge)
+
+Fixes found by hostile code review of PR #797:
+
+- **Critical fix**: `highlight` commands with `threshold` but no `topN` silently failed — Seneca tool results and scan phase 2 produced no globe visualization. Fix: `topN ?? threshold` fallback.
+- **High fix**: `dim` intent used `dimStrength:0.8` as `scanProgress` fallback, making dim darker than old `dimAll()`. Fix: explicit `scanProgress: 0`.
+- **2 new tests** covering both fixes (72 behavior tests total)
+
+### Known Issues (from adversarial review, not fixed)
+
+- **voteSplit async race**: Stale fetch can overwrite newer intent if user acts before fetch resolves. Same risk existed pre-migration. Low likelihood in practice.
+- **voteSplitMap not set**: `sceneState.voteSplitMap` no longer populated by the behavior path. Temporal scrubber UI may not show vote data when triggered via Seneca. Needs investigation — may require the behavior to also write to scene state, or the scrubber to read from `focus.colorOverrides`.
+- **Cluster highlight lost two-step sequence**: Old code did dim→highlight (visible breathing effect). New code is atomic. Subtle visual difference, may be acceptable.
+- **topicWarm semantic change**: `threshold=200` → `topN=200` selects a fixed count instead of distance-based cutoff. Different results depending on data distribution.
 
 ## Remaining Work — Priority Order
 
