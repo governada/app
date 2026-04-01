@@ -12,18 +12,18 @@ export function GlobeAtmosphere({
   color,
   warmColor,
   intensity,
-  matchProgress = 0,
+  atmosphereProgress = 0,
 }: {
   radius: number;
   color: string;
   warmColor?: string;
   intensity: number;
-  matchProgress?: number;
+  atmosphereProgress?: number;
 }) {
   const lerpedColor = useMemo(() => {
-    if (!warmColor || matchProgress <= 0) return new THREE.Color(color);
-    return new THREE.Color(color).lerp(new THREE.Color(warmColor), matchProgress);
-  }, [color, warmColor, matchProgress]);
+    if (!warmColor || atmosphereProgress <= 0) return new THREE.Color(color);
+    return new THREE.Color(color).lerp(new THREE.Color(warmColor), atmosphereProgress);
+  }, [color, warmColor, atmosphereProgress]);
 
   const uniforms = useMemo(
     () => ({

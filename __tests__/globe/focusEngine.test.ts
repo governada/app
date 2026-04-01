@@ -430,4 +430,69 @@ describe('deriveFromIntent', () => {
     expect(output.focus.unfocusedScale).toBe(0.45);
     expect(output.focus.emissiveRange).toEqual({ base: 1, intensityFactor: 1.2, max: Infinity });
   });
+
+  // --- Atmosphere, bloom, drift pass-through ---
+
+  it('uses default atmosphere/bloom/drift when intent omits them', () => {
+    const output = deriveFromIntent({ focusedIds: new Set(['drep-0']) }, nodes, 0, 14);
+    expect(output.focus.atmosphereWarmColor).toBe('#cc8844');
+    expect(output.focus.atmosphereTemperature).toBe(0);
+    expect(output.focus.bloomIntensity).toBeNull();
+    expect(output.focus.driftEnabled).toBe(false);
+  });
+
+  it('passes through custom atmosphere parameters', () => {
+    const output = deriveFromIntent(
+      {
+        focusedIds: new Set(['drep-0']),
+        atmosphereWarmColor: '#4488cc',
+        atmosphereTemperature: 0.6,
+      },
+      nodes,
+      0,
+      14,
+    );
+    expect(output.focus.atmosphereWarmColor).toBe('#4488cc');
+    expect(output.focus.atmosphereTemperature).toBe(0.6);
+  });
+
+  it('passes through bloom intensity', () => {
+    const output = deriveFromIntent(
+      { focusedIds: new Set(['drep-0']), bloomIntensity: 0.3 },
+      nodes,
+      0,
+      14,
+    );
+    expect(output.focus.bloomIntensity).toBe(0.3);
+  });
+
+  it('passes through drift enabled', () => {
+    const output = deriveFromIntent(
+      { focusedIds: new Set(['drep-0']), driftEnabled: true },
+      nodes,
+      0,
+      14,
+    );
+    expect(output.focus.driftEnabled).toBe(true);
+  });
+
+  it('match intent includes atmosphere and bloom parameters', () => {
+    const output = deriveFromIntent(
+      {
+        focusedIds: 'all-dreps',
+        nodeTypeFilter: 'drep',
+        atmosphereWarmColor: '#cc8844',
+        atmosphereTemperature: 0.8,
+        bloomIntensity: 0.3,
+        driftEnabled: true,
+      },
+      nodes,
+      0,
+      14,
+    );
+    expect(output.focus.atmosphereWarmColor).toBe('#cc8844');
+    expect(output.focus.atmosphereTemperature).toBe(0.8);
+    expect(output.focus.bloomIntensity).toBe(0.3);
+    expect(output.focus.driftEnabled).toBe(true);
+  });
 });

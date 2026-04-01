@@ -39,13 +39,13 @@ export function CinematicCamera({
   controlsRef,
   orbitSpeed,
   dollyTarget,
-  matchActive,
+  driftEnabled,
 }: {
   controlsRef: React.RefObject<CameraControls | null>;
   orbitSpeed: number;
   dollyTarget: number;
-  /** When true, adds subtle camera micro-drift between questions — "system is alive" feel */
-  matchActive?: boolean;
+  /** When true, adds subtle camera micro-drift — "system is alive" feel */
+  driftEnabled?: boolean;
 }) {
   const currentDolly = useRef(14);
 
@@ -58,9 +58,9 @@ export function CinematicCamera({
       controls.azimuthAngle += orbitSpeed * delta;
     }
 
-    // Camera micro-drift during match: subtle sinusoidal oscillation
-    // Creates the "system is alive and scanning" hum between questions
-    if (matchActive && Math.abs(orbitSpeed) < 0.002) {
+    // Camera micro-drift: subtle sinusoidal oscillation
+    // Creates the "system is alive and scanning" hum between interactions
+    if (driftEnabled && Math.abs(orbitSpeed) < 0.002) {
       const t = clock.getElapsedTime();
       const drift = 0.15 * Math.sin(t * 0.6 * Math.PI);
       controls.azimuthAngle += drift * delta * 0.3;

@@ -267,6 +267,10 @@ export function deriveFromIntent(
     focusSizeBoost: intent.focusSizeBoost ?? 1.0,
     unfocusedScale: intent.unfocusedScale ?? 0.45,
     emissiveRange: intent.emissiveRange ?? DEFAULT_EMISSIVE_RANGE,
+    atmosphereWarmColor: intent.atmosphereWarmColor ?? '#cc8844',
+    atmosphereTemperature: intent.atmosphereTemperature ?? 0,
+    bloomIntensity: intent.bloomIntensity ?? null,
+    driftEnabled: intent.driftEnabled ?? false,
   };
 
   // --- Derive camera ---

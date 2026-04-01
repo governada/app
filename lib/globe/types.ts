@@ -153,6 +153,14 @@ export interface FocusState {
   unfocusedScale: number;
   /** Emissive formula parameters for focused nodes */
   emissiveRange: EmissiveRange;
+  /** Atmosphere warm color for focus mode (default: '#cc8844') */
+  atmosphereWarmColor: string;
+  /** Atmosphere temperature: 0 = cool teal (idle), 1 = fully warm (default: 0) */
+  atmosphereTemperature: number;
+  /** Explicit bloom intensity override, or null to use overlay-mode logic (default: null) */
+  bloomIntensity: number | null;
+  /** Camera micro-drift enabled — "system is alive" feel (default: false) */
+  driftEnabled: boolean;
 }
 
 export const DEFAULT_FOCUS: FocusState = {
@@ -169,6 +177,10 @@ export const DEFAULT_FOCUS: FocusState = {
   focusSizeBoost: 1.0,
   unfocusedScale: 0.45,
   emissiveRange: DEFAULT_EMISSIVE_RANGE,
+  atmosphereWarmColor: '#cc8844',
+  atmosphereTemperature: 0,
+  bloomIntensity: null,
+  driftEnabled: false,
 };
 
 // ---------------------------------------------------------------------------
@@ -227,6 +239,14 @@ export interface FocusIntent {
   unfocusedScale?: number;
   /** Emissive formula parameters for focused nodes */
   emissiveRange?: EmissiveRange;
+  /** Atmosphere warm color for focus mode (default: '#cc8844') */
+  atmosphereWarmColor?: string;
+  /** Atmosphere temperature: 0 = cool teal (idle), 1 = fully warm (default: 0) */
+  atmosphereTemperature?: number;
+  /** Explicit bloom intensity override, or null to use overlay-mode logic (default: null) */
+  bloomIntensity?: number | null;
+  /** Camera micro-drift — "system is alive" feel (default: false) */
+  driftEnabled?: boolean;
 
   // --- Alignment resolution (for 'from-alignment' sentinel) ---
   /** 6-D alignment vector for resolving to concrete node IDs */

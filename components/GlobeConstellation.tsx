@@ -1195,7 +1195,7 @@ export const GlobeConstellation = forwardRef<
                       ? '#ccaa44'
                       : '#4488cc'
               }
-              warmColor="#cc8844"
+              warmColor={sceneState.focus.atmosphereWarmColor}
               intensity={
                 overlayColorMode === 'urgent'
                   ? 0.6
@@ -1203,10 +1203,12 @@ export const GlobeConstellation = forwardRef<
                     ? 0.5
                     : 0.4
               }
-              matchProgress={
-                sceneState.focus.scanProgress > 0
-                  ? sceneState.focus.scanProgress
-                  : healthProgress * 0.3
+              atmosphereProgress={
+                sceneState.focus.atmosphereTemperature > 0
+                  ? sceneState.focus.atmosphereTemperature
+                  : sceneState.focus.scanProgress > 0
+                    ? sceneState.focus.scanProgress
+                    : healthProgress * 0.3
               }
             />
             {/* Wireframe removed — the latitude lines (especially equator) were visually distracting */}
@@ -1279,17 +1281,16 @@ export const GlobeConstellation = forwardRef<
               <Bloom
                 mipmapBlur
                 intensity={
-                  // Match mode: reduce bloom so 800 DRep nodes stay individually distinct,
-                  // not merged into one orange wash. Per-node emissive is also reduced to match.
-                  sceneState.focus.nodeTypeFilter === 'drep'
-                    ? 0.3
-                    : overlayColorMode === 'urgent'
-                      ? 2.2
-                      : overlayColorMode === 'proposals'
-                        ? 2.0
-                        : overlayColorMode === 'network'
-                          ? 1.8
-                          : 1.6
+                  // FocusState bloom override takes priority (set by producers like match flow).
+                  // Fallback: overlay-mode-specific bloom values.
+                  sceneState.focus.bloomIntensity ??
+                  (overlayColorMode === 'urgent'
+                    ? 2.2
+                    : overlayColorMode === 'proposals'
+                      ? 2.0
+                      : overlayColorMode === 'network'
+                        ? 1.8
+                        : 1.6)
                 }
                 luminanceThreshold={0.15}
                 luminanceSmoothing={0.9}
@@ -1318,7 +1319,7 @@ export const GlobeConstellation = forwardRef<
             controlsRef={cameraControlsRef}
             orbitSpeed={cinematicOrbitSpeed}
             dollyTarget={cinematicDollyTarget}
-            matchActive={sceneState.focus.nodeTypeFilter === 'drep' && sceneState.focus.active}
+            driftEnabled={sceneState.focus.driftEnabled}
           />
         </Canvas>
       )}
