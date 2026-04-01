@@ -9,6 +9,7 @@ import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { CameraControls } from '@react-three/drei';
 import * as THREE from 'three';
+import { AXIAL_TILT } from '@/lib/globe/types';
 
 /**
  * Subtle camera wobble: gentle oscillation of azimuth angle
@@ -129,7 +130,8 @@ export function ConstellationGroup({
         (targetSpeed - currentSpeedRef.current) * (1 - Math.pow(0.01, delta));
       rotationRef.current += delta * currentSpeedRef.current;
 
-      // Spin on Y (no axial tilt — free-space constellation)
+      // Apply axial tilt on X, then spin on Y (local)
+      groupRef.current.rotation.x = AXIAL_TILT;
       groupRef.current.rotation.y = rotationRef.current;
 
       // Breathing: gentle rhythmic scale pulse

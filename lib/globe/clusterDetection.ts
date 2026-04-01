@@ -9,7 +9,7 @@
  * lib/drepIdentity.ts (for dimension types).
  */
 
-import { positionByAlignment, CONSTELLATION_EXTENT } from '@/lib/constellation/globe-layout';
+import { positionByAlignment } from '@/lib/constellation/globe-layout';
 import type { LayoutInput } from '@/lib/constellation/globe-layout';
 import type { AlignmentDimension } from '@/lib/drepIdentity';
 import { DIMENSION_ORDER } from '@/lib/drepIdentity';

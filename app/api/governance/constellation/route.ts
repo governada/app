@@ -59,7 +59,7 @@ export const GET = withRouteHandler(async () => {
     supabase
       .from('pools')
       .select(
-        'pool_id, ticker, pool_name, governance_score, vote_count, alignment_treasury_conservative, alignment_treasury_growth, alignment_decentralization, alignment_security, alignment_innovation, alignment_transparency',
+        'pool_id, ticker, pool_name, governance_score, vote_count, relay_lat, relay_lon, alignment_treasury_conservative, alignment_treasury_growth, alignment_decentralization, alignment_security, alignment_innovation, alignment_transparency',
       )
       .gt('vote_count', 0),
 
@@ -163,6 +163,9 @@ export const GET = withRouteHandler(async () => {
       alignments: arr,
       nodeType: 'spo' as const,
       voteCount: p.vote_count || 0,
+      ...(p.relay_lat != null && p.relay_lon != null
+        ? { geoLat: p.relay_lat, geoLon: p.relay_lon }
+        : {}),
     };
   });
 
