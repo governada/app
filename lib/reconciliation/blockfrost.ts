@@ -195,6 +195,94 @@ export async function fetchDRepDetail(drepId: string): Promise<BlockfrostDRep> {
   return blockfrostFetch<BlockfrostDRep>(`/governance/dreps/${drepId}`);
 }
 
+// ---------------------------------------------------------------------------
+// Enriched fetchers (for sync fallback — fetch list then batch detail)
+// ---------------------------------------------------------------------------
+
+/** Detail response for a single proposal */
+export interface BlockfrostProposalDetail {
+  tx_hash: string;
+  cert_index: number;
+  governance_type: string;
+  governance_description: unknown;
+  deposit: string;
+  return_address: string;
+  ratified_epoch: number | null;
+  enacted_epoch: number | null;
+  dropped_epoch: number | null;
+  expired_epoch: number | null;
+  expiration: number | null;
+}
+
+/**
+ * Fetch all proposals with full detail from Blockfrost.
+ * Lists proposal IDs, then fetches detail for each (batched with delay).
+ * Used as fallback when Koios proposal endpoints are unavailable.
+ */
+export async function fetchProposalsEnriched(): Promise<BlockfrostProposalDetail[]> {
+  // Step 1: Get the list (minimal: tx_hash + cert_index)
+  const list = await fetchAllPages<{ tx_hash: string; cert_index: number }>(
+    '/governance/proposals',
+  );
+  if (list.length === 0) return [];
+
+  // Step 2: Fetch detail for each proposal (batched, with rate limit delays)
+  const BATCH_SIZE = 8; // Blockfrost allows 10 req/s burst
+  const details: BlockfrostProposalDetail[] = [];
+
+  for (let i = 0; i < list.length; i += BATCH_SIZE) {
+    const batch = list.slice(i, i + BATCH_SIZE);
+    const results = await Promise.allSettled(
+      batch.map((p) =>
+        blockfrostFetch<BlockfrostProposalDetail>(
+          `/governance/proposals/${p.tx_hash}/${p.cert_index}`,
+        ),
+      ),
+    );
+    for (const result of results) {
+      if (result.status === 'fulfilled') details.push(result.value);
+    }
+    // Rate limit guard between batches
+    if (i + BATCH_SIZE < list.length) {
+      await new Promise((r) => setTimeout(r, 1200));
+    }
+  }
+
+  logger.info(`[Blockfrost] Fetched ${details.length}/${list.length} proposal details`);
+  return details;
+}
+
+/**
+ * Fetch all DRep IDs + basic status from Blockfrost (paginated list).
+ * Returns count and the list of IDs with status flags.
+ * Does NOT include voting power (that requires individual detail calls).
+ */
+export async function fetchDRepList(): Promise<Array<{ drep_id: string; hex: string }>> {
+  return fetchAllPages<{ drep_id: string; hex: string }>('/governance/dreps');
+}
+
+/**
+ * Fetch detail (including voting power) for a batch of DRep IDs.
+ * Used for spot-checking power of top DReps when Koios is down.
+ */
+export async function fetchDRepDetailsBatch(drepIds: string[]): Promise<BlockfrostDRep[]> {
+  const BATCH_SIZE = 8;
+  const results: BlockfrostDRep[] = [];
+
+  for (let i = 0; i < drepIds.length; i += BATCH_SIZE) {
+    const batch = drepIds.slice(i, i + BATCH_SIZE);
+    const settled = await Promise.allSettled(batch.map((id) => fetchDRepDetail(id)));
+    for (const result of settled) {
+      if (result.status === 'fulfilled') results.push(result.value);
+    }
+    if (i + BATCH_SIZE < drepIds.length) {
+      await new Promise((r) => setTimeout(r, 1200));
+    }
+  }
+
+  return results;
+}
+
 /** Check if Blockfrost is configured and reachable */
 export async function isAvailable(): Promise<boolean> {
   if (!BLOCKFROST_PROJECT_ID) return false;
