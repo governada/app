@@ -428,10 +428,11 @@ export const PROPOSAL_COLOR = '#d4a050'; // warm amber — active governance eve
 // ---------------------------------------------------------------------------
 
 /** @deprecated Axial tilt removed with sphere → free-space constellation */
-export const AXIAL_TILT = 0;
-export const INITIAL_CAMERA: [number, number, number] = [0, 3, 16];
+/** Earth-like axial tilt: 23.4 degrees */
+export const AXIAL_TILT = 23.4 * (Math.PI / 180);
+export const INITIAL_CAMERA: [number, number, number] = [0, 3, 14];
 export const INITIAL_TARGET: [number, number, number] = [0, 0, 0];
-export const DEFAULT_ROTATION_SPEED = 0.004; // slow, contemplative rotation
+export const DEFAULT_ROTATION_SPEED = 0.005; // slow, contemplative rotation (~21 min/revolution)
 
 // ---------------------------------------------------------------------------
 // Shader scale constant
