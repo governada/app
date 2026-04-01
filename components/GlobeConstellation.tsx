@@ -560,6 +560,7 @@ export const GlobeConstellation = forwardRef<
       setSceneState((prev) => ({
         ...prev,
         focus: {
+          ...DEFAULT_FOCUS,
           // Stay active if already in a focus mode (e.g., matchStart set it) or if we have matches
           active: matched.size > 0 || prev.focus.active,
           focusedIds: matched,
@@ -797,6 +798,7 @@ export const GlobeConstellation = forwardRef<
       setSceneState((prev) => ({
         ...prev,
         focus: {
+          ...DEFAULT_FOCUS,
           active: true,
           focusedIds: drepIds,
           intensities,
@@ -857,6 +859,7 @@ export const GlobeConstellation = forwardRef<
         ...prev,
         voteSplitMap: map,
         focus: {
+          ...DEFAULT_FOCUS,
           active: true,
           focusedIds,
           intensities,
@@ -885,6 +888,7 @@ export const GlobeConstellation = forwardRef<
         temporalVoteMap: voteMap,
         temporalActive: true,
         focus: {
+          ...DEFAULT_FOCUS,
           active: true,
           focusedIds,
           intensities,
@@ -912,14 +916,8 @@ export const GlobeConstellation = forwardRef<
       setSceneState((prev) => ({
         ...prev,
         focus: {
+          ...DEFAULT_FOCUS,
           active: true,
-          focusedIds: new Set(),
-          intensities: new Map(),
-          scanProgress: 0,
-          colorOverrides: null,
-          nodeTypeFilter: null,
-          activationDelays: null,
-          intermediateIds: null,
         },
       }));
     },
@@ -932,14 +930,10 @@ export const GlobeConstellation = forwardRef<
       setSceneState((prev) => ({
         ...prev,
         focus: {
+          ...DEFAULT_FOCUS,
           active: true,
           focusedIds: new Set([nodeId]),
           intensities: new Map([[nodeId, 1.0]]),
-          scanProgress: 0,
-          colorOverrides: null,
-          nodeTypeFilter: null,
-          activationDelays: null,
-          intermediateIds: null,
         },
       }));
     },
@@ -1043,14 +1037,11 @@ export const GlobeConstellation = forwardRef<
       setSceneState((prev) => ({
         ...prev,
         focus: {
+          ...DEFAULT_FOCUS,
           active: true,
           focusedIds: matched,
           intensities,
           scanProgress: dimOthers ? sp : 0,
-          colorOverrides: null,
-          nodeTypeFilter: null,
-          activationDelays: null,
-          intermediateIds: null,
         },
       }));
 
@@ -1204,7 +1195,7 @@ export const GlobeConstellation = forwardRef<
                       ? '#ccaa44'
                       : '#4488cc'
               }
-              warmColor="#cc8844"
+              warmColor={sceneState.focus.atmosphereWarmColor}
               intensity={
                 overlayColorMode === 'urgent'
                   ? 0.6
@@ -1212,10 +1203,12 @@ export const GlobeConstellation = forwardRef<
                     ? 0.5
                     : 0.4
               }
-              matchProgress={
-                sceneState.focus.scanProgress > 0
-                  ? sceneState.focus.scanProgress
-                  : healthProgress * 0.3
+              atmosphereProgress={
+                sceneState.focus.atmosphereTemperature > 0
+                  ? sceneState.focus.atmosphereTemperature
+                  : sceneState.focus.scanProgress > 0
+                    ? sceneState.focus.scanProgress
+                    : healthProgress * 0.3
               }
             />
             {/* Wireframe removed — the latitude lines (especially equator) were visually distracting */}
@@ -1255,10 +1248,10 @@ export const GlobeConstellation = forwardRef<
                   />
                 );
               })()}
-            {quality !== 'low' && sceneState.focus.nodeTypeFilter !== 'drep' && (
+            {quality !== 'low' && (
               <MatchedEdgeGlow nodes={sceneState.nodes} focus={sceneState.focus} />
             )}
-            {quality !== 'low' && sceneState.focus.nodeTypeFilter !== 'drep' && (
+            {quality !== 'low' && (
               <NetworkPulses edges={sceneState.edges} focusActive={sceneState.focus.active} />
             )}
 
@@ -1288,17 +1281,16 @@ export const GlobeConstellation = forwardRef<
               <Bloom
                 mipmapBlur
                 intensity={
-                  // Match mode: reduce bloom so 800 DRep nodes stay individually distinct,
-                  // not merged into one orange wash. Per-node emissive is also reduced to match.
-                  sceneState.focus.nodeTypeFilter === 'drep'
-                    ? 0.3
-                    : overlayColorMode === 'urgent'
-                      ? 2.2
-                      : overlayColorMode === 'proposals'
-                        ? 2.0
-                        : overlayColorMode === 'network'
-                          ? 1.8
-                          : 1.6
+                  // FocusState bloom override takes priority (set by producers like match flow).
+                  // Fallback: overlay-mode-specific bloom values.
+                  sceneState.focus.bloomIntensity ??
+                  (overlayColorMode === 'urgent'
+                    ? 2.2
+                    : overlayColorMode === 'proposals'
+                      ? 2.0
+                      : overlayColorMode === 'network'
+                        ? 1.8
+                        : 1.6)
                 }
                 luminanceThreshold={0.15}
                 luminanceSmoothing={0.9}
@@ -1327,7 +1319,7 @@ export const GlobeConstellation = forwardRef<
             controlsRef={cameraControlsRef}
             orbitSpeed={cinematicOrbitSpeed}
             dollyTarget={cinematicDollyTarget}
-            matchActive={sceneState.focus.nodeTypeFilter === 'drep' && sceneState.focus.active}
+            driftEnabled={sceneState.focus.driftEnabled}
           />
         </Canvas>
       )}
