@@ -7,10 +7,29 @@ import { classifyProposals } from '@/lib/alignment';
 import { KoiosProposalSchema, validateArray } from '@/utils/koios-schemas';
 import type { ProposalListResponse } from '@/types/koios';
 import * as Sentry from '@sentry/nextjs';
+import {
+  isAvailable as isBlockfrostAvailable,
+  fetchProposalsEnriched,
+  type BlockfrostProposalDetail,
+} from '@/lib/reconciliation/blockfrost';
 
 const BATCH_SIZE = 100;
 const SUMMARY_CONCURRENCY = 5;
 const TAG = '[proposals]';
+
+/** Map Blockfrost governance_type to our proposal_type enum */
+function mapBlockfrostGovernanceType(bfType: string): string {
+  const map: Record<string, string> = {
+    treasury_withdrawals: 'TreasuryWithdrawals',
+    info_action: 'InfoAction',
+    hard_fork_initiation: 'HardForkInitiation',
+    no_confidence: 'NoConfidence',
+    new_committee: 'UpdateCommittee',
+    new_constitution: 'NewConstitution',
+    parameter_change: 'ParameterChange',
+  };
+  return map[bfType] ?? bfType;
+}
 
 /**
  * Core proposals sync logic — callable from both Inngest and the HTTP route.
@@ -117,8 +136,66 @@ export async function executeProposalsSync(): Promise<Record<string, unknown>> {
           open: openProposals.length,
         });
       } catch (err) {
-        fatalErrors.push(`Proposals: ${errMsg(err)}`);
-        logger.error(`${TAG} Proposal fetch failed`, { error: errMsg(err) });
+        const koiosError = errMsg(err);
+        logger.error(`${TAG} Koios proposal fetch failed, trying Blockfrost fallback`, {
+          error: koiosError,
+        });
+
+        // --- Blockfrost fallback: update lifecycle epochs for existing proposals ---
+        try {
+          if (await isBlockfrostAvailable()) {
+            const bfProposals = await fetchProposalsEnriched();
+            if (bfProposals.length > 0) {
+              const lifecycleRows = bfProposals.map((p: BlockfrostProposalDetail) => ({
+                tx_hash: p.tx_hash,
+                proposal_index: p.cert_index,
+                proposal_type: mapBlockfrostGovernanceType(p.governance_type),
+                ratified_epoch: p.ratified_epoch,
+                enacted_epoch: p.enacted_epoch,
+                dropped_epoch: p.dropped_epoch,
+                expired_epoch: p.expired_epoch,
+                expiration_epoch: p.expiration,
+              }));
+
+              for (let i = 0; i < lifecycleRows.length; i += BATCH_SIZE) {
+                const batch = lifecycleRows.slice(i, i + BATCH_SIZE);
+                await supabase
+                  .from('proposals')
+                  .upsert(batch, { onConflict: 'tx_hash,proposal_index', ignoreDuplicates: false });
+              }
+
+              proposalCount = lifecycleRows.length;
+              openProposals = bfProposals
+                .filter(
+                  (p: BlockfrostProposalDetail) =>
+                    !p.ratified_epoch && !p.enacted_epoch && !p.dropped_epoch && !p.expired_epoch,
+                )
+                .map((p: BlockfrostProposalDetail) => ({
+                  txHash: p.tx_hash,
+                  index: p.cert_index,
+                }));
+
+              warnings.push(`Koios failed (${koiosError}) — used Blockfrost fallback`);
+              logger.info(`${TAG} Blockfrost fallback: updated ${proposalCount} proposals`, {
+                open: openProposals.length,
+              });
+            } else {
+              fatalErrors.push(
+                `Proposals: Koios failed (${koiosError}), Blockfrost returned empty`,
+              );
+            }
+          } else {
+            fatalErrors.push(`Proposals: Koios failed (${koiosError}), Blockfrost unavailable`);
+          }
+        } catch (bfErr) {
+          fatalErrors.push(
+            `Proposals: Koios failed (${koiosError}), Blockfrost also failed (${errMsg(bfErr)})`,
+          );
+          logger.error(`${TAG} Both Koios and Blockfrost failed`, {
+            koios: koiosError,
+            blockfrost: errMsg(bfErr),
+          });
+        }
       }
 
       // --- Fetch and upsert votes for open proposals ---

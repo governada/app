@@ -7,6 +7,10 @@ import {
   resetKoiosMetrics,
   getKoiosMetrics,
 } from '@/utils/koios';
+import {
+  isAvailable as isBlockfrostAvailable,
+  fetchDRepDetailsBatch,
+} from '@/lib/reconciliation/blockfrost';
 import { classifyProposals, computeAllCategoryScores } from '@/lib/alignment';
 import {
   SyncLogger,
@@ -203,9 +207,74 @@ export async function phaseFetchDReps(
   });
 
   if (result.error || !result.allDReps?.length) {
-    throw new Error(
-      `Koios DRep fetch returned no data (error=${result.error}, allDReps=${result.allDReps?.length ?? 'null'}, totalAvailable=${result.totalAvailable})`,
-    );
+    // Koios failed — try Blockfrost to at least update voting power for existing DReps
+    const koiosError = `Koios DRep fetch returned no data (error=${result.error}, allDReps=${result.allDReps?.length ?? 'null'}, totalAvailable=${result.totalAvailable})`;
+    log.error('[dreps] Koios failed, attempting Blockfrost power update', {
+      error: koiosError,
+    });
+
+    try {
+      if (await isBlockfrostAvailable()) {
+        // Get our existing DRep IDs from DB
+        const { data: existingDreps } = await supabase
+          .from('dreps')
+          .select('id, info, score')
+          .order('score', { ascending: false })
+          .limit(200); // Top 200 DReps by score — most impactful to keep fresh
+
+        if (existingDreps && existingDreps.length > 0) {
+          const drepIds = existingDreps.map((d) => d.id);
+          const bfDetails = await fetchDRepDetailsBatch(drepIds);
+
+          let updated = 0;
+          for (const bf of bfDetails) {
+            const existing = existingDreps.find((d) => d.id === bf.drep_id);
+            if (!existing) continue;
+
+            const info = (existing.info as Record<string, unknown>) ?? {};
+            const currentPower = Number(info.votingPower ?? 0);
+            const newPowerAda = Number(bf.amount) / 1_000_000;
+
+            // Only update if power changed meaningfully (>0.1% delta)
+            if (currentPower > 0 && Math.abs(newPowerAda - currentPower) / currentPower < 0.001) {
+              continue;
+            }
+
+            await supabase
+              .from('dreps')
+              .update({
+                info: {
+                  ...info,
+                  votingPower: newPowerAda,
+                  votingPowerLovelace: bf.amount,
+                  isActive: bf.active && !bf.retired && !bf.expired,
+                },
+                last_synced_at: new Date().toISOString(),
+              })
+              .eq('id', bf.drep_id);
+            updated++;
+          }
+
+          log.info('[dreps] Blockfrost fallback: updated power for existing DReps', {
+            fetched: bfDetails.length,
+            updated,
+            total: existingDreps.length,
+          });
+
+          // Still throw — the full enrichment didn't happen, but power is fresh
+          throw new Error(
+            `${koiosError}. Blockfrost fallback updated ${updated} DRep voting powers.`,
+          );
+        }
+      }
+    } catch (bfErr) {
+      if ((bfErr as Error).message.includes('Blockfrost fallback updated')) {
+        throw bfErr; // Re-throw our enriched error message
+      }
+      log.error('[dreps] Blockfrost fallback also failed', { error: errMsg(bfErr) });
+    }
+
+    throw new Error(koiosError);
   }
 
   const allDReps = result.allDReps;
