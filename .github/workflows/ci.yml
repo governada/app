@@ -141,6 +141,7 @@ jobs:
         with:
           name: nextjs-build
           path: |
+            .next/standalone
             .next/static
             .next/BUILD_ID
             .next/build-manifest.json
