@@ -39,7 +39,11 @@ function parseLocalBindings(importClause) {
     }
   }
 
-  const defaultClause = importClause.replace(/\{[\s\S]*?\}/g, '').trim().replace(/,$/, '').trim();
+  const defaultClause = importClause
+    .replace(/\{[\s\S]*?\}/g, '')
+    .trim()
+    .replace(/,$/, '')
+    .trim();
   if (defaultClause && defaultClause !== '*') {
     for (const part of defaultClause.split(',')) {
       const candidate = part.trim();
@@ -98,9 +102,13 @@ function validateInngestRegistration() {
       continue;
     }
 
-    const isReferenced = localBindings.some((binding) => new RegExp(`\\b${escapeRegex(binding)}\\b`).test(registeredFunctions));
+    const isReferenced = localBindings.some((binding) =>
+      new RegExp(`\\b${escapeRegex(binding)}\\b`).test(registeredFunctions),
+    );
     if (!isReferenced) {
-      errors.push(`inngest/functions/${filename}: imported in app/api/inngest/route.ts but not registered in the functions array.`);
+      errors.push(
+        `inngest/functions/${filename}: imported in app/api/inngest/route.ts but not registered in the functions array.`,
+      );
     }
   }
 }
@@ -114,7 +122,9 @@ function validateRequiredFiles() {
 
   for (const target of required) {
     if (!existsSync(target)) {
-      errors.push(`${toPosix(path.relative(root, target))}: required file or directory is missing.`);
+      errors.push(
+        `${toPosix(path.relative(root, target))}: required file or directory is missing.`,
+      );
     }
   }
 }
