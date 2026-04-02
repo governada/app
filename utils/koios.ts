@@ -852,6 +852,27 @@ export async function checkKoiosHealth(): Promise<boolean> {
   }
 }
 
+export async function checkKoiosHealthFast(timeoutMs = 2500): Promise<boolean> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(`${KOIOS_BASE_URL}/tip`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(KOIOS_API_KEY && { Authorization: `Bearer ${KOIOS_API_KEY}` }),
+      },
+      cache: 'no-store',
+      signal: controller.signal,
+    });
+    return response.ok;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Treasury Data
 // ---------------------------------------------------------------------------

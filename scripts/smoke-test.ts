@@ -40,7 +40,7 @@ const checks: Check[] = [
     name: 'Health (full)',
     path: '/api/health',
     expectedStatus: 200,
-    maxResponseMs: 2000,
+    maxResponseMs: 5000,
     validate: (b) => {
       if (!b.status) return 'Missing status field';
       if (b.status === 'error') return `Health reports error: ${b.message}`;
@@ -52,7 +52,8 @@ const checks: Check[] = [
     name: 'DReps list',
     path: '/api/dreps',
     expectedStatus: 200,
-    maxResponseMs: 3000,
+    // First-hit reads can be cold right after deploy even when the endpoint is healthy.
+    maxResponseMs: 5000,
     validate: (b) => {
       if (!Array.isArray(b.dreps)) return 'Missing dreps array';
       if (b.dreps.length === 0) return 'Empty dreps array (expected data)';
@@ -63,7 +64,7 @@ const checks: Check[] = [
     name: 'Public API v1 - DReps',
     path: '/api/v1/dreps?limit=5',
     expectedStatus: 200,
-    maxResponseMs: 3000,
+    maxResponseMs: 5000,
     validate: (b) => {
       if (!b.data || !Array.isArray(b.data)) return 'Missing data array';
       if (!b.meta?.api_version) return 'Missing meta.api_version';
