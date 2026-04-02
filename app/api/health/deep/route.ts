@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { withRouteHandler } from '@/lib/api/withRouteHandler';
 import { getSupabaseAdmin } from '@/lib/supabase';
-import { checkKoiosHealth } from '@/utils/koios';
+import { checkKoiosHealthFast } from '@/utils/koios';
 import { getRedis } from '@/lib/redis';
 
 export const dynamic = 'force-dynamic';
@@ -36,10 +36,7 @@ async function probeSupabase(): Promise<DepResult> {
 async function probeKoios(): Promise<DepResult> {
   const start = Date.now();
   try {
-    const ok = await Promise.race([
-      checkKoiosHealth(),
-      new Promise<false>((resolve) => setTimeout(() => resolve(false), 10_000)),
-    ]);
+    const ok = await checkKoiosHealthFast(2_500);
     return { status: ok ? 'healthy' : 'unhealthy', latencyMs: Date.now() - start };
   } catch {
     return { status: 'unhealthy', latencyMs: Date.now() - start };
