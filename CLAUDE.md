@@ -8,9 +8,9 @@ Implementation is NOT complete until deployed and validated in production. Use `
 
 ## Hard Constraints
 
-Build failures or production bugs if violated:
+Build failures or production bugs if violated. `npm run agent:validate` and CI enforce the critical ones below.
 
-- **Worktree isolation for feature work.** NEVER create feature branches in the main `governada-app` checkout. All feature work MUST happen in a worktree (`git worktree add ../governada-<name> -b feat/<name> origin/main` or `claude --worktree <name>`). The main checkout stays on `main` at all times. Enforced by `check-branch.sh` hook — edits on feature branches in the main checkout are blocked. Only hotfixes (with `ALLOW_MAIN_EDIT=1`) bypass this.
+- **Worktree isolation for feature work.** NEVER create feature branches in the main `governada-app` checkout. All feature work MUST happen in a fresh worktree (`powershell -ExecutionPolicy Bypass -File scripts/new-worktree.ps1 <name>`, `git worktree add ../governada-<name> -b feat/<name> origin/main`, or `claude --worktree <name>`). The main checkout stays on `main` at all times. Enforced by `check-branch.sh` hook — edits on feature branches in the main checkout are blocked. Only hotfixes (with `ALLOW_MAIN_EDIT=1`) bypass this.
 
 - **`force-dynamic`** on any `page.tsx`/`route.ts` touching Supabase/env vars. Railway build has no env vars.
 - **Register Inngest functions** in `app/api/inngest/route.ts` -- same commit as the function file.
@@ -101,7 +101,7 @@ C:\Users\dalto\governada\
 ```
 
 - Hotfixes: direct on main. Features: `git worktree add ../governada-<name> -b feature/<name> origin/main`
-- `gh auth switch --user drepscore` before gh commands
+- `gh auth switch --user governada` before gh commands
 - From worktrees: `gh api .../merge` (not `gh pr merge`)
 - **Parallel agent safety**: Multiple agents may be working simultaneously. Before merging:
   1. Run `bash scripts/pre-merge-check.sh <PR#>` -- hard requirement
@@ -131,6 +131,7 @@ C:\Users\dalto\governada\
 
 | Script                       | Purpose                                                     |
 | ---------------------------- | ----------------------------------------------------------- |
+| `agent:validate`             | Enforce `force-dynamic` + Inngest registration constraints  |
 | `preflight`                  | format:check + lint + type-check + test                     |
 | `gen:types`                  | Supabase types after migrations                             |
 | `inngest:status`             | Verify function registration                                |
@@ -138,6 +139,7 @@ C:\Users\dalto\governada\
 | `smoke-test`                 | Production health checks + response time assertions         |
 | `pre-merge-check.sh`         | Block merge if CI running, branch behind, or errors spiking |
 | `cleanup.sh`                 | Worktree/dir cleanup (dry-run or --clean)                   |
+| `new-worktree.ps1`           | Create a fresh feature worktree with `.env.local` setup     |
 | `generate-registry-index.sh` | Product registry staleness detection (--check for CI)       |
 | `notify.sh`                  | Alert founder via Discord/Telegram at decision gates        |
 | `rollback.sh`                | Automated Railway rollback with health verification         |

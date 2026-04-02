@@ -1,0 +1,12 @@
+# Enable code-owner review in branch protection for these rules to take effect.
+
+* @governada
+
+/app/api/** @governada
+/inngest/** @governada
+/lib/scoring/** @governada
+/lib/alignment/** @governada
+/lib/sync/** @governada
+/supabase/** @governada
+/scripts/rollback.sh @governada
+/scripts/check-deploy-health.sh @governada

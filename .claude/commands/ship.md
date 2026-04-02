@@ -2,7 +2,7 @@ All code changes compile clean. Execute the full deploy pipeline autonomously. D
 
 ## Sequence
 
-1. **Preflight**: `npm run preflight:quick 2>&1 | tail -5` — fix ALL failures. Uses `test:changed` for speed; CI runs full suite.
+1. **Preflight**: `npm run preflight:quick 2>&1 | tail -5` — fix ALL failures. This includes `agent:validate` for force-dynamic and Inngest registration checks. CI runs the full suite.
 2. **Auth check**: `gh auth status` — must show governada. If not: `gh auth switch --user governada`
 3. **Branch check**: `git branch --show-current` — must NOT be main for features
 4. **Force-dynamic audit**: Any new `app/` file importing `@/lib/supabase` or `@/lib/data` needs `export const dynamic = 'force-dynamic'`
@@ -37,10 +37,9 @@ All code changes compile clean. Execute the full deploy pipeline autonomously. D
    - **Scope**: Files/modules touched
    ```
 
-8. **CI**: Wait for CI with minimal context consumption:
+8. **CI**: Wait for CI without streaming noisy output in the foreground. Run the watch in background, then take a single snapshot when it finishes:
    ```bash
-   RUN_ID=$(gh run list --branch $(git branch --show-current) --limit 1 --json databaseId --jq '.[0].databaseId')
-   gh run watch $RUN_ID --exit-status
+   gh pr checks <PR#> --watch
    ```
    If fails, see [CI Failure Recovery](#ci-failure-recovery) below (max 3 retries)
 9. **Pre-merge check**: `bash scripts/pre-merge-check.sh <PR#>` — includes Sentry error rate gate

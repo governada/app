@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { ImageResponse } from 'next/og';
 import { NextRequest } from 'next/server';
 import { getDRepById } from '@/lib/data';

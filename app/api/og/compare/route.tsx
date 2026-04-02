@@ -1,4 +1,6 @@
 /* eslint-disable react-hooks/error-boundaries -- OG image route: JSX is for ImageResponse, not React component rendering */
+export const dynamic = 'force-dynamic';
+
 import { ImageResponse } from 'next/og';
 import { NextRequest } from 'next/server';
 import { getDRepById } from '@/lib/data';
