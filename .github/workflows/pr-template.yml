@@ -1,0 +1,28 @@
+name: PR Template
+
+on:
+  pull_request_target:
+    types: [opened, edited, reopened, synchronize]
+
+jobs:
+  validate-pr-body:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v8
+        with:
+          script: |
+            const body = context.payload.pull_request.body || "";
+            const requiredSections = [
+              "## Summary",
+              "## Existing Code Audit",
+              "## Robustness",
+              "## Impact",
+            ];
+
+            const missing = requiredSections.filter((section) => !body.includes(section));
+
+            if (missing.length > 0) {
+              core.setFailed(
+                `PR body is missing required sections: ${missing.join(", ")}. Use the repository PR template.`,
+              );
+            }

@@ -6,7 +6,7 @@ description: Execute the full deploy pipeline from current changes to production
 Execute the full Governada deploy pipeline. Do NOT pause between steps.
 
 1. `npm run preflight` -- fix ALL failures before proceeding
-2. `gh auth switch --user drepscore`
+2. `gh auth switch --user governada`
 3. `git branch --show-current` -- verify not on main (unless hotfix)
 4. Audit new `app/` files for `force-dynamic` if they import Supabase/data
 5. Stage relevant files with `git add`, commit with conventional commit message
@@ -24,7 +24,7 @@ Execute the full Governada deploy pipeline. Do NOT pause between steps.
 17. If new analytics events: `npm run posthog:check <event>`
 18. Clean up: if worktree, switch to main worktree to verify
 
-Report final status only after ALL verification passes.
+Report merge status after the PR is merged and local verification is complete. Report deploy-verifier status separately when the background notification arrives.
 
 ## PR Impact Template
 

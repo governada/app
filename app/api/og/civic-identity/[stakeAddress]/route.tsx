@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { ImageResponse } from 'next/og';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { OGBackground, OGFooter, OGFallback, OG } from '@/lib/og-utils';

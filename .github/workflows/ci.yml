@@ -53,6 +53,7 @@ jobs:
         with:
           path: node_modules
           key: nm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - run: npm run agent:validate
       - run: npm run format:check
       - run: npm run lint
       - run: npm run type-check

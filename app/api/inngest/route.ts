@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { serve } from 'inngest/next';
 import { inngest } from '@/lib/inngest';
 import { syncProposals } from '@/inngest/functions/sync-proposals';
