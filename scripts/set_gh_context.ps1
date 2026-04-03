@@ -2,6 +2,8 @@ function Set-RepoGhContext {
   $baseDir = if ($env:USERPROFILE) { $env:USERPROFILE } elseif ($HOME) { $HOME } else { [Environment]::GetFolderPath('UserProfile') }
   $ghConfigDir = Join-Path $baseDir '.config\gh-governada'
   $env:GH_CONFIG_DIR = $ghConfigDir
+  $env:GH_HOST = 'github.com'
+  $env:GH_REPO = 'governada/governada-app'
 
   $tokenPath = Join-Path $ghConfigDir 'token.txt'
   if (Test-Path $tokenPath) {

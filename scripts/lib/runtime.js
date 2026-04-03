@@ -3,6 +3,7 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 const { parse: parseDotenv } = require('dotenv');
+const { getContext } = require('../set-gh-context.js');
 
 const repoRoot = path.resolve(__dirname, '..', '..');
 
@@ -23,9 +24,14 @@ function loadLocalEnv() {
 }
 
 function runCommand(command, args, options = {}) {
+  const env = {
+    ...process.env,
+    ...(options.env || {}),
+  };
   const result = spawnSync(command, args, {
     cwd: options.cwd || process.cwd(),
     encoding: 'utf8',
+    env,
     stdio: options.stdio || ['ignore', 'pipe', 'pipe'],
     shell: false,
   });
@@ -38,7 +44,7 @@ function runCommand(command, args, options = {}) {
 }
 
 function runGh(args) {
-  return runCommand('gh', args);
+  return runCommand('gh', args, { env: getContext() });
 }
 
 function runGhJson(args) {

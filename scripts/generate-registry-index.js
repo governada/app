@@ -145,7 +145,7 @@ function renderContent() {
   const checksum = crypto.createHash('sha256').update(body).digest('hex');
   const generatedAt = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
 
-  return `${body}---\nChecksum: \`${checksum}\`\nGenerated: ${generatedAt}\n`;
+  return `${body}---\n\nChecksum: \`${checksum}\`\nGenerated: ${generatedAt}\n`;
 }
 
 function stripFooter(content) {

@@ -3,12 +3,12 @@ All code changes compile clean. Execute the full deploy pipeline autonomously. D
 ## Sequence
 
 1. **Preflight**: `npm run preflight:quick *>&1 | Select-Object -Last 5` — fix ALL failures. Uses `test:changed` for speed; CI runs full suite.
-2. **Auth check**: `powershell -ExecutionPolicy Bypass -File scripts/set_gh_context.ps1; gh auth status` — must show governada
+2. **Auth check**: `npm run gh:auth-status` — must show governada and `Repo context: governada/governada-app`
 3. **Branch check**: `git branch --show-current` — must NOT be main for features
 4. **Force-dynamic audit**: Any new `app/` file importing `@/lib/supabase` or `@/lib/data` needs `export const dynamic = 'force-dynamic'`
 5. **Stage + commit**: `git add <specific-files>` → review with `git diff --cached --name-only` → commit
 6. **Push**: `git push -u origin HEAD`
-7. **PR**: `gh pr create --title "feat: description" --body-file PR_BODY.md --base main` → delete PR_BODY.md. PR body MUST include these sections (per CLAUDE.md hygiene rules + build-on-existing):
+7. **PR**: `gh pr create -R governada/governada-app --title "feat: description" --body-file PR_BODY.md --base main` → delete PR_BODY.md. PR body MUST include these sections (per CLAUDE.md hygiene rules + build-on-existing):
 
    ```markdown
    ## Summary
@@ -37,11 +37,7 @@ All code changes compile clean. Execute the full deploy pipeline autonomously. D
    - **Scope**: Files/modules touched
    ```
 
-8. **CI**: Wait for CI with minimal context consumption:
-   ```powershell
-   $RunId = gh run list --branch (git branch --show-current) --limit 1 --json databaseId --jq '.[0].databaseId'
-   gh run watch $RunId --exit-status
-   ```
+8. **CI**: Wait for CI with minimal context consumption: `npm run ci:watch`
    If fails, see [CI Failure Recovery](#ci-failure-recovery) below (max 3 retries)
 9. **Pre-merge check**: `npm run pre-merge-check -- <PR#>` — includes Sentry error rate gate
 10. **Merge**: `gh api repos/governada/governada-app/pulls/<N>/merge -X PUT -f merge_method=squash`
@@ -75,11 +71,7 @@ If smoke test or health check fails after merge:
 
 When CI fails:
 
-```powershell
-# Get failed logs (last 20 lines only — saves context)
-$RunId = gh run list --branch (git branch --show-current) --limit 1 --json databaseId --jq '.[0].databaseId'
-gh run view $RunId --log-failed *>&1 | Select-Object -Last 20
-```
+`npm run ci:failed`
 
 | Failure        | Fix                                                                |
 | -------------- | ------------------------------------------------------------------ |
@@ -89,7 +81,10 @@ gh run view $RunId --log-failed *>&1 | Select-Object -Last 20
 | **test**       | `npx vitest run <test-file>` locally, fix, commit, push            |
 | **build**      | Usually missing `force-dynamic`. Check error, add it, commit, push |
 
-After fixing: `git add <files> && git commit -m "fix: resolve CI failure" && git push`
-CI re-runs automatically. Re-watch with `gh run watch` as above.
+After fixing, run these as separate commands:
+`git add <files>`
+`git commit -m "fix: resolve CI failure"`
+`git push`
+CI re-runs automatically. Re-watch with `npm run ci:watch`.
 
 If stuck after 3 attempts, escalate to the user with the exact error message.

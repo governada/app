@@ -49,7 +49,7 @@ Set `run_in_background: true` on the Bash call. When the notification arrives, t
 gh pr checks <N>  # single snapshot of final status
 ```
 
-If CI fails: `gh run view <run-id> --log-failed 2>&1 | tail -50`
+If CI fails: `npm run ci:failed`
 
 ## Deploy Verification
 

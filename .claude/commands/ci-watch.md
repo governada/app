@@ -2,18 +2,13 @@ Monitor CI and verify deployment. Optimized for minimal context consumption.
 
 ## Branch CI (before merge)
 
-Use `gh run watch` — prints only status changes, not full table every 10s:
+Use `npm run ci:watch` — it carries the repo-scoped GH context and prints only status changes:
 
-```powershell
-$RunId = gh run list --branch (git branch --show-current) --limit 1 --json databaseId --jq '.[0].databaseId'
-gh run watch $RunId --exit-status
-```
+`npm run ci:watch`
 
 If CI failed, read only the tail of failed logs:
 
-```powershell
-gh run view $RunId --log-failed *>&1 | Select-Object -Last 20
-```
+`npm run ci:failed`
 
 Branch protection requires: `build` (which depends on `checks` + `test`).
 Max 3 retries before escalating.
