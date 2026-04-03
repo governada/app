@@ -2,7 +2,7 @@
 
 **Started:** 2026-04-02
 **Current status:** In progress
-**Active deep dive:** 02 - Security and trust boundaries
+**Active deep dive:** 04 - Reliability and observability
 **Canonical worktree:** `C:\Users\dalto\governada\governada-app\.claude\worktrees\platform-architecture-review-series`
 **Canonical branch:** `feature/platform-architecture-review-series`
 
@@ -15,7 +15,7 @@ Strengthen the app for real-world global use by reviewing the platform in the or
 | #   | Area                          | Primary Goal                                                                                           | Status      | Artifact                                        |
 | --- | ----------------------------- | ------------------------------------------------------------------------------------------------------ | ----------- | ----------------------------------------------- |
 | 01  | Data plane                    | Verify truth boundaries, freshness, fallbacks, and read-model correctness                              | Completed   | `deep-dive-01-data-plane.md`                    |
-| 02  | Security and trust boundaries | Verify auth, admin, API protection, session handling, and privilege boundaries                         | In progress | `deep-dive-02-security-and-trust.md`            |
+| 02  | Security and trust boundaries | Verify auth, admin, API protection, session handling, and privilege boundaries                         | Completed   | `deep-dive-02-security-and-trust.md`            |
 | 03  | Runtime architecture          | Verify ownership boundaries across server components, client components, routes, jobs, and shared libs | Planned     | `deep-dive-03-runtime-architecture.md`          |
 | 04  | Reliability and observability | Verify env safety, health checks, logging, tracing, and failure diagnosis                              | In progress | `deep-dive-04-reliability-and-observability.md` |
 | 05  | Performance and scalability   | Verify cache strategy, query fan-out, bundle shape, and load readiness                                 | Planned     | `deep-dive-05-performance-and-scale.md`         |
@@ -50,6 +50,7 @@ Strengthen the app for real-world global use by reviewing the platform in the or
 | 2026-04-03 | Treat `delegation_snapshots` as a lifecycle-owned table instead of a multi-writer race                                          | Scoring should own the live epoch while epoch summary finalizes the previous epoch with authoritative end-of-epoch values                                |
 | 2026-04-03 | Centralize governance-body eligibility behind one shared rule layer                                                             | Proposal voter eligibility is not reliably derivable from `proposalType` alone, especially for parameter updates that depend on affected protocol groups |
 | 2026-04-03 | Reviewer-facing intelligence and cached passage prediction must consume the same governance rule layer as live monitor surfaces | Proposal semantics cannot diverge across detail, review, and cached-intelligence consumers                                                               |
+| 2026-04-03 | Security-adjacent observability should only derive user identity from verified session state                                    | Incident tooling should not trust unsigned cookie payloads even for tagging-only paths                                                                   |
 
 ## Progress Log
 
@@ -71,3 +72,4 @@ Strengthen the app for real-world global use by reviewing the platform in the or
 | 2026-04-03 | Corrected the shared governance-body eligibility matrix, aligned the SPO security allowlist to current Cardano governance rules, routed SPO/CC queueing plus CC briefing and workspace monitor consumers through it, and moved the fixed governance-action deposit into `lib/governance/constants.ts` so server routes can reuse it without importing wallet-builder code. |
 | 2026-04-03 | Threaded `paramChanges` through the main proposal-detail consumer path so hero, action, voter, and Living Brief surfaces now use the shared governance-body rules when the page already has parameter payloads.                                                                                                                                                            |
 | 2026-04-03 | Threaded `paramChanges` through workspace-review contracts and reviewer-facing intelligence, aligned cached passage prediction to the shared governance rule layer, fixed the historical `delegation_snapshots.epoch` consumer drift, and closed Deep Dive 01.                                                                                                             |
+| 2026-04-03 | Closed Deep Dive 02 by fixing browser bearer-auth CORS drift in `proxy.ts`, verifying session JWTs before Sentry user tagging in `instrumentation.ts`, and confirming the remaining `/workspace` and `/you` issue is a coarse page-shell gate rather than a downstream auth bypass.                                                                                        |

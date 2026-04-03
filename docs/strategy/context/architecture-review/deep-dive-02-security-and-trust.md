@@ -1,6 +1,6 @@
 # Deep Dive 02 - Security and Trust
 
-**Status:** In progress
+**Status:** Completed
 **Started:** 2026-04-03
 **Owner branch:** `feature/platform-architecture-review-series`
 **Review goal:** verify auth, session handling, middleware gates, admin/API privilege boundaries, rate limiting, API key handling, and other trust-boundary risks.
@@ -40,7 +40,8 @@ This deep dive covers:
 ## Evidence Collected So Far
 
 - `lib/supabaseAuth.ts` is the canonical server-side session verifier. It validates the JWT, checks expiration, and fails closed if revocation state cannot be checked.
-- `middleware.ts` uses cookie presence as a coarse gate for `/workspace` and `/you`, but does not itself verify JWT validity.
+- `proxy.ts` is the current route gate for `/workspace`, `/you`, and `/api/v1` CORS behavior.
+- `proxy.ts` uses cookie presence as a coarse gate for `/workspace` and `/you`, but does not itself verify JWT validity.
 - Admin routes mostly enforce `requireAuth()` plus `isAdminWallet()` at the handler level.
 - `lib/api/handler.ts` is the public v1 API wrapper and owns API key validation and tier gating.
 - `lib/api/withRouteHandler.ts` is the internal route wrapper and owns auth plus rate limiting for non-v1 routes.
@@ -113,36 +114,71 @@ Tier-gated route tests exposed that the wrapper contract did not actually match 
 - Fixed in `lib/api/handler.ts` by forwarding Next.js route `params`.
 - Verified with `__tests__/api/v1-drep-history.test.ts`.
 
-## Risk Ranking
+### 4. Public v1 CORS preflight did not allow the documented `Authorization` transport
 
-1. Middleware still uses cookie presence as a coarse route gate before server-side auth verification.
-2. Additional privileged route audits are still incomplete.
-3. Observability paths still derive some identity context from decoded cookie payloads.
+**Severity:** Fixed in this worktree
+
+**Evidence**
+
+- `proxy.ts` handled `/api/v1/*` CORS preflight centrally.
+- That CORS header previously allowed `Content-Type, X-API-Key` but not `Authorization`.
+- `lib/api/handler.ts` supports both `Authorization: Bearer` and `X-API-Key` for API key transport.
+
+**Why it matters**
+
+Browser-based cross-origin consumers using the documented bearer transport would fail preflight even though the handler accepted the header at runtime. That is a real trust-boundary mismatch between edge policy and handler policy.
+
+**Implementation status**
+
+- Fixed in `proxy.ts` by adding `Authorization` to `Access-Control-Allow-Headers`.
+- Verified with `__tests__/proxy.test.ts`.
+
+### 5. Error instrumentation trusted unsigned session cookie payloads for user tagging
+
+**Severity:** Fixed in this worktree
+
+**Evidence**
+
+- `instrumentation.ts` previously decoded the `drepscore_session` cookie payload directly and used `walletAddress` from the unsigned payload to derive the Sentry user tag.
+- That path did not verify the JWT signature before attaching hashed identity context to error reports.
+
+**Why it matters**
+
+This did not grant application privileges, but it did let a forged cookie influence security-adjacent telemetry. During incident response, spoofed user attribution increases diagnostic noise and weakens trust in the observability boundary.
+
+**Implementation status**
+
+- Fixed in `instrumentation.ts` by verifying the session JWT signature before extracting `walletAddress` for Sentry tagging.
+- Invalid or unsigned cookies now produce no user tag.
+- Verified with `__tests__/instrumentation.test.ts`.
+
+## Residual Risks
+
+1. `proxy.ts` still uses cookie presence as a coarse route gate before server-side auth verification, which can admit invalid-session users to protected page shells even though downstream data routes re-verify.
+2. The `/admin` preview-user deny rule in `proxy.ts` still inspects cookie payload data without signature verification, but only for an early deny path rather than a privilege grant.
 
 ## Open Questions
 
-- Do any protected page flows rely on `middleware.ts` cookie presence as the only gate, or do they always re-verify server-side?
-- Should observability continue trusting decoded session payloads for user tagging in `instrumentation.ts`, or should that be derived only from verified session state?
+- Should the coarse `/workspace` and `/you` page-shell gate move from cookie presence to lightweight JWT verification in `proxy.ts`, or is the current downstream re-verification sufficient for launch?
 
 ## Next Actions
 
-1. Continue scanning the remaining auth-sensitive routes for any missing `requireAuth()` / `isAdminWallet()` combinations.
-2. Verify whether any protected page flows rely too heavily on middleware cookie presence checks.
-3. Revisit observability paths that derive identity from decoded but unverified session payloads.
+1. Carry the page-shell auth-gate question as a product/security tradeoff instead of leaving it implicit.
+2. Move to the next active deep dive in the series.
 
 ## Handoff
 
-**Current status:** In progress
+**Current status:** Completed
 
 **What changed this session**
 
-- Mapped the session, middleware, admin, API key, and rate-limit trust boundaries.
-- Fixed the two initially validated security issues, aligned API key transport with the advertised `X-API-Key` support, and captured a third wrapper-contract issue exposed during verification.
-- Left the remaining trust questions explicit instead of guessing.
+- Mapped the session, proxy, admin, API key, and rate-limit trust boundaries.
+- Fixed the initial public API tier and wrapper issues, then closed the remaining concrete trust-boundary defects around browser bearer transport and unsigned observability identity tagging.
+- Scanned the `/workspace`, `/you`, and admin route surface to distinguish confirmed bugs from residual coarse-gate risks.
 
 **Evidence collected**
 
-- `middleware.ts`
+- `proxy.ts`
 - `lib/api/handler.ts`
 - `lib/api/withRouteHandler.ts`
 - `lib/api/keys.ts`
@@ -150,14 +186,24 @@ Tier-gated route tests exposed that the wrapper contract did not actually match 
 - `lib/supabaseAuth.ts`
 - `lib/adminAuth.ts`
 - `instrumentation.ts`
+- `app/workspace/layout.tsx`
+- `app/workspace/page.tsx`
+- `app/you/layout.tsx`
+- `app/you/page.tsx`
+- `app/api/admin/api-health/alert/route.ts`
 - `app/api/admin/check/route.ts`
 - `app/api/admin/overview/route.ts`
 - `app/api/admin/feature-flags/route.ts`
+- `app/api/admin/inbox-alert/route.ts`
 - `app/api/admin/integrity/route.ts`
+- `app/api/admin/integrity/alert/route.ts`
+- `app/api/admin/systems/automation/route.ts`
 - `app/api/v1/dreps/[drepId]/route.ts`
 - `app/api/v1/dreps/[drepId]/history/route.ts`
 - `app/api/v1/dreps/[drepId]/votes/route.ts`
 - `app/api/v1/embed/[drepId]/route.ts`
+- `__tests__/proxy.test.ts`
+- `__tests__/instrumentation.test.ts`
 - `__tests__/api/v1-drep-history.test.ts`
 - `__tests__/api/withRouteHandler.test.ts`
 - `__tests__/api/v1-dreps.test.ts`
@@ -169,6 +215,9 @@ Tier-gated route tests exposed that the wrapper contract did not actually match 
 - Internal route rate limiting fell back to in-memory state when Redis was unavailable. Fixed in this worktree.
 - The public v1 API wrapper did not forward dynamic route params. Fixed in this worktree.
 - The public v1 API wrapper now accepts both `Authorization: Bearer` and `X-API-Key`, matching the advertised transport contract.
+- `/api/v1/*` CORS preflight now allows `Authorization`, matching the documented bearer transport. Fixed in this worktree.
+- `instrumentation.ts` now verifies the session JWT before deriving Sentry user tags from cookie state. Fixed in this worktree.
+- The scanned `/workspace`, `/you`, and admin route surfaces did not reveal another confirmed auth-bypass path; the remaining concern is the coarse page-shell gate in `proxy.ts`, not downstream privilege enforcement.
 
 **Open questions**
 
@@ -176,9 +225,9 @@ Tier-gated route tests exposed that the wrapper contract did not actually match 
 
 **Next actions**
 
-- Continue auditing the remaining privileged routes and session-dependent page flows.
-- Review remaining trust assumptions in middleware and instrumentation.
+- Deep Dive 02 is complete.
+- Carry the coarse page-shell auth-gate question into a later architecture or launch-hardening decision if needed.
 
 **Next agent starts here**
 
-Start by re-checking the route surface for any remaining auth or trust assumptions that still depend on path presence, unsigned payload data, or degraded-mode fallbacks.
+Deep Dive 02 is complete. The next agent should move to the next prioritized review area from the series index.

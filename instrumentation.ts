@@ -1,3 +1,5 @@
+import * as jose from 'jose';
+
 export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     const { validateEnv } = await import('./lib/env');
@@ -30,26 +32,25 @@ export async function register() {
   }
 }
 
-/** Decode base64url to string -- works in both Node.js and Edge runtimes. */
-function decodeBase64Url(input: string): string {
-  // Convert base64url to standard base64
-  const base64 = input.replace(/-/g, '+').replace(/_/g, '/');
-  // Pad if needed
-  const padded = base64 + '=='.slice(0, (4 - (base64.length % 4)) % 4);
-  return atob(padded);
-}
-
-function extractSessionPayload(
+async function extractSessionPayload(
   cookieHeader: string | undefined,
-): { walletAddress?: string } | null {
+): Promise<{ walletAddress?: string } | null> {
   if (!cookieHeader) return null;
-  const match = cookieHeader.match(/drepscore_session=([^;]+)/);
+  const match = cookieHeader.match(/(?:^|;\s*)drepscore_session=([^;]+)/);
   if (!match) return null;
+
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) return null;
+
   try {
-    const parts = match[1].split('.');
-    if (parts.length < 2) return null;
-    const payload = JSON.parse(decodeBase64Url(parts[1]));
-    return payload as { walletAddress?: string };
+    const token = decodeURIComponent(match[1]);
+    const { payload } = await jose.jwtVerify(token, new TextEncoder().encode(secret));
+
+    if (typeof payload.walletAddress !== 'string' || payload.walletAddress.length === 0) {
+      return null;
+    }
+
+    return { walletAddress: payload.walletAddress };
   } catch {
     return null;
   }
@@ -73,7 +74,7 @@ export async function onRequestError(
 ) {
   const Sentry = await import('@sentry/nextjs');
 
-  const payload = extractSessionPayload(request.headers.cookie ?? request.headers.Cookie);
+  const payload = await extractSessionPayload(request.headers.cookie ?? request.headers.Cookie);
   const hashedAddress = payload?.walletAddress
     ? await hashAddressServer(payload.walletAddress)
     : null;
