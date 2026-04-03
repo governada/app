@@ -343,3 +343,62 @@ The executing agent should confirm whether the desired end state is one central 
 - `app/api/health/sync/route.ts`
 - `app/api/admin/integrity/alert/route.ts`
 - `inngest/functions/sync-freshness-guard.ts`
+
+## Chunk 8: Normalize Governance-Body Eligibility Across Proposal Consumers
+
+**Priority:** P1
+**Effort:** M
+**Audit dimension(s):** Data Architecture and Compounding, Intelligence Engine Quality, Testing and Code Quality
+**Expected score impact:** Data Architecture and Compounding: eliminate another class of proposal-consumer semantic drift
+**Depends on:** Chunk 1, Chunk 4
+**PR group:** H
+**Implementation status:** In progress in this worktree
+
+### Context
+
+Proposal queues, CC analysis, and proposal-detail UI were using incompatible type-based rules for which governance bodies can vote. That broke CIP-1694 semantics for treasury withdrawals, committee updates, constitution updates, info actions, and parameter changes that only become SPO-votable when they touch technical/security parameters.
+
+### Scope
+
+- Keep `lib/governance/votingBodies.ts` as the single eligibility source.
+- Thread `param_changes` into proposal-detail and workspace-review consumers that already have, or cheaply can have, that data.
+- Remove remaining duplicated body-eligibility type lists from proposal, workspace, and intelligence consumers.
+- Add focused regression coverage for parameter-sensitive body presentation.
+
+### Decision Points
+
+None - execute directly unless a consumer needs a materially different product interpretation of Info-action or parameter-change presentation than the shared CIP-1694 eligibility model.
+
+### Verification
+
+- Security-relevant parameter changes show SPO participation only when technical/security parameters are affected.
+- Treasury, committee, constitution, and info-action body participation is consistent across queueing, analysis, and UI surfaces.
+- Workspace review receives the data it needs to use the same eligibility rules as proposal-detail pages.
+
+### Progress So Far
+
+- `lib/governance/votingBodies.ts` now centralizes the corrected eligibility matrix, including parameter-sensitive SPO participation for `ParameterChange`.
+- `lib/governanceThresholds.ts` now exports protocol-parameter-group helpers plus an explicit SPO security-parameter allowlist that the shared eligibility layer consumes.
+- `lib/actionQueue.ts` now filters SPO pending proposals through the shared eligibility rules.
+- `lib/actionQueue.ts` now filters CC pending proposals through the shared eligibility rules instead of counting every open proposal.
+- `inngest/functions/generate-cc-briefing.ts` now filters pending CC proposals through the shared eligibility rules.
+- `app/api/workspace/proposals/monitor/route.ts` now uses shared governance-body eligibility and the shared DRep threshold resolver instead of treating its local threshold table as the body-inclusion matrix.
+- Added regression coverage in `__tests__/lib/votingBodies.test.ts` and `__tests__/lib/actionQueue.test.ts`.
+- Added regression coverage in `__tests__/api/workspace-proposals-monitor.test.ts`.
+- Verified with `npm run test:unit -- __tests__/lib/governanceThresholds.test.ts __tests__/lib/votingBodies.test.ts __tests__/lib/actionQueue.test.ts __tests__/api/workspace-proposals-monitor.test.ts`.
+- Verified with `npm run type-check`.
+- Follow-up work: thread `param_changes` through proposal-detail and workspace-review contracts, then remove the remaining local body-eligibility assumptions in proposal/workspace UI.
+
+### Files to Read First
+
+- `lib/governance/votingBodies.ts`
+- `lib/governanceThresholds.ts`
+- `lib/actionQueue.ts`
+- `inngest/functions/generate-cc-briefing.ts`
+- `app/api/workspace/proposals/monitor/route.ts`
+- `app/proposal/[txHash]/[index]/page.tsx`
+- `app/api/workspace/review-queue/route.ts`
+- `components/ProposalVoterTabs.tsx`
+- `components/TriBodyVotePanel.tsx`
+- `components/governada/proposals/LivingBrief.tsx`
+- `components/intelligence/sections/StakeholderLandscape.tsx`

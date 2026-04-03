@@ -48,6 +48,7 @@ Strengthen the app for real-world global use by reviewing the platform in the or
 | 2026-04-03 | Use a layered DRep freshness policy instead of one stale threshold | Reads should retrigger after the sync is overdue without marking the system degraded at the same instant |
 | 2026-04-03 | Resolve governance thresholds through a Supabase-first shared resolver | The data layer should not make direct upstream threshold reads, and parameter-change proposals require max-threshold logic across multiple groups |
 | 2026-04-03 | Treat `delegation_snapshots` as a lifecycle-owned table instead of a multi-writer race | Scoring should own the live epoch while epoch summary finalizes the previous epoch with authoritative end-of-epoch values |
+| 2026-04-03 | Centralize governance-body eligibility behind one shared rule layer | Proposal voter eligibility is not reliably derivable from `proposalType` alone, especially for parameter updates that depend on affected protocol groups |
 
 ## Progress Log
 
@@ -66,3 +67,4 @@ Strengthen the app for real-world global use by reviewing the platform in the or
 | 2026-04-03 | Replaced the shared data-layer Koios threshold lookup with `lib/governanceThresholds.ts`, using Supabase `epoch_params` first, Koios only as an isolated fallback, and proposal `param_changes` to compute mixed-group parameter-change thresholds. |
 | 2026-04-03 | Clarified `delegation_snapshots` ownership as an epoch lifecycle split by having `generate-epoch-summary.ts` finalize previous-epoch rows with recomputed delegation deltas instead of overwriting scoring-owned values with nulls. |
 | 2026-04-03 | Fixed the current-epoch `delegation_snapshots.total_power_lovelace` unit mismatch by resolving power from `votingPowerLovelace` in `sync-drep-scores`, with regression coverage in the shared delegation snapshot helper tests. |
+| 2026-04-03 | Corrected the shared governance-body eligibility matrix, aligned the SPO security allowlist to current Cardano governance rules, routed SPO/CC queueing plus CC briefing and workspace monitor consumers through it, and moved the fixed governance-action deposit into `lib/governance/constants.ts` so server routes can reuse it without importing wallet-builder code. |

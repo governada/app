@@ -7,6 +7,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { withRouteHandler } from '@/lib/api/withRouteHandler';
+import { GOVERNANCE_ACTION_DEPOSIT_LOVELACE } from '@/lib/governance/constants';
+import { getVotingBodies } from '@/lib/governance/votingBodies';
+import { getGovernanceThresholdForProposal } from '@/lib/governanceThresholds';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { blockTimeToEpoch } from '@/lib/koios';
 import { logger } from '@/lib/logger';
@@ -14,26 +17,9 @@ import type { ProposalMonitorData } from '@/lib/workspace/monitor-types';
 
 export const dynamic = 'force-dynamic';
 
-// ---------------------------------------------------------------------------
-// Thresholds per proposal type (constitutional / protocol-level)
-// Percentage thresholds for passing a governance action.
-// ---------------------------------------------------------------------------
-
-interface BodyThresholds {
-  drep: number;
-  spo?: number;
-  cc?: number;
-}
-
-const THRESHOLDS: Record<string, BodyThresholds> = {
-  TreasuryWithdrawals: { drep: 0.67, cc: 0.51 },
-  ParameterChange: { drep: 0.67, cc: 0.51 },
-  HardForkInitiation: { drep: 0.75, spo: 0.51, cc: 0.51 },
-  NoConfidence: { drep: 0.67, spo: 0.51 },
-  NewCommittee: { drep: 0.67, spo: 0.51 },
-  NewConstitution: { drep: 0.75, cc: 0.51 },
-  InfoAction: { drep: 0.51 },
-};
+const CC_APPROVAL_THRESHOLD = 2 / 3;
+const STANDARD_SPO_APPROVAL_THRESHOLD = 0.51;
+const INFO_ACTION_APPROVAL_THRESHOLD = 1;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -101,7 +87,30 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
   }
 
   const status = deriveStatus(proposal);
-  const thresholds = THRESHOLDS[proposal.proposal_type] ?? THRESHOLDS.InfoAction;
+  const eligibleBodies = new Set(
+    getVotingBodies(
+      proposal.proposal_type,
+      (proposal.param_changes as Record<string, unknown> | null) ?? null,
+    ),
+  );
+  const drepThreshold =
+    proposal.proposal_type === 'InfoAction'
+      ? INFO_ACTION_APPROVAL_THRESHOLD
+      : (
+          await getGovernanceThresholdForProposal({
+            proposalType: proposal.proposal_type,
+            paramChanges: (proposal.param_changes as Record<string, unknown> | null) ?? null,
+          })
+        ).threshold;
+
+  if (drepThreshold == null) {
+    logger.error('[monitor] Missing DRep threshold configuration', {
+      proposalType: proposal.proposal_type,
+      txHash,
+      proposalIndex,
+    });
+    return NextResponse.json({ error: 'Unsupported proposal threshold configuration' }, { status: 500 });
+  }
 
   // ── 2. Fetch latest voting summary ───────────────────────────────────
   const { data: summaryRows } = await supabase
@@ -127,11 +136,11 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
       noVotePower: drepNoPower,
       abstainCount: summary?.drep_abstain_votes_cast ?? 0,
       abstainVotePower: drepAbstainPower,
-      threshold: thresholds.drep,
+      threshold: drepThreshold,
     },
   };
 
-  if (thresholds.spo != null) {
+  if (eligibleBodies.has('spo')) {
     voting.spo = {
       yesCount: summary?.pool_yes_votes_cast ?? 0,
       yesVotePower: summary?.pool_yes_vote_power ?? 0,
@@ -139,16 +148,19 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
       noVotePower: summary?.pool_no_vote_power ?? 0,
       abstainCount: summary?.pool_abstain_votes_cast ?? 0,
       abstainVotePower: summary?.pool_abstain_vote_power ?? 0,
-      threshold: thresholds.spo,
+      threshold:
+        proposal.proposal_type === 'InfoAction'
+          ? INFO_ACTION_APPROVAL_THRESHOLD
+          : STANDARD_SPO_APPROVAL_THRESHOLD,
     };
   }
 
-  if (thresholds.cc != null) {
+  if (eligibleBodies.has('cc')) {
     voting.cc = {
       yesCount: summary?.committee_yes_votes_cast ?? 0,
       noCount: summary?.committee_no_votes_cast ?? 0,
       abstainCount: summary?.committee_abstain_votes_cast ?? 0,
-      threshold: thresholds.cc,
+      threshold: CC_APPROVAL_THRESHOLD,
     };
   }
 
@@ -171,10 +183,6 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
     })) ?? [];
 
   // ── 4. Compute deposit info ──────────────────────────────────────────
-  // The governance action deposit is fixed at 100,000 ADA (100_000_000_000 lovelace)
-  // per CIP-1694. The proposals table doesn't store deposit directly,
-  // so we use the known constant.
-  const GOVERNANCE_ACTION_DEPOSIT_LOVELACE = 100_000_000_000;
   const depositStatus = deriveDepositStatus(status);
 
   // ── 5. Compute epochs remaining ──────────────────────────────────────

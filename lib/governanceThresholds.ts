@@ -13,7 +13,7 @@ export type GovernanceThresholdKey =
   | 'dvt_treasury_withdrawal';
 
 type GovernanceThresholdMap = Partial<Record<GovernanceThresholdKey, number>>;
-type ParameterGroup = 'network' | 'economic' | 'technical' | 'governance';
+export type ParameterGroup = 'network' | 'economic' | 'technical' | 'governance';
 
 export interface GovernanceThresholdResolution {
   threshold: number | null;
@@ -117,6 +117,23 @@ const NORMALIZED_PARAMETER_GROUP_ALIASES = Object.entries(PARAMETER_GROUP_ALIASE
   }),
 );
 
+const SPO_SECURITY_PARAMETER_ALIASES = [
+  'maxBlockBodySize',
+  'maxTxSize',
+  'maxBlockHeaderSize',
+  'maxValueSize',
+  'maxValSize',
+  'maxBlockExecutionUnits',
+  'txFeePerByte',
+  'txFeeFixed',
+  'utxoCostPerByte',
+  'coinsPerUTxOByte',
+  'govActionDeposit',
+  'govDeposit',
+  'minFeeRefScriptCostPerByte',
+  'minFeeRefScriptCoinsPerByte',
+].map(normalizeParamKey);
+
 let cachedThresholds: { data: GovernanceThresholdMap; fetchedAt: number } | null = null;
 
 function normalizeParamKey(paramKey: string): string {
@@ -155,18 +172,63 @@ function inferThresholdKeyForProtocolParam(paramKey: string): GovernanceThreshol
   return null;
 }
 
+export function resolveProtocolParameterGroups(
+  paramChanges?: Record<string, unknown> | null,
+): ParameterGroup[] {
+  if (!paramChanges) {
+    return [];
+  }
+
+  const groups = new Set<ParameterGroup>();
+  for (const paramKey of collectObjectKeys(paramChanges)) {
+    const thresholdKey = inferThresholdKeyForProtocolParam(paramKey);
+    if (!thresholdKey) {
+      continue;
+    }
+
+    const group = Object.entries(PARAMETER_GROUP_THRESHOLD_KEY_MAP).find(
+      ([, key]) => key === thresholdKey,
+    )?.[0] as ParameterGroup | undefined;
+
+    if (group) {
+      groups.add(group);
+    }
+  }
+
+  return [...groups];
+}
+
+export function isSecurityRelevantParameterUpdate(
+  paramChanges?: Record<string, unknown> | null,
+): boolean {
+  if (!paramChanges) {
+    return false;
+  }
+
+  for (const paramKey of collectObjectKeys(paramChanges)) {
+    const normalizedParamKey = normalizeParamKey(paramKey);
+    if (
+      SPO_SECURITY_PARAMETER_ALIASES.some(
+        (alias) => normalizedParamKey === alias || normalizedParamKey.startsWith(alias),
+      )
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 export function resolveGovernanceThresholdKeys(
   proposalType: string,
   paramChanges?: Record<string, unknown> | null,
 ): GovernanceThresholdKey[] {
   if (proposalType === 'ParameterChange') {
-    const thresholdKeys = new Set<GovernanceThresholdKey>();
-    for (const paramKey of collectObjectKeys(paramChanges)) {
-      const thresholdKey = inferThresholdKeyForProtocolParam(paramKey);
-      if (thresholdKey) {
-        thresholdKeys.add(thresholdKey);
-      }
-    }
+    const thresholdKeys = new Set<GovernanceThresholdKey>(
+      resolveProtocolParameterGroups(paramChanges).map(
+        (group) => PARAMETER_GROUP_THRESHOLD_KEY_MAP[group],
+      ),
+    );
     return [...thresholdKeys];
   }
 
