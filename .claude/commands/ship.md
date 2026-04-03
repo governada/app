@@ -2,8 +2,8 @@ All code changes compile clean. Execute the full deploy pipeline autonomously. D
 
 ## Sequence
 
-1. **Preflight**: `npm run preflight:quick 2>&1 | tail -5` — fix ALL failures. This includes `agent:validate` for force-dynamic and Inngest registration checks. CI runs the full suite.
-2. **Auth check**: `gh auth status` — must show governada. If not: `gh auth switch --user governada`
+1. **Preflight**: `npm run preflight:quick *>&1 | Select-Object -Last 5` — fix ALL failures. Uses `test:changed` for speed; CI runs full suite.
+2. **Auth check**: `powershell -ExecutionPolicy Bypass -File scripts/set_gh_context.ps1; gh auth status` — must show governada
 3. **Branch check**: `git branch --show-current` — must NOT be main for features
 4. **Force-dynamic audit**: Any new `app/` file importing `@/lib/supabase` or `@/lib/data` needs `export const dynamic = 'force-dynamic'`
 5. **Stage + commit**: `git add <specific-files>` → review with `git diff --cached --name-only` → commit
@@ -37,18 +37,19 @@ All code changes compile clean. Execute the full deploy pipeline autonomously. D
    - **Scope**: Files/modules touched
    ```
 
-8. **CI**: Wait for CI without streaming noisy output in the foreground. Run the watch in background, then take a single snapshot when it finishes:
-   ```bash
-   gh pr checks <PR#> --watch
+8. **CI**: Wait for CI with minimal context consumption:
+   ```powershell
+   $RunId = gh run list --branch (git branch --show-current) --limit 1 --json databaseId --jq '.[0].databaseId'
+   gh run watch $RunId --exit-status
    ```
    If fails, see [CI Failure Recovery](#ci-failure-recovery) below (max 3 retries)
-9. **Pre-merge check**: `node scripts/pre-merge-check.mjs <PR#>` — includes Sentry error rate gate
+9. **Pre-merge check**: `npm run pre-merge-check -- <PR#>` — includes Sentry error rate gate
 10. **Merge**: `gh api repos/governada/governada-app/pulls/<N>/merge -X PUT -f merge_method=squash`
 11. **Migrations**: If migrations needed, test on Supabase branch first (see `.claude/rules/migration-safety.md`), then apply via Supabase MCP `apply_migration` → `npm run gen:types`
 12. **Post-merge verification** (background — do NOT block):
     ```
     Agent(subagent_type="deploy-verifier", run_in_background=true,
-      prompt="PR #N merged. Wait 180s, then run: node scripts/check-deploy-health.mjs && npm run smoke-test -- --quiet && node scripts/uptime-check.mjs deploy")
+      prompt="PR #N merged. Run: npm run deploy:verify. If Inngest functions changed, run: npm run deploy:verify -- --register-inngest")
     ```
     Continue immediately to step 13 without waiting.
 13. **Update tracking docs**: If this PR adds features, fixes scoring, changes counts:
@@ -60,24 +61,24 @@ All code changes compile clean. Execute the full deploy pipeline autonomously. D
 
 **IMPORTANT: For high-risk changes (scoring, matching, delegation, data migrations), use `/ship-careful` instead.**
 
-**When the deploy-verifier subagent completes, check its result. If it failed, run `node scripts/rollback.mjs --revert-commit` immediately, then use the Railway dashboard rollback if production needs immediate recovery.**
+**When the deploy-verifier subagent completes, check its result. If it failed, run `npm run rollback` immediately.**
 
 ## Rollback
 
 If smoke test or health check fails after merge:
 
-1. Run `node scripts/rollback.mjs --revert-commit` — auto-detects the broken head, opens a revert PR, files the incident issue, and sends the alert
-2. If production must recover immediately, use the Railway dashboard rollback to the previous successful deployment
-3. Merge the revert PR through the normal protected-main flow
+1. Run `npm run rollback` — auto-detects, reverts, verifies, creates issue
+2. With git revert: `npm run rollback -- --revert-commit`
+3. Notify: script auto-sends Discord/Telegram alert
 
 ## CI Failure Recovery
 
 When CI fails:
 
-```bash
+```powershell
 # Get failed logs (last 20 lines only — saves context)
-RUN_ID=$(gh run list --branch $(git branch --show-current) --limit 1 --json databaseId --jq '.[0].databaseId')
-gh run view $RUN_ID --log-failed 2>&1 | tail -20
+$RunId = gh run list --branch (git branch --show-current) --limit 1 --json databaseId --jq '.[0].databaseId'
+gh run view $RunId --log-failed *>&1 | Select-Object -Last 20
 ```
 
 | Failure        | Fix                                                                |
