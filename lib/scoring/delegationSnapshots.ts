@@ -12,6 +12,20 @@ interface BuildDelegationSnapshotOptions {
   preserveExistingCurrentEpochDeltas?: boolean;
 }
 
+export function resolveDelegatedPowerLovelace(info: Record<string, unknown>): number {
+  const lovelace = Number(info.votingPowerLovelace ?? 0);
+  if (Number.isFinite(lovelace) && lovelace > 0) {
+    return lovelace;
+  }
+
+  const ada = Number(info.votingPower ?? 0);
+  if (Number.isFinite(ada) && ada > 0) {
+    return Math.round(ada * 1_000_000);
+  }
+
+  return 0;
+}
+
 /**
  * Build an idempotent delegation snapshot row for a target epoch.
  *

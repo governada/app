@@ -259,6 +259,7 @@ The executing agent should confirm the final ownership design before building if
 - `sync-dreps` no longer writes current-epoch `drep_score_history`.
 - `sync-dreps` no longer writes current-epoch `delegation_snapshots`.
 - `sync-drep-scores` now uses `lib/scoring/delegationSnapshots.ts` to preserve or backfill delegation deltas on same-epoch reruns.
+- `sync-drep-scores` now writes `delegation_snapshots.total_power_lovelace` from `votingPowerLovelace`, with unit coverage in `__tests__/scoring/delegationSnapshots.test.ts`.
 - `generate-epoch-summary.ts` now finalizes previous-epoch `delegation_snapshots` with canonical `drep_power_snapshots` counts while recomputing delegation deltas against the prior epoch.
 - Verified with `npm run test:unit -- __tests__/scoring/delegationSnapshots.test.ts`.
 - Verified with `npm run type-check`.

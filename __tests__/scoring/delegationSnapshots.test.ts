@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { buildDelegationSnapshotInsert } from '@/lib/scoring/delegationSnapshots';
+import {
+  buildDelegationSnapshotInsert,
+  resolveDelegatedPowerLovelace,
+} from '@/lib/scoring/delegationSnapshots';
 import type { DelegationSnapshotData } from '@/lib/scoring/types';
 
 function makeHistory(
@@ -23,6 +26,23 @@ function makeHistory(
 }
 
 describe('buildDelegationSnapshotInsert', () => {
+  it('prefers the stored lovelace value when resolving delegated power', () => {
+    expect(
+      resolveDelegatedPowerLovelace({
+        votingPower: 123.45,
+        votingPowerLovelace: '123450000',
+      }),
+    ).toBe(123450000);
+  });
+
+  it('converts ADA-scale voting power to lovelace when needed', () => {
+    expect(
+      resolveDelegatedPowerLovelace({
+        votingPower: 123.45,
+      }),
+    ).toBe(123450000);
+  });
+
   it('computes new and lost delegators from the latest prior epoch', () => {
     const insert = buildDelegationSnapshotInsert(
       makeHistory([{ epoch: 549, delegatorCount: 100 }]),

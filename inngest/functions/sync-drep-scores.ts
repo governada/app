@@ -25,7 +25,10 @@ import {
   type DRepProfileData,
   type DelegationSnapshotData,
 } from '@/lib/scoring';
-import { buildDelegationSnapshotInsert } from '@/lib/scoring/delegationSnapshots';
+import {
+  buildDelegationSnapshotInsert,
+  resolveDelegatedPowerLovelace,
+} from '@/lib/scoring/delegationSnapshots';
 import {
   batchUpsert,
   SyncLogger,
@@ -579,7 +582,7 @@ export const syncDrepScores = inngest.createFunction(
               string,
               unknown
             >;
-            const totalPower = (info.votingPower as number) || 0;
+            const totalPower = resolveDelegatedPowerLovelace(info);
 
             snapshotInserts.push({
               drep_id: drepId,

@@ -147,6 +147,7 @@ Multiple jobs currently own the same snapshot tables. Final state therefore depe
 - `lib/sync/proposals.ts` no longer writes that table, and `check-snapshot-completeness.ts` now validates the previous epoch instead of the current one.
 - `sync-dreps` no longer writes current-epoch `delegation_snapshots` or `drep_score_history`; `sync-drep-scores` is now the sole live/current-epoch owner for both tables.
 - `sync-drep-scores` now preserves or backfills `new_delegators` and `lost_delegators` on same-epoch reruns instead of nulling them out.
+- `sync-drep-scores` now writes `total_power_lovelace` from the lovelace-scale source (`votingPowerLovelace`) instead of the ADA-scale `votingPower` field.
 - `generate-epoch-summary.ts` now acts as an explicit previous-epoch finalizer for `delegation_snapshots`: it uses `drep_power_snapshots` for the canonical end-of-epoch counts and recomputes delta fields against the prior epoch instead of overwriting them with null values.
 - The remaining follow-up is broader audit work, not ambiguous table ownership: verify that downstream proposal/workspace consumers consistently use the intended finalized-versus-live snapshot semantics.
 
@@ -181,6 +182,7 @@ Multiple jobs currently own the same snapshot tables. Final state therefore depe
 - Aligned the main health, sync health, admin integrity alert, and freshness-guard surfaces to the shared DRep policy.
 - Removed direct governance-threshold Koios reads from `lib/data.ts` by introducing a Supabase-first shared resolver in `lib/governanceThresholds.ts`.
 - Clarified `delegation_snapshots` ownership as a lifecycle split: scoring owns the live epoch, and epoch summary finalizes the previous epoch with recomputed delegation deltas.
+- Fixed the live current-epoch `delegation_snapshots.total_power_lovelace` unit mismatch in `sync-drep-scores`.
 - Added focused regression coverage for the threshold resolver and `getVotingPowerSummary()` integration.
 
 **Evidence collected**
