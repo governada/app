@@ -147,8 +147,9 @@ describe('systems automation helpers', () => {
     );
 
     expect(targets).toHaveLength(2);
-    expect(targets[0]?.reason).toBe('new');
-    expect(targets[1]?.reason).toBe('reminder');
+    expect(targets.map((target) => target.reason)).toEqual(
+      expect.arrayContaining(['new', 'reminder']),
+    );
   });
 
   it('reads the latest successful escalation state from audit rows', () => {

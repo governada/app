@@ -919,7 +919,9 @@ function AutomationInboxSummaryCard({
             </p>
             <p className="text-sm mt-1">
               {data.latestOperatorEscalation
-                ? `${new Date(data.latestOperatorEscalation.createdAt).toLocaleString()} (${data.latestOperatorEscalation.status})`
+                ? `${new Date(data.latestOperatorEscalation.createdAt).toLocaleString()} (${
+                    data.latestOperatorEscalation.status
+                  })`
                 : 'No founder digest sent yet.'}
             </p>
           </div>
