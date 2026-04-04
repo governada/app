@@ -137,7 +137,10 @@ const SPO_SECURITY_PARAMETER_ALIASES = [
 let cachedThresholds: { data: GovernanceThresholdMap; fetchedAt: number } | null = null;
 
 function normalizeParamKey(paramKey: string): string {
-  return paramKey.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+  return paramKey
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
 }
 
 function collectObjectKeys(value: unknown, keys: Set<string> = new Set()): Set<string> {
@@ -164,7 +167,9 @@ function inferThresholdKeyForProtocolParam(paramKey: string): GovernanceThreshol
   }
 
   for (const { group, aliases } of NORMALIZED_PARAMETER_GROUP_ALIASES) {
-    if (aliases.some((alias) => normalizedParamKey === alias || normalizedParamKey.startsWith(alias))) {
+    if (
+      aliases.some((alias) => normalizedParamKey === alias || normalizedParamKey.startsWith(alias))
+    ) {
       return PARAMETER_GROUP_THRESHOLD_KEY_MAP[group];
     }
   }
@@ -285,7 +290,10 @@ async function loadGovernanceThresholds(): Promise<GovernanceThresholdMap | null
 export async function getGovernanceThresholdForProposal(
   proposal: GovernanceThresholdProposalInput,
 ): Promise<GovernanceThresholdResolution> {
-  const thresholdKeys = resolveGovernanceThresholdKeys(proposal.proposalType, proposal.paramChanges);
+  const thresholdKeys = resolveGovernanceThresholdKeys(
+    proposal.proposalType,
+    proposal.paramChanges,
+  );
   if (thresholdKeys.length === 0) {
     return {
       threshold: null,

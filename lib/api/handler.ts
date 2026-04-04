@@ -142,7 +142,9 @@ export function withApiHandler(handler: ApiHandler, options: HandlerOptions = {}
       if (request.method === 'GET' && response.status >= 200 && response.status < 300) {
         response.headers.set(
           'Cache-Control',
-          options.requiredTier ? 'private, no-store' : 'public, s-maxage=300, stale-while-revalidate=600',
+          options.requiredTier
+            ? 'private, no-store'
+            : 'public, s-maxage=300, stale-while-revalidate=600',
         );
       }
 

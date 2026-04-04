@@ -2035,9 +2035,10 @@ export async function getVotingPowerSummary(
     ]);
 
     const canonical = canonicalResult.data;
-    const proposalRow = proposalResult.data as
-      | { proposal_type?: string | null; param_changes?: Record<string, unknown> | null }
-      | null;
+    const proposalRow = proposalResult.data as {
+      proposal_type?: string | null;
+      param_changes?: Record<string, unknown> | null;
+    } | null;
     const thresholdResolution = await getGovernanceThresholdForProposal({
       proposalType: proposalRow?.proposal_type ?? proposalType,
       paramChanges: proposalRow?.param_changes ?? null,

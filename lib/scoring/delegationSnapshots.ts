@@ -46,10 +46,10 @@ export function buildDelegationSnapshotInsert(
   const preserveExistingCurrentEpochDeltas = options.preserveExistingCurrentEpochDeltas ?? true;
 
   let newDelegators = preserveExistingCurrentEpochDeltas
-    ? currentEpochSnapshot?.newDelegators ?? null
+    ? (currentEpochSnapshot?.newDelegators ?? null)
     : null;
   let lostDelegators = preserveExistingCurrentEpochDeltas
-    ? currentEpochSnapshot?.lostDelegators ?? null
+    ? (currentEpochSnapshot?.lostDelegators ?? null)
     : null;
 
   if ((newDelegators == null || lostDelegators == null) && priorEpochSnapshot) {

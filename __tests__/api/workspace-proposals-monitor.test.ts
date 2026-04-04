@@ -116,7 +116,9 @@ describe('GET /api/workspace/proposals/monitor', () => {
       thresholdKeys: ['dvt_p_p_gov_group'],
     });
 
-    const res = await GET(createRequest('/api/workspace/proposals/monitor?txHash=tx-1&proposalIndex=0'));
+    const res = await GET(
+      createRequest('/api/workspace/proposals/monitor?txHash=tx-1&proposalIndex=0'),
+    );
     const body = (await parseJson(res)) as any;
 
     expect(res.status).toBe(200);
@@ -169,7 +171,9 @@ describe('GET /api/workspace/proposals/monitor', () => {
       }),
     });
 
-    const res = await GET(createRequest('/api/workspace/proposals/monitor?txHash=tx-2&proposalIndex=1'));
+    const res = await GET(
+      createRequest('/api/workspace/proposals/monitor?txHash=tx-2&proposalIndex=1'),
+    );
     const body = (await parseJson(res)) as any;
 
     expect(res.status).toBe(200);

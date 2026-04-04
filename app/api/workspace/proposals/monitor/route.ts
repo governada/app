@@ -109,7 +109,10 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
       txHash,
       proposalIndex,
     });
-    return NextResponse.json({ error: 'Unsupported proposal threshold configuration' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Unsupported proposal threshold configuration' },
+      { status: 500 },
+    );
   }
 
   // ── 2. Fetch latest voting summary ───────────────────────────────────

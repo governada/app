@@ -96,7 +96,10 @@ async function loadVotingPowerSummaryModule({
     thresholdKeys: threshold != null ? ['dvt_p_p_gov_group'] : [],
   });
 
-  function makeResolvedQuery(data: Record<string, unknown> | null, terminal: 'single' | 'maybeSingle') {
+  function makeResolvedQuery(
+    data: Record<string, unknown> | null,
+    terminal: 'single' | 'maybeSingle',
+  ) {
     const chain = {
       select: vi.fn(() => chain),
       eq: vi.fn(() => chain),
@@ -169,9 +172,7 @@ describe('getAllDReps freshness policy', () => {
   });
 
   it('does not retrigger syncs during the expected DRep sync window', async () => {
-    const { getAllDReps, send } = await loadDataModule([
-      makeDRepRow('2026-04-03T09:30:00.000Z'),
-    ]);
+    const { getAllDReps, send } = await loadDataModule([makeDRepRow('2026-04-03T09:30:00.000Z')]);
 
     const result = await getAllDReps();
     await vi.dynamicImportSettled();
@@ -182,9 +183,7 @@ describe('getAllDReps freshness policy', () => {
   });
 
   it('retriggers syncs only after the overdue threshold is exceeded', async () => {
-    const { getAllDReps, send } = await loadDataModule([
-      makeDRepRow('2026-04-03T07:59:00.000Z'),
-    ]);
+    const { getAllDReps, send } = await loadDataModule([makeDRepRow('2026-04-03T07:59:00.000Z')]);
 
     const result = await getAllDReps();
     await vi.dynamicImportSettled();
