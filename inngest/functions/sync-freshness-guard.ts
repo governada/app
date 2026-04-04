@@ -6,38 +6,9 @@
 
 import { inngest } from '@/lib/inngest';
 import { getSupabaseAdmin } from '@/lib/supabase';
-import { SYNC_FRESHNESS_POLICY } from '@/lib/syncPolicy';
+import { getSyncPolicy, SYNC_POLICY } from '@/lib/syncPolicy';
 import { alertDiscord, alertCritical, emitPostHog, type SyncType } from '@/lib/sync-utils';
 import { logger } from '@/lib/logger';
-
-const FRESHNESS_THRESHOLDS: Record<string, { mins: number; event: string }> = {
-  proposals: { mins: 90, event: 'drepscore/sync.proposals' },
-  dreps: {
-    mins: SYNC_FRESHNESS_POLICY.dreps.retriggerAfterMinutes,
-    event: 'drepscore/sync.dreps',
-  },
-  votes: { mins: 480, event: 'drepscore/sync.votes' },
-  secondary: { mins: 480, event: 'drepscore/sync.secondary' },
-  slow: { mins: 1800, event: 'drepscore/sync.slow' },
-  treasury: { mins: 1500, event: 'drepscore/sync.treasury' },
-  scoring: { mins: 480, event: 'drepscore/sync.scores' },
-  alignment: { mins: 480, event: 'drepscore/sync.alignment' },
-  ghi: { mins: 1500, event: 'drepscore/sync.ghi' },
-  benchmarks: { mins: 11520, event: 'drepscore/sync.benchmarks' },
-  spo_votes: { mins: 480, event: 'drepscore/sync.spo-votes' },
-  cc_votes: { mins: 480, event: 'drepscore/sync.cc-votes' },
-  epoch_recaps: { mins: 8640, event: 'drepscore/sync.epoch-recaps' },
-  spo_scores: { mins: 1500, event: 'drepscore/sync.spo-scores' },
-  governance_epoch_stats: { mins: 1500, event: 'drepscore/sync.governance-epoch-stats' },
-  data_moat: { mins: 1500, event: 'drepscore/sync.data-moat' },
-  delegator_snapshots: { mins: 2880, event: 'drepscore/sync.data-moat' },
-  drep_lifecycle: { mins: 2880, event: 'drepscore/sync.data-moat' },
-  epoch_summaries: { mins: 2880, event: 'drepscore/sync.data-moat' },
-  committee_sync: { mins: 2880, event: 'drepscore/sync.data-moat' },
-  metadata_archive: { mins: 2880, event: 'drepscore/sync.data-moat' },
-  catalyst: { mins: 1500, event: 'drepscore/sync.catalyst' },
-  catalyst_proposals: { mins: 2880, event: 'drepscore/sync.catalyst' },
-};
 
 const RECENT_FAILURE_WINDOW_MS = 15 * 60 * 1000;
 const GHOST_THRESHOLD_MS = 30 * 60 * 1000;
@@ -156,26 +127,25 @@ export const syncFreshnessGuard = inngest.createFunction(
 
       for (const row of rows) {
         seenTypes.add(row.sync_type);
-        const config = FRESHNESS_THRESHOLDS[row.sync_type];
-        if (!config) continue;
+        const config = getSyncPolicy(row.sync_type);
+        if (!config.event) continue;
         if (!row.last_run) {
           stale.push({ syncType: row.sync_type, staleMins: Infinity, event: config.event });
           continue;
         }
 
         const staleMins = Math.round((now - new Date(row.last_run).getTime()) / 60_000);
-        if (staleMins > config.mins) {
+        if (staleMins > config.retriggerAfterMinutes) {
           stale.push({ syncType: row.sync_type, staleMins, event: config.event });
         }
       }
 
       // ── "Never ran" detection ──
-      // Sync types in FRESHNESS_THRESHOLDS but completely absent from v_sync_health
+      // Sync types in the canonical sync policy but completely absent from v_sync_health
       // have never produced a sync_log entry — likely a registration or trigger failure.
-      for (const [syncType, config] of Object.entries(FRESHNESS_THRESHOLDS)) {
-        if (!seenTypes.has(syncType)) {
-          stale.push({ syncType, staleMins: Infinity, event: config.event });
-        }
+      for (const [syncType, config] of Object.entries(SYNC_POLICY)) {
+        if (!config.event || seenTypes.has(syncType)) continue;
+        stale.push({ syncType, staleMins: Infinity, event: config.event });
       }
 
       return stale;

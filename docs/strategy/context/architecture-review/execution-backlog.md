@@ -316,6 +316,7 @@ If the app intentionally needs a softer degraded-mode posture for some internal 
 **Expected score impact:** Reliability and observability: clearer diagnosis and fewer conflicting signals
 **Depends on:** None
 **PR group:** G
+**Implementation status:** Completed in this worktree
 
 ### Context
 
@@ -336,6 +337,21 @@ The executing agent should confirm whether the desired end state is one central 
 
 - The same sync condition is evaluated consistently across monitoring, alerting, and self-healing jobs.
 - Threshold drift can be changed in one place.
+
+### Progress So Far
+
+- Added a layered canonical sync registry in `lib/syncPolicy.ts` instead of keeping four drifting threshold tables across health, alerting, and self-healing code paths.
+- `app/api/health/route.ts` now derives sync labels and health levels from the shared policy and no longer invents its own stale thresholds per route.
+- `app/api/health/sync/route.ts` now uses the shared core-sync registry plus explicit external-critical thresholds rather than its own local map.
+- `app/api/admin/integrity/alert/route.ts` now reads labels, schedules, retrigger thresholds, and event names from the shared policy and only auto-heals syncs that actually define an event.
+- `inngest/functions/sync-freshness-guard.ts` now uses the same canonical retrigger policy and never-ran sync inventory instead of its own `FRESHNESS_THRESHOLDS` table.
+- `app/api/health/route.ts` now surfaces snapshot-diagnostic failure explicitly as `snapshots.status = unavailable` and degrades the top-level health result instead of silently swallowing the blind spot.
+- `app/api/health/deep/route.ts` now documents the current Redis dependency posture accurately after the earlier rate-limit fail-closed change.
+- Added regression coverage in `__tests__/lib/syncPolicy.test.ts`, `__tests__/api/health.test.ts`, and `__tests__/api/health-sync.test.ts`.
+- Verified with `npm run test:unit -- __tests__/lib/syncPolicy.test.ts __tests__/api/health.test.ts __tests__/api/health-sync.test.ts`.
+- Verified with `npm run agent:validate`.
+- Verified with `npm run type-check`.
+- Verified focused static hygiene with `npm run lint -- lib/syncPolicy.ts app/api/health/route.ts app/api/health/sync/route.ts app/api/admin/integrity/alert/route.ts inngest/functions/sync-freshness-guard.ts`.
 
 ### Files to Read First
 
@@ -395,7 +411,7 @@ None - execute directly unless a consumer needs a materially different product i
 - Verified with `npm run test:component -- __tests__/components/StakeholderLandscape.test.tsx`.
 - Verified with `npm run agent:validate`.
 - Verified focused static hygiene with `npm run lint -- app/api/workspace/review-queue/route.ts components/intelligence/ReviewIntelBrief.tsx components/intelligence/sections/StakeholderLandscape.tsx components/studio/IntelPanel.tsx components/workspace/review/ReviewBrief.tsx components/workspace/review/ReviewWorkspace.tsx lib/workspace/types.ts lib/passagePrediction.ts inngest/functions/update-passage-predictions.ts inngest/functions/precompute-proposal-intelligence.ts lib/scoring/historical.ts` (warnings only in `components/workspace/review/ReviewWorkspace.tsx`, no errors).
-- Verification caveat: `npm run type-check` did not complete within a 15-minute window in this worktree and should be treated as a separate repo-level verification concern rather than an open Chunk 8 implementation gap.
+- Verified with `npm run type-check`.
 
 ## Chunk 9: Normalize Authoring Threshold Copy
 
@@ -425,3 +441,102 @@ The authoring submission simulator still hardcodes governance threshold copy in 
 - `components/workspace/author/submission/FinancialSimulation.tsx`
 - `lib/governance/votingBodies.ts`
 - `lib/governanceThresholds.ts`
+
+## Chunk 10: Enforce Ops-Critical Environment Contracts
+
+**Priority:** P1
+**Effort:** M
+**Audit dimension(s):** Performance and Reliability, Testing and Code Quality
+**Expected score impact:** Reliability and observability: prevent silent operation without monitoring or alerting
+**Depends on:** Chunk 7
+**PR group:** I
+
+### Context
+
+The runtime currently treats major observability and alerting integrations as optional. That allows a deploy to come up "healthy" even when Sentry, alert delivery, or heartbeat wiring is effectively disabled.
+
+### Scope
+
+- Separate environment variables into runtime-critical, ops-critical, and product-optional groups.
+- Add an explicit verification path that fails when ops-critical monitoring and alerting env vars are absent in environments that expect them.
+- Keep local-development ergonomics intact while removing silent production no-op behavior.
+
+### Verification
+
+- Production-targeted verification fails when Sentry or alert-delivery wiring is missing.
+- Local development can still boot without forcing every ops integration.
+- The effective env contract is documented in one place.
+
+### Files to Read First
+
+- `lib/env.ts`
+- `instrumentation.ts`
+- `lib/sync-utils.ts`
+- `.github/workflows/post-deploy.yml`
+- `scripts/check-deploy-health.mjs`
+
+## Chunk 11: Expand Tier-1 Cron Observability Coverage
+
+**Priority:** P1
+**Effort:** L
+**Audit dimension(s):** Performance and Reliability, Product Completeness vs. Vision
+**Expected score impact:** Reliability and observability: reduce blind spots in scheduled work
+**Depends on:** Chunk 10
+**PR group:** I
+
+### Context
+
+The repo has far more cron-triggered jobs than cron instrumentation and heartbeat coverage. That leaves several freshness-critical or epoch-critical jobs without durable operator visibility.
+
+### Scope
+
+- Define cron coverage tiers so tier-1 jobs are explicitly identified.
+- Add Sentry Cron instrumentation to every cron-triggered Inngest function, at minimum for the tier-1 set.
+- Add external heartbeat coverage for the tier-1 jobs that gate freshness, alerts, or epoch transitions.
+- Document the policy so new cron jobs cannot ship uninstrumented by accident.
+
+### Verification
+
+- Every tier-1 cron job has Sentry Cron coverage and an external heartbeat path.
+- Missing or broken cron instrumentation is visible during review.
+- The coverage policy is simple enough that future jobs can adopt it mechanically.
+
+### Files to Read First
+
+- `inngest/functions/`
+- `lib/sentry-cron.ts`
+- `lib/sync-utils.ts`
+- `.github/workflows/post-deploy.yml`
+- `scripts/inngest-status.ts`
+
+## Chunk 12: Make Deploy and Preview Verification Release-Aware
+
+**Priority:** P1
+**Effort:** M
+**Audit dimension(s):** Performance and Reliability, API and Integration Readiness
+**Expected score impact:** Reliability and observability: reduce false-positive deploy verification
+**Depends on:** Chunk 10
+**PR group:** I
+
+### Context
+
+Post-deploy and preview verification currently depend too much on fixed waits and guessed environment URLs. That can validate the wrong release or fail for timing rather than correctness.
+
+### Scope
+
+- Make post-deploy verification resolve the actual deployed revision or build target before smoke tests run.
+- Make preview verification derive the preview URL from deployment output rather than naming assumptions.
+- Remove fixed smoke-test count text from workflow comments and replace it with actual result data.
+
+### Verification
+
+- Post-deploy checks prove they are testing the intended release.
+- Preview checks target the deployed preview URL deterministically.
+- Workflow comments reflect real smoke-test outcomes instead of hardcoded expectations.
+
+### Files to Read First
+
+- `.github/workflows/post-deploy.yml`
+- `.github/workflows/preview.yml`
+- `scripts/smoke-test.ts`
+- `scripts/check-deploy-health.mjs`

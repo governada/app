@@ -252,7 +252,7 @@ Cached reviewer intelligence and historical scoring should agree with the same g
 - Passed `npm run test:component -- __tests__/components/StakeholderLandscape.test.tsx`.
 - Passed `npm run agent:validate`.
 - Focused lint for the final Deep Dive 01 files completed with warnings only in `components/workspace/review/ReviewWorkspace.tsx` and no errors.
-- `npm run type-check` did not complete within a 15-minute window in this worktree, so it remains a separate repo-level verification concern rather than a Deep Dive 01 implementation blocker.
+- Passed `npm run type-check`.
 
 **Evidence collected**
 

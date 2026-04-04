@@ -14,106 +14,16 @@ This pass covers the operational surfaces that determine whether the app can fai
 - Logging, Sentry, and request-error capture
 - Cron and heartbeat coverage for sync jobs
 - Failure diagnosis paths for syncs, alerts, and admin integrity checks
+- Deploy and preview verification confidence
 
 ## Evidence Collected
-
-- `lib/env.ts` defines required and optional environment variables and raises on missing required vars.
-- `instrumentation.ts` calls `validateEnv()` only in the `nodejs` runtime and initializes Sentry in both `nodejs` and `edge`.
-- `app/api/health/route.ts`, `app/api/health/deep/route.ts`, `app/api/health/sync/route.ts`, and `app/api/health/ready/route.ts` provide multiple operational health surfaces with different scopes.
-- `lib/sync-utils.ts` contains the shared sync logging, alerting, heartbeat, and anomaly-detection utilities.
-- `inngest/functions/sync-freshness-guard.ts` implements a self-healing cron that retriggers stale syncs and heals missing epoch snapshots.
-- `app/api/admin/integrity/route.ts` and `app/api/admin/integrity/alert/route.ts` provide admin/cron diagnosis and alerting flows.
-- `lib/api/handler.ts` applies request logging, rate limiting, and cache headers for public API routes.
-- `app/api/v1/dreps/[drepId]/history/route.ts` and `app/api/v1/dreps/[drepId]/votes/route.ts` are tier-gated public API routes that still inherit shared caching behavior.
-
-## Findings
-
-### 1. Operational diagnosis is fragmented across several health models
-
-**Severity:** High
-
-**Evidence**
-
-- `app/api/health/route.ts` defines a broad per-sync threshold table and reports a composite `healthy/degraded/critical` status.
-- `app/api/health/sync/route.ts` limits diagnosis to `proposals`, `dreps`, `scoring`, and `alignment` with a different threshold model.
-- `app/api/admin/integrity/alert/route.ts` defines its own `SYNC_CONFIG` and retry/alert thresholds.
-- `inngest/functions/sync-freshness-guard.ts` defines yet another freshness table and retrigger policy.
-
-**Why it matters**
-
-The same outage can be labeled differently depending on which monitor or alert path sees it first. That makes incident triage noisier, increases duplicate retriggers, and makes it harder to answer the first operational question: "Is the system actually degraded, or are we looking at a policy mismatch?"
-
-**Implementation status**
-
-- Partially improved in this worktree for the DRep sync path.
-- `lib/syncPolicy.ts` now defines the shared DRep freshness contract consumed by the read path, health endpoints, integrity alerting, and the freshness guard.
-- Broader threshold duplication still exists for non-DRep sync domains, so this finding remains open.
-
-### 2. Tier-gated API routes still inherit public CDN cache headers
-
-**Severity:** Fixed in this worktree
-
-**Evidence**
-
-- `lib/api/handler.ts` applies shared `Cache-Control: public, s-maxage=300, stale-while-revalidate=600` headers to successful GETs.
-- `app/api/v1/dreps/[drepId]/history/route.ts` is a pro-tier route returning cached history.
-- `app/api/v1/dreps/[drepId]/votes/route.ts` is a pro-tier route returning cached vote history.
-
-**Why it matters**
-
-Authenticated or tier-gated responses should not silently share the same CDN caching policy as anonymous public reads. Even if the payload is identical for all pro users, this is a brittle default because revocation, entitlement changes, and incident debugging become harder once authorization-sensitive responses are publicly cacheable by default.
-
-**Implementation status**
-
-- Fixed in `lib/api/handler.ts` by switching tier-gated successful GETs to `Cache-Control: private, no-store`.
-- Verified with `__tests__/api/v1-drep-history.test.ts` and `__tests__/api/v1-dreps.test.ts`.
-
-### 3. Snapshot health failures are swallowed by the main health endpoint
-
-**Severity:** Medium
-
-**Evidence**
-
-- `app/api/health/route.ts` computes snapshot health across many tables.
-- That same route explicitly swallows snapshot-health exceptions as "best effort."
-
-**Why it matters**
-
-The main health endpoint is supposed to explain compounding and freshness problems. If the snapshot check itself fails, the endpoint still returns a response without surfacing that the snapshot diagnostic layer is blind. That creates false confidence during the exact kind of failure this endpoint should help diagnose.
-
-## Risk Ranking
-
-1. Fragmented operational diagnosis across multiple threshold models.
-2. Snapshot health failures hidden behind best-effort error swallowing.
-3. Remaining alerting/recovery paths may still drift from the canonical health view.
-
-## Open Questions
-
-- Should the health/freshness thresholds be centralized into a single policy source that both alerting and monitoring consume?
-- Should snapshot-health failures escalate into an explicit degraded status instead of being swallowed?
-
-## Next Actions
-
-1. Pull the next scan toward the sync/alert policy layer and decide whether the threshold tables should be unified or merely normalized.
-2. Trace the remaining admin alert and API health paths for duplicated logic and missing correlation data.
-3. Decide how snapshot-health failures should surface in the main health response.
-
-## Handoff
-
-**Current status:** In progress
-
-**What changed this session**
-
-- Investigated env validation, health endpoints, logging, Sentry, cron/heartbeat coverage, and failure diagnosis paths.
-- Validated three concrete reliability/observability issues with file-level evidence and fixed the tier-gated cache issue in the worktree.
-- Identified the main operational risk as inconsistent diagnosis rather than missing monitoring surface area.
-
-**Evidence collected**
 
 - `lib/env.ts`
 - `instrumentation.ts`
 - `middleware.ts`
+- `proxy.ts`
 - `lib/api/handler.ts`
+- `lib/syncPolicy.ts`
 - `lib/sync-utils.ts`
 - `lib/sentry-cron.ts`
 - `app/api/health/route.ts`
@@ -123,16 +33,186 @@ The main health endpoint is supposed to explain compounding and freshness proble
 - `app/api/admin/integrity/route.ts`
 - `app/api/admin/integrity/alert/route.ts`
 - `inngest/functions/sync-freshness-guard.ts`
-- `app/api/v1/dreps/[drepId]/history/route.ts`
-- `app/api/v1/dreps/[drepId]/votes/route.ts`
+- `.github/workflows/post-deploy.yml`
+- `.github/workflows/preview.yml`
+- `scripts/smoke-test.ts`
+- `scripts/check-deploy-health.mjs`
+- `package.json`
+- `__tests__/api/health.test.ts`
+- `__tests__/api/health-sync.test.ts`
 - `__tests__/api/v1-dreps.test.ts`
 - `__tests__/api/v1-drep-history.test.ts`
+- `__tests__/instrumentation.test.ts`
+- `__tests__/proxy.test.ts`
+- `__tests__/lib/syncPolicy.test.ts`
+
+## Findings
+
+### 1. Operational diagnosis was fragmented across several health models
+
+**Severity:** Fixed in this worktree
+
+**Evidence**
+
+- `app/api/health/route.ts`, `app/api/health/sync/route.ts`, `app/api/admin/integrity/alert/route.ts`, and `inngest/functions/sync-freshness-guard.ts` previously maintained their own stale-threshold tables.
+- The threshold drift was concrete, not cosmetic:
+  - `proposals` used `90` minutes in broad health and self-healing, but `120` in simple liveness.
+  - `secondary`, `scoring`, `alignment`, `treasury`, and `ghi` all diverged across the four surfaces.
+- Missing-row handling also drifted, especially around "never ran" sync types.
+
+**Why it matters**
+
+The same outage could be labeled differently depending on which operator surface saw it first. That creates noisy triage, duplicate retriggers, and unclear incident ownership.
+
+**Implementation status**
+
+- Fixed in this worktree.
+- `lib/syncPolicy.ts` now defines a layered canonical sync registry instead of one local threshold map per surface.
+- The shared policy models intentionally different meanings:
+  - `retriggerAfterMinutes` for self-healing and alerting
+  - `degradedAfterMinutes` / `criticalAfterMinutes` for broad health
+  - `externalCriticalAfterMinutes` for simple external liveness
+- `app/api/health/route.ts`, `app/api/health/sync/route.ts`, `app/api/admin/integrity/alert/route.ts`, and `inngest/functions/sync-freshness-guard.ts` now consume that shared policy.
+- Auto-healing is now gated on sync types that actually define an event instead of assuming every monitored type is triggerable.
+
+### 2. Tier-gated API routes still inherited public CDN cache headers
+
+**Severity:** Fixed in this worktree
+
+**Evidence**
+
+- `lib/api/handler.ts` previously applied shared public GET caching to successful tier-gated responses.
+- `app/api/v1/dreps/[drepId]/history/route.ts` and `app/api/v1/dreps/[drepId]/votes/route.ts` are pro-tier routes that inherited that default.
+
+**Why it matters**
+
+Authenticated or entitlement-sensitive responses should not silently share public CDN cache semantics. Even when the payload is user-agnostic, the cache policy is the wrong default for trust and incident handling.
+
+**Implementation status**
+
+- Fixed earlier in this worktree by switching tier-gated successful GETs to `Cache-Control: private, no-store`.
+- Verified with `__tests__/api/v1-drep-history.test.ts` and `__tests__/api/v1-dreps.test.ts`.
+
+### 3. Snapshot health failures were swallowed by the main health endpoint
+
+**Severity:** Fixed in this worktree
+
+**Evidence**
+
+- `app/api/health/route.ts` computed snapshot health across many tables.
+- That same route swallowed snapshot-diagnostic exceptions as "best effort", which meant the endpoint could stay apparently healthy while its own diagnostic layer was blind.
+
+**Why it matters**
+
+If the snapshot diagnostic layer fails, operators need to know that the health endpoint has lost part of its visibility. Silent failure creates false confidence during incident response.
+
+**Implementation status**
+
+- Fixed in this worktree.
+- `app/api/health/route.ts` now returns explicit snapshot status metadata instead of swallowing diagnostic failure.
+- Snapshot diagnostic failure now degrades the top-level health result instead of leaving the route silently optimistic.
+- Snapshot check results are now rolled into a top-level snapshot status instead of being returned as an unranked sidecar payload.
+
+### 4. Operational monitoring still fails open when observability and alerting env wiring is missing
+
+**Severity:** High
+
+**Evidence**
+
+- `lib/env.ts` validates only runtime-critical variables and treats Sentry, Discord, email, heartbeat, and related ops integrations as optional.
+- `instrumentation.ts` will simply disable Sentry when `NEXT_PUBLIC_SENTRY_DSN` is absent.
+- `lib/sync-utils.ts` silently no-ops for alert delivery, heartbeat pings, and analytics deploy hooks when related env vars are absent.
+
+**Why it matters**
+
+A production deploy can come up "healthy" while error monitoring, operator alerting, or external cron visibility is effectively disabled. That is an operability failure, not a convenience.
+
+**Implementation status**
+
+- Open.
+- This should be fixed through an explicit ops-critical env contract rather than by marking every integration universally required in every environment.
+
+### 5. Cron observability coverage is still thin relative to the number of scheduled jobs
+
+**Severity:** High
+
+**Evidence**
+
+- The repo has many cron-triggered Inngest jobs, but only a subset currently have durable Sentry Cron or heartbeat coverage.
+- Freshness-critical jobs like `sync-drep-scores`, `generate-epoch-summary`, and `sync-freshness-guard` are especially important to cover consistently.
+
+**Why it matters**
+
+World-class observability requires durable visibility into the jobs that gate freshness, epoch transitions, and operator alerts. Missing cron instrumentation means silent missed runs remain possible.
+
+**Implementation status**
+
+- Open.
+- This needs a tiered cron coverage policy so the most important scheduled jobs are instrumented mechanically instead of opportunistically.
+
+### 6. Deploy and preview verification are still too time-based and not release-aware
+
+**Severity:** Medium
+
+**Evidence**
+
+- `.github/workflows/post-deploy.yml` waits a fixed interval before smoke tests rather than proving it is checking the intended release.
+- `.github/workflows/preview.yml` still depends on derived preview-target assumptions and hardcoded success messaging.
+- `scripts/smoke-test.ts` defaults to the production site URL when a specific target is not provided.
+
+**Why it matters**
+
+Verification that can target the wrong release or the wrong URL creates false positives. That weakens the entire reliability story even when smoke tests technically pass.
+
+**Implementation status**
+
+- Open.
+- This should be fixed by making deploy and preview verification resolve actual deployment targets and report real result counts.
+
+## Risk Ranking
+
+1. Ops-critical env wiring still fails open.
+2. Cron coverage is thinner than the number of scheduled jobs that matter.
+3. Deploy and preview verification are not yet release-aware.
+4. Snapshot policy itself is still broader than the freshness-policy layer and may need its own canonical registry in a later pass.
+
+## Open Questions
+
+- Should ops-critical env validation fail at startup, deploy verification, or both?
+- Which cron-triggered jobs should be treated as tier 1 for heartbeat and Sentry Cron coverage?
+- Should deploy verification prove a build ID, a commit SHA, or a provider-native deployment identifier before smoke tests run?
+
+## Next Actions
+
+1. Define and enforce the ops-critical env contract.
+2. Expand tier-1 cron observability coverage.
+3. Make deploy and preview verification release-aware.
+
+## Handoff
+
+**Current status:** In progress
+
+**What changed this session**
+
+- Replaced the drifting per-route freshness tables with a layered canonical sync policy in `lib/syncPolicy.ts`.
+- Updated `app/api/health/route.ts`, `app/api/health/sync/route.ts`, `app/api/admin/integrity/alert/route.ts`, and `inngest/functions/sync-freshness-guard.ts` to consume that shared policy.
+- Fixed the main health endpoint so snapshot-diagnostic failures surface explicitly and degrade the top-level health result instead of being swallowed.
+- Updated `app/api/health/deep/route.ts` to document the current Redis dependency posture accurately after the earlier rate-limit hardening work.
+- Pulled in parallel scout findings for runtime-boundary mapping, ops env contracts, cron coverage, and deploy verification gaps.
 
 **Validated findings**
 
-- Operational diagnosis is fragmented across several health models.
-- Tier-gated API routes previously inherited public CDN cache headers. Fixed in this worktree.
-- Snapshot health failures are swallowed by the main health endpoint.
+- Operational diagnosis no longer depends on four drifting stale-threshold tables. Fixed in this worktree.
+- Tier-gated API routes no longer inherit public CDN cache headers. Fixed earlier in this worktree.
+- Snapshot diagnostic failure now surfaces instead of being silently swallowed. Fixed in this worktree.
+- Ops-critical env wiring, cron coverage, and release-aware deploy verification remain open DD04 findings.
+
+**Verification**
+
+- Passed `npm run test:unit -- __tests__/lib/syncPolicy.test.ts __tests__/api/health.test.ts __tests__/api/health-sync.test.ts`.
+- Passed `npm run agent:validate`.
+- Passed `npm run type-check`.
+- Passed focused lint for `lib/syncPolicy.ts`, `app/api/health/route.ts`, `app/api/health/sync/route.ts`, `app/api/admin/integrity/alert/route.ts`, and `inngest/functions/sync-freshness-guard.ts`.
 
 **Open questions**
 
@@ -140,10 +220,9 @@ The main health endpoint is supposed to explain compounding and freshness proble
 
 **Next actions**
 
-- Continue the observability pass on remaining alerting and recovery paths.
-- Decide whether the health policy should be centralized before implementation work begins.
-- Decide how snapshot-health failures should affect the main health response.
+- Start with the ops env contract and tier-1 cron coverage instead of reopening the sync-policy layer.
+- Keep deploy and preview verification hardening as the next DD04 implementation slice after ops visibility is enforced.
 
 **Next agent starts here**
 
-Start with the threshold policy layer: `app/api/health/route.ts`, `app/api/health/sync/route.ts`, `app/api/admin/integrity/alert/route.ts`, and `inngest/functions/sync-freshness-guard.ts`. The goal is to determine whether one canonical freshness policy can replace the current overlap.
+Start with `lib/env.ts`, `instrumentation.ts`, `lib/sync-utils.ts`, `.github/workflows/post-deploy.yml`, `.github/workflows/preview.yml`, and `scripts/check-deploy-health.mjs`. The current highest-value DD04 work is enforcing ops-critical observability wiring and making deploy verification release-aware.

@@ -1,11 +1,67 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createRequest, parseJson } from '../helpers';
 
-const mockSelect = vi.fn();
+const mockState = {
+  syncRows: [] as Array<Record<string, unknown>>,
+  syncError: null as Error | null,
+  currentEpoch: 0,
+  snapshotError: null as Error | null,
+  snapshotLatest: {} as Record<string, Record<string, unknown> | null>,
+};
 
 vi.mock('@/lib/supabase', () => ({
   createClient: () => ({
-    from: () => ({ select: mockSelect }),
+    from: (table: string) => {
+      if (table === 'v_sync_health') {
+        return {
+          select: vi.fn(() => {
+            if (mockState.syncError) {
+              return Promise.reject(mockState.syncError);
+            }
+            return Promise.resolve({ data: mockState.syncRows, error: null });
+          }),
+        };
+      }
+
+      if (table === 'governance_stats') {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              single: vi.fn(() =>
+                Promise.resolve({
+                  data: { current_epoch: mockState.currentEpoch },
+                  error: null,
+                }),
+              ),
+            })),
+          })),
+        };
+      }
+
+      return {
+        select: vi.fn((column: string) => ({
+          order: vi.fn(() => ({
+            limit: vi.fn(() => ({
+              maybeSingle: vi.fn(() => {
+                if (mockState.snapshotError) {
+                  return Promise.reject(mockState.snapshotError);
+                }
+
+                return Promise.resolve({
+                  data:
+                    table in mockState.snapshotLatest
+                      ? mockState.snapshotLatest[table]
+                      : column === 'snapshot_date'
+                        ? { snapshot_date: new Date().toISOString().slice(0, 10) }
+                        : { [column]: mockState.currentEpoch },
+                  error: null,
+                });
+              }),
+            })),
+          })),
+        })),
+      };
+    },
   }),
 }));
 
@@ -17,14 +73,17 @@ function makeReq() {
 
 describe('GET /api/health', () => {
   beforeEach(() => {
+    mockState.syncRows = [];
+    mockState.syncError = null;
+    mockState.currentEpoch = 0;
+    mockState.snapshotError = null;
+    mockState.snapshotLatest = {};
     vi.clearAllMocks();
   });
 
   it('returns "unknown" when no sync data exists', async () => {
-    mockSelect.mockResolvedValue({ data: [], error: null });
-
     const res = await GET(makeReq());
-    const body = (await parseJson(res)) as any;
+    const body = (await parseJson(res)) as { status: string; syncs: unknown[] };
 
     expect(res.status).toBe(200);
     expect(body.status).toBe('unknown');
@@ -33,83 +92,104 @@ describe('GET /api/health', () => {
 
   it('returns "healthy" when all syncs are recent and successful', async () => {
     const now = new Date().toISOString();
-    mockSelect.mockResolvedValue({
-      data: [
-        {
-          sync_type: 'proposals',
-          last_run: now,
-          last_success: true,
-          success_count: 10,
-          failure_count: 0,
-        },
-        {
-          sync_type: 'treasury',
-          last_run: now,
-          last_success: true,
-          success_count: 5,
-          failure_count: 0,
-        },
-      ],
-      error: null,
-    });
+    mockState.syncRows = [
+      {
+        sync_type: 'proposals',
+        last_run: now,
+        last_success: true,
+        success_count: 10,
+        failure_count: 0,
+      },
+      {
+        sync_type: 'treasury',
+        last_run: now,
+        last_success: true,
+        success_count: 5,
+        failure_count: 0,
+      },
+    ];
 
     const res = await GET(makeReq());
-    const body = (await parseJson(res)) as any;
+    const body = (await parseJson(res)) as { status: string; syncs: Array<{ level: string }> };
 
     expect(res.status).toBe(200);
     expect(body.status).toBe('healthy');
     expect(body.syncs).toHaveLength(2);
-    body.syncs.forEach((s: any) => expect(s.level).toBe('healthy'));
+    body.syncs.forEach((s) => expect(s.level).toBe('healthy'));
   });
 
   it('returns "critical" when a sync has last_success false', async () => {
-    mockSelect.mockResolvedValue({
-      data: [
-        {
-          sync_type: 'dreps',
-          last_run: new Date().toISOString(),
-          last_success: false,
-          success_count: 0,
-          failure_count: 3,
-        },
-      ],
-      error: null,
-    });
+    mockState.syncRows = [
+      {
+        sync_type: 'dreps',
+        last_run: new Date().toISOString(),
+        last_success: false,
+        success_count: 0,
+        failure_count: 3,
+      },
+    ];
 
     const res = await GET(makeReq());
-    const body = (await parseJson(res)) as any;
+    const body = (await parseJson(res)) as {
+      status: string;
+      syncs: Array<{ level: string }>;
+    };
 
     expect(body.status).toBe('critical');
-    expect(body.syncs[0].level).toBe('critical');
+    expect(body.syncs[0]?.level).toBe('critical');
   });
 
-  it('returns "degraded" when a sync is stale but not double-stale', async () => {
-    const staleTime = new Date(Date.now() - 800 * 60 * 1000).toISOString(); // 800 min ago (threshold for dreps is 720)
-    mockSelect.mockResolvedValue({
-      data: [
-        {
-          sync_type: 'dreps',
-          last_run: staleTime,
-          last_success: true,
-          success_count: 5,
-          failure_count: 0,
-        },
-      ],
-      error: null,
-    });
+  it('returns "degraded" when a sync is stale but not critical', async () => {
+    const staleTime = new Date(Date.now() - 100 * 60 * 1000).toISOString();
+    mockState.syncRows = [
+      {
+        sync_type: 'proposals',
+        last_run: staleTime,
+        last_success: true,
+        success_count: 5,
+        failure_count: 0,
+      },
+    ];
 
     const res = await GET(makeReq());
-    const body = (await parseJson(res)) as any;
+    const body = (await parseJson(res)) as {
+      status: string;
+      syncs: Array<{ level: string }>;
+    };
 
     expect(body.status).toBe('degraded');
-    expect(body.syncs[0].level).toBe('degraded');
+    expect(body.syncs[0]?.level).toBe('degraded');
   });
 
-  it('returns 500 on unexpected error', async () => {
-    mockSelect.mockRejectedValue(new Error('DB connection failed'));
+  it('surfaces snapshot diagnostic failures instead of swallowing them', async () => {
+    mockState.syncRows = [
+      {
+        sync_type: 'proposals',
+        last_run: new Date().toISOString(),
+        last_success: true,
+        success_count: 5,
+        failure_count: 0,
+      },
+    ];
+    mockState.currentEpoch = 100;
+    mockState.snapshotError = new Error('snapshot query failed');
 
     const res = await GET(makeReq());
-    const body = (await parseJson(res)) as any;
+    const body = (await parseJson(res)) as {
+      status: string;
+      snapshots: { status: string; error: string };
+    };
+
+    expect(body.status).toBe('degraded');
+    expect(body.snapshots.status).toBe('unavailable');
+    expect(body.snapshots.error).toBe('snapshot health check failed');
+  });
+
+  it('returns 500 on unexpected sync query error', async () => {
+    mockState.syncError = new Error('DB connection failed');
+
+    const res = await GET(makeReq());
+    const body = (await parseJson(res)) as { error: string };
 
     expect(res.status).toBe(500);
     expect(body.error).toBe('Internal server error');

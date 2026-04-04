@@ -62,8 +62,10 @@ export const GET = withRouteHandler(
       probeRedis(),
     ]);
 
-    // Supabase is critical — pages read from it. Redis is nice-to-have (rate-limit
-    // falls back to in-memory). Koios is background-only (Inngest sync jobs).
+    // Supabase is critical because pages read from it directly. Redis remains a
+    // supporting dependency for shared rate limits and cache-backed coordination,
+    // but core reads stay available without it. Koios is background-only because
+    // scheduled sync jobs, not page requests, depend on it.
     const coreHealthy = supabase.status === 'healthy';
     const allHealthy = coreHealthy && koios.status === 'healthy' && redis.status === 'healthy';
 
