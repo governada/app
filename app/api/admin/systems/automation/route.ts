@@ -188,9 +188,7 @@ async function runSystemsAutomationSweep(request: NextRequest, ctx: RouteContext
     return NextResponse.json({ error: 'Failed to record automation sweep' }, { status: 500 });
   }
 
-  const baseUrl = BASE_URL.startsWith('http://localhost')
-    ? 'https://governada.io'
-    : BASE_URL;
+  const baseUrl = BASE_URL.startsWith('http://localhost') ? 'https://governada.io' : BASE_URL;
   const escalationTargets = buildSystemsOperatorEscalationTargets(
     nextOpenFollowups,
     latestEscalationBySource,
@@ -216,31 +214,26 @@ async function runSystemsAutomationSweep(request: NextRequest, ctx: RouteContext
       channelCount: delivery.channelCount,
     };
 
-    const { error: escalationError } = await supabase
-      .from('admin_audit_log')
-      .insert({
-        user_id: actor.actor,
-        action: SYSTEMS_OPERATOR_ESCALATION_ACTION,
-        target: 'systems',
-        payload: {
-          actorType: actor.actorType,
-          status: delivery.ok ? 'sent' : 'failed',
-          title: digest.title,
-          details: delivery.ok
-            ? digest.details
-            : `${digest.details}\n\nDelivery failure: ${delivery.failureReason ?? 'unknown'}`,
-          criticalCount: escalationTargets.length,
-          followupSourceKeys: escalationTargets.map((target) => target.sourceKey),
-          channelCount: delivery.channelCount,
-          channels: delivery.channels,
-        },
-      });
+    const { error: escalationError } = await supabase.from('admin_audit_log').insert({
+      user_id: actor.actor,
+      action: SYSTEMS_OPERATOR_ESCALATION_ACTION,
+      target: 'systems',
+      payload: {
+        actorType: actor.actorType,
+        status: delivery.ok ? 'sent' : 'failed',
+        title: digest.title,
+        details: delivery.ok
+          ? digest.details
+          : `${digest.details}\n\nDelivery failure: ${delivery.failureReason ?? 'unknown'}`,
+        criticalCount: escalationTargets.length,
+        followupSourceKeys: escalationTargets.map((target) => target.sourceKey),
+        channelCount: delivery.channelCount,
+        channels: delivery.channels,
+      },
+    });
 
     if (escalationError) {
-      return NextResponse.json(
-        { error: 'Failed to record operator escalation' },
-        { status: 500 },
-      );
+      return NextResponse.json({ error: 'Failed to record operator escalation' }, { status: 500 });
     }
   }
 
