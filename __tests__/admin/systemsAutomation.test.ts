@@ -142,8 +142,8 @@ describe('systems automation helpers', () => {
           updatedAt: '2026-04-02T09:00:00.000Z',
         },
       ],
-      new Map([['systems:review-discipline', '2026-04-02T08:00:00.000Z']]),
-      new Date('2026-04-03T09:30:00.000Z'),
+      new Map([['systems:review-discipline', '2026-04-02T09:30:00.000Z']]),
+      new Date('2026-04-03T10:30:00.000Z'),
     );
 
     expect(targets).toHaveLength(2);
