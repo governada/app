@@ -594,3 +594,108 @@ Post-deploy and preview verification currently depend too much on fixed waits an
 - `scripts/deploy-verify.ts`
 - `scripts/lib/deployVerification.ts`
 - `scripts/smoke-test.ts`
+
+## Chunk 13: Thin Workspace Route Handlers Into Server Services
+
+**Priority:** P1
+**Effort:** M
+**Audit dimension(s):** Architecture and Code Health, API and Integration Readiness
+**Expected score impact:** Runtime architecture: reduce HTTP-edge ownership drift
+**Depends on:** Chunk 5
+**PR group:** J
+**Implementation status:** Completed in this worktree
+
+### Context
+
+The workspace review routes were doing too much work at the HTTP edge. They owned Supabase fan-out, governance thresholds, response shaping, and request parsing in the same file.
+
+### Scope
+
+- Move review queue assembly out of `app/api/workspace/review-queue/route.ts` into a bounded server service.
+- Move proposal monitor assembly out of `app/api/workspace/proposals/monitor/route.ts` into a bounded server service.
+- Keep route handlers responsible only for query validation and `NextResponse` serialization.
+
+### Progress So Far
+
+- Added `lib/workspace/reviewQueue.ts` for review queue assembly.
+- Added `lib/workspace/proposalMonitor.ts` for proposal monitor assembly.
+- Reduced both route handlers to thin request/response boundaries.
+- Verified with `npm run test:unit -- __tests__/api/workspace-review-queue.test.ts __tests__/api/workspace-proposals-monitor.test.ts`.
+- Verified with `npm run type-check`.
+
+### Verification
+
+- Workspace route handlers no longer own domain read-model assembly.
+- Review queue and proposal monitor behavior remain unchanged at the route contract level.
+- The extracted services are reusable by future server-component or background consumers.
+
+### Files to Read First
+
+- `app/api/workspace/review-queue/route.ts`
+- `app/api/workspace/proposals/monitor/route.ts`
+- `lib/workspace/reviewQueue.ts`
+- `lib/workspace/proposalMonitor.ts`
+
+## Chunk 14: Unify Proposal Governance Context Builders
+
+**Priority:** P1
+**Effort:** L
+**Audit dimension(s):** Architecture and Code Health, Intelligence and Agent Readiness
+**Expected score impact:** Runtime architecture: remove competing definitions of proposal context
+**Depends on:** Chunk 13
+**PR group:** J
+
+### Context
+
+`lib/intelligence/context.ts` and `lib/workspace/agent/context.ts` both assemble proposal/governance context, but with different caching, data sources, and output contracts.
+
+### Scope
+
+- Define the shared server-side proposal/governance context primitives.
+- Move overlapping proposal, voting, treasury, precedent, and personal-context reads behind that shared service boundary.
+- Keep page-intelligence formatting and workspace-agent prompt formatting separate, but make them consume the same underlying context model.
+
+### Verification
+
+- A proposal viewed in page intelligence and in the workspace agent resolves from the same server-side context service.
+- The two consumers can still shape their final outputs differently without duplicating data assembly.
+- Cache ownership is explicit instead of split between Redis and ad hoc in-memory maps.
+
+### Files to Read First
+
+- `lib/intelligence/context.ts`
+- `lib/workspace/agent/context.ts`
+- `lib/data.ts`
+- `lib/ai/context.ts`
+
+## Chunk 15: Split the Review Workspace Client Orchestrator
+
+**Priority:** P1
+**Effort:** XL
+**Audit dimension(s):** Architecture and Code Health, Critical User Journeys
+**Expected score impact:** Runtime architecture: reduce client-side coordination blast radius
+**Depends on:** Chunk 13
+**PR group:** J
+
+### Context
+
+`components/workspace/review/ReviewWorkspace.tsx` currently owns queue navigation, vote flow, rationale drafting, agent-panel wiring, keyboard shortcuts, analytics, and responsive layout orchestration in one large client file.
+
+### Scope
+
+- Split session/controller state from presentation.
+- Extract vote-flow orchestration, queue navigation state, and studio-panel coordination into smaller focused modules.
+- Keep the top-level review workspace focused on composition rather than owning every side effect directly.
+
+### Verification
+
+- Vote flow, queue navigation, and studio coordination each have narrower unit-test seams.
+- The main review workspace component becomes materially smaller and easier to reason about.
+- Mobile and desktop review flows continue to share the same core session logic without duplicating orchestration.
+
+### Files to Read First
+
+- `components/workspace/review/ReviewWorkspace.tsx`
+- `hooks/useReviewQueue.ts`
+- `hooks/useReviewSession.ts`
+- `hooks/useVote.ts`
