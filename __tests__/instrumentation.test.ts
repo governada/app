@@ -51,6 +51,29 @@ describe('onRequestError', () => {
     expect(mockCaptureRequestError).toHaveBeenCalledTimes(1);
   });
 
+  it('accepts the renamed governada session cookie', async () => {
+    const token = await createToken(process.env.SESSION_SECRET!, 'addr_test1renamedwallet');
+
+    await onRequestError(
+      new Error('boom') as Error & { digest: string },
+      {
+        path: '/workspace',
+        method: 'GET',
+        headers: { cookie: `governada_session=${token}` },
+      },
+      {
+        routerKind: 'App Router',
+        routePath: '/workspace',
+        routeType: 'render',
+        renderSource: 'server',
+      },
+    );
+
+    expect(mockSetUser).toHaveBeenCalledTimes(1);
+    expect(mockSetTag).toHaveBeenCalledWith('hashedAddress', expect.any(String));
+    expect(mockCaptureRequestError).toHaveBeenCalledTimes(1);
+  });
+
   it('does not trust unsigned or invalid session cookies', async () => {
     await onRequestError(
       new Error('boom') as Error & { digest: string },

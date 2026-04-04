@@ -1,4 +1,5 @@
 import * as jose from 'jose';
+import { findCookieValue } from './lib/persistence';
 
 export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
@@ -36,15 +37,14 @@ async function extractSessionPayload(
   cookieHeader: string | undefined,
 ): Promise<{ walletAddress?: string } | null> {
   if (!cookieHeader) return null;
-  const match = cookieHeader.match(/(?:^|;\s*)drepscore_session=([^;]+)/);
-  if (!match) return null;
+  const token = findCookieValue(cookieHeader);
+  if (!token) return null;
 
   const secret = process.env.SESSION_SECRET;
   if (!secret) return null;
 
   try {
-    const token = decodeURIComponent(match[1]);
-    const { payload } = await jose.jwtVerify(token, new TextEncoder().encode(secret));
+    const { payload } = await jose.jwtVerify(decodeURIComponent(token), new TextEncoder().encode(secret));
 
     if (typeof payload.walletAddress !== 'string' || payload.walletAddress.length === 0) {
       return null;
