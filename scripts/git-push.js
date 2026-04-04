@@ -51,9 +51,9 @@ function currentBranch() {
   return result.status === 0 ? result.stdout.trim() : '';
 }
 
-function hasUpstream() {
+function upstreamBranch() {
   const result = runCommand('git', ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}']);
-  return result.status === 0;
+  return result.status === 0 ? result.stdout.trim() : '';
 }
 
 function main() {
@@ -74,7 +74,12 @@ function main() {
     process.exit(1);
   }
 
-  const args = parsed.setUpstream || !hasUpstream() ? ['push', '-u', 'origin', branch] : ['push'];
+  const upstream = upstreamBranch();
+  const expectedUpstream = `origin/${branch}`;
+  const args =
+    parsed.setUpstream || upstream !== expectedUpstream
+      ? ['push', '-u', 'origin', branch]
+      : ['push'];
   const result = runCommand('git', args);
 
   if (result.stdout) {
