@@ -718,18 +718,21 @@ The workspace review routes were doing too much work at the HTTP edge. They owne
 - Added `components/workspace/review/ReviewWorkspaceStudio.tsx` as the extracted interactive studio shell.
 - Reduced `components/workspace/review/ReviewWorkspace.tsx` to route-level state selection, fallback states, and studio-shell composition.
 - Added `hooks/useReviewDecisionFlow.ts` as the dedicated vote/rationale/mobile decision-flow seam for the review studio shell.
+- Added `components/workspace/review/ReviewWorkspaceDecisionPanels.tsx` so desktop/mobile decision-panel composition now lives behind one presenter boundary instead of duplicated prop wiring in `ReviewWorkspaceStudio.tsx`.
 - Removed the duplicate `hooks/useReviewWorkspaceSelection.ts` and `lib/workspace/reviewNavigation.ts` branch so the review flow has one queue/navigation ownership path.
 - Removed dead `agentUserRole` and `editorRef` exposure from the top-level review-workspace boundary.
 - Verified with `npm run test:unit -- __tests__/lib/reviewWorkspaceController.test.ts`.
 - Verified with `npm run test:component -- __tests__/hooks/useReviewDecisionFlow.test.tsx`.
+- Verified with `npm run test:component -- __tests__/components/ReviewWorkspaceDecisionPanels.test.tsx`.
 - Verified with `npm run lint -- components/workspace/review/ReviewWorkspace.tsx components/workspace/review/ReviewWorkspaceStudio.tsx hooks/useReviewWorkspaceController.ts lib/workspace/reviewWorkspaceController.ts`.
 - Verified with `npm run lint -- components/workspace/review/ReviewWorkspaceStudio.tsx hooks/useReviewDecisionFlow.ts hooks/useReviewWorkspaceController.ts components/workspace/review/ReviewWorkspace.tsx lib/workspace/reviewWorkspaceController.ts`.
+- Verified with `npm run lint -- components/workspace/review/ReviewWorkspaceStudio.tsx components/workspace/review/ReviewWorkspaceDecisionPanels.tsx hooks/useReviewDecisionFlow.ts`.
 - Verified with `npm run type-check`.
 
 ### Follow-up Work
 
-- Decide whether the remaining duplicated desktop/mobile decision rendering in `ReviewWorkspaceStudio.tsx` should move behind a small presenter wrapper before the critical-user-journeys pass.
-- Add direct component-level coverage for the review studio shell only if later DD03 or DD06 work changes that interaction surface materially.
+- Continue only if DD06 exposes operator-journey regressions that the current controller, decision-flow, and decision-panel seams do not isolate cleanly.
+- Shift the next DD03 effort toward deeper server-runtime ownership, especially `lib/data.ts` decomposition and background-job orchestration extraction.
 
 ### Verification
 
@@ -740,6 +743,6 @@ The workspace review routes were doing too much work at the HTTP edge. They owne
 ### Files to Read First
 
 - `components/workspace/review/ReviewWorkspace.tsx`
-- `hooks/useReviewQueue.ts`
-- `hooks/useReviewSession.ts`
-- `hooks/useVote.ts`
+- `components/workspace/review/ReviewWorkspaceStudio.tsx`
+- `components/workspace/review/ReviewWorkspaceDecisionPanels.tsx`
+- `hooks/useReviewDecisionFlow.ts`

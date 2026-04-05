@@ -85,9 +85,11 @@ The review flow is one of the most important operator surfaces in the product. K
 - `components/workspace/review/ReviewWorkspaceStudio.tsx` now owns the interactive studio shell instead of leaving that view tree embedded inside `ReviewWorkspace.tsx`.
 - `components/workspace/review/ReviewWorkspace.tsx` is now a thin route-level entrypoint for loading/error/empty/complete states plus studio-shell composition.
 - `hooks/useReviewDecisionFlow.ts` now owns vote/rationale/mobile-sheet orchestration instead of leaving that state and side-effect cluster inside `ReviewWorkspaceStudio.tsx`.
+- `components/workspace/review/ReviewWorkspaceDecisionPanels.tsx` now owns shared desktop/mobile decision-panel composition so the studio shell no longer duplicates DecisionPanel prop wiring and sheet framing.
 - Removed the duplicate `useReviewWorkspaceSelection.ts` and `lib/workspace/reviewNavigation.ts` branch so the review flow no longer has two competing queue/navigation abstractions.
 - Added focused component-project coverage for the decision-flow hook, including success propagation, rationale submission, and mobile vote selection.
-- Remaining gap: desktop and mobile decision rendering is still duplicated inside `ReviewWorkspaceStudio.tsx`, even though the decision-flow runtime ownership is now explicit.
+- Added focused component-project coverage for the shared decision-panel wrappers, including desktop intel passthrough, hidden voted state, mobile vote forwarding, and mobile-sheet reuse.
+- Remaining gap: the review workspace client boundary is materially thinner now; the next DD03 priority is the deeper shared-read/server-runtime seams rather than more presentational extraction in the studio shell.
 
 ### 3. Workspace route handlers were assembling read models at the HTTP edge
 
@@ -172,21 +174,20 @@ Long-lived jobs should be thin orchestrators over explicit services. When the jo
 1. `lib/data.ts` as the shared cross-domain read plane
 2. Background jobs that still own orchestration plus domain logic
 3. Higher-level context composition drift between `lib/intelligence/context.ts` and `lib/workspace/agent/context.ts`
-4. Remaining presentational duplication inside `ReviewWorkspaceStudio.tsx`
-5. Route-handler assembly drift, now reduced for the workspace review path
+4. Route-handler assembly drift, now reduced for the workspace review path
+5. Review-workspace client composition, now materially reduced but still a critical-user-journey surface
 
 ## Open Questions
 
 - Which higher-level shared read is stable enough to extract next after treasury: personal context, feedback/annotation aggregation, or neither yet?
-- Does the duplicated desktop/mobile decision rendering inside `ReviewWorkspaceStudio.tsx` deserve a small presenter wrapper, or is the current controller-shell split sufficient until deeper user-journey work starts?
 - Is `lib/data.ts` best decomposed by domain (`dreps`, `proposals`, `committee`, `analytics`) or by consumer surface (`public API`, `workspace`, `intelligence`)?
 
 ## Next Actions
 
 1. Continue the proposal/governance context boundary by evaluating whether personal-context or feedback/annotation assembly is stable enough to share; cache ownership is intentionally staying consumer-owned for now.
-2. Decide whether the duplicated desktop/mobile decision rendering in `ReviewWorkspaceStudio.tsx` should move behind a small presenter wrapper, or stay colocated until the critical-user-journeys pass exercises it end to end.
-3. Continue extracting domain read services out of `lib/data.ts`, starting with proposal/governance reads that already feed multiple consumers.
-4. Extract pure domain services from `precompute-proposal-intelligence.ts` and `sync-spo-scores.ts` so the Inngest jobs become orchestration wrappers.
+2. Continue extracting domain read services out of `lib/data.ts`, starting with proposal/governance reads that already feed multiple consumers.
+3. Extract pure domain services from `precompute-proposal-intelligence.ts` and `sync-spo-scores.ts` so the Inngest jobs become orchestration wrappers.
+4. Revisit the review workspace only if DD06 exposes operator-journey regressions that the current controller, decision-flow, and decision-panel seams do not isolate cleanly.
 
 ## Handoff
 
@@ -205,6 +206,7 @@ Long-lived jobs should be thin orchestrators over explicit services. When the jo
 - Removed dead `agentUserRole` and `editorRef` exposure from the public review-workspace boundary.
 - Added `hooks/useReviewDecisionFlow.ts` so vote/rationale/mobile decision orchestration has its own client hook boundary instead of living inside the studio shell component.
 - Added `lib/governance/treasuryContext.ts` so page intelligence and workspace-agent context share one treasury read seam while keeping their different cache/output contracts.
+- Added `components/workspace/review/ReviewWorkspaceDecisionPanels.tsx` so shared desktop/mobile decision-panel composition has one presenter boundary instead of duplicated prop wiring in the studio shell.
 - Fixed intelligence-comment drift by aligning the top-level `lib/intelligence/context.ts` description with its actual route-local personalization behavior.
 
 **Verification**
@@ -214,10 +216,12 @@ Long-lived jobs should be thin orchestrators over explicit services. When the jo
 - Passed `npm run test:unit -- __tests__/lib/reviewWorkspaceController.test.ts`.
 - Passed `npm run test:unit -- __tests__/lib/treasuryContext.test.ts`.
 - Passed `npm run test:component -- __tests__/hooks/useReviewDecisionFlow.test.tsx`.
+- Passed `npm run test:component -- __tests__/components/ReviewWorkspaceDecisionPanels.test.tsx`.
 - Passed `npm run lint -- components/workspace/review/ReviewWorkspace.tsx components/workspace/review/ReviewWorkspaceStudio.tsx hooks/useReviewWorkspaceController.ts lib/workspace/reviewWorkspaceController.ts`.
 - Passed `npm run lint -- components/workspace/review/ReviewWorkspaceStudio.tsx hooks/useReviewDecisionFlow.ts hooks/useReviewWorkspaceController.ts components/workspace/review/ReviewWorkspace.tsx lib/workspace/reviewWorkspaceController.ts lib/governance/treasuryContext.ts lib/intelligence/context.ts lib/workspace/agent/context.ts`.
+- Passed `npm run lint -- components/workspace/review/ReviewWorkspaceStudio.tsx components/workspace/review/ReviewWorkspaceDecisionPanels.tsx hooks/useReviewDecisionFlow.ts`.
 - Passed `npm run type-check`.
 
 ## Next Agent Starts Here
 
-Start with `components/workspace/review/ReviewWorkspaceStudio.tsx`, `lib/governance/treasuryContext.ts`, `lib/intelligence/context.ts`, `lib/workspace/agent/context.ts`, and `lib/data.ts`. The review workspace now has distinct controller and decision-flow hook seams, and the treasury read is shared; the next DD03 choice is whether to extract the remaining duplicated desktop/mobile decision rendering, then continue with either higher-level context composition or `lib/data.ts` decomposition.
+Start with `lib/governance/treasuryContext.ts`, `lib/intelligence/context.ts`, `lib/workspace/agent/context.ts`, `lib/data.ts`, `inngest/functions/precompute-proposal-intelligence.ts`, and `inngest/functions/sync-spo-scores.ts`. The review workspace now has distinct controller, decision-flow, and decision-panel seams; the next DD03 move should be a deeper shared-read or job-orchestration boundary, not more UI wrapper extraction.

@@ -8,14 +8,15 @@ import { StudioActionBar } from '@/components/studio/StudioActionBar';
 import { SearchPopover } from '@/components/studio/SearchPopover';
 import { WorkspacePanels } from '@/components/workspace/layout/WorkspacePanels';
 import { ProposalEditor } from '@/components/workspace/editor/ProposalEditor';
+import {
+  ReviewWorkspaceDecisionPanel,
+  ReviewWorkspaceMobileDecisionTray,
+} from '@/components/workspace/review/ReviewWorkspaceDecisionPanels';
 import { AmendmentReviewWrapper } from '@/components/workspace/review/AmendmentReviewWrapper';
 import { IntelligenceStrip } from '@/components/workspace/review/IntelligenceStrip';
 import { SenecaSummary } from '@/components/workspace/review/SenecaSummary';
-import { DecisionPanel } from '@/components/workspace/review/DecisionPanel';
-import { MobileVoteBar } from '@/components/workspace/review/MobileVoteBar';
 import { BatchProgressBar } from '@/components/workspace/review/BatchProgressBar';
 import { ReviewIntelBrief } from '@/components/intelligence/ReviewIntelBrief';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { StudioProvider, useStudio } from '@/components/studio/StudioProvider';
 import { useReviewDecisionFlow } from '@/hooks/useReviewDecisionFlow';
 import { PROPOSAL_TYPE_LABELS } from '@/lib/workspace/types';
@@ -268,22 +269,14 @@ export function ReviewWorkspaceStudio({
         }
         context={
           !isFullWidth ? (
-            <DecisionPanel
-              selectedVote={selectedVote}
-              onVoteChange={handleVoteSelect}
-              onSubmit={handleVoteSubmit}
-              isSubmitting={isVoteProcessing}
-              votePhase={votePhase}
-              hasVoted={currentVoted}
+            <ReviewWorkspaceDecisionPanel
               currentVoteChoice={currentVoteChoice}
-              rationale={rationaleText}
-              onRationaleChange={setRationaleText}
-              onAIDraft={handleAIDraft}
+              currentVoted={currentVoted}
+              handleAIDraft={handleAIDraft}
+              handleVoteSelect={handleVoteSelect}
+              handleVoteSubmit={handleVoteSubmit}
               isDraftingRationale={isDraftingRationale}
-              proposalTitle={selectedItem.title || 'Untitled'}
-              voterId={voterId ?? ''}
-              voterRole={voterRoleLabel}
-              rationaleCitations={rationaleCitations}
+              isVoteProcessing={isVoteProcessing}
               intelContent={
                 <ReviewIntelBrief
                   proposalId={selectedItem.txHash}
@@ -302,6 +295,14 @@ export function ReviewWorkspaceStudio({
                   onCCAccept={(text) => setRationaleText(text)}
                 />
               }
+              proposalTitle={selectedItem.title || 'Untitled'}
+              rationaleCitations={rationaleCitations}
+              rationaleText={rationaleText}
+              selectedVote={selectedVote}
+              setRationaleText={setRationaleText}
+              votePhase={votePhase}
+              voterId={voterId ?? ''}
+              voterRole={voterRoleLabel}
             />
           ) : undefined
         }
@@ -334,36 +335,26 @@ export function ReviewWorkspaceStudio({
         }
       />
 
-      <MobileVoteBar
-        onVoteSelect={handleMobileVoteSelect}
-        hasVoted={currentVoted}
-        currentVote={selectedVote}
+      <ReviewWorkspaceMobileDecisionTray
+        currentVoteChoice={currentVoteChoice}
+        currentVoted={currentVoted}
+        handleAIDraft={handleAIDraft}
+        handleMobileVoteSelect={handleMobileVoteSelect}
+        handleVoteSelect={handleVoteSelect}
+        handleVoteSubmit={handleVoteSubmit}
+        isDraftingRationale={isDraftingRationale}
+        isVoteProcessing={isVoteProcessing}
+        mobileVoteOpen={mobileVoteOpen}
+        onMobileVoteOpenChange={setMobileVoteOpen}
+        proposalTitle={selectedItem.title || 'Untitled'}
+        rationaleCitations={rationaleCitations}
+        rationaleText={rationaleText}
+        selectedVote={selectedVote}
+        setRationaleText={setRationaleText}
+        votePhase={votePhase}
+        voterId={voterId ?? ''}
+        voterRole={voterRoleLabel}
       />
-
-      <Sheet open={mobileVoteOpen} onOpenChange={setMobileVoteOpen}>
-        <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto lg:hidden">
-          <SheetHeader>
-            <SheetTitle className="text-sm">Your Decision</SheetTitle>
-          </SheetHeader>
-          <DecisionPanel
-            selectedVote={selectedVote}
-            onVoteChange={handleVoteSelect}
-            onSubmit={handleVoteSubmit}
-            isSubmitting={isVoteProcessing}
-            votePhase={votePhase}
-            hasVoted={currentVoted}
-            currentVoteChoice={currentVoteChoice}
-            rationale={rationaleText}
-            onRationaleChange={setRationaleText}
-            onAIDraft={handleAIDraft}
-            isDraftingRationale={isDraftingRationale}
-            proposalTitle={selectedItem.title || 'Untitled'}
-            voterId={voterId ?? ''}
-            voterRole={voterRoleLabel}
-            rationaleCitations={rationaleCitations}
-          />
-        </SheetContent>
-      </Sheet>
 
       {voteToast?.visible && (
         <div className="fixed bottom-16 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--compass-teal)] text-primary-foreground text-sm font-medium shadow-lg animate-in slide-in-from-bottom-2 fade-in">

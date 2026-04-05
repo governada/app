@@ -17,7 +17,7 @@ interface ReviewItemContent {
   rationale: string;
 }
 
-interface ReviewRationaleCitations {
+export interface ReviewRationaleCitations {
   citations: Array<{ article: string; section?: string; relevance: string }>;
   precedentRefs: Array<{ title: string; outcome: string; relevance: string }>;
   keyQuotes: Array<{ text: string; field: string }>;
