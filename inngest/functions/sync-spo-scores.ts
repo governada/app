@@ -27,6 +27,12 @@ import {
   applySybilPenalty,
   type SybilConfidenceFlag,
 } from '@/lib/scoring/sybilPenalty';
+import {
+  buildPoolMetadataUpdate,
+  buildPoolStakeUpdate,
+  fetchKoiosPoolInfoBatches,
+  type KoiosPoolInfo,
+} from '@/lib/scoring/spoPoolInfo';
 import { getExtendedImportanceWeight } from '@/lib/scoring';
 import { getFeatureFlag } from '@/lib/featureFlags';
 import { CURRENT_SPO_SCORE_VERSION } from '@/lib/scoring/versioning';
@@ -77,23 +83,8 @@ interface PoolRow {
   delegator_count: number | null;
 }
 
-interface KoiosPoolInfo {
-  pool_id_bech32?: string;
-  ticker?: string;
-  meta_json?: { name?: string; description?: string; homepage?: string };
-  pledge?: number;
-  margin?: number;
-  fixed_cost?: number;
-  live_delegators?: number;
-  live_stake?: number;
-  pool_status?: string;
-  retiring_epoch?: number | null;
-  relays?: Array<{ dns?: string; srv?: string; ipv4?: string; ipv6?: string; port?: number }>;
-}
-
 const KOIOS_BASE = process.env.NEXT_PUBLIC_KOIOS_BASE_URL || 'https://api.koios.rest/api/v1';
 
-/** Check if an IPv4 address is private/reserved (RFC 1918, RFC 6598, link-local) */
 function isPrivateIP(ip: string): boolean {
   if (
     ip === '0.0.0.0' ||
@@ -704,75 +695,40 @@ export const syncSpoScores = inngest.createFunction(
       logger.info('[sync-spo-scores] Pools needing metadata', { count: poolsNeedingMeta.length });
 
       const allPoolIds = poolsNeedingMeta.map((p: { pool_id: string }) => p.pool_id);
-      const BATCH = 50; // Koios recommends batches of ~50
       let totalUpdated = 0;
-      let totalErrors = 0;
-
-      for (let i = 0; i < allPoolIds.length; i += BATCH) {
-        const batchIds = allPoolIds.slice(i, i + BATCH);
-
-        try {
-          const res = await fetch(`${KOIOS_BASE}/pool_info`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ _pool_bech32_ids: batchIds }),
-            signal: AbortSignal.timeout(20_000),
+      const { failedPoolIds, pools } = await fetchKoiosPoolInfoBatches(allPoolIds, {
+        batchSize: 50,
+        timeoutMs: 20_000,
+        onBatchError: ({ batchIds, error, status }) => {
+          logger.warn('[sync-spo-scores] Koios pool_info batch failed', {
+            status: status ?? null,
+            batchSize: batchIds.length,
+            error: errMsg(error),
           });
+        },
+      });
 
-          if (!res.ok) {
-            logger.warn('[sync-spo-scores] Koios pool_info batch failed', {
-              status: res.status,
-              batch: i / BATCH + 1,
-            });
-            totalErrors += batchIds.length;
-            continue;
-          }
+      const metaByPool = new Map<string, Record<string, unknown>>();
+      for (const pool of pools) {
+        const metadataUpdate = buildPoolMetadataUpdate(pool);
+        if (!metadataUpdate || typeof metadataUpdate.pool_id !== 'string') continue;
+        metaByPool.set(metadataUpdate.pool_id, metadataUpdate);
+      }
 
-          const data = (await res.json()) as KoiosPoolInfo[];
-          const metaByPool = new Map<string, Record<string, unknown>>();
-          for (const p of data) {
-            if (!p.pool_id_bech32) continue;
-            metaByPool.set(p.pool_id_bech32, {
-              ticker: p.ticker ?? null,
-              pool_name: p.meta_json?.name ?? p.ticker ?? null,
-              pledge_lovelace: p.pledge ?? 0,
-              margin: p.margin ?? 0,
-              fixed_cost_lovelace: p.fixed_cost ?? 0,
-              delegator_count: p.live_delegators ?? 0,
-              live_stake_lovelace: p.live_stake ?? 0,
-              homepage_url: p.meta_json?.homepage ?? null,
-              pool_status: p.pool_status ?? 'registered',
-              retiring_epoch: p.retiring_epoch ?? null,
-            });
-          }
-
-          for (const poolId of batchIds) {
-            const meta = metaByPool.get(poolId);
-            if (!meta) continue;
-            const { error } = await supabase.from('pools').update(meta).eq('pool_id', poolId);
-            if (!error) totalUpdated++;
-          }
-
-          logger.info('[sync-spo-scores] Metadata batch complete', {
-            batch: i / BATCH + 1,
-            koiosReturned: data.length,
-            updated: totalUpdated,
-          });
-        } catch (err) {
-          logger.warn('[sync-spo-scores] Koios metadata batch failed', {
-            batch: i / BATCH + 1,
-            error: errMsg(err),
-          });
-          totalErrors += batchIds.length;
-        }
+      for (const poolId of allPoolIds) {
+        const meta = metaByPool.get(poolId);
+        if (!meta) continue;
+        const { pool_id: _poolId, ...poolUpdate } = meta;
+        const { error } = await supabase.from('pools').update(poolUpdate).eq('pool_id', poolId);
+        if (!error) totalUpdated++;
       }
 
       logger.info('[sync-spo-scores] Metadata fetch complete', {
         needed: allPoolIds.length,
         updated: totalUpdated,
-        errors: totalErrors,
+        errors: failedPoolIds.length,
       });
-      return { fetched: totalUpdated, needed: allPoolIds.length, errors: totalErrors };
+      return { fetched: totalUpdated, needed: allPoolIds.length, errors: failedPoolIds.length };
     });
 
     // Refresh delegator_count + live_stake for ALL pools that already have metadata
@@ -786,43 +742,26 @@ export const syncSpoScores = inngest.createFunction(
 
       if (!enrichedPools?.length) return { refreshed: 0 };
 
-      const BATCH = 100;
       let refreshed = 0;
 
-      for (let i = 0; i < enrichedPools.length; i += BATCH) {
-        const batch = enrichedPools.slice(i, i + BATCH);
-        const poolIds = batch.map((p: { pool_id: string }) => p.pool_id);
-
-        try {
-          const res = await fetch(`${KOIOS_BASE}/pool_info`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ _pool_bech32_ids: poolIds }),
-            signal: AbortSignal.timeout(15_000),
+      const poolIds = enrichedPools.map((pool: { pool_id: string }) => pool.pool_id);
+      const { pools } = await fetchKoiosPoolInfoBatches(poolIds, {
+        batchSize: 100,
+        timeoutMs: 15_000,
+        onBatchError: ({ error, status }) => {
+          logger.warn('[sync-spo-scores] delegator refresh batch failed', {
+            status: status ?? null,
+            error: errMsg(error),
           });
+        },
+      });
 
-          if (!res.ok) {
-            logger.warn('[sync-spo-scores] delegator refresh batch failed', {
-              status: res.status,
-            });
-            continue;
-          }
-
-          const data = (await res.json()) as KoiosPoolInfo[];
-          for (const p of data) {
-            if (!p.pool_id_bech32) continue;
-            const { error } = await supabase
-              .from('pools')
-              .update({
-                delegator_count: p.live_delegators ?? 0,
-                live_stake_lovelace: p.live_stake ?? 0,
-              })
-              .eq('pool_id', p.pool_id_bech32);
-            if (!error) refreshed++;
-          }
-        } catch (err) {
-          logger.warn('[sync-spo-scores] delegator refresh batch error', { error: errMsg(err) });
-        }
+      for (const pool of pools) {
+        const stakeUpdate = buildPoolStakeUpdate(pool);
+        if (!stakeUpdate) continue;
+        const { pool_id, ...poolUpdate } = stakeUpdate;
+        const { error } = await supabase.from('pools').update(poolUpdate).eq('pool_id', pool_id);
+        if (!error) refreshed++;
       }
 
       return { refreshed };

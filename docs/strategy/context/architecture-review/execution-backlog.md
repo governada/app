@@ -844,3 +844,94 @@ The workspace review routes were doing too much work at the HTTP edge. They owne
 - `inngest/functions/precompute-proposal-intelligence.ts`
 - `inngest/functions/update-passage-predictions.ts`
 - `__tests__/lib/proposalIntelligenceCache.test.ts`
+
+## Chunk 18: Extract Proposal Voting-Power Reads From `lib/data.ts`
+
+**Priority:** P1
+**Effort:** S
+**Audit dimension(s):** Architecture and Code Health, API and Integration Readiness
+**Expected score impact:** Runtime architecture: reduce cross-domain ownership inside the shared read plane
+**Depends on:** Chunk 16
+**PR group:** J
+**Implementation status:** Completed in this worktree
+
+### Context
+
+`getVotingPowerSummary()` is a proposal-domain helper with a narrow consumer surface, but it was still buried in `lib/data.ts` alongside unrelated DRep, committee, and intelligence reads.
+
+### Scope
+
+- Move `getVotingPowerSummary()` and its type into a dedicated governance read module.
+- Keep `lib/data.ts` as a compatibility re-export surface for existing consumers.
+- Add direct unit coverage for the extracted module and verify the old `lib/data.ts` import path still works.
+
+### Progress So Far
+
+- Added `lib/governance/votingPowerSummary.ts`.
+- Reduced `lib/data.ts` by re-exporting `getVotingPowerSummary()` and `VotingPowerSummary` instead of owning the implementation directly.
+- Added focused regression coverage in `__tests__/lib/votingPowerSummary.test.ts`.
+- Verified with `npm run test:unit -- __tests__/lib/votingPowerSummary.test.ts __tests__/lib/data.test.ts`.
+- Verified with `npm run lint -- lib/data.ts lib/governance/votingPowerSummary.ts`.
+- Verified with `npm run type-check`.
+
+### Follow-up Work
+
+- Treat the heavier proposal-summary pipeline in `lib/data.ts` as the next proposal-domain extraction candidate now that the smaller voting-power seam is out.
+
+### Verification
+
+- Proposal voting-power reads now live outside `lib/data.ts`.
+- Existing `lib/data.ts` consumers still compile and pass focused tests.
+- The extracted module has direct unit coverage.
+
+### Files to Read First
+
+- `lib/data.ts`
+- `lib/governance/votingPowerSummary.ts`
+- `app/api/proposals/power/route.ts`
+- `app/proposal/[txHash]/[index]/page.tsx`
+
+## Chunk 19: Extract SPO Koios Pool-Info Helpers From `sync-spo-scores.ts`
+
+**Priority:** P1
+**Effort:** M
+**Audit dimension(s):** Architecture and Code Health, Performance and Reliability
+**Expected score impact:** Runtime architecture: make the scoring job thinner around external metadata refresh
+**Depends on:** None
+**PR group:** J
+**Implementation status:** Completed in this worktree
+
+### Context
+
+`sync-spo-scores.ts` was inlining repeated Koios pool-info batching, normalization, and stake-refresh logic inside the job body. That kept network orchestration and data mapping mixed directly into the scoring function.
+
+### Scope
+
+- Move Koios pool-info batching and normalization into a shared helper.
+- Reuse that helper for SPO metadata refresh and delegator/stake refresh.
+- Add focused unit coverage for the new helper.
+
+### Progress So Far
+
+- Added `lib/scoring/spoPoolInfo.ts` as the shared Koios pool-info helper.
+- `inngest/functions/sync-spo-scores.ts` now delegates metadata refresh and stake/delegator refresh through that helper.
+- Added focused regression coverage in `__tests__/lib/spoPoolInfo.test.ts`.
+- Verified with `npm run test:unit -- __tests__/lib/spoPoolInfo.test.ts`.
+- Verified with `npm run lint -- inngest/functions/sync-spo-scores.ts lib/scoring/spoPoolInfo.ts`.
+- Verified with `npm run type-check`.
+
+### Follow-up Work
+
+- Continue on `sync-spo-scores.ts` with either the relay-geocoding path or the core score-computation/persistence bundle.
+
+### Verification
+
+- Koios pool-info batching and normalization now live outside the scoring job.
+- The metadata and delegator-refresh steps share one helper instead of duplicating request logic.
+- The helper has direct unit coverage.
+
+### Files to Read First
+
+- `inngest/functions/sync-spo-scores.ts`
+- `lib/scoring/spoPoolInfo.ts`
+- `__tests__/lib/spoPoolInfo.test.ts`
