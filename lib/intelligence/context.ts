@@ -2,8 +2,8 @@
  * Contextual AI Synthesis — the Co-Pilot brain.
  *
  * Given a page path and optional user context, produces an AI-synthesized
- * contextual briefing. Uses existing AI skills infrastructure and
- * assemblePersonalContext() for personalization.
+ * contextual briefing. Uses shared server read services plus
+ * route-local personalization when a user context is available.
  *
  * Route-specific synthesis:
  * - Proposal page: constitutional concerns + community sentiment + precedent
@@ -15,33 +15,16 @@
 import { createClient } from '@/lib/supabase';
 import { parseRoutePath } from '@/lib/entity/entityId';
 import { fetchGovernanceProposalContextSeed } from '@/lib/governance/proposalContext';
+import { fetchGovernanceTreasuryContext } from '@/lib/governance/treasuryContext';
 import { logger } from '@/lib/logger';
 import { cached } from '@/lib/redis';
 import { getCurrentEpoch } from '@/lib/constants';
 import {
-  getTreasuryBalance,
   getNclUtilization,
   getDRepTreasuryTrackRecord,
   formatAda,
   calculateRunwayMonths,
-  calculateBurnRate,
-  getTreasuryTrend,
 } from '@/lib/treasury';
-
-// ---------------------------------------------------------------------------
-// Shared treasury context helper (server-side, used across synthesis fns)
-// ---------------------------------------------------------------------------
-
-async function getTreasuryContext() {
-  const [treasuryData, ncl, trend] = await Promise.all([
-    getTreasuryBalance().catch(() => null),
-    getNclUtilization().catch(() => null),
-    getTreasuryTrend(10).catch(() => []),
-  ]);
-  const burnRate = calculateBurnRate(trend);
-  const runwayMonths = treasuryData ? calculateRunwayMonths(treasuryData.balanceAda, burnRate) : 0;
-  return { treasuryData, ncl, runwayMonths };
-}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -230,7 +213,7 @@ async function synthesizeProposalContext(
   // Treasury context for withdrawal proposals
   if (proposal.withdrawalAmount) {
     const withdrawalAda = Math.round(Number(proposal.withdrawalAmount) / 1_000_000);
-    const treasury = await getTreasuryContext().catch(() => null);
+    const treasury = await fetchGovernanceTreasuryContext().catch(() => null);
     if (treasury?.treasuryData) {
       // Runway impact
       const currentRunway = treasury.runwayMonths;
@@ -267,7 +250,7 @@ async function synthesizeProposalContext(
     }
   } else {
     // Non-treasury proposal: lighter treasury status
-    const treasury = await getTreasuryContext().catch(() => null);
+    const treasury = await fetchGovernanceTreasuryContext().catch(() => null);
     if (treasury?.treasuryData) {
       const healthy = treasury.runwayMonths > 24;
       highlights.push({
@@ -478,7 +461,7 @@ async function synthesizeHubContext(stakeAddress?: string): Promise<ContextSynth
   }
 
   // Treasury awareness
-  const treasury = await getTreasuryContext().catch(() => null);
+  const treasury = await fetchGovernanceTreasuryContext().catch(() => null);
   if (treasury?.treasuryData) {
     const runwayYears = treasury.runwayMonths / 12;
     const runwayLabel =
@@ -1002,7 +985,7 @@ async function synthesizeHealthContext(stakeAddress?: string): Promise<ContextSy
   });
 
   // Treasury health contribution
-  const treasury = await getTreasuryContext().catch(() => null);
+  const treasury = await fetchGovernanceTreasuryContext().catch(() => null);
   if (treasury?.treasuryData) {
     const healthy = treasury.runwayMonths > 24;
     const runwayYears = treasury.runwayMonths / 12;
@@ -1192,7 +1175,7 @@ async function synthesizeTreasuryContext(_stakeAddress?: string): Promise<Contex
   const highlights: ContextHighlight[] = [];
   const suggestedActions: SuggestedAction[] = [];
 
-  const treasury = await getTreasuryContext().catch(() => null);
+  const treasury = await fetchGovernanceTreasuryContext().catch(() => null);
 
   if (!treasury?.treasuryData) {
     return emptyResult('treasury');

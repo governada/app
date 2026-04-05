@@ -15,6 +15,7 @@ import {
   fetchGovernanceProposalSnapshot,
   fetchGovernanceProposalVotingSnapshot,
 } from '@/lib/governance/proposalContext';
+import { fetchGovernanceTreasuryContext } from '@/lib/governance/treasuryContext';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { assemblePersonalContext } from '@/lib/ai/context';
 import { fetchSimilarProposals } from '@/lib/ai/skills/research-precedent';
@@ -297,9 +298,7 @@ export async function assembleGovernanceContext(
 
   // Treasury state (for treasury withdrawals)
   const treasury =
-    proposalBundle.proposalType === 'TreasuryWithdrawals'
-      ? await fetchTreasuryState(supabase)
-      : undefined;
+    proposalBundle.proposalType === 'TreasuryWithdrawals' ? await fetchTreasuryState() : undefined;
 
   // Personal context bundle
   const personal = personalCtx
@@ -522,35 +521,17 @@ async function fetchVotingData(
   }
 }
 
-async function fetchTreasuryState(
-  supabase: ReturnType<typeof getSupabaseAdmin>,
-): Promise<GovernanceContextBundle['treasury']> {
+async function fetchTreasuryState(): Promise<GovernanceContextBundle['treasury']> {
   try {
-    // Get latest epoch params for treasury balance
-    const { data: epochData } = await supabase
-      .from('epoch_params')
-      .select('treasury')
-      .order('epoch_no', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    // Count recent treasury withdrawals
-    const { data: recentWithdrawals } = await supabase
-      .from('proposals')
-      .select('withdrawal_amount')
-      .eq('proposal_type', 'TreasuryWithdrawals')
-      .not('ratified_epoch', 'is', null);
-
-    const balance = epochData?.treasury ? Number(epochData.treasury) / 1_000_000 : 0;
-    const totalWithdrawn = (recentWithdrawals ?? []).reduce(
-      (sum: number, p: any) => sum + (Number(p.withdrawal_amount) || 0),
-      0,
-    );
+    const treasury = await fetchGovernanceTreasuryContext();
+    if (!treasury) {
+      return { balance: 0, recentWithdrawals: 0, tier: 'unknown' };
+    }
 
     return {
-      balance,
-      recentWithdrawals: totalWithdrawn,
-      tier: balance > 10_000_000_000 ? 'large' : balance > 1_000_000_000 ? 'medium' : 'small',
+      balance: treasury.treasuryData.balanceAda,
+      recentWithdrawals: treasury.recentRatifiedWithdrawalsAda,
+      tier: treasury.tier,
     };
   } catch {
     return { balance: 0, recentWithdrawals: 0, tier: 'unknown' };

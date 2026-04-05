@@ -663,15 +663,20 @@ The workspace review routes were doing too much work at the HTTP edge. They owne
 - Added a shared reduced proposal-classification summary for page-intelligence consumers.
 - Updated `lib/intelligence/context.ts` to consume the shared proposal context seed instead of rebuilding those on-chain facts inline.
 - Updated `lib/workspace/agent/context.ts` to consume the same shared proposal snapshot/voting primitives for on-chain proposal context and precedent lookup.
+- Added `lib/governance/treasuryContext.ts` as a shared treasury read service for balance, runway, NCL, and recent ratified-withdrawal facts.
+- Updated `lib/intelligence/context.ts` and `lib/workspace/agent/context.ts` to consume the shared treasury service instead of duplicating treasury assembly.
+- Chose to keep cache ownership consumer-owned for now: page intelligence keeps Redis caching of rendered `ContextSynthesisResult`, while the workspace agent keeps its short-lived in-memory `GovernanceContextBundle` cache.
+- Fixed the workspace-agent treasury unit drift by converting recent ratified withdrawals from lovelace to ADA at the shared-read boundary.
 - Removed the duplicate `lib/governance/proposalSnapshot.ts` branch of the same responsibility.
 - Fixed the proposal-panel route contract so the intelligence API call now preserves proposal index instead of silently defaulting to index `0`.
 - Verified with `npm run test:unit -- __tests__/lib/proposalContext.test.ts`.
+- Verified with `npm run test:unit -- __tests__/lib/treasuryContext.test.ts`.
 - Verified with `npm run type-check`.
 
 ### Follow-up Work
 
-- Decide whether cache ownership should stay split between Redis-backed page intelligence and the workspace agent's in-memory cache, or move behind one explicit server-side boundary.
-- Continue moving higher-level treasury, personal-context, and feedback/annotation assembly behind shared services only where that boundary is stable instead of merging the two builders wholesale.
+- Keep cache ownership split unless two consumers genuinely need the same rendered output contract; do not merge Redis and in-memory caches just to remove duplication on paper.
+- Continue moving only stable higher-level reads behind shared services, starting with personal-context or feedback/annotation assembly if one of those boundaries proves durable.
 
 ### Verification
 
@@ -712,15 +717,18 @@ The workspace review routes were doing too much work at the HTTP edge. They owne
 - Added `lib/workspace/reviewWorkspaceController.ts` as the pure helper layer for initial selection, progress, and queue traversal.
 - Added `components/workspace/review/ReviewWorkspaceStudio.tsx` as the extracted interactive studio shell.
 - Reduced `components/workspace/review/ReviewWorkspace.tsx` to route-level state selection, fallback states, and studio-shell composition.
+- Added `hooks/useReviewDecisionFlow.ts` as the dedicated vote/rationale/mobile decision-flow seam for the review studio shell.
 - Removed the duplicate `hooks/useReviewWorkspaceSelection.ts` and `lib/workspace/reviewNavigation.ts` branch so the review flow has one queue/navigation ownership path.
 - Removed dead `agentUserRole` and `editorRef` exposure from the top-level review-workspace boundary.
 - Verified with `npm run test:unit -- __tests__/lib/reviewWorkspaceController.test.ts`.
+- Verified with `npm run test:component -- __tests__/hooks/useReviewDecisionFlow.test.tsx`.
 - Verified with `npm run lint -- components/workspace/review/ReviewWorkspace.tsx components/workspace/review/ReviewWorkspaceStudio.tsx hooks/useReviewWorkspaceController.ts lib/workspace/reviewWorkspaceController.ts`.
+- Verified with `npm run lint -- components/workspace/review/ReviewWorkspaceStudio.tsx hooks/useReviewDecisionFlow.ts hooks/useReviewWorkspaceController.ts components/workspace/review/ReviewWorkspace.tsx lib/workspace/reviewWorkspaceController.ts`.
 - Verified with `npm run type-check`.
 
 ### Follow-up Work
 
-- Decide whether the remaining vote/rationale/mobile-sheet orchestration in `ReviewWorkspaceStudio.tsx` deserves its own hook before the critical-user-journeys pass.
+- Decide whether the remaining duplicated desktop/mobile decision rendering in `ReviewWorkspaceStudio.tsx` should move behind a small presenter wrapper before the critical-user-journeys pass.
 - Add direct component-level coverage for the review studio shell only if later DD03 or DD06 work changes that interaction surface materially.
 
 ### Verification

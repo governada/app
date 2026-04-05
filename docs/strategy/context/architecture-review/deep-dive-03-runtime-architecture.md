@@ -84,8 +84,10 @@ The review flow is one of the most important operator surfaces in the product. K
 - `lib/workspace/reviewWorkspaceController.ts` now owns the pure selection/progress helpers used by that controller.
 - `components/workspace/review/ReviewWorkspaceStudio.tsx` now owns the interactive studio shell instead of leaving that view tree embedded inside `ReviewWorkspace.tsx`.
 - `components/workspace/review/ReviewWorkspace.tsx` is now a thin route-level entrypoint for loading/error/empty/complete states plus studio-shell composition.
+- `hooks/useReviewDecisionFlow.ts` now owns vote/rationale/mobile-sheet orchestration instead of leaving that state and side-effect cluster inside `ReviewWorkspaceStudio.tsx`.
 - Removed the duplicate `useReviewWorkspaceSelection.ts` and `lib/workspace/reviewNavigation.ts` branch so the review flow no longer has two competing queue/navigation abstractions.
-- Remaining gap: vote/rationale orchestration still lives inside `ReviewWorkspaceStudio.tsx`, so the studio shell is smaller and better bounded but not yet fully decomposed.
+- Added focused component-project coverage for the decision-flow hook, including success propagation, rationale submission, and mobile vote selection.
+- Remaining gap: desktop and mobile decision rendering is still duplicated inside `ReviewWorkspaceStudio.tsx`, even though the decision-flow runtime ownership is now explicit.
 
 ### 3. Workspace route handlers were assembling read models at the HTTP edge
 
@@ -116,6 +118,7 @@ The HTTP edge should not be the place where workspace domain rules live. Pulling
 - `lib/intelligence/context.ts` is about 1,300 lines and performs route detection plus route-specific Supabase reads, treasury reads, personal-context stitching, and Redis caching.
 - `lib/workspace/agent/context.ts` is about 670 lines and separately assembles proposal, voting, treasury, precedent, and personal context with its own in-memory cache and its own proposal-fetch helpers.
 - Both modules were separately reading on-chain proposal facts such as proposal identity, CIP-108 motivation/rationale, vote summary, and epochs remaining.
+- They also had overlapping treasury reads while their cache layers served different output contracts and TTLs.
 
 **Why it matters**
 
@@ -127,8 +130,14 @@ This creates semantic drift. The workspace agent, page intelligence, and any fut
 - Added `lib/governance/proposalContext.ts` as the shared on-chain proposal facts seam for proposal key normalization, normalized proposal snapshots, tri-body voting snapshots, and reduced classification summaries.
 - `lib/intelligence/context.ts` now consumes the shared proposal context seed instead of assembling proposal and voting facts independently.
 - `lib/workspace/agent/context.ts` now consumes the same shared proposal snapshot/voting primitives for on-chain proposal context and precedent lookup.
+- Added `lib/governance/treasuryContext.ts` as the shared treasury read seam for balance, runway, NCL, and recent ratified-withdrawal facts.
+- `lib/intelligence/context.ts` and `lib/workspace/agent/context.ts` now both consume that shared treasury service instead of assembling treasury state independently.
+- The workspace-agent treasury bundle now reports recent ratified withdrawals in ADA rather than forwarding the raw lovelace sum as if it were already ADA.
 - `components/governada/panel/ProposalPanel.tsx` now resolves the current `/proposal/[txHash]/[index]` route into an explicit proposal ref before calling `/api/intelligence/context`, which closes the prior index-loss bug in the panel/intelligence path.
-- Remaining gap: cache ownership and higher-level context composition are still split between Redis-backed page intelligence and the workspace agent's in-memory bundle cache.
+- Cache ownership is now an explicit decision instead of an unresolved drift point:
+  - page intelligence keeps Redis caching of rendered `ContextSynthesisResult`
+  - workspace agent keeps its short-lived in-memory `GovernanceContextBundle` cache
+- Remaining gap: higher-level personal-context and feedback/annotation composition still diverge across the two consumers, and those boundaries need a narrower shared-read decision than a cache merge.
 
 ### 5. Background jobs still mix orchestration, domain logic, and persistence
 
@@ -160,22 +169,22 @@ Long-lived jobs should be thin orchestrators over explicit services. When the jo
 
 ## Risk Ranking
 
-1. Proposal/governance context duplication between `lib/intelligence/context.ts` and `lib/workspace/agent/context.ts`
-2. `ReviewWorkspace.tsx` as a single large client orchestrator
-3. `lib/data.ts` as the shared cross-domain read plane
-4. Background jobs that still own orchestration plus domain logic
+1. `lib/data.ts` as the shared cross-domain read plane
+2. Background jobs that still own orchestration plus domain logic
+3. Higher-level context composition drift between `lib/intelligence/context.ts` and `lib/workspace/agent/context.ts`
+4. Remaining presentational duplication inside `ReviewWorkspaceStudio.tsx`
 5. Route-handler assembly drift, now reduced for the workspace review path
 
 ## Open Questions
 
-- Should proposal/governance context for workspace agents and page intelligence collapse into one shared server service, or should they intentionally diverge behind an explicit “full context” versus “page context” contract?
-- Does the remaining vote/rationale path in `ReviewWorkspaceStudio.tsx` justify its own hook now, or is the current controller-shell split sufficient until deeper user-journey work starts?
+- Which higher-level shared read is stable enough to extract next after treasury: personal context, feedback/annotation aggregation, or neither yet?
+- Does the duplicated desktop/mobile decision rendering inside `ReviewWorkspaceStudio.tsx` deserve a small presenter wrapper, or is the current controller-shell split sufficient until deeper user-journey work starts?
 - Is `lib/data.ts` best decomposed by domain (`dreps`, `proposals`, `committee`, `analytics`) or by consumer surface (`public API`, `workspace`, `intelligence`)?
 
 ## Next Actions
 
-1. Finish the proposal/governance context boundary by deciding how cache ownership and higher-level context composition should be shared across page intelligence and the workspace agent.
-2. Decide whether the remaining vote/rationale/mobile-sheet logic in `ReviewWorkspaceStudio.tsx` should become its own hook, or stay colocated until the critical-user-journeys pass exercises it end to end.
+1. Continue the proposal/governance context boundary by evaluating whether personal-context or feedback/annotation assembly is stable enough to share; cache ownership is intentionally staying consumer-owned for now.
+2. Decide whether the duplicated desktop/mobile decision rendering in `ReviewWorkspaceStudio.tsx` should move behind a small presenter wrapper, or stay colocated until the critical-user-journeys pass exercises it end to end.
 3. Continue extracting domain read services out of `lib/data.ts`, starting with proposal/governance reads that already feed multiple consumers.
 4. Extract pure domain services from `precompute-proposal-intelligence.ts` and `sync-spo-scores.ts` so the Inngest jobs become orchestration wrappers.
 
@@ -194,15 +203,21 @@ Long-lived jobs should be thin orchestrators over explicit services. When the jo
 - Split the review workspace first by runtime boundary: `ReviewWorkspace.tsx` is now a thin route-level entrypoint, `useReviewWorkspaceController.ts` is the controller seam, and `ReviewWorkspaceStudio.tsx` is the interactive studio shell.
 - Removed the duplicate `useReviewWorkspaceSelection.ts` and `lib/workspace/reviewNavigation.ts` branch so queue navigation has one owning helper layer.
 - Removed dead `agentUserRole` and `editorRef` exposure from the public review-workspace boundary.
+- Added `hooks/useReviewDecisionFlow.ts` so vote/rationale/mobile decision orchestration has its own client hook boundary instead of living inside the studio shell component.
+- Added `lib/governance/treasuryContext.ts` so page intelligence and workspace-agent context share one treasury read seam while keeping their different cache/output contracts.
+- Fixed intelligence-comment drift by aligning the top-level `lib/intelligence/context.ts` description with its actual route-local personalization behavior.
 
 **Verification**
 
 - Passed `npm run test:unit -- __tests__/api/workspace-review-queue.test.ts __tests__/api/workspace-proposals-monitor.test.ts`.
 - Passed `npm run test:unit -- __tests__/lib/proposalContext.test.ts`.
 - Passed `npm run test:unit -- __tests__/lib/reviewWorkspaceController.test.ts`.
+- Passed `npm run test:unit -- __tests__/lib/treasuryContext.test.ts`.
+- Passed `npm run test:component -- __tests__/hooks/useReviewDecisionFlow.test.tsx`.
 - Passed `npm run lint -- components/workspace/review/ReviewWorkspace.tsx components/workspace/review/ReviewWorkspaceStudio.tsx hooks/useReviewWorkspaceController.ts lib/workspace/reviewWorkspaceController.ts`.
+- Passed `npm run lint -- components/workspace/review/ReviewWorkspaceStudio.tsx hooks/useReviewDecisionFlow.ts hooks/useReviewWorkspaceController.ts components/workspace/review/ReviewWorkspace.tsx lib/workspace/reviewWorkspaceController.ts lib/governance/treasuryContext.ts lib/intelligence/context.ts lib/workspace/agent/context.ts`.
 - Passed `npm run type-check`.
 
 ## Next Agent Starts Here
 
-Start with `components/workspace/review/ReviewWorkspaceStudio.tsx`, `lib/intelligence/context.ts`, `lib/workspace/agent/context.ts`, and `lib/data.ts`. The review workspace now has one controller/helper path plus a separate studio shell; the next DD03 choice is whether to keep the remaining vote/rationale flow inside `ReviewWorkspaceStudio.tsx` for now or extract it, then decide whether Redis plus in-memory context caching should remain intentionally split or move behind one explicit server-side contract.
+Start with `components/workspace/review/ReviewWorkspaceStudio.tsx`, `lib/governance/treasuryContext.ts`, `lib/intelligence/context.ts`, `lib/workspace/agent/context.ts`, and `lib/data.ts`. The review workspace now has distinct controller and decision-flow hook seams, and the treasury read is shared; the next DD03 choice is whether to extract the remaining duplicated desktop/mobile decision rendering, then continue with either higher-level context composition or `lib/data.ts` decomposition.

@@ -1,13 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useFeatureFlag } from '@/components/FeatureGate';
-import { useRegisterReviewCommands } from '@/hooks/useRegisterReviewCommands';
-import { useAISkill } from '@/hooks/useAISkill';
-import { useVote } from '@/hooks/useVote';
-import { posthog } from '@/lib/posthog';
 import { StudioHeader } from '@/components/studio/StudioHeader';
 import { StudioActionBar } from '@/components/studio/StudioActionBar';
 import { SearchPopover } from '@/components/studio/SearchPopover';
@@ -22,6 +17,7 @@ import { BatchProgressBar } from '@/components/workspace/review/BatchProgressBar
 import { ReviewIntelBrief } from '@/components/intelligence/ReviewIntelBrief';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { StudioProvider, useStudio } from '@/components/studio/StudioProvider';
+import { useReviewDecisionFlow } from '@/hooks/useReviewDecisionFlow';
 import { PROPOSAL_TYPE_LABELS } from '@/lib/workspace/types';
 import type { ProposalDraft, ProposalType, ReviewQueueItem } from '@/lib/workspace/types';
 import type { VoteChoice } from '@/lib/voting';
@@ -112,37 +108,7 @@ export function ReviewWorkspaceStudio({
 }: ReviewWorkspaceStudioProps) {
   const { panelOpen, activePanel, togglePanel, isFullWidth, toggleFullWidth } = useStudio();
 
-  const [selectedVote, setSelectedVote] = useState<'Yes' | 'No' | 'Abstain' | null>(null);
-  const [rationaleText, setRationaleText] = useState('');
-  const [isDraftingRationale, setIsDraftingRationale] = useState(false);
-  const [mobileVoteOpen, setMobileVoteOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [rationaleCitations, setRationaleCitations] = useState<{
-    citations: Array<{ article: string; section?: string; relevance: string }>;
-    precedentRefs: Array<{ title: string; outcome: string; relevance: string }>;
-    keyQuotes: Array<{ text: string; field: string }>;
-  } | null>(null);
-  const rationaleCoderaftEnabled = useFeatureFlag('rationale_codraft');
-
-  const {
-    phase: votePhase,
-    startVote,
-    confirmVote,
-    reset: resetVote,
-    isProcessing: isVoteProcessing,
-  } = useVote();
-
-  useEffect(() => {
-    resetVote();
-    setSelectedVote(null);
-    setRationaleText('');
-  }, [selectedItem.txHash, selectedItem.proposalIndex, resetVote]);
-
-  useEffect(() => {
-    if (votePhase.status === 'success') {
-      onVoteSuccess(votePhase.vote);
-    }
-  }, [onVoteSuccess, votePhase]);
 
   const typeLabel = selectedItem
     ? (PROPOSAL_TYPE_LABELS[selectedItem.proposalType as ProposalType] ?? selectedItem.proposalType)
@@ -158,165 +124,31 @@ export function ReviewWorkspaceStudio({
     [selectedItem.abstract, selectedItem.motivation, selectedItem.rationale, selectedItem.title],
   );
 
-  const currentVoted =
-    !!selectedItem.existingVote ||
-    getStatus(selectedItem.txHash, selectedItem.proposalIndex) === 'voted';
-
-  const currentVoteChoice = useMemo(() => {
-    if (!selectedItem.existingVote) return null;
-
-    const existingVote = String(selectedItem.existingVote).toLowerCase();
-    if (existingVote === 'yes') return 'Yes' as const;
-    if (existingVote === 'no') return 'No' as const;
-    if (existingVote === 'abstain') return 'Abstain' as const;
-    return null;
-  }, [selectedItem.existingVote]);
-
-  const rationaleSkill = useAISkill<{
-    structuredRationale: string;
-    citations: Array<{ article: string; section?: string; relevance: string }>;
-    precedentRefs: Array<{ title: string; outcome: string; relevance: string }>;
-    keyQuotes: Array<{ text: string; field: string }>;
-  }>();
-
-  const handleVoteSubmit = useCallback(async () => {
-    if (!selectedVote || !voterId) return;
-
-    let anchorUrl: string | undefined;
-    let anchorHash: string | undefined;
-
-    if (rationaleText.trim()) {
-      try {
-        const response = await fetch('/api/rationale', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            drepId: voterId,
-            proposalTxHash: selectedItem.txHash,
-            proposalIndex: selectedItem.proposalIndex,
-            rationaleText: rationaleText.trim(),
-          }),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          anchorUrl = data.anchorUrl;
-          anchorHash = data.anchorHash;
-          posthog.capture('review_rationale_submitted', {
-            proposal_tx_hash: selectedItem.txHash,
-            proposal_index: selectedItem.proposalIndex,
-            rationale_length: rationaleText.trim().length,
-          });
-        }
-      } catch {
-        // Continue without an anchor. The vote itself is still useful.
-      }
-    }
-
-    const voterRole = segment === 'spo' ? 'spo' : 'drep';
-    await startVote(
-      {
-        txHash: selectedItem.txHash,
-        txIndex: selectedItem.proposalIndex,
-        title: selectedItem.title,
-      },
-      voterRole as 'drep' | 'spo',
-      voterId,
-    );
-
-    await confirmVote(selectedVote as VoteChoice, anchorUrl, anchorHash);
-  }, [confirmVote, rationaleText, segment, selectedItem, selectedVote, startVote, voterId]);
-
-  const handleAIDraft = useCallback(async () => {
-    if (!voterId) return;
-
-    setIsDraftingRationale(true);
-    setRationaleCitations(null);
-
-    if (rationaleCoderaftEnabled && selectedVote && rationaleText.length > 10) {
-      rationaleSkill.mutate(
-        {
-          skill: 'rationale-draft',
-          input: {
-            vote: selectedVote,
-            bulletPoints: rationaleText,
-            proposalContent: itemContent,
-            proposalType: selectedItem.proposalType || 'InfoAction',
-          },
-        },
-        {
-          onSuccess: (data) => {
-            setRationaleText(data.output.structuredRationale);
-            setRationaleCitations({
-              citations: data.output.citations,
-              precedentRefs: data.output.precedentRefs,
-              keyQuotes: data.output.keyQuotes,
-            });
-            posthog.capture('rationale_codraft_generated', {
-              vote: selectedVote,
-              citationCount: data.output.citations.length,
-              precedentCount: data.output.precedentRefs.length,
-            });
-            setIsDraftingRationale(false);
-          },
-          onError: () => {
-            setIsDraftingRationale(false);
-          },
-        },
-      );
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/rationale/draft', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          drepId: voterId,
-          voterRole: segment === 'spo' ? 'spo' : 'drep',
-          proposalTitle: selectedItem.title,
-          proposalAbstract: selectedItem.abstract || undefined,
-          proposalType: selectedItem.proposalType || undefined,
-          aiSummary: selectedItem.aiSummary || undefined,
-        }),
-      });
-
-      if (response.ok) {
-        const { draft } = await response.json();
-        if (draft) {
-          setRationaleText(draft);
-        }
-      }
-    } finally {
-      setIsDraftingRationale(false);
-    }
-  }, [
-    itemContent,
-    rationaleCoderaftEnabled,
-    rationaleSkill,
+  const {
+    currentVoteChoice,
+    currentVoted,
+    handleAIDraft,
+    handleMobileVoteSelect,
+    handleVoteSelect,
+    handleVoteSubmit,
+    isDraftingRationale,
+    isVoteProcessing,
+    mobileVoteOpen,
+    rationaleCitations,
     rationaleText,
-    selectedItem,
     selectedVote,
+    setMobileVoteOpen,
+    setRationaleText,
+    votePhase,
+    voterRoleLabel,
+  } = useReviewDecisionFlow({
+    getStatus,
+    itemContent,
+    onVoteSuccess,
+    selectedItem,
     segment,
+    togglePanel,
     voterId,
-  ]);
-
-  const handleVoteSelect = useCallback(
-    (vote: 'Yes' | 'No' | 'Abstain') => {
-      setSelectedVote(vote);
-      togglePanel('vote');
-    },
-    [togglePanel],
-  );
-
-  const voteYes = useCallback(() => handleVoteSelect('Yes'), [handleVoteSelect]);
-  const voteNo = useCallback(() => handleVoteSelect('No'), [handleVoteSelect]);
-  const voteAbstain = useCallback(() => handleVoteSelect('Abstain'), [handleVoteSelect]);
-
-  useRegisterReviewCommands({
-    onYes: voteYes,
-    onNo: voteNo,
-    onAbstain: voteAbstain,
   });
 
   return (
@@ -450,7 +282,7 @@ export function ReviewWorkspaceStudio({
               isDraftingRationale={isDraftingRationale}
               proposalTitle={selectedItem.title || 'Untitled'}
               voterId={voterId ?? ''}
-              voterRole={segment === 'cc' ? 'cc_member' : segment === 'spo' ? 'SPO' : 'DRep'}
+              voterRole={voterRoleLabel}
               rationaleCitations={rationaleCitations}
               intelContent={
                 <ReviewIntelBrief
@@ -466,7 +298,7 @@ export function ReviewWorkspaceStudio({
                   treasuryTier={selectedItem.treasuryTier}
                   epochsRemaining={selectedItem.epochsRemaining}
                   isUrgent={selectedItem.isUrgent}
-                  voterRole={segment === 'cc' ? 'cc_member' : segment === 'spo' ? 'SPO' : 'DRep'}
+                  voterRole={voterRoleLabel}
                   onCCAccept={(text) => setRationaleText(text)}
                 />
               }
@@ -503,10 +335,7 @@ export function ReviewWorkspaceStudio({
       />
 
       <MobileVoteBar
-        onVoteSelect={(choice) => {
-          setSelectedVote(choice);
-          setMobileVoteOpen(true);
-        }}
+        onVoteSelect={handleMobileVoteSelect}
         hasVoted={currentVoted}
         currentVote={selectedVote}
       />
@@ -530,7 +359,7 @@ export function ReviewWorkspaceStudio({
             isDraftingRationale={isDraftingRationale}
             proposalTitle={selectedItem.title || 'Untitled'}
             voterId={voterId ?? ''}
-            voterRole={segment === 'cc' ? 'cc_member' : segment === 'spo' ? 'SPO' : 'DRep'}
+            voterRole={voterRoleLabel}
             rationaleCitations={rationaleCitations}
           />
         </SheetContent>
