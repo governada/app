@@ -795,3 +795,52 @@ The workspace review routes were doing too much work at the HTTP edge. They owne
 - `app/api/compare/route.ts`
 - `app/api/v1/dreps/[drepId]/votes/route.ts`
 - `app/drep/[drepId]/page.tsx`
+
+## Chunk 17: Extract Proposal-Intelligence Cache Services From Inngest Jobs
+
+**Priority:** P1
+**Effort:** M
+**Audit dimension(s):** Architecture and Code Health, Intelligence and Agent Readiness
+**Expected score impact:** Runtime architecture: make proposal-intelligence jobs thinner orchestrators
+**Depends on:** Chunk 16
+**PR group:** J
+**Implementation status:** Completed in this worktree
+
+### Context
+
+`precompute-proposal-intelligence.ts` and `update-passage-predictions.ts` both owned open-proposal discovery, content hashing, passage-prediction cache assembly, and cache upserts inline. That duplicated runtime behavior and kept persistence details inside the job bodies.
+
+### Scope
+
+- Move proposal-intelligence target discovery and content hashing behind a shared helper.
+- Move passage-prediction cache refresh and section upsert behavior behind that same helper.
+- Reduce the two Inngest jobs to orchestration over the shared service boundary.
+- Add focused unit coverage for the new helper.
+
+### Progress So Far
+
+- Added `lib/intelligence/proposalIntelligenceCache.ts` as the shared proposal-intelligence cache helper.
+- `inngest/functions/precompute-proposal-intelligence.ts` now delegates proposal discovery, cache upserts, and passage-prediction refresh through that shared module.
+- `inngest/functions/update-passage-predictions.ts` now delegates open-proposal discovery and passage-prediction cache refresh through the same shared module.
+- Added focused regression coverage in `__tests__/lib/proposalIntelligenceCache.test.ts`.
+- Verified with `npm run test:unit -- __tests__/lib/proposalIntelligenceCache.test.ts`.
+- Verified with `npm run lint -- inngest/functions/precompute-proposal-intelligence.ts inngest/functions/update-passage-predictions.ts lib/intelligence/proposalIntelligenceCache.ts`.
+- Verified with `npm run type-check`.
+
+### Follow-up Work
+
+- Extract the remaining AI-generation orchestration from `precompute-proposal-intelligence.ts` if DD03 continues on the proposal-intelligence pipeline.
+- Evaluate `sync-spo-scores.ts` as the larger next job-orchestration seam once this proposal-intelligence path is fully stabilized.
+
+### Verification
+
+- Proposal-intelligence cache discovery and upsert behavior now live outside the Inngest job files.
+- Both jobs consume the same cache-refresh implementation instead of duplicating passage-prediction logic.
+- The shared helper has direct unit coverage.
+
+### Files to Read First
+
+- `lib/intelligence/proposalIntelligenceCache.ts`
+- `inngest/functions/precompute-proposal-intelligence.ts`
+- `inngest/functions/update-passage-predictions.ts`
+- `__tests__/lib/proposalIntelligenceCache.test.ts`

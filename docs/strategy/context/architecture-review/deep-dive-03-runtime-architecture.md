@@ -52,7 +52,7 @@ Representative jobs like `sync-spo-scores.ts` and `precompute-proposal-intellige
 
 ### 1. `lib/data.ts` is still a cross-domain server read plane
 
-**Severity:** Open
+**Severity:** Partially reduced in this worktree
 
 **Evidence**
 
@@ -157,6 +157,15 @@ This creates semantic drift. The workspace agent, page intelligence, and any fut
 
 Long-lived jobs should be thin orchestrators over explicit services. When the job itself owns the domain logic, it becomes difficult to reuse calculations elsewhere, unit test critical paths narrowly, or reason about retry/idempotency boundaries.
 
+**Implementation status**
+
+- Partially reduced in this worktree.
+- Added `lib/intelligence/proposalIntelligenceCache.ts` as the shared cache/discovery boundary for open proposal intelligence targets, content hashing, section upserts, and passage-prediction cache refresh.
+- `inngest/functions/precompute-proposal-intelligence.ts` now delegates proposal discovery, section upserts, and passage-prediction cache refresh through that shared helper instead of owning those persistence details inline.
+- `inngest/functions/update-passage-predictions.ts` now delegates open-proposal discovery and cache refresh through the same shared helper instead of rebuilding that logic inside the job.
+- Added focused unit coverage for proposal-intelligence cache discovery and batch upsert behavior.
+- Remaining gap: AI-generation orchestration still lives inside `precompute-proposal-intelligence.ts`, and `sync-spo-scores.ts` remains the larger unresolved multi-responsibility job boundary.
+
 ## Review Outline
 
 1. Map the runtime topology for three concrete paths:
@@ -189,7 +198,7 @@ Long-lived jobs should be thin orchestrators over explicit services. When the jo
 
 1. Continue the proposal/governance context boundary by evaluating whether personal-context or feedback/annotation assembly is stable enough to share; cache ownership is intentionally staying consumer-owned for now.
 2. Continue extracting domain read services out of `lib/data.ts`, with `getVotingPowerSummary()` or the heavier proposal-summary pipeline as the next candidate now that the proposal-enrichment leaf is isolated.
-3. Extract pure domain services from `precompute-proposal-intelligence.ts` and `sync-spo-scores.ts` so the Inngest jobs become orchestration wrappers.
+3. Continue thinning background jobs by extracting the remaining AI-generation and scoring service boundaries from `precompute-proposal-intelligence.ts` and `sync-spo-scores.ts`.
 4. Revisit the review workspace only if DD06 exposes operator-journey regressions that the current controller, decision-flow, and decision-panel seams do not isolate cleanly.
 
 ## Handoff
@@ -211,6 +220,7 @@ Long-lived jobs should be thin orchestrators over explicit services. When the jo
 - Added `lib/governance/treasuryContext.ts` so page intelligence and workspace-agent context share one treasury read seam while keeping their different cache/output contracts.
 - Added `components/workspace/review/ReviewWorkspaceDecisionPanels.tsx` so shared desktop/mobile decision-panel composition has one presenter boundary instead of duplicated prop wiring in the studio shell.
 - Added `lib/governance/proposalEnrichment.ts` so the shared proposal/rationale/DRep-vote enrichment helpers no longer live inside the `lib/data.ts` god-module.
+- Added `lib/intelligence/proposalIntelligenceCache.ts` so proposal intelligence target discovery, content hashing, passage-prediction refresh, and cache upserts are shared outside the Inngest job bodies.
 - Fixed intelligence-comment drift by aligning the top-level `lib/intelligence/context.ts` description with its actual route-local personalization behavior.
 
 **Verification**
@@ -220,14 +230,16 @@ Long-lived jobs should be thin orchestrators over explicit services. When the jo
 - Passed `npm run test:unit -- __tests__/lib/reviewWorkspaceController.test.ts`.
 - Passed `npm run test:unit -- __tests__/lib/treasuryContext.test.ts`.
 - Passed `npm run test:unit -- __tests__/lib/proposalEnrichment.test.ts`.
+- Passed `npm run test:unit -- __tests__/lib/proposalIntelligenceCache.test.ts`.
 - Passed `npm run test:component -- __tests__/hooks/useReviewDecisionFlow.test.tsx`.
 - Passed `npm run test:component -- __tests__/components/ReviewWorkspaceDecisionPanels.test.tsx`.
 - Passed `npm run lint -- components/workspace/review/ReviewWorkspace.tsx components/workspace/review/ReviewWorkspaceStudio.tsx hooks/useReviewWorkspaceController.ts lib/workspace/reviewWorkspaceController.ts`.
 - Passed `npm run lint -- components/workspace/review/ReviewWorkspaceStudio.tsx hooks/useReviewDecisionFlow.ts hooks/useReviewWorkspaceController.ts components/workspace/review/ReviewWorkspace.tsx lib/workspace/reviewWorkspaceController.ts lib/governance/treasuryContext.ts lib/intelligence/context.ts lib/workspace/agent/context.ts`.
 - Passed `npm run lint -- components/workspace/review/ReviewWorkspaceStudio.tsx components/workspace/review/ReviewWorkspaceDecisionPanels.tsx hooks/useReviewDecisionFlow.ts`.
 - Passed `npm run lint -- lib/data.ts lib/governance/proposalEnrichment.ts`.
+- Passed `npm run lint -- inngest/functions/precompute-proposal-intelligence.ts inngest/functions/update-passage-predictions.ts lib/intelligence/proposalIntelligenceCache.ts`.
 - Passed `npm run type-check`.
 
 ## Next Agent Starts Here
 
-Start with `lib/governance/proposalEnrichment.ts`, `lib/data.ts`, `lib/governance/treasuryContext.ts`, `lib/intelligence/context.ts`, `lib/workspace/agent/context.ts`, `inngest/functions/precompute-proposal-intelligence.ts`, and `inngest/functions/sync-spo-scores.ts`. The review workspace now has distinct controller, decision-flow, and decision-panel seams, and `lib/data.ts` has its first extracted proposal leaf; the next DD03 move should be either the next `lib/data.ts` server-read seam or a job-orchestration extraction.
+Start with `lib/intelligence/proposalIntelligenceCache.ts`, `inngest/functions/precompute-proposal-intelligence.ts`, `inngest/functions/sync-spo-scores.ts`, `lib/governance/proposalEnrichment.ts`, `lib/data.ts`, `lib/governance/treasuryContext.ts`, `lib/intelligence/context.ts`, and `lib/workspace/agent/context.ts`. DD03 now has one extracted `lib/data.ts` proposal leaf and one extracted proposal-intelligence job/cache seam; the next move should be either the next `lib/data.ts` server-read extraction or the next background-job service seam.
