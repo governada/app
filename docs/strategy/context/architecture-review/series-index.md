@@ -2,7 +2,7 @@
 
 **Started:** 2026-04-02
 **Current status:** In progress
-**Active deep dive:** 05 - Performance and scalability (next)
+**Active deep dive:** 05 - Performance and scalability
 **Canonical worktree:** `C:\Users\dalto\governada\governada-app\.claude\worktrees\platform-architecture-review-series`
 **Canonical branch:** `feature/platform-architecture-review-series`
 
@@ -12,16 +12,16 @@ Strengthen the app for real-world global use by reviewing the platform in the or
 
 ## Review Order
 
-| #   | Area                          | Primary Goal                                                                                           | Status    | Artifact                                        |
-| --- | ----------------------------- | ------------------------------------------------------------------------------------------------------ | --------- | ----------------------------------------------- |
-| 01  | Data plane                    | Verify truth boundaries, freshness, fallbacks, and read-model correctness                              | Completed | `deep-dive-01-data-plane.md`                    |
-| 02  | Security and trust boundaries | Verify auth, admin, API protection, session handling, and privilege boundaries                         | Completed | `deep-dive-02-security-and-trust.md`            |
-| 03  | Runtime architecture          | Verify ownership boundaries across server components, client components, routes, jobs, and shared libs | Completed | `deep-dive-03-runtime-architecture.md`          |
-| 04  | Reliability and observability | Verify env safety, health checks, logging, tracing, and failure diagnosis                              | Completed | `deep-dive-04-reliability-and-observability.md` |
-| 05  | Performance and scalability   | Verify cache strategy, query fan-out, bundle shape, and load readiness                                 | Planned   | `deep-dive-05-performance-and-scale.md`         |
-| 06  | Critical user journeys        | Verify end-to-end flows across anonymous, citizen, delegated, and workspace personas                   | Planned   | `deep-dive-06-critical-journeys.md`             |
-| 07  | Testing and release gates     | Verify regression coverage matches blast radius and release process risk                               | Planned   | `deep-dive-07-testing-and-release-gates.md`     |
-| 08  | Global readiness              | Verify localization, timezone behavior, accessibility, mobile resilience, and legal/privacy baseline   | Planned   | `deep-dive-08-global-readiness.md`              |
+| #   | Area                          | Primary Goal                                                                                           | Status      | Artifact                                        |
+| --- | ----------------------------- | ------------------------------------------------------------------------------------------------------ | ----------- | ----------------------------------------------- |
+| 01  | Data plane                    | Verify truth boundaries, freshness, fallbacks, and read-model correctness                              | Completed   | `deep-dive-01-data-plane.md`                    |
+| 02  | Security and trust boundaries | Verify auth, admin, API protection, session handling, and privilege boundaries                         | Completed   | `deep-dive-02-security-and-trust.md`            |
+| 03  | Runtime architecture          | Verify ownership boundaries across server components, client components, routes, jobs, and shared libs | Completed   | `deep-dive-03-runtime-architecture.md`          |
+| 04  | Reliability and observability | Verify env safety, health checks, logging, tracing, and failure diagnosis                              | Completed   | `deep-dive-04-reliability-and-observability.md` |
+| 05  | Performance and scalability   | Verify cache strategy, query fan-out, bundle shape, and load readiness                                 | In progress | `deep-dive-05-performance-and-scale.md`         |
+| 06  | Critical user journeys        | Verify end-to-end flows across anonymous, citizen, delegated, and workspace personas                   | Planned     | `deep-dive-06-critical-journeys.md`             |
+| 07  | Testing and release gates     | Verify regression coverage matches blast radius and release process risk                               | Planned     | `deep-dive-07-testing-and-release-gates.md`     |
+| 08  | Global readiness              | Verify localization, timezone behavior, accessibility, mobile resilience, and legal/privacy baseline   | Planned     | `deep-dive-08-global-readiness.md`              |
 
 ## Series Exit Criteria
 
@@ -58,6 +58,7 @@ Strengthen the app for real-world global use by reviewing the platform in the or
 | 2026-04-04 | Split the review workspace first by runtime boundary, not vote-flow internals                                                   | Shrinking the route entrypoint and removing duplicate client ownership paths reduces blast radius without changing the live wallet vote path first             |
 | 2026-04-05 | Keep page-intelligence and workspace-agent caches consumer-owned, and only share stable reads like treasury facts               | The two consumers have different TTLs, scopes, and output contracts, so the right DD03 boundary is shared read services rather than a forced cache merge       |
 | 2026-04-05 | Treat proposal summary status, tri-body grouping, and index identity as one shared contract                                     | Proposal list/detail reads, API routes, and intelligence tools were already drifting because those semantics were being re-derived in multiple layers          |
+| 2026-04-05 | Remove dead work on hot public routes before adding more cache layers                                                           | Eliminating unused database work reduces latency and cost immediately without adding invalidation complexity                                                   |
 
 ## Progress Log
 
@@ -99,3 +100,5 @@ Strengthen the app for real-world global use by reviewing the platform in the or
 | 2026-04-05 | Added `lib/scoring/spoRelayLocations.ts` so relay geocoding and per-pool centroid assembly now sit behind a shared helper, reducing `sync-spo-scores.ts` to pool discovery plus persistence in that step.                                                                                                                                                                  |
 | 2026-04-05 | Added `lib/governance/proposalVotingSummary.ts` so proposal/workspace consumers share one runtime `proposal_voting_summary` reader instead of each assembling those reads independently.                                                                                                                                                                                   |
 | 2026-04-05 | Added `lib/scoring/spoScoreSync.ts` so the core SPO scoring run now shares one computation and persistence-artifact seam outside `sync-spo-scores.ts`, then closed Deep Dive 03 with focused verification and explicit deferred follow-ups.                                                                                                                                |
+| 2026-04-05 | Started Deep Dive 05, removed dead homepage SSR pulse reads, bounded `getAllProposalsWithVoteSummary()` voter scans to the fetched proposal set, and recorded the initial proposal/public-route plus background-sync scale findings.                                                                                                                                       |
+| 2026-04-05 | Gated homepage `ListOverlay` entity queries behind visible state, added focused component coverage for the closed/open query contract, and recorded the remaining globe-shell initial-load risk for later DD05 work.                                                                                                                                                       |

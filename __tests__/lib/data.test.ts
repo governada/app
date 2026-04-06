@@ -159,6 +159,88 @@ async function loadVotingPowerSummaryModule({
   return { getVotingPowerSummary: mod.getVotingPowerSummary, getGovernanceThresholdForProposal };
 }
 
+async function loadProposalListModule(
+  proposals: Array<{ tx_hash: string; proposal_index: number }>,
+) {
+  const fetchProposalVotingSummaries = vi.fn().mockResolvedValue([]);
+  const indexProposalVotingSummaryTriBodies = vi.fn(() => new Map());
+  const buildProposalVoteSummary = vi.fn(({ proposal }) => ({
+    txHash: proposal.tx_hash,
+    proposalIndex: proposal.proposal_index,
+    title: proposal.title ?? null,
+    abstract: proposal.abstract ?? null,
+    aiSummary: proposal.ai_summary ?? null,
+    proposalType: proposal.proposal_type ?? null,
+    status: 'active',
+    withdrawalAmount: null,
+    treasuryTier: null,
+    relevantPrefs: [],
+    proposedEpoch: null,
+    ratifiedEpoch: null,
+    enactedEpoch: null,
+    droppedEpoch: null,
+    expiredEpoch: null,
+    expirationEpoch: null,
+    blockTime: null,
+    yesCount: 0,
+    noCount: 0,
+    abstainCount: 0,
+    totalVotes: 0,
+    triBody: null,
+  }));
+
+  const proposalsAbortSignal = vi.fn().mockResolvedValue({ data: proposals, error: null });
+  const proposalsOrder = vi.fn(() => ({ abortSignal: proposalsAbortSignal }));
+  const proposalsSelect = vi.fn(() => ({ order: proposalsOrder }));
+  const drepVotesIn = vi.fn().mockResolvedValue({ data: [], error: null });
+  const drepVotesSelect = vi.fn(() => ({ in: drepVotesIn }));
+
+  const from = vi.fn((table: string) => {
+    if (table === 'proposals') return { select: proposalsSelect };
+    if (table === 'drep_votes') return { select: drepVotesSelect };
+    throw new Error(`Unexpected table: ${table}`);
+  });
+
+  vi.doMock('@/lib/supabase', () => ({
+    createClient: () => ({ from }),
+  }));
+  vi.doMock('@/lib/governance/proposalVotingSummary', () => ({
+    fetchProposalVotingSummaries,
+    fetchLatestProposalVotingSummary: vi.fn(),
+    getProposalVotingSummaryKey: (txHash: string, proposalIndex: number) =>
+      `${txHash}-${proposalIndex}`,
+    indexProposalVotingSummaryTriBodies,
+  }));
+  vi.doMock('@/lib/governance/proposalSummary', () => ({
+    buildProposalVoteSummary,
+    buildTriBodyVotes: vi.fn(),
+    summarizeDRepVotes: vi.fn(() => ({
+      drepCounts: { yes: 0, no: 0, abstain: 0 },
+      voterDrepIds: [],
+    })),
+  }));
+  vi.doMock('@/utils/documentation', () => ({
+    isWellDocumented: vi.fn(() => true),
+  }));
+  vi.doMock('@/lib/logger', () => ({
+    logger: {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    },
+  }));
+  vi.doMock('@/lib/constants', () => ({
+    getCurrentEpoch: vi.fn(() => 999),
+  }));
+
+  const mod = await import('@/lib/data');
+  return {
+    getAllProposalsWithVoteSummary: mod.getAllProposalsWithVoteSummary,
+    drepVotesIn,
+    fetchProposalVotingSummaries,
+  };
+}
+
 describe('getAllDReps freshness policy', () => {
   beforeEach(() => {
     vi.resetModules();
@@ -241,5 +323,31 @@ describe('getVotingPowerSummary threshold resolution', () => {
       threshold: 0.67,
       thresholdLabel: '67% of active DRep stake needed',
     });
+  });
+});
+
+describe('getAllProposalsWithVoteSummary query bounds', () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.clearAllMocks();
+  });
+
+  it('limits proposal voter lookups to the fetched proposal tx hashes', async () => {
+    const proposals = [
+      { tx_hash: 'tx1', proposal_index: 0 },
+      { tx_hash: 'tx2', proposal_index: 1 },
+    ];
+    const { getAllProposalsWithVoteSummary, drepVotesIn, fetchProposalVotingSummaries } =
+      await loadProposalListModule(proposals);
+
+    const result = await getAllProposalsWithVoteSummary();
+
+    expect(fetchProposalVotingSummaries).toHaveBeenCalledWith(
+      expect.anything(),
+      ['tx1', 'tx2'],
+      expect.stringContaining('proposal_tx_hash'),
+    );
+    expect(drepVotesIn).toHaveBeenCalledWith('proposal_tx_hash', ['tx1', 'tx2']);
+    expect(result).toHaveLength(2);
   });
 });

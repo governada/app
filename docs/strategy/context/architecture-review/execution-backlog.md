@@ -1088,3 +1088,200 @@ Even after the pool-info and relay-geocoding helper extractions, `sync-spo-score
 - `lib/scoring/spoScoreSync.ts`
 - `inngest/functions/sync-spo-scores.ts`
 - `__tests__/lib/spoScoreSync.test.ts`
+
+## Chunk 23: Remove Dead Homepage SSR Pulse Reads
+
+**Priority:** P0
+**Effort:** S
+**Audit dimension(s):** Performance and Reliability, Product Completeness vs. Vision
+**Expected score impact:** Performance and Reliability: lower anonymous-route latency and wasted database work
+**Depends on:** None
+**PR group:** K
+**Implementation status:** Completed in this worktree
+
+### Context
+
+The anonymous landing route was still doing live Supabase pulse queries even though the current homepage entrypoint no longer rendered or forwarded that pulse data anywhere.
+
+### Scope
+
+- Remove the unused `getGovernancePulse()` read path from `app/page.tsx`.
+- Remove the dead `pulseData` prop from `components/hub/HubHomePage.tsx`.
+- Keep current homepage behavior unchanged while reducing hot-path server work.
+
+### Progress So Far
+
+- Removed the unused `getGovernancePulse()` read path from `app/page.tsx`.
+- Removed the dead `pulseData` prop contract from `components/hub/HubHomePage.tsx`.
+- The homepage now renders the same globe shell without issuing unnecessary DRep/proposal queries first.
+
+### Verification
+
+- `app/page.tsx` no longer imports the Supabase client or computes pulse aggregates.
+- `components/hub/HubHomePage.tsx` no longer accepts an unused pulse payload.
+- Verified with focused type/lint checks in the DD05 checkpoint.
+
+### Files to Read First
+
+- `app/page.tsx`
+- `components/hub/HubHomePage.tsx`
+- `components/globe/GlobeLayout.tsx`
+
+## Chunk 24: Bound Proposal Voter Scans To The Active Proposal Set
+
+**Priority:** P0
+**Effort:** S
+**Audit dimension(s):** Performance and Reliability, Testing and Code Quality
+**Expected score impact:** Performance and Reliability: reduce unnecessary full-table reads on proposal list surfaces
+**Depends on:** None
+**PR group:** K
+**Implementation status:** Completed in this worktree
+
+### Context
+
+`getAllProposalsWithVoteSummary()` was reading the full `drep_votes` table just to build per-proposal voter sets for the current proposal list response.
+
+### Scope
+
+- Constrain the `drep_votes` lookup to the fetched proposal tx hashes.
+- Keep the existing response contract unchanged.
+- Add focused regression coverage so the query bound is explicit.
+
+### Progress So Far
+
+- `lib/data.ts:getAllProposalsWithVoteSummary()` now limits the `drep_votes` read to the fetched proposal tx hashes instead of scanning the entire table.
+- Added focused regression coverage in `__tests__/lib/data.test.ts`.
+
+### Verification
+
+- `__tests__/lib/data.test.ts` proves the `drep_votes` lookup is called with `.in('proposal_tx_hash', [...txHashes])`.
+- Verified with focused DD05 unit/type/lint checks.
+
+### Files to Read First
+
+- `lib/data.ts`
+- `__tests__/lib/data.test.ts`
+- `app/api/v1/proposals/route.ts`
+- `app/api/proposals/route.ts`
+
+## Chunk 25: Push Proposal List Filtering And Pagination Into The Read Layer
+
+**Priority:** P1
+**Effort:** M
+**Audit dimension(s):** Performance and Reliability, API and Integration Readiness
+**Expected score impact:** Performance and Reliability: make proposal list cost scale closer to request size than table size
+**Depends on:** Chunk 24
+**PR group:** L
+
+### Context
+
+Public proposal list surfaces still materialize broad proposal sets and shape them in memory. That keeps response cost tied to total proposal volume rather than the requested page, filter, or sort.
+
+### Scope
+
+- Reduce `app/api/v1/proposals/route.ts` dependence on `getAllProposalsWithVoteSummary()` as an all-proposals materialization step.
+- Push status/type filtering, ordering, and pagination closer to the database/shared read layer.
+- Revisit `/api/proposals` cache-key shape so misses do not always rebuild the same broad payload.
+- Add focused verification around page-size and filter behavior.
+
+### Decision Points
+
+The executing agent should decide whether the better seam is:
+
+- a new paginated proposal-list read helper in `lib/data.ts` or `lib/governance/*`, or
+- route-local SQL that uses the newer shared summary helpers without re-materializing the full list.
+
+### Verification
+
+- Proposal list cost is materially closer to request size than total table size.
+- Filters and sorts are still correct.
+- Cache keys align with the response contract instead of a one-size-fits-all list blob.
+
+### Files to Read First
+
+- `app/api/v1/proposals/route.ts`
+- `app/api/proposals/route.ts`
+- `lib/data.ts`
+- `lib/governance/proposalSummary.ts`
+- `lib/governance/proposalVotingSummary.ts`
+
+## Chunk 26: De-duplicate Vote Ingestion And Move Toward Incremental Sync
+
+**Priority:** P0
+**Effort:** L
+**Audit dimension(s):** Performance and Reliability, Data Architecture and Compounding
+**Expected score impact:** Performance and Reliability: stop background cost from growing linearly with total vote history
+**Depends on:** None
+**PR group:** M
+
+### Context
+
+Vote ingestion currently spans `sync-proposals`, `sync-votes`, and `sync-dreps`, with the 6-hour vote sync still importing and reprocessing full history in memory. That is one of the clearest scale risks surfaced in DD05.
+
+### Scope
+
+- Decide the primary owner for vote ingestion from Koios.
+- Reduce or remove overlapping vote-fetch paths across proposal sync, votes sync, and DRep enrichment.
+- Move the heavy votes sync away from whole-history import when possible, or introduce explicit checkpointing if true incremental sync is not yet practical.
+- Review related slow-sync and metadata-archive paths for the same “full corpus every run” pattern.
+
+### Decision Points
+
+The executing agent should confirm whether the right end state is:
+
+- a single canonical vote-ingestion job with checkpointing, or
+- a staged ingestion model where one append-only raw store feeds the other derived jobs.
+
+### Verification
+
+- Vote-ingestion ownership is explicit.
+- The main vote sync no longer gets slower forever with total historical vote count.
+- Upstream rate-limit exposure is reduced relative to the current overlapping schedule.
+
+### Files to Read First
+
+- `lib/sync/proposals.ts`
+- `lib/sync/votes.ts`
+- `lib/sync/dreps.ts`
+- `lib/sync/data-moat.ts`
+- `lib/sync/slow.ts`
+- `utils/koios.ts`
+
+## Chunk 27: Gate Homepage List-Overlay Queries Behind Visible State
+
+**Priority:** P0
+**Effort:** S
+**Audit dimension(s):** Performance and Reliability, Testing and Code Quality
+**Expected score impact:** Performance and Reliability: stop hidden-state homepage overfetch
+**Depends on:** None
+**PR group:** K
+**Implementation status:** Completed in this worktree
+
+### Context
+
+The homepage globe list overlay stayed mounted while closed, and its entity hooks still fetched DReps, proposals, committee members, and pools before the closed-state guard returned `null`.
+
+### Scope
+
+- Add explicit query gating for the list overlay entity hooks.
+- Keep the open-overlay behavior unchanged.
+- Add focused component coverage so the closed-state query contract stays explicit.
+
+### Progress So Far
+
+- `hooks/queries.ts` now supports explicit `enabled` gating for `useCommitteeMembers()`, `useDReps()`, and `useProposals()`.
+- `components/globe/ListOverlay.tsx` now disables DRep, proposal, committee, and pool queries while the overlay is closed.
+- Added focused component coverage in `__tests__/components/ListOverlay.test.tsx`.
+
+### Verification
+
+- Passed `npm run test:component -- __tests__/components/ListOverlay.test.tsx`.
+- Passed `npm run lint -- components/globe/ListOverlay.tsx hooks/queries.ts app/page.tsx components/hub/HubHomePage.tsx lib/data.ts`.
+- Passed `npm run type-check`.
+
+### Files to Read First
+
+- `components/globe/ListOverlay.tsx`
+- `hooks/queries.ts`
+- `__tests__/components/ListOverlay.test.tsx`
+- `components/globe/GlobeLayout.tsx`

@@ -478,14 +478,19 @@ export async function getAllProposalsWithVoteSummary(): Promise<ProposalWithVote
       return [];
     }
 
+    const proposalTxHashes = [...new Set(proposals.map((proposal) => proposal.tx_hash))];
+
     // Fetch tri-body vote summaries + voter DRep IDs (just the IDs, not full vote rows)
     const [votingSummaryRows, voterIdsResult] = await Promise.all([
       fetchProposalVotingSummaries(
         supabase,
-        proposals.map((proposal) => proposal.tx_hash),
+        proposalTxHashes,
         'proposal_tx_hash, proposal_index, drep_yes_votes_cast, drep_no_votes_cast, drep_abstain_votes_cast, pool_yes_votes_cast, pool_no_votes_cast, pool_abstain_votes_cast, committee_yes_votes_cast, committee_no_votes_cast, committee_abstain_votes_cast',
       ),
-      supabase.from('drep_votes').select('proposal_tx_hash, proposal_index, drep_id'),
+      supabase
+        .from('drep_votes')
+        .select('proposal_tx_hash, proposal_index, drep_id')
+        .in('proposal_tx_hash', proposalTxHashes),
     ]);
 
     const triBodyMap = indexProposalVotingSummaryTriBodies(votingSummaryRows);

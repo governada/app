@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import Script from 'next/script';
-import { createClient } from '@/lib/supabase';
 import { PageViewTracker } from '@/components/PageViewTracker';
 import { HubHomePage } from '@/components/hub/HubHomePage';
 
@@ -24,58 +23,12 @@ export const metadata: Metadata = {
   },
 };
 
-/**
- * Lightweight SSR pulse data for the anonymous landing page.
- * Authenticated users get their data client-side via Hub cards + TanStack Query.
- */
-async function getGovernancePulse() {
-  const supabase = createClient();
-
-  const [activeDRepsResult, totalDRepsResult, openProposalsResult, totalDelegatorsResult] =
-    await Promise.all([
-      supabase
-        .from('dreps')
-        .select('id', { count: 'exact', head: true })
-        .eq('info->>isActive', 'true'),
-      supabase.from('dreps').select('id', { count: 'exact', head: true }),
-      supabase
-        .from('proposals')
-        .select('tx_hash', { count: 'exact', head: true })
-        .is('ratified_epoch', null)
-        .is('enacted_epoch', null)
-        .is('dropped_epoch', null)
-        .is('expired_epoch', null),
-      // Count unique delegators from the dreps table (sum of delegator counts)
-      supabase.from('dreps').select('info->delegatorCount'),
-    ]);
-
-  // Sum delegator counts across all DReps for social proof
-  let totalDelegators = 0;
-  if (totalDelegatorsResult.data) {
-    for (const row of totalDelegatorsResult.data) {
-      const count = (row as Record<string, unknown>).delegatorCount;
-      if (typeof count === 'number') totalDelegators += count;
-    }
-  }
-
-  return {
-    activeProposals: openProposalsResult.count ?? 0,
-    activeDReps: activeDRepsResult.count ?? 0,
-    totalDReps: totalDRepsResult.count ?? 0,
-    totalDelegators,
-  };
-}
-
 interface HomePageProps {
   searchParams: Promise<{ filter?: string; entity?: string; match?: string; sort?: string }>;
 }
 
 export default async function HomePage({ searchParams }: HomePageProps) {
-  const [pulseData, params, headerStore] = await Promise.all([
-    getGovernancePulse(),
-    searchParams,
-    headers(),
-  ]);
+  const [params, headerStore] = await Promise.all([searchParams, headers()]);
   const nonce = headerStore.get('x-nonce') ?? undefined;
 
   const jsonLd = {
@@ -109,7 +62,6 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       />
       <PageViewTracker event="homepage_viewed" />
       <HubHomePage
-        pulseData={pulseData}
         filter={params.filter}
         entity={params.entity}
         match={params.match === 'true'}
