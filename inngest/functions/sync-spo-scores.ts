@@ -33,6 +33,7 @@ import {
   fetchKoiosPoolInfoBatches,
   type KoiosPoolInfo,
 } from '@/lib/scoring/spoPoolInfo';
+import { buildRelayLocationUpdates, geocodeRelayIps } from '@/lib/scoring/spoRelayLocations';
 import { getExtendedImportanceWeight } from '@/lib/scoring';
 import { getFeatureFlag } from '@/lib/featureFlags';
 import { CURRENT_SPO_SCORE_VERSION } from '@/lib/scoring/versioning';
@@ -841,88 +842,21 @@ export const syncSpoScores = inngest.createFunction(
       let geocoded = 0;
 
       try {
-        // Batch geocode via ip-api.com (max 100 per request, free, no key needed)
-        const ips = [...ipToPoolMap.keys()].slice(0, 100);
-        const geoRes = await fetch(
-          'http://ip-api.com/batch?fields=query,status,lat,lon,country,city',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(ips.map((ip) => ({ query: ip }))),
-            signal: AbortSignal.timeout(10_000),
-          },
-        );
+        const ipGeo = await geocodeRelayIps([...ipToPoolMap.keys()], {
+          maxIps: 100,
+          timeoutMs: 10_000,
+        });
+        const relayUpdates = buildRelayLocationUpdates(ipToPoolMap, ipGeo);
 
-        if (!geoRes.ok) {
-          logger.warn('[sync-spo-scores] ip-api.com batch failed', { status: geoRes.status });
-          return { geocoded: 0, reason: `ip-api ${geoRes.status}` };
-        }
-
-        const geoResults = (await geoRes.json()) as Array<{
-          query: string;
-          status: string;
-          lat?: number;
-          lon?: number;
-          country?: string;
-          city?: string;
-        }>;
-
-        // Build IP -> geo lookup
-        const ipGeo = new Map<
-          string,
-          { lat: number; lon: number; country: string; city: string }
-        >();
-        for (const g of geoResults) {
-          if (g.status === 'success' && g.lat != null && g.lon != null) {
-            ipGeo.set(g.query, {
-              lat: g.lat,
-              lon: g.lon,
-              country: g.country ?? '',
-              city: g.city ?? '',
-            });
-          }
-        }
-
-        // Group geocoded results by pool
-        const poolGeo = new Map<
-          string,
-          {
-            lats: number[];
-            lons: number[];
-            locations: Array<{
-              lat: number;
-              lon: number;
-              country: string;
-              city: string;
-              ip: string;
-            }>;
-          }
-        >();
-
-        for (const [ip, pools] of ipToPoolMap) {
-          const geo = ipGeo.get(ip);
-          if (!geo) continue;
-          for (const poolId of pools) {
-            const entry = poolGeo.get(poolId) ?? { lats: [], lons: [], locations: [] };
-            entry.lats.push(geo.lat);
-            entry.lons.push(geo.lon);
-            entry.locations.push({ ...geo, ip });
-            poolGeo.set(poolId, entry);
-          }
-        }
-
-        for (const [poolId, data] of poolGeo) {
-          // Use centroid of all relay locations as primary position
-          const avgLat = data.lats.reduce((a, b) => a + b, 0) / data.lats.length;
-          const avgLon = data.lons.reduce((a, b) => a + b, 0) / data.lons.length;
+        for (const relayUpdate of relayUpdates) {
           const { error } = await supabase
             .from('pools')
             .update({
-              relay_lat: avgLat,
-              relay_lon: avgLon,
-              relay_locations: data.locations,
+              relay_lat: relayUpdate.relay_lat,
+              relay_lon: relayUpdate.relay_lon,
+              relay_locations: relayUpdate.relay_locations,
             })
-            .eq('pool_id', poolId);
+            .eq('pool_id', relayUpdate.pool_id);
           if (!error) geocoded++;
         }
       } catch (err) {

@@ -989,3 +989,50 @@ The workspace review routes were doing too much work at the HTTP edge. They owne
 - `lib/intelligence/advisor-tools.ts`
 - `__tests__/lib/proposalSummary.test.ts`
 - `__tests__/intelligence/advisor-discovery-tools.test.ts`
+
+## Chunk 21: Extract SPO Relay Geocoding Helpers From `sync-spo-scores.ts`
+
+**Priority:** P1
+**Effort:** S
+**Audit dimension(s):** Architecture and Code Health, Performance and Reliability
+**Expected score impact:** Runtime architecture: make the scoring job thinner around relay geolocation enrichment
+**Depends on:** Chunk 19
+**PR group:** J
+**Implementation status:** Completed in this worktree
+
+### Context
+
+Even after the pool-info helper extraction, `sync-spo-scores.ts` still owned ip-api batching, relay geo lookup mapping, and centroid construction inline. That kept a second external-enrichment seam embedded directly in the job body.
+
+### Scope
+
+- Move ip-api relay geocoding into a shared helper.
+- Move per-pool relay-location centroid assembly into that same helper.
+- Reduce `sync-spo-scores.ts` so the geocode step orchestrates persistence instead of owning the data shaping details.
+- Add focused unit coverage for the new helper.
+
+### Progress So Far
+
+- Added `lib/scoring/spoRelayLocations.ts` as the shared relay geocoding helper.
+- `inngest/functions/sync-spo-scores.ts` now delegates ip-api relay lookups and pool centroid assembly through that module instead of owning the response mapping and grouping logic inline.
+- Added focused regression coverage in `__tests__/lib/spoRelayLocations.test.ts`.
+- Verified with `npm run test:unit -- __tests__/lib/spoRelayLocations.test.ts __tests__/lib/spoPoolInfo.test.ts`.
+- Verified with `npm run lint -- lib/scoring/spoRelayLocations.ts inngest/functions/sync-spo-scores.ts`.
+- Verified with `npm run type-check`.
+
+### Follow-up Work
+
+- Continue on `sync-spo-scores.ts` with the remaining Koios relay discovery loop if DD03 stays in the job boundary.
+- Treat the larger score-computation, persistence, and tier-assignment cluster as the higher-value next scoring seam once the relay discovery boundary is reduced further.
+
+### Verification
+
+- Relay geocoding and centroid assembly now live outside the scoring job.
+- The scoring job remains responsible only for pool discovery, persistence, and failure logging in that step.
+- The new helper has direct unit coverage.
+
+### Files to Read First
+
+- `lib/scoring/spoRelayLocations.ts`
+- `inngest/functions/sync-spo-scores.ts`
+- `__tests__/lib/spoRelayLocations.test.ts`
