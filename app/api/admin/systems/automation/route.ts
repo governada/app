@@ -79,6 +79,13 @@ export async function runSystemsAutomationSweep(request: NextRequest, ctx: Route
   const nextByKey = new Map(currentByKey);
   const specs = buildSystemsAutomationSpecs({
     reviewDiscipline: dashboard.reviewDiscipline,
+    performanceStatus:
+      dashboard.slos.find((slo) => slo.id === 'performance')?.status ?? dashboard.overall.status,
+    latestPerformanceBaseline: dashboard.latestPerformanceBaseline ?? null,
+    trustSurfaceReviewSummary: dashboard.trustSurfaceReviewSummary,
+    latestTrustSurfaceReview: dashboard.latestTrustSurfaceReview ?? null,
+    incidentSummary: dashboard.incidentSummary,
+    incidentHistory: dashboard.incidentHistory,
     openCommitments: dashboard.automationOpenCommitments,
     actions: dashboard.actions,
   });

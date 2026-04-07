@@ -21,6 +21,7 @@
 ### 1. Refresh the live snapshot
 
 - Open `/admin/systems`
+- Read `/admin/systems#launch-control-room` first and write down the explicit launch call: `launch-ready`, `launch-risky`, or `launch-blocked`
 - Read the overall narrative, launch SLOs, and `Act now` section first
 - Confirm whether the system is green, watch, or act-now
 
@@ -37,8 +38,12 @@
 ### 3. Update the scorecard and incident trail
 
 - Log the weekly review directly in `/admin/systems` so the cockpit keeps durable operating history and open commitments
+- Check `/admin/systems#automation` for the latest sweep history, escalations, and follow-up state before you change the written scorecard
+- Check `/admin/systems#performance-baseline` to confirm whether the latest durable load signal is current, stale, or still outside the launch bar
+- When availability, freshness, or correctness is not healthy, check `/admin/systems#trust-surface-review` and log what public and operator users actually saw before the degraded-state story goes stale
+- Use `/admin/systems#launch-control-room` to separate real launch blockers from watch items before you choose the weekly commitment
 - Update `docs/operations/systems-scorecard.md`
-- Log any real incident, drill, or meaningful regression in `docs/operations/incident-log.md`
+- Log any real incident, drill, or meaningful regression in `/admin/systems#incident-log`; use `docs/operations/incident-log.md` when the fuller narrative is worth preserving in-repo
 - If methodology or scoring changed, update `docs/operations/methodology-changelog.md`
 
 **Required output:** refreshed operating record
@@ -47,7 +52,7 @@
 
 - Pick the single systems-hardening move that most reduces launch risk this week
 - Prefer control loops over vague cleanup
-- Examples: add one pre-merge gate, record one baseline, automate one reconciliation, run one drill
+- Examples: add one pre-merge gate, close one named performance bottleneck, automate one reconciliation, run one drill
 
 **Required output:** one named hardening commitment for the week
 
@@ -69,10 +74,18 @@ Use this order every week:
 
 The review is intentionally shaped so it can be automated later from `/api/admin/systems` and `/api/admin/systems/reviews`:
 
+- centralize the founder review of sweep history, escalations, and follow-up state in `/admin/systems#automation`
+- turn `follow_up_pending` incidents and drills into suggested weekly hardening commitments
 - summarize current SLO posture
 - highlight red/yellow shifts from the previous review
+- project the durable review history into a live scorecard sync signal with streak, drift, and recurring hotspot SLOs
+- project the latest performance baseline history into a live freshness-and-bottleneck signal
 - propose one hardening commitment
 - pick the one blocked or overdue commitment that most needs an unblock-or-replace decision
+- open a founder-ready drill brief when `/admin/systems#incident-log` shows that the monthly failure drill cadence is missing or stale
 - open an inbox item for founder review
 - apply the commitment shepherd brief into the weekly review form
+- apply the incident-retro brief into the weekly review form when an incident or drill needs a named hardening commitment
+- apply the performance baseline follow-up into the weekly review form when the latest load signal is missing, stale, or still non-good
+- apply the trust-surface follow-up into the weekly review form when degraded-state honesty needs a named product fix
 - escalate unresolved critical follow-ups into the founder operator channel with next-action links

@@ -5,10 +5,20 @@ export type JourneyCoverage = 'automated' | 'partial' | 'manual';
 export type SystemsCommitmentStatus = 'planned' | 'in_progress' | 'blocked' | 'done';
 export type SystemsAutomationSeverity = 'warning' | 'critical';
 export type SystemsAutomationFollowupStatus = 'open' | 'acknowledged' | 'resolved';
+export type SystemsPerformanceBaselineEnvironment = 'production' | 'preview' | 'local';
+export type SystemsLaunchDecision = 'ready' | 'risky' | 'blocked';
 export type SystemsAutomationTriggerType =
   | 'review_discipline'
+  | 'performance_baseline'
+  | 'trust_surface_review'
+  | 'drill_cadence'
+  | 'incident_retro_followup'
   | 'overdue_commitment'
   | 'systems_action';
+export type SystemsScorecardTrend = 'improving' | 'steady' | 'worsening' | 'new';
+export type SystemsIncidentType = 'incident' | 'drill';
+export type SystemsIncidentSeverity = 'drill' | 'p0' | 'p1' | 'p2' | 'near_miss';
+export type SystemsIncidentStatus = 'open' | 'mitigated' | 'resolved' | 'follow_up_pending';
 
 export interface SystemsPromiseCard {
   id: string;
@@ -160,6 +170,36 @@ export interface SystemsAutomationRunRecord {
   createdAt: string;
 }
 
+export type SystemsAutomationActivityType =
+  | 'sweep'
+  | 'followup'
+  | 'review_draft'
+  | 'operator_escalation'
+  | 'commitment_shepherd'
+  | 'performance_baseline'
+  | 'trust_surface_review';
+
+export type SystemsAutomationActivityTone = 'good' | 'warning' | 'critical' | 'neutral';
+
+export interface SystemsAutomationActivityMetric {
+  label: string;
+  value: string;
+}
+
+export interface SystemsAutomationActivityRecord {
+  id: string;
+  type: SystemsAutomationActivityType;
+  actorType: 'manual' | 'cron' | 'system';
+  statusLabel: string;
+  tone: SystemsAutomationActivityTone;
+  title: string;
+  summary: string;
+  createdAt: string;
+  actionHref?: string | null;
+  sourceKey?: string | null;
+  metricItems: SystemsAutomationActivityMetric[];
+}
+
 export interface SystemsOperatorEscalationRecord {
   actorType: 'manual' | 'cron';
   status: 'sent' | 'failed';
@@ -212,6 +252,162 @@ export interface SystemsReviewDraft {
   linkedSloIds: string[];
 }
 
+export interface SystemsPerformanceBaselineRecord {
+  actorType: 'manual' | 'cron';
+  loggedAt: string;
+  baselineDate: string;
+  environment: SystemsPerformanceBaselineEnvironment;
+  scenarioLabel: string;
+  concurrencyProfile: string;
+  overallStatus: Exclude<SystemsStatus, 'bootstrap'>;
+  summary: string;
+  bottleneck: string;
+  mitigationOwner: string;
+  nextStep: string;
+  artifactUrl?: string | null;
+  notes?: string | null;
+  apiHealthP95Ms: number;
+  apiDrepsP95Ms: number;
+  apiV1DrepsP95Ms: number;
+  governanceHealthP95Ms: number;
+  errorRatePct: number;
+  maxObservedP95Ms: number;
+  daysSinceBaseline: number;
+  isStale: boolean;
+}
+
+export interface SystemsPerformanceBaselineSummary {
+  status: SystemsStatus;
+  headline: string;
+  currentValue: string;
+  target: string;
+  summary: string;
+  lastRecordedAt?: string | null;
+  daysSinceBaseline?: number | null;
+}
+
+export interface SystemsTrustSurfaceReviewRecord {
+  actorType: 'manual' | 'cron';
+  loggedAt: string;
+  reviewDate: string;
+  overallStatus: Exclude<SystemsStatus, 'bootstrap'>;
+  linkedSloIds: string[];
+  reviewedSurfaces: string[];
+  summary: string;
+  currentUserState: string;
+  honestyGap: string;
+  nextFix: string;
+  owner: string;
+  artifactUrl?: string | null;
+  notes?: string | null;
+  daysSinceReview: number;
+  isStale: boolean;
+}
+
+export interface SystemsTrustSurfaceReviewSummary {
+  status: SystemsStatus;
+  headline: string;
+  currentValue: string;
+  target: string;
+  summary: string;
+  lastReviewedAt?: string | null;
+  daysSinceReview?: number | null;
+  reviewRequired: boolean;
+  linkedSloIds: string[];
+}
+
+export interface SystemsLaunchChecklistItem {
+  id: string;
+  title: string;
+  decision: SystemsLaunchDecision;
+  summary: string;
+  threshold: string;
+  evidence: string;
+  href?: string;
+}
+
+export interface SystemsLaunchCadenceItem {
+  day: string;
+  focus: string;
+  output: string;
+  trigger: string;
+}
+
+export interface SystemsLaunchControlRoom {
+  decision: SystemsLaunchDecision;
+  headline: string;
+  summary: string;
+  currentCall: string;
+  blockerCount: number;
+  watchCount: number;
+  checklist: SystemsLaunchChecklistItem[];
+  blockers: string[];
+  watchItems: string[];
+  launchWeekCadence: SystemsLaunchCadenceItem[];
+}
+
+export interface SystemsScorecardReviewRecord {
+  id: string;
+  reviewDate: string;
+  reviewedAt: string;
+  overallStatus: SystemsStatus;
+  focusArea: string;
+  linkedSloIds: string[];
+  commitmentTitle?: string | null;
+  commitmentStatus?: SystemsCommitmentStatus | null;
+}
+
+export interface SystemsScorecardSync {
+  status: SystemsStatus;
+  headline: string;
+  currentValue: string;
+  target: string;
+  summary: string;
+  reviewCount: number;
+  weeklyStreak: number;
+  liveStatus: SystemsStatus;
+  lastReviewStatus?: SystemsStatus | null;
+  lastReviewedAt?: string | null;
+  driftSloIds: string[];
+  hotspotSloIds: string[];
+  trend: SystemsScorecardTrend;
+  recentReviews: SystemsScorecardReviewRecord[];
+}
+
+export interface SystemsIncidentRecord {
+  id: string;
+  loggedAt: string;
+  incidentDate: string;
+  entryType: SystemsIncidentType;
+  severity: SystemsIncidentSeverity;
+  status: SystemsIncidentStatus;
+  title: string;
+  summary: string;
+  detectedBy: string;
+  systemsAffected: string[];
+  userImpact: string;
+  rootCause: string;
+  mitigation: string;
+  permanentFix: string;
+  followUpOwner: string;
+  timeToAcknowledgeMinutes?: number | null;
+  timeToMitigateMinutes?: number | null;
+  timeToResolveMinutes?: number | null;
+}
+
+export interface SystemsIncidentSummary {
+  status: SystemsStatus;
+  headline: string;
+  currentValue: string;
+  target: string;
+  summary: string;
+  lastDrillAt?: string | null;
+  lastIncidentAt?: string | null;
+  openIncidentCount: number;
+  drillCount: number;
+  recentEntries: SystemsIncidentRecord[];
+}
+
 export interface SystemsDashboardData {
   generatedAt: string;
   overall: {
@@ -237,15 +433,26 @@ export interface SystemsDashboardData {
   actions: SystemsAction[];
   reviewLoop: SystemsReviewLoop;
   reviewDiscipline: SystemsReviewDiscipline;
+  scorecardSync: SystemsScorecardSync;
+  incidentSummary: SystemsIncidentSummary;
+  performanceBaselineSummary: SystemsPerformanceBaselineSummary;
+  trustSurfaceReviewSummary: SystemsTrustSurfaceReviewSummary;
+  launchControlRoom: SystemsLaunchControlRoom;
   automationSummary: SystemsAutomationSummary;
   automationFollowups: SystemsAutomationFollowup[];
+  automationHistory: SystemsAutomationActivityRecord[];
   latestAutomationRun?: SystemsAutomationRunRecord | null;
   latestOperatorEscalation?: SystemsOperatorEscalationRecord | null;
   latestCommitmentShepherd?: SystemsCommitmentShepherdRecord | null;
+  latestPerformanceBaseline?: SystemsPerformanceBaselineRecord | null;
+  latestTrustSurfaceReview?: SystemsTrustSurfaceReviewRecord | null;
   suggestedReviewDraft?: SystemsReviewDraft | null;
   automationOpenCommitments: SystemsCommitmentCard[];
   openCommitments: SystemsCommitmentCard[];
   reviewHistory: SystemsReviewRecord[];
+  incidentHistory: SystemsIncidentRecord[];
+  performanceBaselineHistory: SystemsPerformanceBaselineRecord[];
+  trustSurfaceReviewHistory: SystemsTrustSurfaceReviewRecord[];
   journeys: SystemsJourney[];
   automationCandidates: AutomationCandidate[];
   quickLinks: QuickLink[];
@@ -420,44 +627,14 @@ export const CRITICAL_JOURNEYS: SystemsJourney[] = [
   },
 ];
 
-export const AUTOMATION_CANDIDATES: AutomationCandidate[] = [
-  {
-    id: 'review-history-sync',
-    title: 'Review history + scorecard sync',
-    trigger: 'A weekly review lands or the current scorecard drifts from the durable review trail.',
-    action:
-      'Project the latest review history into a tighter trendline so the cockpit shows whether launch confidence is actually compounding week over week.',
-    whyItMatters:
-      'This turns the weekly review log into a true operating memory instead of a stack of isolated entries.',
-  },
-  {
-    id: 'incident-drill-log',
-    title: 'Incident + drill log workflow',
-    trigger: 'A deploy, dependency issue, or tabletop drill produces real operating learning.',
-    action:
-      'Capture the event, mitigation, and follow-up directly in the systems operating trail so incidents become permanent improvements.',
-    whyItMatters:
-      'This converts passive runbooks into practiced launch readiness and a durable lessons-learned loop.',
-  },
-  {
-    id: 'performance-baseline',
-    title: 'Performance baseline rerun',
-    trigger: 'Risky route or caching changes land without a fresh baseline.',
-    action: 'Run the minimum k6 baseline and attach the result to the systems review.',
-    whyItMatters: 'This lets performance discipline become an agentic maintenance loop.',
-  },
-  {
-    id: 'trust-surface-audit',
-    title: 'Degraded-state UX review',
-    trigger: 'Freshness, correctness, or availability drops below healthy.',
-    action:
-      'Capture whether public and authenticated surfaces are telling the truth about degraded system state and log the next honesty fix.',
-    whyItMatters:
-      'Premium reliability is not only uptime. It is also whether the product stays honest under strain.',
-  },
-];
+export const AUTOMATION_CANDIDATES: AutomationCandidate[] = [];
 
 export const SYSTEMS_QUICK_LINKS: QuickLink[] = [
+  {
+    label: 'Launch control room',
+    href: '/admin/systems#launch-control-room',
+    description: 'Go or no-go call, blockers, watch items, and launch-week cadence.',
+  },
   {
     label: 'Pipeline',
     href: '/admin/pipeline',

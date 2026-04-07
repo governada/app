@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import type {
   SystemsAction,
+  SystemsAutomationActivityRecord,
+  SystemsAutomationActivityTone,
   SystemsAutomationFollowup,
   SystemsAutomationFollowupStatus,
   SystemsCommitmentShepherdRecord,
@@ -11,9 +13,26 @@ import type {
   SystemsAutomationSummary,
   SystemsAutomationTriggerType,
   SystemsCommitmentCard,
+  SystemsIncidentRecord,
+  SystemsIncidentSummary,
+  SystemsPerformanceBaselineRecord,
   SystemsReviewDiscipline,
   SystemsStatus,
+  SystemsTrustSurfaceReviewRecord,
+  SystemsTrustSurfaceReviewSummary,
 } from '@/lib/admin/systems';
+import {
+  buildSystemsDrillCadenceTarget,
+  buildSystemsIncidentRetroTarget,
+} from '@/lib/admin/systemsIncidents';
+import {
+  buildSystemsPerformanceBaselineFollowupTarget,
+  SYSTEMS_PERFORMANCE_BASELINE_ACTION,
+} from '@/lib/admin/systemsPerformance';
+import {
+  buildSystemsTrustSurfaceFollowupTarget,
+  SYSTEMS_TRUST_SURFACE_REVIEW_ACTION,
+} from '@/lib/admin/systemsTrustSurface';
 
 export const SYSTEMS_AUTOMATION_FOLLOWUP_ACTION = 'systems_automation_followup_sync';
 export const SYSTEMS_AUTOMATION_SWEEP_ACTION = 'systems_automation_sweep';
@@ -24,6 +43,8 @@ export const SYSTEMS_AUTOMATION_AUDIT_ACTIONS = [
   SYSTEMS_AUTOMATION_SWEEP_ACTION,
   SYSTEMS_OPERATOR_ESCALATION_ACTION,
   SYSTEMS_COMMITMENT_SHEPHERD_ACTION,
+  SYSTEMS_PERFORMANCE_BASELINE_ACTION,
+  SYSTEMS_TRUST_SURFACE_REVIEW_ACTION,
 ] as const;
 export const SYSTEMS_OPERATOR_ESCALATION_REMINDER_HOURS = 24;
 
@@ -89,7 +110,15 @@ function reasonLabel(reason: SystemsOperatorEscalationTarget['reason']) {
 }
 
 const followupStatusSchema = z.enum(['open', 'acknowledged', 'resolved']);
-const triggerTypeSchema = z.enum(['review_discipline', 'overdue_commitment', 'systems_action']);
+const triggerTypeSchema = z.enum([
+  'review_discipline',
+  'performance_baseline',
+  'trust_surface_review',
+  'drill_cadence',
+  'incident_retro_followup',
+  'overdue_commitment',
+  'systems_action',
+]);
 const severitySchema = z.enum(['warning', 'critical']);
 
 const recordSchema = z.record(z.string(), z.unknown());
@@ -182,6 +211,157 @@ function buildFollowup(
     actionHref: payload.actionHref ?? null,
     evidence: payload.evidence,
     updatedAt: createdAt,
+  };
+}
+
+function triggerTypeLabel(triggerType: SystemsAutomationTriggerType) {
+  switch (triggerType) {
+    case 'review_discipline':
+      return 'Review discipline';
+    case 'performance_baseline':
+      return 'Performance baseline';
+    case 'trust_surface_review':
+      return 'Trust surfaces';
+    case 'drill_cadence':
+      return 'Drill cadence';
+    case 'incident_retro_followup':
+      return 'Incident retro';
+    case 'overdue_commitment':
+      return 'Commitment health';
+    default:
+      return 'Systems action';
+  }
+}
+
+function followupStatusLabel(status: SystemsAutomationFollowupStatus) {
+  switch (status) {
+    case 'acknowledged':
+      return 'Acknowledged';
+    case 'resolved':
+      return 'Resolved';
+    default:
+      return 'Open follow-up';
+  }
+}
+
+function followupActivityTone(
+  severity: SystemsAutomationSeverity,
+  status: SystemsAutomationFollowupStatus,
+): SystemsAutomationActivityTone {
+  if (status === 'resolved') return 'good';
+  if (status === 'acknowledged') return 'neutral';
+  return severity === 'critical' ? 'critical' : 'warning';
+}
+
+function sweepStatusLabel(status: SystemsAutomationRunRecord['status']) {
+  switch (status) {
+    case 'good':
+      return 'Healthy sweep';
+    case 'warning':
+      return 'Watch sweep';
+    default:
+      return 'Critical sweep';
+  }
+}
+
+function buildAutomationActivityId(
+  type: SystemsAutomationActivityRecord['type'],
+  createdAt: string,
+  target?: string | null,
+) {
+  return [type, createdAt, target ?? 'systems'].join(':');
+}
+
+function buildSweepActivity(
+  row: SystemsAutomationAuditRow,
+  payload: z.infer<typeof sweepPayloadSchema>,
+): SystemsAutomationActivityRecord {
+  return {
+    id: buildAutomationActivityId('sweep', row.created_at, row.target),
+    type: 'sweep',
+    actorType: payload.actorType,
+    statusLabel: sweepStatusLabel(payload.status),
+    tone: payload.status,
+    title: payload.actorType === 'cron' ? 'Scheduled daily sweep' : 'Manual automation sweep',
+    summary: payload.summary,
+    createdAt: row.created_at,
+    actionHref: '/admin/systems#automation',
+    metricItems: [
+      { label: 'Open follow-ups', value: String(payload.followupCount) },
+      { label: 'Critical', value: String(payload.criticalCount) },
+      { label: 'Opened', value: String(payload.openedCount) },
+      { label: 'Resolved', value: String(payload.resolvedCount) },
+    ],
+  };
+}
+
+function buildFollowupActivity(
+  row: SystemsAutomationAuditRow,
+  payload: z.infer<typeof followupPayloadSchema>,
+): SystemsAutomationActivityRecord {
+  return {
+    id: buildAutomationActivityId('followup', row.created_at, payload.sourceKey),
+    type: 'followup',
+    actorType: 'system',
+    statusLabel: followupStatusLabel(payload.status),
+    tone: followupActivityTone(payload.severity, payload.status),
+    title: payload.title,
+    summary: payload.summary,
+    createdAt: row.created_at,
+    actionHref: payload.actionHref ?? null,
+    sourceKey: payload.sourceKey,
+    metricItems: [
+      { label: 'Trigger', value: triggerTypeLabel(payload.triggerType) },
+      { label: 'Severity', value: payload.severity === 'critical' ? 'Critical' : 'Warning' },
+      { label: 'State', value: followupStatusLabel(payload.status) },
+    ],
+  };
+}
+
+function buildOperatorEscalationActivity(
+  row: SystemsAutomationAuditRow,
+  payload: z.infer<typeof operatorEscalationPayloadSchema>,
+): SystemsAutomationActivityRecord {
+  return {
+    id: buildAutomationActivityId('operator_escalation', row.created_at, row.target),
+    type: 'operator_escalation',
+    actorType: payload.actorType,
+    statusLabel: payload.status === 'sent' ? 'Digest sent' : 'Delivery failed',
+    tone: payload.status === 'sent' ? 'warning' : 'critical',
+    title: payload.title,
+    summary: payload.details,
+    createdAt: row.created_at,
+    actionHref: '/admin/systems#automation',
+    metricItems: [
+      { label: 'Critical follow-ups', value: String(payload.criticalCount) },
+      { label: 'Channels', value: String(payload.channelCount) },
+    ],
+  };
+}
+
+function buildCommitmentShepherdActivity(
+  row: SystemsAutomationAuditRow,
+  payload: z.infer<typeof commitmentShepherdPayloadSchema>,
+): SystemsAutomationActivityRecord {
+  return {
+    id: buildAutomationActivityId(
+      'commitment_shepherd',
+      row.created_at,
+      payload.commitmentId ?? row.target,
+    ),
+    type: 'commitment_shepherd',
+    actorType: payload.actorType,
+    statusLabel: payload.status === 'focus' ? 'Needs focus' : 'Clear',
+    tone:
+      payload.status === 'clear' ? 'good' : payload.reason === 'blocked' ? 'critical' : 'warning',
+    title: payload.title,
+    summary: payload.summary,
+    createdAt: row.created_at,
+    actionHref: payload.actionHref ?? '/admin/systems#weekly-review',
+    metricItems: [
+      { label: 'Commitment', value: payload.commitmentTitle ?? 'No stale commitment' },
+      ...(payload.owner ? [{ label: 'Owner', value: payload.owner }] : []),
+    ],
   };
 }
 
@@ -482,6 +662,43 @@ export function parseLatestSystemsCommitmentShepherd(
   return null;
 }
 
+export function buildSystemsAutomationHistory(
+  rows: SystemsAutomationAuditRow[],
+): SystemsAutomationActivityRecord[] {
+  const history: SystemsAutomationActivityRecord[] = [];
+
+  for (const row of rows) {
+    if (row.action === SYSTEMS_AUTOMATION_FOLLOWUP_ACTION) {
+      const parsed = followupPayloadSchema.safeParse(row.payload);
+      if (!parsed.success) continue;
+      history.push(buildFollowupActivity(row, parsed.data));
+      continue;
+    }
+
+    if (row.action === SYSTEMS_AUTOMATION_SWEEP_ACTION) {
+      const parsed = sweepPayloadSchema.safeParse(row.payload);
+      if (!parsed.success) continue;
+      history.push(buildSweepActivity(row, parsed.data));
+      continue;
+    }
+
+    if (row.action === SYSTEMS_OPERATOR_ESCALATION_ACTION) {
+      const parsed = operatorEscalationPayloadSchema.safeParse(row.payload);
+      if (!parsed.success) continue;
+      history.push(buildOperatorEscalationActivity(row, parsed.data));
+      continue;
+    }
+
+    if (row.action === SYSTEMS_COMMITMENT_SHEPHERD_ACTION) {
+      const parsed = commitmentShepherdPayloadSchema.safeParse(row.payload);
+      if (!parsed.success) continue;
+      history.push(buildCommitmentShepherdActivity(row, parsed.data));
+    }
+  }
+
+  return history;
+}
+
 export function buildSystemsOperatorEscalationTargets(
   followups: SystemsAutomationFollowup[],
   latestEscalationBySource: Map<string, string>,
@@ -561,6 +778,12 @@ export function formatSystemsOperatorEscalationDigest(
 
 export function buildSystemsAutomationSpecs(input: {
   reviewDiscipline: SystemsReviewDiscipline;
+  performanceStatus: SystemsStatus;
+  latestPerformanceBaseline: SystemsPerformanceBaselineRecord | null;
+  trustSurfaceReviewSummary: SystemsTrustSurfaceReviewSummary;
+  latestTrustSurfaceReview: SystemsTrustSurfaceReviewRecord | null;
+  incidentSummary: SystemsIncidentSummary;
+  incidentHistory: SystemsIncidentRecord[];
   openCommitments: SystemsCommitmentCard[];
   actions: SystemsAction[];
 }): SystemsAutomationSpec[] {
@@ -587,6 +810,94 @@ export function buildSystemsAutomationSpecs(input: {
     });
   }
 
+  const performanceBaselineTarget = buildSystemsPerformanceBaselineFollowupTarget({
+    latestBaseline: input.latestPerformanceBaseline,
+    performanceStatus: input.performanceStatus,
+  });
+
+  if (performanceBaselineTarget) {
+    specs.push({
+      sourceKey: performanceBaselineTarget.sourceKey,
+      triggerType: 'performance_baseline',
+      severity: performanceBaselineTarget.severity,
+      title: performanceBaselineTarget.title,
+      summary: performanceBaselineTarget.summary,
+      recommendedAction: performanceBaselineTarget.recommendedAction,
+      actionHref: performanceBaselineTarget.actionHref,
+      evidence: performanceBaselineTarget.evidence,
+    });
+  }
+
+  const trustSurfaceTarget = buildSystemsTrustSurfaceFollowupTarget({
+    latestReview: input.latestTrustSurfaceReview,
+    summary: input.trustSurfaceReviewSummary,
+  });
+
+  if (trustSurfaceTarget) {
+    specs.push({
+      sourceKey: trustSurfaceTarget.sourceKey,
+      triggerType: 'trust_surface_review',
+      severity: trustSurfaceTarget.severity,
+      title: trustSurfaceTarget.title,
+      summary: trustSurfaceTarget.summary,
+      recommendedAction: trustSurfaceTarget.recommendedAction,
+      actionHref: trustSurfaceTarget.actionHref,
+      evidence: trustSurfaceTarget.evidence,
+    });
+  }
+
+  const drillCadenceTarget = buildSystemsDrillCadenceTarget({
+    summary: input.incidentSummary,
+    history: input.incidentHistory,
+  });
+
+  if (drillCadenceTarget) {
+    specs.push({
+      sourceKey: drillCadenceTarget.sourceKey,
+      triggerType: 'drill_cadence',
+      severity: drillCadenceTarget.severity,
+      title: drillCadenceTarget.title,
+      summary: drillCadenceTarget.summary,
+      recommendedAction: drillCadenceTarget.recommendedAction,
+      actionHref: drillCadenceTarget.actionHref,
+      evidence: {
+        reason: drillCadenceTarget.reason,
+        drillCount: drillCadenceTarget.drillCount,
+        lastDrillAt: drillCadenceTarget.lastDrillAt,
+        suggestedScenario: drillCadenceTarget.suggestedScenario,
+        suggestedTitle: drillCadenceTarget.suggestedTitle,
+        suggestedSystems: drillCadenceTarget.suggestedSystems,
+      },
+    });
+  }
+
+  const incidentRetroTarget = buildSystemsIncidentRetroTarget({
+    history: input.incidentHistory,
+    openCommitments: input.openCommitments,
+  });
+
+  if (incidentRetroTarget) {
+    specs.push({
+      sourceKey: incidentRetroTarget.sourceKey,
+      triggerType: 'incident_retro_followup',
+      severity: incidentRetroTarget.severity,
+      title: incidentRetroTarget.title,
+      summary: incidentRetroTarget.summary,
+      recommendedAction: incidentRetroTarget.recommendedAction,
+      actionHref: incidentRetroTarget.actionHref,
+      evidence: {
+        entryId: incidentRetroTarget.entryId,
+        entryType: incidentRetroTarget.entryType,
+        incidentDate: incidentRetroTarget.incidentDate,
+        incidentTitle: incidentRetroTarget.incidentTitle,
+        followUpOwner: incidentRetroTarget.followUpOwner,
+        commitmentTitle: incidentRetroTarget.commitmentTitle,
+        commitmentSummary: incidentRetroTarget.commitmentSummary,
+        linkedSloIds: incidentRetroTarget.linkedSloIds,
+      },
+    });
+  }
+
   for (const commitment of input.openCommitments.filter((item) => item.isOverdue)) {
     specs.push({
       sourceKey: `systems:commitment:${commitment.id}`,
@@ -609,8 +920,7 @@ export function buildSystemsAutomationSpecs(input: {
   }
 
   for (const action of input.actions) {
-    const shouldAutomate =
-      action.automationReady && (action.priority === 'P0' || action.id === 'record-baseline');
+    const shouldAutomate = action.automationReady && action.priority === 'P0';
     if (!shouldAutomate) continue;
 
     specs.push({

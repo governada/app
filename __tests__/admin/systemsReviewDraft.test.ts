@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { SystemsDashboardData } from '@/lib/admin/systems';
 import {
+  buildSystemsReviewDraftHistory,
   buildSystemsReviewDraft,
   parseLatestSystemsReviewDraft,
   SYSTEMS_REVIEW_DRAFT_ACTION,
@@ -86,6 +87,74 @@ function buildDashboardFixture(): SystemsDashboardData {
       openCommitments: 2,
       overdueCommitments: 1,
     },
+    scorecardSync: {
+      status: 'warning',
+      headline: 'Live posture has drifted from the last logged review',
+      currentValue: '2 reviews / 2-week streak',
+      target: 'A fresh weekly review within 7 days that matches the live cockpit',
+      summary:
+        'The cockpit is currently different than the last durable review. Refresh the scorecard so the weekly record matches the current risk.',
+      reviewCount: 2,
+      weeklyStreak: 2,
+      liveStatus: 'warning',
+      lastReviewStatus: 'critical',
+      lastReviewedAt: '2026-03-17T12:00:00.000Z',
+      driftSloIds: ['freshness'],
+      hotspotSloIds: ['freshness', 'journeys'],
+      trend: 'improving',
+      recentReviews: [],
+    },
+    incidentSummary: {
+      status: 'warning',
+      headline: 'Failure drills have not started yet',
+      currentValue: '0 open incidents / no drill yet',
+      target: 'Monthly drills with no unresolved high-severity incidents',
+      summary:
+        'No incidents or drills are logged yet. Run the first tabletop drill so response readiness stops living only in the runbook.',
+      lastDrillAt: null,
+      lastIncidentAt: null,
+      openIncidentCount: 0,
+      drillCount: 0,
+      recentEntries: [],
+    },
+    performanceBaselineSummary: {
+      status: 'warning',
+      headline: 'Performance baseline is stale',
+      currentValue: '24 days since the last baseline',
+      target: 'A fresh baseline every 14 days and after risky route or caching changes',
+      summary:
+        'The latest minimum-load baseline is stale, so performance changes can land without a fresh load signal.',
+      lastRecordedAt: '2026-03-09T12:00:00.000Z',
+      daysSinceBaseline: 24,
+    },
+    trustSurfaceReviewSummary: {
+      status: 'warning',
+      headline: 'Latest trust-surface review found an honesty gap to close',
+      currentValue: '2026-04-01 review / 2 surfaces',
+      target:
+        'Review degraded-state trust surfaces within 7 days whenever availability, freshness, or correctness is not healthy',
+      summary: 'Public surfaces are still too subtle about freshness drift.',
+      lastReviewedAt: '2026-04-01T12:00:00.000Z',
+      daysSinceReview: 1,
+      reviewRequired: true,
+      linkedSloIds: ['freshness', 'correctness'],
+    },
+    launchControlRoom: {
+      decision: 'risky',
+      headline: 'Launch is possible, but still risky',
+      summary: 'Two watch items still need explicit owner discipline before launch.',
+      currentCall:
+        'Treat launch as conditional. Keep the call open only if each watch item has an owner, a mitigation, and a fresh verification pass.',
+      blockerCount: 0,
+      watchCount: 2,
+      checklist: [],
+      blockers: [],
+      watchItems: [
+        'Performance discipline: The latest baseline is stale.',
+        'Scorecard evidence freshness: The durable review needs to catch up to the live posture.',
+      ],
+      launchWeekCadence: [],
+    },
     automationSummary: {
       status: 'warning',
       headline: 'Automation is active, but it still needs founder follow-through',
@@ -109,6 +178,7 @@ function buildDashboardFixture(): SystemsDashboardData {
         updatedAt: '2026-04-02T11:55:00.000Z',
       },
     ],
+    automationHistory: [],
     latestAutomationRun: {
       actorType: 'cron',
       status: 'warning',
@@ -137,10 +207,53 @@ function buildDashboardFixture(): SystemsDashboardData {
       actionHref: '/admin/systems#commitment-4375fe7d-f712-48d5-ac2a-c17b62d8d7ce',
       createdAt: '2026-04-02T11:55:00.000Z',
     },
+    latestPerformanceBaseline: {
+      actorType: 'manual',
+      loggedAt: '2026-03-09T12:00:00.000Z',
+      baselineDate: '2026-03-09',
+      environment: 'production',
+      scenarioLabel: 'Minimum public read baseline',
+      concurrencyProfile: '1 -> 10 -> 50 -> 100 VUs over 5 minutes',
+      overallStatus: 'warning',
+      summary: 'The public read path is drifting above the ideal load target.',
+      bottleneck: 'The DRep listing payload remains the slowest public path.',
+      mitigationOwner: 'Founder + agents',
+      nextStep: 'Trim the payload and rerun the baseline.',
+      artifactUrl: null,
+      notes: null,
+      apiHealthP95Ms: 110,
+      apiDrepsP95Ms: 680,
+      apiV1DrepsP95Ms: 430,
+      governanceHealthP95Ms: 360,
+      errorRatePct: 0.8,
+      maxObservedP95Ms: 680,
+      daysSinceBaseline: 24,
+      isStale: true,
+    },
+    latestTrustSurfaceReview: {
+      actorType: 'manual',
+      loggedAt: '2026-04-01T12:00:00.000Z',
+      reviewDate: '2026-04-01',
+      overallStatus: 'warning',
+      linkedSloIds: ['freshness', 'correctness'],
+      reviewedSurfaces: ['Home shell', 'Proposal detail'],
+      summary: 'Public surfaces are still too subtle about freshness drift.',
+      currentUserState: 'Users can still read data, but the degraded state is easy to miss.',
+      honestyGap: 'Freshness drift is not explicit enough on public surfaces.',
+      nextFix: 'Add a clear stale-data state to discovery and proposal detail.',
+      owner: 'Founder + agents',
+      artifactUrl: null,
+      notes: null,
+      daysSinceReview: 1,
+      isStale: false,
+    },
     suggestedReviewDraft: null,
     automationOpenCommitments: [],
     openCommitments: [],
     reviewHistory: [],
+    incidentHistory: [],
+    performanceBaselineHistory: [],
+    trustSurfaceReviewHistory: [],
     journeys: [],
     automationCandidates: [],
     quickLinks: [],
@@ -159,7 +272,114 @@ describe('systems review draft helpers', () => {
     expect(draft.hardeningCommitmentSummary).toMatch(/confirm the blocker/i);
     expect(draft.linkedSloIds).toEqual(['freshness', 'journeys']);
     expect(draft.changeNotes).toMatch(/Commitment shepherd/i);
+    expect(draft.changeNotes).toMatch(/Incident response/i);
     expect(draft.commitmentDueDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it('reuses incident retro follow-up evidence for the weekly commitment draft', () => {
+    const data = buildDashboardFixture();
+    data.latestCommitmentShepherd = null;
+    data.automationFollowups = [
+      {
+        sourceKey: 'systems:incident-retro:incident:2026-04-04:koios-outage',
+        triggerType: 'incident_retro_followup',
+        severity: 'critical',
+        status: 'open',
+        title: "Turn Koios outage into this week's hardening commitment",
+        summary: 'The permanent fix still needs to become named weekly operating work.',
+        recommendedAction: 'Apply the suggested weekly commitment in the founder review.',
+        actionHref: '/admin/systems#weekly-review',
+        evidence: {
+          incidentTitle: 'Koios outage',
+          followUpOwner: 'Platform owner',
+          commitmentTitle: 'Close the incident follow-up from Koios outage',
+          commitmentSummary:
+            'Systems affected: pipeline, freshness. Permanent fix to operationalize: Add stronger stale-data operator prompts.',
+          linkedSloIds: ['freshness', 'availability'],
+        },
+        updatedAt: '2026-04-02T11:55:00.000Z',
+      },
+    ];
+
+    const draft = buildSystemsReviewDraft(data, 'cron');
+
+    expect(draft.focusArea).toMatch(/koios outage/i);
+    expect(draft.hardeningCommitmentTitle).toBe('Close the incident follow-up from Koios outage');
+    expect(draft.hardeningCommitmentSummary).toMatch(/permanent fix to operationalize/i);
+    expect(draft.commitmentOwner).toBe('Platform owner');
+    expect(draft.linkedSloIds).toEqual(['freshness', 'availability']);
+    expect(draft.changeNotes).toMatch(/incident retro follow-up/i);
+  });
+
+  it('reuses performance baseline follow-up evidence for the weekly commitment draft', () => {
+    const data = buildDashboardFixture();
+    data.latestCommitmentShepherd = null;
+    data.automationFollowups = [
+      {
+        sourceKey: 'systems:performance-baseline',
+        triggerType: 'performance_baseline',
+        severity: 'warning',
+        status: 'open',
+        title: 'Close the performance bottleneck from the latest baseline',
+        summary: 'The DRep listing payload is still widening p95 under load.',
+        recommendedAction:
+          'Founder + agents owns the next move: Trim the payload and rerun the baseline.',
+        actionHref: '/admin/systems#performance-baseline',
+        evidence: {
+          reason: 'bottleneck',
+          latestBaselineDate: '2026-03-09',
+          bottleneck: 'The DRep listing payload remains the slowest public path.',
+          mitigationOwner: 'Platform owner',
+        },
+        updatedAt: '2026-04-02T11:55:00.000Z',
+      },
+    ];
+
+    const draft = buildSystemsReviewDraft(data, 'cron');
+
+    expect(draft.focusArea).toMatch(/performance bottleneck/i);
+    expect(draft.hardeningCommitmentTitle).toMatch(/performance bottleneck/i);
+    expect(draft.hardeningCommitmentSummary).toMatch(/rerun the baseline/i);
+    expect(draft.commitmentOwner).toBe('Platform owner');
+    expect(draft.changeNotes).toMatch(/Latest performance baseline/i);
+    expect(draft.changeNotes).toMatch(/Performance baseline follow-up/i);
+  });
+
+  it('reuses trust-surface follow-up evidence for the weekly commitment draft', () => {
+    const data = buildDashboardFixture();
+    data.latestCommitmentShepherd = null;
+    data.automationFollowups = [
+      {
+        sourceKey: 'systems:trust-surface-review',
+        triggerType: 'trust_surface_review',
+        severity: 'warning',
+        status: 'open',
+        title: 'Close the degraded-state honesty gap',
+        summary: 'Freshness drift is still too subtle on public surfaces.',
+        recommendedAction:
+          'Platform owner owns the next fix: Add explicit stale-data messaging to the affected public surfaces.',
+        actionHref: '/admin/systems#trust-surface-review',
+        evidence: {
+          reason: 'honesty_gap',
+          reviewDate: '2026-04-01',
+          owner: 'Platform owner',
+          honestyGap: 'Freshness drift is still too subtle on public surfaces.',
+          linkedSloIds: ['freshness', 'correctness'],
+          reviewedSurfaces: ['Home shell', 'Proposal detail'],
+        },
+        updatedAt: '2026-04-02T11:55:00.000Z',
+      },
+    ];
+
+    const draft = buildSystemsReviewDraft(data, 'cron');
+
+    expect(draft.focusArea).toMatch(/honesty gap/i);
+    expect(draft.hardeningCommitmentTitle).toMatch(/honesty gap/i);
+    expect(draft.hardeningCommitmentSummary).toMatch(/stale-data messaging/i);
+    expect(draft.commitmentOwner).toBe('Platform owner');
+    expect(draft.linkedSloIds).toEqual(['freshness', 'correctness']);
+    expect(draft.changeNotes).toMatch(/Latest trust-surface review/i);
+    expect(draft.changeNotes).toMatch(/Trust-surface follow-up/i);
   });
 
   it('reads the latest valid draft from audit rows', () => {
@@ -191,5 +411,36 @@ describe('systems review draft helpers', () => {
 
     expect(state?.focusArea).toBe('Protect freshness and review discipline');
     expect(state?.linkedSloIds).toEqual(['freshness']);
+  });
+
+  it('builds review draft history entries for the automation cockpit', () => {
+    const history = buildSystemsReviewDraftHistory([
+      {
+        action: SYSTEMS_REVIEW_DRAFT_ACTION,
+        payload: {
+          actorType: 'cron',
+          generatedAt: '2026-04-02T12:30:00.000Z',
+          reviewDate: '2026-04-02',
+          overallStatus: 'warning',
+          focusArea: 'Protect freshness and review discipline',
+          topRisk: 'Freshness and cadence are both drifting.',
+          changeNotes: 'Freshness is drifting and the founder loop needs a refresh.',
+          hardeningCommitmentTitle: 'Refresh the systems cadence',
+          hardeningCommitmentSummary: 'Log a fresh review and reset the hardening loop.',
+          commitmentOwner: 'Founder + agents',
+          commitmentDueDate: '2026-04-03',
+          linkedSloIds: ['freshness'],
+        },
+        created_at: '2026-04-02T12:30:00.000Z',
+      },
+    ]);
+
+    expect(history).toHaveLength(1);
+    expect(history[0]).toMatchObject({
+      type: 'review_draft',
+      statusLabel: 'Scheduled draft',
+      tone: 'warning',
+      actionHref: '/admin/systems#weekly-review',
+    });
   });
 });

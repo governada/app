@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildSystemsAutomationHistory,
   buildLatestSuccessfulEscalationBySource,
   buildSystemsAutomationSpecs,
   buildSystemsCommitmentShepherdRecord,
@@ -43,6 +44,116 @@ describe('systems automation helpers', () => {
         openCommitments: 2,
         overdueCommitments: 1,
       },
+      performanceStatus: 'warning',
+      latestPerformanceBaseline: {
+        actorType: 'manual',
+        loggedAt: '2026-03-12T12:00:00.000Z',
+        baselineDate: '2026-03-12',
+        scenarioLabel: 'Minimum public read baseline',
+        concurrencyProfile: '1 -> 10 -> 50 -> 100 VUs over 5 minutes',
+        overallStatus: 'warning',
+        summary: 'The public read baseline drifted above the ideal launch bar.',
+        bottleneck: 'The `/api/dreps` payload is still the slowest public path.',
+        mitigationOwner: 'Founder + agents',
+        nextStep: 'Trim the payload and rerun the baseline after the cache change lands.',
+        artifactUrl: null,
+        notes: null,
+        apiHealthP95Ms: 110,
+        apiDrepsP95Ms: 760,
+        apiV1DrepsP95Ms: 420,
+        governanceHealthP95Ms: 380,
+        errorRatePct: 0.9,
+        maxObservedP95Ms: 760,
+        environment: 'production',
+        isStale: true,
+        daysSinceBaseline: 25,
+      },
+      trustSurfaceReviewSummary: {
+        status: 'warning',
+        headline: 'Latest trust-surface review found an honesty gap to close',
+        currentValue: '2026-04-01 review / 2 surfaces',
+        target:
+          'Review degraded-state trust surfaces within 7 days whenever availability, freshness, or correctness is not healthy',
+        summary: 'The stale-data state is still too implicit on public surfaces.',
+        lastReviewedAt: '2026-04-01T12:00:00.000Z',
+        daysSinceReview: 2,
+        reviewRequired: true,
+        linkedSloIds: ['freshness', 'correctness'],
+      },
+      latestTrustSurfaceReview: {
+        actorType: 'manual',
+        loggedAt: '2026-04-01T12:00:00.000Z',
+        reviewDate: '2026-04-01',
+        overallStatus: 'warning',
+        linkedSloIds: ['freshness', 'correctness'],
+        reviewedSurfaces: ['Home shell', 'Proposal detail'],
+        summary: 'The degraded-state story is partly honest but still incomplete.',
+        currentUserState: 'Public pages still look healthy even while freshness is drifting.',
+        honestyGap: 'Freshness drift is not explicit enough on the public journey.',
+        nextFix: 'Add a clearer stale-data state to the affected public surfaces.',
+        owner: 'Founder + agents',
+        artifactUrl: null,
+        notes: null,
+        daysSinceReview: 2,
+        isStale: false,
+      },
+      incidentSummary: {
+        status: 'warning',
+        headline: 'Incident follow-through is still open',
+        currentValue: '1 open incident / no drill yet',
+        target: 'Monthly drills with no unresolved high-severity incidents',
+        summary:
+          'The incident trail is active, but there is still unresolved mitigation or follow-up work. Use the weekly review to make that hardening work explicit.',
+        lastDrillAt: null,
+        lastIncidentAt: '2026-04-01',
+        openIncidentCount: 1,
+        drillCount: 0,
+        recentEntries: [
+          {
+            id: 'incident:2026-04-01:koios-outage',
+            loggedAt: '2026-04-01T12:15:00.000Z',
+            incidentDate: '2026-04-01',
+            entryType: 'incident',
+            severity: 'p1',
+            status: 'follow_up_pending',
+            title: 'Koios outage',
+            summary: 'Public governance reads would drift stale if the dependency stayed down.',
+            detectedBy: 'Alert',
+            systemsAffected: ['pipeline', 'freshness'],
+            userImpact: 'Public governance reads would drift stale if the dependency stayed down.',
+            rootCause: 'The dependency health check showed the upstream endpoint was unavailable.',
+            mitigation:
+              'Switched the team into stabilization mode and monitored the fallback path.',
+            permanentFix: 'Add a dependency drill and stronger stale-data operator prompts.',
+            followUpOwner: 'Founder + agents',
+            timeToAcknowledgeMinutes: 8,
+            timeToMitigateMinutes: 22,
+            timeToResolveMinutes: null,
+          },
+        ],
+      },
+      incidentHistory: [
+        {
+          id: 'incident:2026-04-01:koios-outage',
+          loggedAt: '2026-04-01T12:15:00.000Z',
+          incidentDate: '2026-04-01',
+          entryType: 'incident',
+          severity: 'p1',
+          status: 'follow_up_pending',
+          title: 'Koios outage',
+          summary: 'Public governance reads would drift stale if the dependency stayed down.',
+          detectedBy: 'Alert',
+          systemsAffected: ['pipeline', 'freshness'],
+          userImpact: 'Public governance reads would drift stale if the dependency stayed down.',
+          rootCause: 'The dependency health check showed the upstream endpoint was unavailable.',
+          mitigation: 'Switched the team into stabilization mode and monitored the fallback path.',
+          permanentFix: 'Add a dependency drill and stronger stale-data operator prompts.',
+          followUpOwner: 'Founder + agents',
+          timeToAcknowledgeMinutes: 8,
+          timeToMitigateMinutes: 22,
+          timeToResolveMinutes: null,
+        },
+      ],
       openCommitments: [overdueCommitment],
       actions: [
         {
@@ -60,6 +171,10 @@ describe('systems automation helpers', () => {
     expect(specs.map((spec) => spec.sourceKey)).toEqual(
       expect.arrayContaining([
         'systems:review-discipline',
+        'systems:performance-baseline',
+        'systems:trust-surface-review',
+        'systems:drill-cadence',
+        'systems:incident-retro:incident:2026-04-01:koios-outage',
         'systems:commitment:4375fe7d-f712-48d5-ac2a-c17b62d8d7ce',
         'systems:action:resolve-integrity-alerts',
       ]),
@@ -104,6 +219,94 @@ describe('systems automation helpers', () => {
     expect(state.openFollowups).toHaveLength(1);
     expect(state.openFollowups[0]?.sourceKey).toBe('systems:review-discipline');
     expect(state.latestRun?.status).toBe('warning');
+  });
+
+  it('builds centralized automation history from audit rows', () => {
+    const history = buildSystemsAutomationHistory([
+      {
+        action: SYSTEMS_AUTOMATION_SWEEP_ACTION,
+        target: 'systems',
+        payload: {
+          actorType: 'cron',
+          status: 'warning',
+          summary: 'Sweep surfaced 1 warning-level follow-up.',
+          followupCount: 1,
+          criticalCount: 0,
+          openedCount: 1,
+          updatedCount: 0,
+          resolvedCount: 0,
+        },
+        created_at: '2026-04-03T10:05:00.000Z',
+      },
+      {
+        action: SYSTEMS_AUTOMATION_FOLLOWUP_ACTION,
+        target: 'systems:review-discipline',
+        payload: {
+          sourceKey: 'systems:review-discipline',
+          triggerType: 'review_discipline',
+          severity: 'warning',
+          status: 'resolved',
+          title: 'Refresh the weekly systems review soon',
+          summary: 'The review loop is back on cadence.',
+          recommendedAction: 'Keep the weekly review fresh.',
+          actionHref: '/admin/systems#weekly-review',
+        },
+        created_at: '2026-04-03T10:04:00.000Z',
+      },
+      {
+        action: SYSTEMS_OPERATOR_ESCALATION_ACTION,
+        target: 'systems',
+        payload: {
+          actorType: 'cron',
+          status: 'sent',
+          title: 'Systems cockpit: 1 critical follow-up still open',
+          details: 'Digest body',
+          criticalCount: 1,
+          followupSourceKeys: ['systems:review-discipline'],
+          channelCount: 2,
+          channels: ['discord', 'telegram'],
+        },
+        created_at: '2026-04-03T10:03:00.000Z',
+      },
+      {
+        action: SYSTEMS_COMMITMENT_SHEPHERD_ACTION,
+        target: '8a6bb2b7-0dd9-4d67-9f59-20f5f2e31d54',
+        payload: {
+          actorType: 'cron',
+          status: 'focus',
+          title: 'Commitment shepherd: Unblock the weekly review commitment',
+          summary: 'The commitment is blocked and needs attention.',
+          recommendedAction: 'Unblock or replace it.',
+          commitmentId: '8a6bb2b7-0dd9-4d67-9f59-20f5f2e31d54',
+          commitmentTitle: 'Unblock the weekly review commitment',
+          commitmentStatus: 'blocked',
+          owner: 'Founder + agents',
+          dueDate: '2026-04-04',
+          reason: 'blocked',
+          actionHref: '/admin/systems#commitment-8a6bb2b7-0dd9-4d67-9f59-20f5f2e31d54',
+        },
+        created_at: '2026-04-03T10:02:00.000Z',
+      },
+    ]);
+
+    expect(history.map((entry) => entry.type)).toEqual([
+      'sweep',
+      'followup',
+      'operator_escalation',
+      'commitment_shepherd',
+    ]);
+    expect(history[0]).toMatchObject({
+      statusLabel: 'Watch sweep',
+      tone: 'warning',
+    });
+    expect(history[1]).toMatchObject({
+      actorType: 'system',
+      statusLabel: 'Resolved',
+      tone: 'good',
+    });
+    expect(history[2]?.metricItems).toEqual(
+      expect.arrayContaining([{ label: 'Channels', value: '2' }]),
+    );
   });
 
   it('marks automation summary bootstrap when no sweep has run yet', () => {

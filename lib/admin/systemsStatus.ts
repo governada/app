@@ -115,7 +115,7 @@ export function buildPromiseCards(
       target: 'p95 key APIs < 500ms, LCP under launch bar',
       summary: input.performance.summary,
       actionLabel: 'Run baseline',
-      actionHref: '/admin/systems#automation',
+      actionHref: '/admin/systems#performance-baseline',
     },
     {
       id: 'change-safety',
@@ -138,8 +138,8 @@ export function buildPromiseCards(
       currentValue: input.incidentResponse.value,
       target: 'Alert, acknowledge, mitigate, learn',
       summary: input.incidentResponse.summary,
-      actionLabel: 'Run first drill',
-      actionHref: '/admin/systems#automation',
+      actionLabel: 'Open incident log',
+      actionHref: '/admin/systems#incident-log',
     },
     {
       id: 'user-honesty',
@@ -151,7 +151,7 @@ export function buildPromiseCards(
       target: 'Users are told when confidence is reduced',
       summary: input.userHonesty.summary,
       actionLabel: 'Audit trust surfaces',
-      actionHref: '/admin/integrity',
+      actionHref: '/admin/systems#trust-surface-review',
     },
   ];
 
@@ -223,7 +223,7 @@ export function buildSloCards(
       alertThreshold: 'p95 > 500ms, rising 5xx rate, or no baseline discipline',
       summary: input.performance.summary,
       actionLabel: 'Run baseline',
-      actionHref: '/admin/systems#automation',
+      actionHref: '/admin/systems#performance-baseline',
     },
     {
       id: 'journeys',
@@ -293,6 +293,7 @@ export function buildRecommendedActions(promises: SystemsPromiseCard[]): Systems
   const performance = promises.find((promise) => promise.id === 'performance');
   const incidentResponse = promises.find((promise) => promise.id === 'incident-response');
   const changeSafety = promises.find((promise) => promise.id === 'change-safety');
+  const userHonesty = promises.find((promise) => promise.id === 'user-honesty');
 
   if (availability && availability.status !== 'good') {
     actions.push({
@@ -334,11 +335,11 @@ export function buildRecommendedActions(promises: SystemsPromiseCard[]): Systems
   if (performance && performance.status !== 'good') {
     actions.push({
       id: 'record-baseline',
-      title: 'Run and record the first performance baseline',
+      title: 'Refresh the performance baseline',
       priority: performance.status === 'critical' ? 'P0' : 'P1',
       timeframe: 'this-week',
       summary: performance.summary,
-      href: '/admin/systems#automation',
+      href: '/admin/systems#performance-baseline',
       automationReady: true,
     });
   }
@@ -350,7 +351,7 @@ export function buildRecommendedActions(promises: SystemsPromiseCard[]): Systems
       priority: 'P1',
       timeframe: 'foundation',
       summary: incidentResponse.summary,
-      href: '/admin/systems#automation',
+      href: '/admin/systems#incident-log',
       automationReady: true,
     });
   }
@@ -364,6 +365,18 @@ export function buildRecommendedActions(promises: SystemsPromiseCard[]): Systems
       summary: changeSafety.summary,
       href: '/admin/systems',
       automationReady: true,
+    });
+  }
+
+  if (userHonesty && userHonesty.status !== 'good') {
+    actions.push({
+      id: 'review-trust-surfaces',
+      title: 'Review degraded-state trust surfaces',
+      priority: userHonesty.status === 'critical' ? 'P0' : 'P1',
+      timeframe: 'this-week',
+      summary: userHonesty.summary,
+      href: '/admin/systems#trust-surface-review',
+      automationReady: false,
     });
   }
 
