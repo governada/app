@@ -70,16 +70,16 @@ For responsive: `preview_resize` with presets `"mobile"` (375x812), `"tablet"` (
 
 ## Troubleshooting
 
-| Symptom                                                  | Cause                                      | Fix                                                                                          |
-| -------------------------------------------------------- | ------------------------------------------ | -------------------------------------------------------------------------------------------- |
-| `MODULE_NOT_FOUND` errors                                | `node_modules` missing or junction broken  | Run `npm install` in the worktree                                                            |
-| Missing env var errors                                   | `.env.local` not copied                    | Run `npm run worktree:sync`                                                                    |
-| Port already in use                                      | Another dev server running                 | `autoPort: true` handles this automatically                                                  |
-| Turbopack panic: "Symlink points out of filesystem root" | `turbopack.root` not set in next.config.ts | Confirm `next.config.ts` sets `turbopack.root`                                               |
-| Browser hangs / all preview calls timeout                | Globe/Three.js page loaded first           | Stop server, restart, navigate to `/governance` first                                        |
-| Stale build cache                                        | `.next/` has bad state                     | `Remove-Item -Recurse -Force .next` then restart                                             |
-| Auth mock returns 401                                    | `DEV_MOCK_AUTH` not set                    | Verify `.env.local` contains `DEV_MOCK_AUTH=true`                                            |
-| Junction `node_modules` won't create                     | package.json differs from main             | Run `npm install` - the hook only junctions when deps match                                  |
+| Symptom                                                  | Cause                                      | Fix                                                         |
+| -------------------------------------------------------- | ------------------------------------------ | ----------------------------------------------------------- |
+| `MODULE_NOT_FOUND` errors                                | `node_modules` missing or junction broken  | Run `npm install` in the worktree                           |
+| Missing env var errors                                   | `.env.local` not copied                    | Run `npm run worktree:sync`                                 |
+| Port already in use                                      | Another dev server running                 | `autoPort: true` handles this automatically                 |
+| Turbopack panic: "Symlink points out of filesystem root" | `turbopack.root` not set in next.config.ts | Confirm `next.config.ts` sets `turbopack.root`              |
+| Browser hangs / all preview calls timeout                | Globe/Three.js page loaded first           | Stop server, restart, navigate to `/governance` first       |
+| Stale build cache                                        | `.next/` has bad state                     | `Remove-Item -Recurse -Force .next` then restart            |
+| Auth mock returns 401                                    | `DEV_MOCK_AUTH` not set                    | Verify `.env.local` contains `DEV_MOCK_AUTH=true`           |
+| Junction `node_modules` won't create                     | package.json differs from main             | Run `npm install` - the hook only junctions when deps match |
 
 ## Compilation Times (Turbopack)
 

@@ -4,7 +4,6 @@ Governance intelligence for the Cardano Nation.
 
 ## Autonomous Deployment Pipeline
 
-
 Implementation is NOT complete until deployed and validated in production. Use `/ship` for the full pipeline (authoritative). Manual steps: preflight -> commit -> push -> PR -> CI (background) -> pre-merge-check -> merge -> deploy-verifier (background) -> smoke-test -> visual verification (UI changes). If Inngest functions changed: `npm run inngest:register`. If deploy fails: `npm run rollback`.
 
 ## Hard Constraints

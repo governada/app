@@ -82,7 +82,13 @@ function withoutDisabledLocalProxyEnv(env) {
     'http://localhost:9',
     'https://localhost:9',
   ]);
-  const proxyKeys = new Set(['ALL_PROXY', 'HTTP_PROXY', 'HTTPS_PROXY', 'GIT_HTTP_PROXY', 'GIT_HTTPS_PROXY']);
+  const proxyKeys = new Set([
+    'ALL_PROXY',
+    'HTTP_PROXY',
+    'HTTPS_PROXY',
+    'GIT_HTTP_PROXY',
+    'GIT_HTTPS_PROXY',
+  ]);
   const cleaned = {};
 
   for (const [key, value] of Object.entries(env)) {
