@@ -73,6 +73,7 @@ jobs:
       - run: npm run build
       - name: Start production server and run critical E2E
         run: |
+          # Next is built with standalone output in CI; launch the generated server directly.
           SERVER_JS="$(find .next/standalone -path '*/server.js' | head -n 1)"
           test -n "$SERVER_JS"
           PORT=3000 HOSTNAME=127.0.0.1 node "$SERVER_JS" &
