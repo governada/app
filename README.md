@@ -30,11 +30,17 @@ Governada is the governance intelligence platform for Cardano. It serves every p
 - **AI**: Anthropic Claude (narratives, classification, rationale analysis)
 - **Testing**: Vitest + Playwright
 
+## Preferred Environments
+
+- **Autonomous agent work**: Codex cloud with the setup in `docs/codex-cloud.md`
+- **Local development**: macOS with Node 20 via `.nvmrc`
+- **Windows local development**: compatibility path only, not the primary repo contract
+
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 18.17.0+
+- Node.js 20+
 - npm
 
 ### Installation
@@ -42,14 +48,16 @@ Governada is the governance intelligence platform for Cardano. It serves every p
 ```bash
 git clone <repository-url>
 cd governada-app
-npm install
+npm ci
 cp .env.example .env.local
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
 
-See `.env.example` for required environment variables. Note: `.env.local` connects to **production** Supabase — treat all local operations as production operations.
+See `.env.example` for a local starter file. Additional runtime requirements are enforced in `lib/env.ts`. For Codex cloud, use `.env.codex.example` together with `docs/codex-cloud.md` instead of copying `.env.local`. Note: `.env.local` connects to **production** Supabase — treat all local operations as production operations.
+
+For autonomous tasks, prefer Codex cloud over local desktop workflows. The repo's Codex-facing defaults live in `AGENTS.md`, `.codex/config.toml`, and `docs/codex-cloud.md`.
 
 ## Architecture
 
@@ -108,6 +116,7 @@ npm run test:e2e       # Playwright E2E tests
 - `docs/strategy/monetization-strategy.md` — Business model and revenue phases
 - `docs/strategy/catalyst-proposal.md` — Catalyst Fund 16 proposal draft
 - `docs/adr/` — Architecture Decision Records
+- `docs/codex-cloud.md` — Codex cloud environment setup for this repo
 - `docs/runbook.md` — Operational runbook
 - `docs/observability-setup.md` — Monitoring setup guide
 

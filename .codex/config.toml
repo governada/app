@@ -1,0 +1,6 @@
+# Trusted local Codex defaults for this repository.
+# Codex cloud behavior is primarily driven by AGENTS.md plus the selected cloud environment.
+
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+project_doc_max_bytes = 65536

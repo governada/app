@@ -1,14 +1,24 @@
 # Agent Guide
 
-Provider-agnostic instructions for autonomous agents working in this repo. Treat this file as the portable workflow brief. Provider-specific adapters live under `.claude/`.
+Portable workflow brief for autonomous agents in this repo.
 
-## Core Rules
+`AGENTS.md` plus the portable `npm run ...` scripts are the source of truth for Codex-facing workflows. Local adapter layers such as `.claude/` and `.cursor/` are convenience tooling; if they drift from this file, follow this file and the repo scripts.
 
-- Feature work happens in a fresh worktree. The shared `governada-app` checkout stays on `main`. Hotfixes are the only exception. Read-only inspection on `main` is fine; the first mutating step must happen only after the agent has created a worktree.
-- Search before creating. Extend existing components, hooks, routes, and utilities unless extension is genuinely infeasible.
-- Non-trivial bugs require root-cause analysis before fixing. Do not patch symptoms first.
-- `.env.local` points at production services. Never perform write-heavy syncs, backfills, or destructive data operations without explicit approval.
+## Operating Model
+
+- Codex cloud is the primary autonomous environment. Design agent workflows for isolated Linux containers first.
+- macOS is the preferred local human environment.
+- Windows local support is compatibility-only. Do not make PowerShell, WSL, or Windows sandbox workarounds the core repo contract.
+- Local feature work in a shared checkout happens in a fresh worktree. Codex cloud tasks do not create repo-managed worktrees because the cloud container is already isolated per task.
+- `.env.local` points at production services. Never copy it into Codex cloud, and never run write-heavy syncs, backfills, or destructive data operations without explicit approval.
 - Risky user-facing work should be feature-flagged.
+
+## Solution Standard
+
+- Prefer the most elegant solution that fully solves the problem. Elegant means coherent with the existing architecture, durable under growth, easy to maintain, and likely to reduce future rework.
+- Do not choose shortcuts or minimal-diff patches when they preserve avoidable technical debt, performance issues, or scalability limits.
+- When the elegant solution is broader than the quickest patch, recommend it explicitly and explain why the broader change is justified.
+- In updates, handoffs, and PRs, always communicate impact: what changed, why it matters, who or what benefits, and the implications for performance, maintainability, scalability, and risk.
 
 ## Hard Constraints
 
@@ -18,41 +28,63 @@ Provider-agnostic instructions for autonomous agents working in this repo. Treat
 - Pages and components read cached governance data via `lib/data.ts`, not direct Koios calls.
 - Migrations go through Supabase MCP. After a migration, regenerate and commit `types/database.ts`.
 
-These constraints are enforced by `npm run agent:validate`. Run it before shipping. CI also runs it.
+These constraints are enforced by `npm run agent:validate`. `npm run codex:verify` is the Codex-safe baseline wrapper for this repo.
 
-## Workflow
+## Standard Commands
 
-1. If the task is feature work, create a fresh worktree first with `powershell -ExecutionPolicy Bypass -File scripts/new-worktree.ps1 <name>`. Do not start feature work in the shared checkout.
-2. Start from fresh `origin/main`. When resuming an existing worktree or when session diagnostics show drift/setup gaps, run `npm run worktree:sync`.
-3. Read only the minimal context needed. Use the strategy registry and manifest before diving into the full vision docs.
-4. Make the smallest change that solves the actual problem.
-5. Run `npm run agent:validate` and the relevant local verification for the scope.
-6. For feature work, open a PR with `Summary`, `Existing Code Audit`, `Robustness`, and `Impact` sections.
-7. Before merging, run `npm run pre-merge-check -- <PR#>`.
-8. After merge, verify deploy health and smoke tests with `npm run deploy:verify`.
+- `npm run codex:doctor` checks whether the current environment is review-ready or runtime-ready for app boot.
+- `npm run codex:verify` runs the cheapest reliable Codex baseline check.
+- `npm run codex:review-check` runs the full review-oriented verification set: lint, type-check, and unit tests.
+- `npm run codex:runtime-check` validates required runtime env and then runs a production build, defaulting to mocked Google Fonts responses for restricted environments.
+- On Windows Codex Desktop, if `npm run codex:review-check` hits `spawn EPERM`, run `npm run lint`, `npm run type-check`, and `npm run test:unit` as separate top-level commands instead.
+- `npm run session:doctor` summarizes local branch, worktree, and stash state.
+- `npm run worktree:new -- <name>` creates a local isolated worktree from `origin/main`.
+- `npm run worktree:sync` syncs the shared checkout or an existing local worktree.
+- `npm run pre-merge-check -- <PR#>` is the required pre-merge verification gate.
+- `npm run deploy:verify` is the required post-merge deploy check.
+
+## Cloud Workflow
+
+- Treat Codex cloud as an isolated Linux checkout. Use bash-compatible setup and verification commands only.
+- Start cloud tasks with `npm run codex:doctor` and `npm run codex:verify`, then add `npm run codex:review-check` or `npm run codex:runtime-check` only when the task needs them.
+- Setup scripts can install dependencies, but any credential the agent needs during the task must be configured as an environment variable, not a setup-only secret.
+- Keep agent internet access off by default. If a task genuinely needs network access during the agent phase, allowlist only the exact domains and HTTP methods required.
+- Use `.env.codex.example` and `docs/codex-cloud.md` for runtime-enabled Codex cloud environments. Never copy `.env.local`.
+- Prefer a low-privilege review environment by default. Use a separate runtime-enabled environment only when the task needs the app to boot or touch live integrations.
+
+## Local Workflow
+
+1. Prefer Codex cloud for autonomous work. Use local development when you need interactive browser debugging, manual investigation, or other human-in-the-loop workflows.
+2. For local feature work in a shared checkout, create a fresh worktree with `npm run worktree:new -- <name>`.
+3. Start from fresh `origin/main`. When resuming an existing local worktree or shared checkout, run `npm run worktree:sync`.
+4. Read the context needed to understand the surrounding system, constraints, and adjacent abstractions. Use the strategy registry and manifest before diving into the larger vision docs.
+5. Recommend and implement the most elegant solution justified by the problem, not the smallest possible diff.
+6. Run `npm run codex:verify` and then the verification scope that proves the change is correct and robust for the affected area.
+7. In status updates, final handoffs, and PRs, explain the impact of the work so the reasoning and consequences are clear.
+8. For feature work, open a PR with `Summary`, `Existing Code Audit`, `Robustness`, and `Impact` sections.
+9. Before merging, run `npm run pre-merge-check -- <PR#>`.
+10. After merge, run `npm run deploy:verify`.
+
+## Local Compatibility Notes
+
+- `npm run gh:auth-status` and `npm run auth:repair` manage the repo-scoped GitHub CLI context for local workflows.
+- Windows-only wrappers and `.claude` hooks are optional local adapters, not required repo infrastructure.
+- If a local adapter or hook disagrees with this file, `AGENTS.md` and the portable package scripts win.
+- On Windows Codex Desktop, keep `workspace-write` and prefer the approved npm wrappers. If a mutating Git or worktree command fails with `EPERM`, access denied, or a likely sandbox error, rerun it with escalation using an already-approved prefix instead of inventing a broader shell workaround.
 
 ## Autonomy Boundary
 
 Routine reads, edits, local verification, git hygiene, and PR preparation should not require approval. Pause for:
 
-- Destructive production-data operations
-- Scope expansion beyond the request
-- Architectural forks with materially different tradeoffs
-- Secrets, credential rotation, or external account changes
-
-## Codex Desktop Sandbox
-
-Keep Codex Desktop in `workspace-write`. The goal is not removing the sandbox; it is removing prompts for routine shipping.
-
-- Preferred writable root: the repo parent, `C:\Users\dalto\governada\`, so worktree metadata and in-repo worktrees stay inside the writable area.
-- Prefer stable `npm run ...` wrappers over ad hoc shell commands for CI, deploy, and GitHub operations. They produce narrower, reusable approval prefixes.
-- Persist approvals for safe recurring prefixes such as `npm run gh:auth-status`, `npm run ci:watch`, `npm run ci:failed`, `npm run pre-merge-check`, `npm run deploy:verify`, `npm run inngest:register`, `git add`, `git commit -m`, `git push`, `git fetch origin main`, `git worktree add`, and `gh api repos/governada/governada-app/pulls`.
-- Do not persist approvals for broad shells or interpreters such as bare `powershell`, `cmd`, `node`, `python`, `git`, or `gh`.
-- Repo-local GH context is provided by `npm run gh:auth-status` and the scripts in `scripts/lib/runtime.js`; do not rely on `gh` inferring the repo from the SSH remote alias.
+- destructive production-data operations
+- scope expansion beyond the request
+- architectural forks with materially different tradeoffs
+- secrets, credential rotation, or external account changes
 
 ## Setup Files
 
-- Local MCP credentials belong in `.mcp.json`, which stays ignored.
-- Local Claude overrides belong in `.claude/settings.local.json`, which stays ignored.
-- Use `.mcp.example.json` as the sanitized template for new machines.
-- Use `npm run auth:repair` if GitHub auth or the remote URL needs repair.
+- `.codex/config.toml` contains trusted project-scoped Codex defaults for local Codex clients.
+- `.mcp.json` contains local MCP credentials and stays ignored.
+- `.mcp.example.json` is the sanitized template for new machines.
+- `.claude/settings.local.json` contains local Claude overrides and stays ignored.
+- `.claude/` and `.cursor/` are local adapter layers, not the primary Codex source of truth.
