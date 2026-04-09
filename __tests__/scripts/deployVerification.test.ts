@@ -47,19 +47,22 @@ describe('deploy verification helpers', () => {
     expect(releaseMatchesExpected('fedcba98', 'abcdef12')).toBe(false);
   });
 
-  it('allows degraded production health when only non-core syncs are failing', async () => {
+  it('verifies production deploys against core health without depending on broad /api/health', async () => {
     const fetch = createFetch({
       '/api/health/ready': response({ status: 'ok', release: { commit_sha: 'abc123' } }),
       '/api/health/deep': response({ status: 'healthy' }),
-      '/api/health': response({
-        status: 'degraded',
-        operations: { status: 'healthy' },
-        syncs: [{ type: 'metadata_archive', level: 'critical' }],
-        snapshots: { status: 'healthy' },
+      '/api/health/sync': response({
+        status: 'healthy',
+        core_syncs: [
+          { type: 'proposals', stale: false, lastSuccess: true },
+          { type: 'dreps', stale: false, lastSuccess: true },
+          { type: 'scoring', stale: false, lastSuccess: true },
+          { type: 'alignment', stale: false, lastSuccess: true },
+        ],
       }),
       '/api/dreps': response({ dreps: [{ id: 'drep1' }] }),
-      '/api/v1/dreps?limit=5': response({
-        data: [{ id: 'drep1', score: 10 }],
+      '/api/v1/dreps?limit=20': response({
+        data: Array.from({ length: 20 }, (_, index) => ({ id: `drep${index}`, score: 10 })),
         meta: { api_version: '1.0' },
       }),
       '/api/v1/governance/health': response({
@@ -71,9 +74,6 @@ describe('deploy verification helpers', () => {
         },
       }),
       '/api/auth/nonce': response({ nonce: 'n', signature: 's' }),
-      '/api/v1/dreps?limit=20': response({
-        data: Array.from({ length: 20 }, (_, index) => ({ id: `drep${index}`, score: 10 })),
-      }),
     });
 
     const result = await runSmokeChecks({
@@ -86,59 +86,15 @@ describe('deploy verification helpers', () => {
     });
 
     expect(result.failed).toBe(0);
-  });
-
-  it('still fails production smoke when degraded health comes from core sync drift', async () => {
-    const fetch = createFetch({
-      '/api/health/ready': response({ status: 'ok', release: { commit_sha: 'abc123' } }),
-      '/api/health/deep': response({ status: 'healthy' }),
-      '/api/health': response({
-        status: 'degraded',
-        operations: { status: 'healthy' },
-        syncs: [{ type: 'dreps', level: 'critical' }],
-        snapshots: { status: 'healthy' },
-      }),
-      '/api/dreps': response({ dreps: [{ id: 'drep1' }] }),
-      '/api/v1/dreps?limit=5': response({
-        data: [{ id: 'drep1', score: 10 }],
-        meta: { api_version: '1.0' },
-      }),
-      '/api/v1/governance/health': response({
-        data: {
-          total_registered_dreps: 200,
-          total_votes: 5000,
-          total_proposals: 20,
-          score_distribution: {},
-        },
-      }),
-      '/api/auth/nonce': response({ nonce: 'n', signature: 's' }),
-      '/api/v1/dreps?limit=20': response({
-        data: Array.from({ length: 20 }, (_, index) => ({ id: `drep${index}`, score: 10 })),
-      }),
-    });
-
-    const result = await runSmokeChecks({
-      baseUrl: 'https://governada.io',
-      expectedSha: 'abc123',
-      fetchImpl: fetch,
-      profile: 'production',
-      quiet: true,
-      log: () => {},
-    });
-
-    expect(result.failed).toBe(1);
-    expect(result.results.find((entry) => entry.name === 'Sync freshness')?.detail).toContain(
-      'Non-healthy core syncs',
-    );
+    expect(result.results.find((entry) => entry.name === 'Core sync health')?.pass).toBe(true);
   });
 
   it('allows degraded health in preview smoke checks', async () => {
     const fetch = createFetch({
       '/api/health/ready': response({ status: 'ok', release: { commit_sha: 'abc123' } }),
       '/api/health/deep': response({ status: 'degraded' }),
-      '/api/health': response({ status: 'degraded' }),
       '/api/dreps': response({ dreps: [{ id: 'drep1' }] }),
-      '/api/v1/dreps?limit=5': response({
+      '/api/v1/dreps?limit=20': response({
         data: [{ id: 'drep1', score: 10 }],
         meta: { api_version: '1.0' },
       }),
@@ -158,7 +114,7 @@ describe('deploy verification helpers', () => {
     });
 
     expect(result.failed).toBe(0);
-    expect(getSmokeChecks('preview')).toHaveLength(7);
+    expect(getSmokeChecks('preview')).toHaveLength(6);
   });
 
   it('polls readiness until the expected release is live', async () => {
