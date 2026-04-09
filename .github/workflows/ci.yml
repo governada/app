@@ -228,7 +228,7 @@ jobs:
           retention-days: 7
 
   e2e-critical:
-    needs: [checks, test]
+    needs: build
     runs-on: ubuntu-latest
     env:
       NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
@@ -262,13 +262,21 @@ jobs:
       - name: Install Playwright system deps
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
-      - run: npm run build
+      - name: Download build artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: nextjs-build
+      - name: Prepare standalone runtime
+        run: |
+          mkdir -p .next/standalone/.next
+          rm -rf .next/standalone/.next/static .next/standalone/public
+          cp -R .next/static .next/standalone/.next/static
+          if [ -d public ]; then
+            cp -R public .next/standalone/public
+          fi
       - name: Run critical public E2E
         run: |
-          # Next is built with standalone output in CI; launch the generated server directly.
-          SERVER_JS="$(find .next/standalone -path '*/server.js' | head -n 1)"
-          test -n "$SERVER_JS"
-          PORT=3000 HOSTNAME=127.0.0.1 node "$SERVER_JS" &
+          PORT=3000 node .next/standalone/server.js &
           npx wait-on http://127.0.0.1:3000 --timeout 60000
           npx playwright test e2e/critical-public.spec.ts e2e/critical-a11y.spec.ts --project=chromium
       - name: Upload Playwright report
