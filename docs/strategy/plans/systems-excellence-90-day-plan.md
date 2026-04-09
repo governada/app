@@ -1,6 +1,6 @@
 # Systems Excellence 90-Day Plan
 
-**Status:** Active plan
+**Status:** Implemented through launch control room
 **Date:** 2026-04-02
 **Primary context:** `docs/strategy/context/systems-operating-system.md`
 
@@ -18,6 +18,14 @@ That means:
 - Data freshness and integrity issues are detected before users report them
 - Incidents, regressions, and near-misses produce permanent improvements
 - Agents are working as a repeatable operating team, not as one-off helpers
+
+## Status Note
+
+As of 2026-04-07, the roadmap has been implemented at the launch-operations level:
+
+- `/admin/systems` now carries the recurring systems cockpit, automation history, incident/drill log, scorecard sync, performance baseline tracking, trust-surface review, and launch control room.
+- The minimum public critical-path E2E gate now runs pre-merge via the `e2e-critical` job in `.github/workflows/ci.yml`.
+- The remaining work is operational discipline and deeper workspace/auth harnessing, not missing roadmap foundations.
 
 ---
 
@@ -203,6 +211,14 @@ Post-merge E2E is useful, but it is too late for the highest-risk regressions. A
 
 - Risky PRs are blocked by critical-path failures before merge
 - Flake rate is low enough that developers trust the gate
+
+### Status
+
+Implemented with a minimum public-path gate:
+
+- `.github/workflows/ci.yml` (`e2e-critical` job)
+- `e2e/critical-public.spec.ts`
+- `e2e/critical-a11y.spec.ts` for the public shell baseline
 
 ### Files To Read First
 
