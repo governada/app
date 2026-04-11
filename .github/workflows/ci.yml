@@ -204,6 +204,14 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: nextjs-build
+      - name: Prepare standalone runtime
+        run: |
+          mkdir -p .next/standalone/.next
+          rm -rf .next/standalone/.next/static .next/standalone/public
+          cp -R .next/static .next/standalone/.next/static
+          if [ -d public ]; then
+            cp -R public .next/standalone/public
+          fi
       - name: Start server and run browser smoke
         run: |
           PORT=3000 node .next/standalone/server.js &
@@ -217,6 +225,68 @@ jobs:
         with:
           name: playwright-report-browser-smoke-${{ github.sha }}
           path: playwright-report/
+          retention-days: 7
+
+  e2e-critical:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+      NEXT_PUBLIC_KOIOS_BASE_URL: https://api.koios.rest/api/v1
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+      SUPABASE_SECRET_KEY: placeholder-secret-key-for-ci
+      SESSION_SECRET: ci-placeholder-session-secret-at-least-32-chars
+      CRON_SECRET: ci-placeholder-cron-secret
+      UPSTASH_REDIS_REST_URL: https://placeholder-redis.upstash.io
+      UPSTASH_REDIS_REST_TOKEN: placeholder-redis-token
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+      - uses: actions/cache/restore@v5
+        with:
+          path: node_modules
+          key: nm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+      - name: Install Playwright system deps
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+      - name: Download build artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: nextjs-build
+      - name: Prepare standalone runtime
+        run: |
+          mkdir -p .next/standalone/.next
+          rm -rf .next/standalone/.next/static .next/standalone/public
+          cp -R .next/static .next/standalone/.next/static
+          if [ -d public ]; then
+            cp -R public .next/standalone/public
+          fi
+      - name: Run critical public E2E
+        run: |
+          PORT=3000 node .next/standalone/server.js &
+          npx wait-on http://127.0.0.1:3000 --timeout 60000
+          npx playwright test e2e/critical-public.spec.ts e2e/critical-a11y.spec.ts --project=chromium
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-critical-${{ github.sha }}
+          path: |
+            playwright-report/
+            test-results/
           retention-days: 7
 
   sentry-release:
@@ -240,7 +310,7 @@ jobs:
 
   notify:
     if: failure()
-    needs: [checks, test, build, browser-smoke]
+    needs: [checks, test, build, browser-smoke, e2e-critical]
     runs-on: ubuntu-latest
     steps:
       - name: Discord notification

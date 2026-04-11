@@ -15,6 +15,12 @@ describe('systems review helpers', () => {
   });
 
   it('marks review discipline warning when an open commitment is overdue', () => {
+    const reviewedAt = new Date();
+    reviewedAt.setDate(reviewedAt.getDate() - 3);
+
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() - 1);
+
     const commitment = toSystemsCommitment({
       id: '6d872854-b7ab-4ae8-a7bf-ce58fa4f5f90',
       review_id: '1d9cad5c-6ba5-4c9a-8f70-9835cff31568',
@@ -22,15 +28,15 @@ describe('systems review helpers', () => {
       summary: 'Protect the workspace read path.',
       owner: 'Founder + agents',
       status: 'planned',
-      due_date: '2026-03-25',
+      due_date: dueDate.toISOString().slice(0, 10),
       linked_slo_ids: ['journeys'],
-      created_at: '2026-03-20T00:00:00.000Z',
+      created_at: reviewedAt.toISOString(),
     });
     const review = toSystemsReviewRecord(
       {
         id: '1d9cad5c-6ba5-4c9a-8f70-9835cff31568',
-        review_date: '2026-03-24',
-        reviewed_at: '2026-03-24T12:00:00.000Z',
+        review_date: reviewedAt.toISOString().slice(0, 10),
+        reviewed_at: reviewedAt.toISOString(),
         overall_status: 'warning',
         focus_area: 'Critical journey protection',
         summary: 'Workspace read confidence still needs browser-level proof.',
