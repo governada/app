@@ -1,5 +1,8 @@
 import type { Metadata } from 'next';
 import { HomePageShell } from '@/components/hub/HomePageShell';
+import { MatchRouteActivator } from '@/components/governada/match/MatchRouteActivator';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Governance Match - Governada',
@@ -19,5 +22,10 @@ export const metadata: Metadata = {
 };
 
 export default async function MatchPage() {
-  return <HomePageShell match pageViewEvent="match_page_viewed" />;
+  return (
+    <>
+      <HomePageShell match pageViewEvent="match_page_viewed" />
+      <MatchRouteActivator />
+    </>
+  );
 }

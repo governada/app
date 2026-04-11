@@ -44,9 +44,10 @@ test.describe('Critical public journeys', () => {
 
     const senecaDialog = page.getByRole('dialog', { name: /Seneca conversation/i });
     const openSenecaButton = page.getByRole('button', { name: /Open Seneca/i });
+    const routeStartButton = page.getByRole('button', { name: /^Start Match$/i });
     const startMatchButton = page
       .getByRole('button', {
-        name: /Find my match|Find my representative|Where do I fit\?|Find my place/i,
+        name: /Start Match|Find my match|Find my representative|Where do I fit\?|Find my place/i,
       })
       .first();
     const firstChoice = page.getByRole('button', { name: /^Protect it$/i });
@@ -57,6 +58,7 @@ test.describe('Critical public journeys', () => {
         async () => {
           if (await firstChoice.isVisible().catch(() => false)) return 'matching';
           if (await senecaDialog.isVisible().catch(() => false)) return 'dialog';
+          if (await routeStartButton.isVisible().catch(() => false)) return 'route-cta';
           if (await openSenecaButton.isVisible().catch(() => false)) return 'closed';
           return 'loading';
         },
@@ -65,7 +67,9 @@ test.describe('Critical public journeys', () => {
       .not.toBe('loading');
 
     if (!(await firstChoice.isVisible().catch(() => false))) {
-      if (!(await senecaDialog.isVisible().catch(() => false))) {
+      if (await routeStartButton.isVisible().catch(() => false)) {
+        await routeStartButton.click();
+      } else if (!(await senecaDialog.isVisible().catch(() => false))) {
         await openSenecaButton.click();
         await expect(senecaDialog).toBeVisible({ timeout: 10_000 });
       }
