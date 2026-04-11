@@ -70,7 +70,9 @@ export async function fetchProposalVotingSummaries(
   }
 
   return [
-    ...reduceLatestProposalVotingSummaryRows(data as unknown as ProposalVotingSummaryRow[]).values(),
+    ...reduceLatestProposalVotingSummaryRows(
+      data as unknown as ProposalVotingSummaryRow[],
+    ).values(),
   ];
 }
 

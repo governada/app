@@ -1922,7 +1922,7 @@ Analytics can initialize on mount when `NEXT_PUBLIC_POSTHOG_KEY` is configured, 
 
 ### Context
 
-After the DD05 sync follow-up landed, the remaining performance debt was no longer background jobs. It was the still-broad `force-dynamic` footprint and the homepage globe shell continuing to mount client-only overlay code paths that were not yet visible or active.
+After the DD05 sync follow-up landed, the remaining performance debt was no longer background jobs. It was the still-broad `force-dynamic` footprint and the homepage globe shell continuing to mount client-only overlay code paths and a non-SSR spotlight wrapper before the visible shell itself could render.
 
 ### Scope
 
@@ -1943,6 +1943,7 @@ After the DD05 sync follow-up landed, the remaining performance debt was no long
 - `app/api/governance/constellation/route.ts` now emits cached `proposalNodes`, so the homepage constellation no longer makes a second `/api/proposals` request just to decorate the globe with open proposals.
 - `app/api/governance/constellation/route.ts` now also emits precomputed main-scene node positions, and `components/GlobeConstellation.tsx` now selects the right quality tier from that cached payload instead of recomputing the full 3D layout on mount.
 - `app/layout.tsx`, `app/embed/layout.tsx`, `proxy.ts`, and `next.config.ts` now enforce the DD05 locale/CSP split: the root document shell is static/default-locale, nonce CSP is confined to app/private prefixes, and public routes use static CSP plus App Router SRI.
+- `components/governada/GovernadaShell.tsx` now keeps the visible public shell outside the non-SSR spotlight wrapper, so the browser gets `#main-content` and the header in the first HTML response.
 - `npm run agent:validate` now treats `public-cache`, `public-dynamic-exception`, and `app-dynamic` as explicit route contracts instead of forcing every `lib/data.ts` read to remain dynamic.
 - Added focused component coverage in `__tests__/components/GlobeLayout.test.tsx`.
 

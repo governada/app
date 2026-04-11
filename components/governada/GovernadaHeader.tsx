@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { Suspense, useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
@@ -342,10 +342,41 @@ function truncateImpersonateAddress(addr: string): string {
   return `${addr.slice(0, 8)}...${addr.slice(-8)}`;
 }
 
-export function GovernadaHeader() {
+function HeaderRouteEffects({
+  isAuthenticated,
+  walletModalOpen,
+  setWalletModalOpen,
+}: {
+  isAuthenticated: boolean;
+  walletModalOpen: boolean;
+  setWalletModalOpen: (open: boolean) => void;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const handledConnectPromptRef = useRef<string | null>(null);
+  const connectPromptRequested = searchParams.get('connect') === '1';
+  const returnTo = getSafeReturnTo(searchParams.get('returnTo'));
+  const connectPromptKey = `${pathname}?${searchParams.toString()}`;
+
+  useEffect(() => {
+    if (isAuthenticated || !connectPromptRequested) return;
+    if (handledConnectPromptRef.current === connectPromptKey) return;
+    handledConnectPromptRef.current = connectPromptKey;
+    setWalletModalOpen(true);
+  }, [connectPromptKey, connectPromptRequested, isAuthenticated, setWalletModalOpen]);
+
+  useEffect(() => {
+    if (!isAuthenticated || walletModalOpen || !returnTo) return;
+    router.replace(returnTo);
+  }, [isAuthenticated, returnTo, router, walletModalOpen]);
+
+  return null;
+}
+
+export function GovernadaHeader() {
+  const router = useRouter();
+  const pathname = usePathname();
   const { t } = useTranslation();
 
   const { connected, disconnect, logout, isAuthenticated } = useWallet();
@@ -372,7 +403,6 @@ export function GovernadaHeader() {
   /** When user is in active Seneca conversation, fade nav pills to reduce distraction */
   const senecaFocused = senecaThread.isOpen && senecaThread.mode === 'conversation';
   const [walletModalOpen, setWalletModalOpen] = useState(false);
-  const handledConnectPromptRef = useRef<string | null>(null);
   const [pickerPreset, setPickerPreset] = useState<SegmentPreset | null>(null);
   // For dual-role 2-step picker: stash the first pick while the second picker is open
   const [pendingDualOverride, setPendingDualOverride] = useState<{
@@ -410,27 +440,12 @@ export function GovernadaHeader() {
   const [sandboxLoading, setSandboxLoading] = useState(false);
   const [sandboxCohortName, setSandboxCohortName] = useState<string | null>(null);
   const [sandboxActionStatus, setSandboxActionStatus] = useState<string | null>(null);
-  const connectPromptRequested = searchParams.get('connect') === '1';
-  const returnTo = getSafeReturnTo(searchParams.get('returnTo'));
-  const connectPromptKey = `${pathname}?${searchParams.toString()}`;
 
   useEffect(() => {
     const handleOpenWalletConnect = () => setWalletModalOpen(true);
     window.addEventListener('openWalletConnect', handleOpenWalletConnect);
     return () => window.removeEventListener('openWalletConnect', handleOpenWalletConnect);
   }, []);
-
-  useEffect(() => {
-    if (isAuthenticated || !connectPromptRequested) return;
-    if (handledConnectPromptRef.current === connectPromptKey) return;
-    handledConnectPromptRef.current = connectPromptKey;
-    setWalletModalOpen(true);
-  }, [connectPromptKey, connectPromptRequested, isAuthenticated]);
-
-  useEffect(() => {
-    if (!isAuthenticated || walletModalOpen || !returnTo) return;
-    router.replace(returnTo);
-  }, [isAuthenticated, returnTo, router, walletModalOpen]);
 
   // Fetch sandbox cohort name when active
   useEffect(() => {
@@ -626,6 +641,13 @@ export function GovernadaHeader() {
             ),
       )}
     >
+      <Suspense fallback={null}>
+        <HeaderRouteEffects
+          isAuthenticated={isAuthenticated}
+          walletModalOpen={walletModalOpen}
+          setWalletModalOpen={setWalletModalOpen}
+        />
+      </Suspense>
       <div className="flex items-center justify-between h-10 px-4 lg:px-5 pt-[env(safe-area-inset-top)] md:pt-0">
         {/* Wordmark + navigation pills */}
         <div className="flex items-center gap-1 sm:gap-3 min-w-0">

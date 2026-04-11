@@ -85,11 +85,14 @@ describe('getVotingPowerSummary', () => {
       proposal_type: 'ParameterChange',
       param_changes: { govActionLifetime: 10 },
     };
-    const { getVotingPowerSummary, getGovernanceThresholdForProposal, fetchLatestProposalVotingSummary } =
-      await loadVotingPowerSummaryModule({
-        canonical,
-        proposal,
-      });
+    const {
+      getVotingPowerSummary,
+      getGovernanceThresholdForProposal,
+      fetchLatestProposalVotingSummary,
+    } = await loadVotingPowerSummaryModule({
+      canonical,
+      proposal,
+    });
 
     const result = await getVotingPowerSummary('tx1', 0, 'TreasuryWithdrawals');
 
