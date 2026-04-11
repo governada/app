@@ -6074,6 +6074,646 @@ export type Database = {
         };
         Relationships: [];
       };
+      systems_automation_escalations: {
+        Row: {
+          channel_count: number;
+          channels: string[];
+          created_at: string;
+          critical_count: number;
+          delivered_at: string | null;
+          details: string;
+          followup_updated_at: string;
+          id: string;
+          reason: string;
+          run_id: string | null;
+          source_key: string;
+          status: string;
+          title: string;
+        };
+        Insert: {
+          channel_count?: number;
+          channels?: string[];
+          created_at?: string;
+          critical_count?: number;
+          delivered_at?: string | null;
+          details: string;
+          followup_updated_at: string;
+          id?: string;
+          reason: string;
+          run_id?: string | null;
+          source_key: string;
+          status: string;
+          title: string;
+        };
+        Update: {
+          channel_count?: number;
+          channels?: string[];
+          created_at?: string;
+          critical_count?: number;
+          delivered_at?: string | null;
+          details?: string;
+          followup_updated_at?: string;
+          id?: string;
+          reason?: string;
+          run_id?: string | null;
+          source_key?: string;
+          status?: string;
+          title?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'systems_automation_escalations_run_id_fkey';
+            columns: ['run_id'];
+            isOneToOne: false;
+            referencedRelation: 'systems_automation_runs';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'systems_automation_escalations_source_key_fkey';
+            columns: ['source_key'];
+            isOneToOne: false;
+            referencedRelation: 'systems_automation_followups';
+            referencedColumns: ['source_key'];
+          },
+        ];
+      };
+      systems_automation_followups: {
+        Row: {
+          acknowledged_at: string | null;
+          action_href: string | null;
+          created_at: string;
+          evidence: Json;
+          first_opened_at: string;
+          last_surfaced_at: string;
+          linked_commitment_id: string | null;
+          linked_incident_id: string | null;
+          recommended_action: string;
+          resolved_at: string | null;
+          severity: string;
+          source_key: string;
+          status: string;
+          summary: string;
+          title: string;
+          trigger_type: string;
+          updated_at: string;
+        };
+        Insert: {
+          acknowledged_at?: string | null;
+          action_href?: string | null;
+          created_at?: string;
+          evidence?: Json;
+          first_opened_at?: string;
+          last_surfaced_at?: string;
+          linked_commitment_id?: string | null;
+          linked_incident_id?: string | null;
+          recommended_action: string;
+          resolved_at?: string | null;
+          severity: string;
+          source_key: string;
+          status: string;
+          summary: string;
+          title: string;
+          trigger_type: string;
+          updated_at?: string;
+        };
+        Update: {
+          acknowledged_at?: string | null;
+          action_href?: string | null;
+          created_at?: string;
+          evidence?: Json;
+          first_opened_at?: string;
+          last_surfaced_at?: string;
+          linked_commitment_id?: string | null;
+          linked_incident_id?: string | null;
+          recommended_action?: string;
+          resolved_at?: string | null;
+          severity?: string;
+          source_key?: string;
+          status?: string;
+          summary?: string;
+          title?: string;
+          trigger_type?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'systems_automation_followups_linked_commitment_id_fkey';
+            columns: ['linked_commitment_id'];
+            isOneToOne: false;
+            referencedRelation: 'systems_commitments';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'systems_automation_followups_linked_incident_id_fkey';
+            columns: ['linked_incident_id'];
+            isOneToOne: false;
+            referencedRelation: 'systems_incidents';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      systems_automation_runs: {
+        Row: {
+          actor_type: string;
+          actor_wallet_address: string;
+          completed_at: string | null;
+          critical_count: number;
+          followup_count: number;
+          id: string;
+          opened_count: number;
+          request_id: string | null;
+          resolved_count: number;
+          run_key: string;
+          started_at: string;
+          status: string;
+          summary: string | null;
+          updated_count: number;
+        };
+        Insert: {
+          actor_type: string;
+          actor_wallet_address: string;
+          completed_at?: string | null;
+          critical_count?: number;
+          followup_count?: number;
+          id?: string;
+          opened_count?: number;
+          request_id?: string | null;
+          resolved_count?: number;
+          run_key: string;
+          started_at?: string;
+          status: string;
+          summary?: string | null;
+          updated_count?: number;
+        };
+        Update: {
+          actor_type?: string;
+          actor_wallet_address?: string;
+          completed_at?: string | null;
+          critical_count?: number;
+          followup_count?: number;
+          id?: string;
+          opened_count?: number;
+          request_id?: string | null;
+          resolved_count?: number;
+          run_key?: string;
+          started_at?: string;
+          status?: string;
+          summary?: string | null;
+          updated_count?: number;
+        };
+        Relationships: [];
+      };
+      systems_commitments: {
+        Row: {
+          completed_at: string | null;
+          created_at: string;
+          due_date: string | null;
+          id: string;
+          linked_incident_id: string | null;
+          linked_slo_ids: string[];
+          owner: string;
+          review_id: string | null;
+          status: string;
+          summary: string | null;
+          title: string;
+          updated_at: string;
+          wallet_address: string;
+        };
+        Insert: {
+          completed_at?: string | null;
+          created_at?: string;
+          due_date?: string | null;
+          id?: string;
+          linked_incident_id?: string | null;
+          linked_slo_ids?: string[];
+          owner?: string;
+          review_id?: string | null;
+          status?: string;
+          summary?: string | null;
+          title: string;
+          updated_at?: string;
+          wallet_address: string;
+        };
+        Update: {
+          completed_at?: string | null;
+          created_at?: string;
+          due_date?: string | null;
+          id?: string;
+          linked_incident_id?: string | null;
+          linked_slo_ids?: string[];
+          owner?: string;
+          review_id?: string | null;
+          status?: string;
+          summary?: string | null;
+          title?: string;
+          updated_at?: string;
+          wallet_address?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'systems_commitments_linked_incident_id_fkey';
+            columns: ['linked_incident_id'];
+            isOneToOne: false;
+            referencedRelation: 'systems_incidents';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'systems_commitments_review_id_fkey';
+            columns: ['review_id'];
+            isOneToOne: false;
+            referencedRelation: 'systems_reviews';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      systems_incident_events: {
+        Row: {
+          actor_wallet_address: string;
+          created_at: string;
+          event_type: string;
+          id: string;
+          incident_id: string;
+          incident_snapshot: Json;
+          status: string;
+        };
+        Insert: {
+          actor_wallet_address: string;
+          created_at?: string;
+          event_type: string;
+          id?: string;
+          incident_id: string;
+          incident_snapshot: Json;
+          status: string;
+        };
+        Update: {
+          actor_wallet_address?: string;
+          created_at?: string;
+          event_type?: string;
+          id?: string;
+          incident_id?: string;
+          incident_snapshot?: Json;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'systems_incident_events_incident_id_fkey';
+            columns: ['incident_id'];
+            isOneToOne: false;
+            referencedRelation: 'systems_incidents';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      systems_incidents: {
+        Row: {
+          closed_at: string | null;
+          created_at: string;
+          created_by_wallet_address: string;
+          detected_by: string;
+          entry_type: string;
+          follow_up_owner: string;
+          id: string;
+          incident_date: string;
+          last_event_at: string;
+          legacy_target: string | null;
+          mitigation: string;
+          permanent_fix: string;
+          root_cause: string;
+          severity: string;
+          status: string;
+          systems_affected: string[];
+          time_to_acknowledge_minutes: number | null;
+          time_to_mitigate_minutes: number | null;
+          time_to_resolve_minutes: number | null;
+          title: string;
+          updated_at: string;
+          updated_by_wallet_address: string;
+          user_impact: string;
+        };
+        Insert: {
+          closed_at?: string | null;
+          created_at?: string;
+          created_by_wallet_address: string;
+          detected_by: string;
+          entry_type: string;
+          follow_up_owner: string;
+          id?: string;
+          incident_date: string;
+          last_event_at?: string;
+          legacy_target?: string | null;
+          mitigation: string;
+          permanent_fix: string;
+          root_cause: string;
+          severity: string;
+          status: string;
+          systems_affected?: string[];
+          time_to_acknowledge_minutes?: number | null;
+          time_to_mitigate_minutes?: number | null;
+          time_to_resolve_minutes?: number | null;
+          title: string;
+          updated_at?: string;
+          updated_by_wallet_address: string;
+          user_impact: string;
+        };
+        Update: {
+          closed_at?: string | null;
+          created_at?: string;
+          created_by_wallet_address?: string;
+          detected_by?: string;
+          entry_type?: string;
+          follow_up_owner?: string;
+          id?: string;
+          incident_date?: string;
+          last_event_at?: string;
+          legacy_target?: string | null;
+          mitigation?: string;
+          permanent_fix?: string;
+          root_cause?: string;
+          severity?: string;
+          status?: string;
+          systems_affected?: string[];
+          time_to_acknowledge_minutes?: number | null;
+          time_to_mitigate_minutes?: number | null;
+          time_to_resolve_minutes?: number | null;
+          title?: string;
+          updated_at?: string;
+          updated_by_wallet_address?: string;
+          user_impact?: string;
+        };
+        Relationships: [];
+      };
+      systems_journey_verifications: {
+        Row: {
+          commit_sha: string | null;
+          created_at: string;
+          details: Json;
+          executed_at: string;
+          id: string;
+          job_name: string | null;
+          journey_id: string;
+          run_url: string | null;
+          status: string;
+          verification_type: string;
+          wallet_address: string;
+          workflow_name: string;
+        };
+        Insert: {
+          commit_sha?: string | null;
+          created_at?: string;
+          details?: Json;
+          executed_at: string;
+          id?: string;
+          job_name?: string | null;
+          journey_id: string;
+          run_url?: string | null;
+          status: string;
+          verification_type: string;
+          wallet_address: string;
+          workflow_name: string;
+        };
+        Update: {
+          commit_sha?: string | null;
+          created_at?: string;
+          details?: Json;
+          executed_at?: string;
+          id?: string;
+          job_name?: string | null;
+          journey_id?: string;
+          run_url?: string | null;
+          status?: string;
+          verification_type?: string;
+          wallet_address?: string;
+          workflow_name?: string;
+        };
+        Relationships: [];
+      };
+      systems_performance_baselines: {
+        Row: {
+          actor_type: string;
+          api_dreps_p95_ms: number;
+          api_health_p95_ms: number;
+          api_v1_dreps_p95_ms: number;
+          artifact_url: string | null;
+          baseline_date: string;
+          bottleneck: string;
+          concurrency_profile: string;
+          created_at: string;
+          environment: string;
+          error_rate_pct: number;
+          governance_health_p95_ms: number;
+          id: string;
+          mitigation_owner: string;
+          next_step: string;
+          notes: string | null;
+          overall_status: string;
+          scenario_label: string;
+          summary: string;
+          wallet_address: string;
+        };
+        Insert: {
+          actor_type: string;
+          api_dreps_p95_ms: number;
+          api_health_p95_ms: number;
+          api_v1_dreps_p95_ms: number;
+          artifact_url?: string | null;
+          baseline_date: string;
+          bottleneck: string;
+          concurrency_profile: string;
+          created_at?: string;
+          environment: string;
+          error_rate_pct: number;
+          governance_health_p95_ms: number;
+          id?: string;
+          mitigation_owner: string;
+          next_step: string;
+          notes?: string | null;
+          overall_status: string;
+          scenario_label: string;
+          summary: string;
+          wallet_address: string;
+        };
+        Update: {
+          actor_type?: string;
+          api_dreps_p95_ms?: number;
+          api_health_p95_ms?: number;
+          api_v1_dreps_p95_ms?: number;
+          artifact_url?: string | null;
+          baseline_date?: string;
+          bottleneck?: string;
+          concurrency_profile?: string;
+          created_at?: string;
+          environment?: string;
+          error_rate_pct?: number;
+          governance_health_p95_ms?: number;
+          id?: string;
+          mitigation_owner?: string;
+          next_step?: string;
+          notes?: string | null;
+          overall_status?: string;
+          scenario_label?: string;
+          summary?: string;
+          wallet_address?: string;
+        };
+        Relationships: [];
+      };
+      systems_review_drafts: {
+        Row: {
+          actor_type: string;
+          change_notes: string;
+          commitment_due_date: string | null;
+          commitment_owner: string;
+          created_at: string;
+          focus_area: string;
+          hardening_commitment_summary: string;
+          hardening_commitment_title: string;
+          id: string;
+          linked_incident_id: string | null;
+          linked_slo_ids: string[];
+          overall_status: string;
+          review_date: string;
+          top_risk: string;
+          wallet_address: string;
+        };
+        Insert: {
+          actor_type: string;
+          change_notes: string;
+          commitment_due_date?: string | null;
+          commitment_owner: string;
+          created_at?: string;
+          focus_area: string;
+          hardening_commitment_summary: string;
+          hardening_commitment_title: string;
+          id?: string;
+          linked_incident_id?: string | null;
+          linked_slo_ids?: string[];
+          overall_status: string;
+          review_date: string;
+          top_risk: string;
+          wallet_address: string;
+        };
+        Update: {
+          actor_type?: string;
+          change_notes?: string;
+          commitment_due_date?: string | null;
+          commitment_owner?: string;
+          created_at?: string;
+          focus_area?: string;
+          hardening_commitment_summary?: string;
+          hardening_commitment_title?: string;
+          id?: string;
+          linked_incident_id?: string | null;
+          linked_slo_ids?: string[];
+          overall_status?: string;
+          review_date?: string;
+          top_risk?: string;
+          wallet_address?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'systems_review_drafts_linked_incident_id_fkey';
+            columns: ['linked_incident_id'];
+            isOneToOne: false;
+            referencedRelation: 'systems_incidents';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      systems_reviews: {
+        Row: {
+          change_notes: string | null;
+          created_at: string;
+          focus_area: string;
+          id: string;
+          linked_slo_ids: string[];
+          overall_status: string;
+          review_date: string;
+          reviewed_at: string;
+          summary: string;
+          top_risk: string;
+          wallet_address: string;
+        };
+        Insert: {
+          change_notes?: string | null;
+          created_at?: string;
+          focus_area: string;
+          id?: string;
+          linked_slo_ids?: string[];
+          overall_status: string;
+          review_date?: string;
+          reviewed_at?: string;
+          summary: string;
+          top_risk: string;
+          wallet_address: string;
+        };
+        Update: {
+          change_notes?: string | null;
+          created_at?: string;
+          focus_area?: string;
+          id?: string;
+          linked_slo_ids?: string[];
+          overall_status?: string;
+          review_date?: string;
+          reviewed_at?: string;
+          summary?: string;
+          top_risk?: string;
+          wallet_address?: string;
+        };
+        Relationships: [];
+      };
+      systems_trust_surface_reviews: {
+        Row: {
+          actor_type: string;
+          artifact_url: string | null;
+          created_at: string;
+          current_user_state: string;
+          honesty_gap: string;
+          id: string;
+          linked_slo_ids: string[];
+          next_fix: string;
+          notes: string | null;
+          overall_status: string;
+          owner: string;
+          review_date: string;
+          reviewed_surfaces: string[];
+          summary: string;
+          wallet_address: string;
+        };
+        Insert: {
+          actor_type: string;
+          artifact_url?: string | null;
+          created_at?: string;
+          current_user_state: string;
+          honesty_gap: string;
+          id?: string;
+          linked_slo_ids?: string[];
+          next_fix: string;
+          notes?: string | null;
+          overall_status: string;
+          owner: string;
+          review_date: string;
+          reviewed_surfaces?: string[];
+          summary: string;
+          wallet_address: string;
+        };
+        Update: {
+          actor_type?: string;
+          artifact_url?: string | null;
+          created_at?: string;
+          current_user_state?: string;
+          honesty_gap?: string;
+          id?: string;
+          linked_slo_ids?: string[];
+          next_fix?: string;
+          notes?: string | null;
+          overall_status?: string;
+          owner?: string;
+          review_date?: string;
+          reviewed_surfaces?: string[];
+          summary?: string;
+          wallet_address?: string;
+        };
+        Relationships: [];
+      };
       tier_changes: {
         Row: {
           created_at: string | null;

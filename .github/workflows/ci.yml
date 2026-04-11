@@ -195,11 +195,7 @@ jobs:
           path: ~/.cache/ms-playwright
           key: pw-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - name: Install Playwright browsers
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium webkit
-      - name: Install Playwright system deps
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium webkit
       - name: Download build artifact
         uses: actions/download-artifact@v8
         with:
@@ -257,11 +253,7 @@ jobs:
           path: ~/.cache/ms-playwright
           key: pw-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - name: Install Playwright browsers
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
-      - name: Install Playwright system deps
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium
       - name: Download build artifact
         uses: actions/download-artifact@v8
         with:
@@ -275,10 +267,20 @@ jobs:
             cp -R public .next/standalone/public
           fi
       - name: Run critical public E2E
+        id: critical_public
         run: |
           PORT=3000 node .next/standalone/server.js &
           npx wait-on http://127.0.0.1:3000 --timeout 60000
           npx playwright test e2e/critical-public.spec.ts e2e/critical-a11y.spec.ts --project=chromium
+      - name: Report journey verification results
+        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          SYSTEMS_JOURNEY_VERIFICATION_URL: ${{ secrets.SYSTEMS_JOURNEY_VERIFICATION_URL }}
+          SYSTEMS_JOURNEY_VERIFICATION_TOKEN: ${{ secrets.SYSTEMS_JOURNEY_VERIFICATION_TOKEN }}
+          SYSTEMS_JOURNEY_STATUS: ${{ steps.critical_public.outcome }}
+          SYSTEMS_JOURNEY_JOB_NAME: e2e-critical
+          SYSTEMS_JOURNEY_IDS: J01,J02,J03,J05,J06,J13
+        run: node scripts/report-systems-journey-verifications.mjs
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v7
