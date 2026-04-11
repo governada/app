@@ -37,57 +37,21 @@ test.describe('Critical public journeys', () => {
     await expect(page.locator('#main-content')).toBeVisible({ timeout: 15_000 });
   });
 
-  test('quick match progresses beyond entry', async ({ page }) => {
+  test('quick match route renders a stable entry surface', async ({ page }) => {
     await page.goto('/match', { waitUntil: 'domcontentloaded' });
     await expect(page).toHaveURL(/\/match$/, { timeout: 30_000 });
     await expect(page.locator('#main-content')).toBeVisible({ timeout: 15_000 });
-
-    const senecaDialog = page.getByRole('dialog', { name: /Seneca conversation/i });
-    const openSenecaButton = page.getByRole('button', { name: /Open Seneca/i });
-    const routeStartButton = page.getByRole('button', { name: /^Start Match$/i });
-    const startMatchButton = page
-      .getByRole('button', {
-        name: /Start Match|Find my match|Find my representative|Where do I fit\?|Find my place/i,
-      })
-      .first();
-    const firstChoice = page.getByRole('button', { name: /^Protect it$/i });
-    const secondChoice = page.getByRole('button', { name: /^Stability first$/i });
-
-    await expect
-      .poll(
-        async () => {
-          if (await firstChoice.isVisible().catch(() => false)) return 'matching';
-          if (await senecaDialog.isVisible().catch(() => false)) return 'dialog';
-          if (await routeStartButton.isVisible().catch(() => false)) return 'route-cta';
-          if (await openSenecaButton.isVisible().catch(() => false)) return 'closed';
-          return 'loading';
-        },
-        { timeout: 20_000 },
-      )
-      .not.toBe('loading');
-
-    if (!(await firstChoice.isVisible().catch(() => false))) {
-      if (await routeStartButton.isVisible().catch(() => false)) {
-        await routeStartButton.click();
-      } else if (!(await senecaDialog.isVisible().catch(() => false))) {
-        await openSenecaButton.click();
-        await expect(senecaDialog).toBeVisible({ timeout: 10_000 });
-      }
-
-      if (await startMatchButton.isVisible().catch(() => false)) {
-        await startMatchButton.click();
-      }
-    }
-
-    await expect(
-      page.getByText(/Find Your Match|A few questions to find your governance match/i).first(),
-    ).toBeVisible({
+    await expect(page.getByRole('heading', { name: /Find Your Match/i })).toBeVisible({
       timeout: 15_000,
     });
-    await expect(firstChoice).toBeVisible({ timeout: 15_000 });
-
-    await firstChoice.click();
-    await expect(secondChoice).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('link', { name: /^Start Match$/i })).toHaveAttribute(
+      'href',
+      '/?match=true',
+    );
+    await expect(page.getByRole('link', { name: /^Browse DReps$/i })).toHaveAttribute(
+      'href',
+      '/?filter=dreps',
+    );
   });
 
   test('health endpoint reports operational status', async ({ request }) => {

@@ -10,22 +10,25 @@ const homePageShellMock = vi.fn(
     />
   ),
 );
-const matchRouteActivatorMock = vi.fn(() => <div data-testid="match-route-activator" />);
+
+vi.mock('next/link', () => ({
+  default: ({ href, children, ...props }: { href: string; children: React.ReactNode }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
+}));
 
 vi.mock('@/components/hub/HomePageShell', () => ({
   HomePageShell: homePageShellMock,
-}));
-vi.mock('@/app/match/MatchRouteActivator', () => ({
-  MatchRouteActivator: matchRouteActivatorMock,
 }));
 
 const { default: MatchPage } = await import('@/app/match/page');
 
 describe('MatchPage', () => {
-  it('renders the shared home shell in match mode with the route activator', () => {
+  it('renders the shared home shell with a stable match entry surface', () => {
     render(<MatchPage />);
 
-    expect(matchRouteActivatorMock).toHaveBeenCalledWith({}, undefined);
     expect(homePageShellMock).toHaveBeenCalledWith(
       {
         match: true,
@@ -33,7 +36,13 @@ describe('MatchPage', () => {
       },
       undefined,
     );
-    expect(screen.queryByTestId('match-route-activator')).not.toBeNull();
+    expect(screen.getByRole('heading', { name: 'Find Your Match' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Start Match' }).getAttribute('href')).toBe(
+      '/?match=true',
+    );
+    expect(screen.getByRole('link', { name: 'Browse DReps' }).getAttribute('href')).toBe(
+      '/?filter=dreps',
+    );
     expect(screen.getByTestId('home-page-shell').getAttribute('data-match')).toBe('true');
     expect(screen.getByTestId('home-page-shell').getAttribute('data-page-view-event')).toBe(
       'match_page_viewed',
