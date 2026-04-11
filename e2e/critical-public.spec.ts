@@ -41,13 +41,13 @@ test.describe('Critical public journeys', () => {
     await page.goto('/match', { waitUntil: 'domcontentloaded' });
     await expect(page).toHaveURL(/\/match$/, { timeout: 30_000 });
     await expect(page.locator('#main-content')).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText(/Question 1 of 3/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/Treasury spending\?/i)).toBeVisible({ timeout: 15_000 });
 
     await page
       .locator('button')
       .filter({ hasText: /^Conservative$/i })
       .click();
-    await expect(page.getByText(/Question 2 of 3/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/Protocol changes\?/i)).toBeVisible({ timeout: 10_000 });
   });
 
   test('health endpoint reports operational status', async ({ request }) => {
