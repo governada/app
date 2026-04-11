@@ -1,7 +1,5 @@
 import type { Metadata } from 'next';
-import { MatchExperienceClient } from './MatchExperienceClient';
-
-export const dynamic = 'force-dynamic';
+import { HomePageShell } from '@/components/hub/HomePageShell';
 
 export const metadata: Metadata = {
   title: 'Governance Match - Governada',
@@ -20,6 +18,6 @@ export const metadata: Metadata = {
   },
 };
 
-export default function MatchPage() {
-  return <MatchExperienceClient />;
+export default async function MatchPage() {
+  return <HomePageShell match pageViewEvent="match_page_viewed" />;
 }
