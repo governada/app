@@ -538,9 +538,7 @@ export function GlobeLayout({
       {/* Cluster labels moved inside Canvas as children of ConstellationScene */}
 
       {/* SSR content for SEO — hidden from visual users */}
-      <div className="sr-only" aria-label="Governance entity details">
-        {children}
-      </div>
+      <div className="sr-only">{children}</div>
 
       {/* Globe controls — z-20: floating top-left */}
       <div className="absolute top-20 left-4 z-20 pointer-events-auto">
