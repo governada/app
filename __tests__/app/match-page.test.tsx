@@ -36,7 +36,7 @@ describe('MatchPage', () => {
       },
       undefined,
     );
-    expect(screen.getByTestId('match-route-activator')).toBeInTheDocument();
+    expect(screen.queryByTestId('match-route-activator')).not.toBeNull();
     expect(screen.getByTestId('home-page-shell').getAttribute('data-match')).toBe('false');
     expect(screen.getByTestId('home-page-shell').getAttribute('data-page-view-event')).toBe(
       'match_page_viewed',
