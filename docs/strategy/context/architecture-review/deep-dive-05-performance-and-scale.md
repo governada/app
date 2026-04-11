@@ -191,10 +191,11 @@ This is classic hidden-state overfetch and bundle tax: the homepage pays network
 6. Completed on April 9, 2026: the shared shell no longer carries app-only workflow providers; `AppShellProviders.tsx` plus nested app layouts now own density and shortcut behavior for private/workflow routes.
 7. Completed on April 9, 2026: the locale ownership shift and public CSP split are closed; the root document shell is static for the public contract and nonce CSP is confined to app/private prefixes.
 8. Completed on 2026-04-10: the homepage globe shell now starts on the 2D-safe path until the browser probe resolves and reuses the shared GPU tier for the 3D scene, so the speculative first-load WebGL boot is removed.
+9. Completed on 2026-04-10: the visible public shell stays server-rendered instead of waiting behind a client-only spotlight wrapper, so the browser sees `#main-content` and the header on the first response.
 
 ## Handoff
 
-**Current status:** Completed; DD05 is closed, and the last homepage globe runtime slice landed by removing speculative 3D boot and sharing GPU-tier detection between the homepage shell and 3D scene.
+**Current status:** Completed; DD05 is closed, and the last homepage globe runtime slice landed by removing speculative 3D boot, sharing GPU-tier detection between the homepage shell and 3D scene, and keeping the visible public shell server-rendered.
 
 **What changed this session**
 
@@ -216,6 +217,7 @@ This is classic hidden-state overfetch and bundle tax: the homepage pays network
 - Deferred closed homepage overlay chunks until they are actually opened or activated.
 - Folded homepage proposal-node shaping into `app/api/governance/constellation/route.ts`, removing the extra `/api/proposals` request from the globe shell while keeping the proposal list API separate for other consumers.
 - Moved main constellation-node positioning into the cached constellation payload so `components/GlobeConstellation.tsx` no longer computes the full 3D layout during homepage boot.
+- Kept the visible public shell outside the non-SSR spotlight wrapper, so the browser-visible header and `#main-content` remain present in the first HTML response.
 - Verified the DD05 code changes with focused unit coverage, lint, and `npm run type-check`.
 
 **Validated findings**

@@ -26,6 +26,8 @@ import { dispatchGlobeCommand } from '@/lib/globe/globeCommandBus';
 import { useSenecaProactiveWhispers } from '@/hooks/useSenecaProactiveWhispers';
 import { useEpochContext } from '@/hooks/useEpochContext';
 import { LegalLinks } from './LegalLinks';
+import { DiscoveryHub } from '@/components/discovery/DiscoveryHub';
+import { SpotlightProvider } from '@/components/discovery/SpotlightProvider';
 
 const SenecaOrb = dynamic(
   () =>
@@ -47,18 +49,6 @@ const ConstellationScene = dynamic(
   () => import('@/components/ConstellationScene').then((m) => ({ default: m.ConstellationScene })),
   { ssr: false },
 );
-
-const SpotlightProvider = dynamic(
-  () =>
-    import('@/components/discovery/SpotlightProvider').then((m) => ({
-      default: m.SpotlightProvider,
-    })),
-  { ssr: false },
-);
-
-// DiscoveryHub is a regular import because it wraps the header and provides
-// context for the Compass icon. The heavy Compass panel still mounts on demand.
-import { DiscoveryHub } from '@/components/discovery/DiscoveryHub';
 
 const EngagementNudge = dynamic(
   () =>
@@ -267,30 +257,29 @@ export function GovernadaShell({ children }: { children: React.ReactNode }) {
         <SyncFreshnessBanner />
         <PreviewBanner />
         <SpotlightProvider>
-          <DiscoveryHub currentPage={derivePageContext(pathname)}>
-            {!isStudioMode && <GovernadaHeader />}
-            {!isStudioMode && (
-              <BackgroundGlobe
-                isHomepage={isHomepage}
-                governanceTint={temporalAdaptation ? tintColor : undefined}
-              />
+          {!isStudioMode && <GovernadaHeader />}
+          {!isStudioMode && (
+            <BackgroundGlobe
+              isHomepage={isHomepage}
+              governanceTint={temporalAdaptation ? tintColor : undefined}
+            />
+          )}
+          <main
+            id="main-content"
+            className={cn(
+              'relative z-0',
+              isStudioMode ? 'min-h-screen' : 'min-h-screen pb-16 lg:pb-0',
+              isHomepage && '-mt-10',
             )}
-            <main
-              id="main-content"
-              className={cn(
-                'relative z-0',
-                isStudioMode ? 'min-h-screen' : 'min-h-screen pb-16 lg:pb-0',
-                isHomepage && '-mt-10',
-              )}
-              tabIndex={-1}
-            >
-              {isStudioMode ? children : <SectionTransition>{children}</SectionTransition>}
-            </main>
-            {!isStudioMode && <EngagementNudge />}
-            {!isStudioMode && <MilestoneTrigger />}
-          </DiscoveryHub>
+            tabIndex={-1}
+          >
+            {isStudioMode ? children : <SectionTransition>{children}</SectionTransition>}
+          </main>
+          {!isStudioMode && <EngagementNudge />}
+          {!isStudioMode && <MilestoneTrigger />}
         </SpotlightProvider>
         <SenecaOrbAndThread seneca={seneca} isStudioMode={isStudioMode} />
+        <DiscoveryHub currentPage={derivePageContext(pathname)} />
 
         {!isStudioMode && (
           <footer className="relative z-0 border-t border-border/40 py-4 px-4 text-center">
