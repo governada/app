@@ -13,9 +13,7 @@ describe('route render policy contract', () => {
     );
     expect(getRouteRenderPolicy('app/workspace/page.tsx')?.mode).toBe('app-dynamic');
     // The root shell is request-bound while it carries locale and CSP nonce.
-    expect(getRouteRenderPolicy('app/layout.tsx')?.mode).toBe(
-      'public-dynamic-exception',
-    );
+    expect(getRouteRenderPolicy('app/layout.tsx')?.mode).toBe('public-dynamic-exception');
   });
 
   it('allows public-cache routes to read cached governance data without force-dynamic', () => {
