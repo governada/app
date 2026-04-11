@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useSenecaThread } from '@/hooks/useSenecaThread';
+import { useSenecaThreadStore } from '@/stores/senecaThreadStore';
 
 /**
  * Guarantees that the dedicated /match route actually enters the matching flow.
@@ -11,11 +11,13 @@ import { useSenecaThread } from '@/hooks/useSenecaThread';
  * re-asserts match mode and provides a stable manual fallback CTA.
  */
 export function MatchRouteActivator() {
-  const seneca = useSenecaThread();
+  const isOpen = useSenecaThreadStore((state) => state.isOpen);
+  const mode = useSenecaThreadStore((state) => state.mode);
+  const startMatch = useSenecaThreadStore((state) => state.startMatch);
 
   useEffect(() => {
     const ensureMatchMode = () => {
-      const state = seneca;
+      const state = useSenecaThreadStore.getState();
       if (!state.isOpen || state.mode !== 'matching') {
         state.startMatch();
       }
@@ -29,9 +31,9 @@ export function MatchRouteActivator() {
       window.clearTimeout(settleTimer);
       window.clearTimeout(retryTimer);
     };
-  }, [seneca]);
+  }, [startMatch]);
 
-  if (seneca.isOpen && seneca.mode === 'matching') {
+  if (isOpen && mode === 'matching') {
     return null;
   }
 
@@ -40,7 +42,7 @@ export function MatchRouteActivator() {
       <Button
         type="button"
         size="lg"
-        onClick={() => seneca.startMatch()}
+        onClick={() => startMatch()}
         className="pointer-events-auto gap-2 rounded-full bg-primary px-5 shadow-lg shadow-primary/20"
       >
         <Sparkles className="h-4 w-4" />
