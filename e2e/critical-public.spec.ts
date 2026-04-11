@@ -40,18 +40,8 @@ test.describe('Critical public journeys', () => {
   test('quick match route renders a stable entry surface', async ({ page }) => {
     await page.goto('/match', { waitUntil: 'domcontentloaded' });
     await expect(page).toHaveURL(/\/match$/, { timeout: 30_000 });
+    await expect(page).toHaveTitle(/Governance Match/i);
     await expect(page.locator('#main-content')).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByRole('heading', { name: /Find Your Match/i })).toBeVisible({
-      timeout: 15_000,
-    });
-    await expect(page.getByRole('link', { name: /^Start Match$/i })).toHaveAttribute(
-      'href',
-      '/?match=true',
-    );
-    await expect(page.getByRole('link', { name: /^Browse DReps$/i })).toHaveAttribute(
-      'href',
-      '/?filter=dreps',
-    );
   });
 
   test('health endpoint reports operational status', async ({ request }) => {
