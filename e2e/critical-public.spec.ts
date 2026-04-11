@@ -42,20 +42,48 @@ test.describe('Critical public journeys', () => {
     await expect(page).toHaveURL(/\/match$/, { timeout: 30_000 });
     await expect(page.locator('#main-content')).toBeVisible({ timeout: 15_000 });
 
+    const senecaDialog = page.getByRole('dialog', { name: /Seneca conversation/i });
+    const openSenecaButton = page.getByRole('button', { name: /Open Seneca/i });
+    const startMatchButton = page
+      .getByRole('button', {
+        name: /Find my match|Find my representative|Where do I fit\?|Find my place/i,
+      })
+      .first();
     const firstChoice = page.getByRole('button', { name: /^Protect it$/i });
-    const matchPanelOpen = await firstChoice.isVisible({ timeout: 3_000 }).catch(() => false);
+    const secondChoice = page.getByRole('button', { name: /^Stability first$/i });
 
-    if (!matchPanelOpen) {
-      await page.getByRole('button', { name: /Open Seneca/i }).click();
+    await expect
+      .poll(
+        async () => {
+          if (await firstChoice.isVisible().catch(() => false)) return 'matching';
+          if (await senecaDialog.isVisible().catch(() => false)) return 'dialog';
+          if (await openSenecaButton.isVisible().catch(() => false)) return 'closed';
+          return 'loading';
+        },
+        { timeout: 20_000 },
+      )
+      .not.toBe('loading');
+
+    if (!(await firstChoice.isVisible().catch(() => false))) {
+      if (!(await senecaDialog.isVisible().catch(() => false))) {
+        await openSenecaButton.click();
+        await expect(senecaDialog).toBeVisible({ timeout: 10_000 });
+      }
+
+      if (await startMatchButton.isVisible().catch(() => false)) {
+        await startMatchButton.click();
+      }
     }
 
-    await expect(page.getByText(/Find Your Match/i).first()).toBeVisible({ timeout: 15_000 });
+    await expect(
+      page.getByText(/Find Your Match|A few questions to find your governance match/i).first(),
+    ).toBeVisible({
+      timeout: 15_000,
+    });
     await expect(firstChoice).toBeVisible({ timeout: 15_000 });
 
     await firstChoice.click();
-    await expect(page.getByRole('button', { name: /^Stability first$/i })).toBeVisible({
-      timeout: 10_000,
-    });
+    await expect(secondChoice).toBeVisible({ timeout: 10_000 });
   });
 
   test('health endpoint reports operational status', async ({ request }) => {
