@@ -7,9 +7,9 @@ export const ROUTE_RENDER_MODES = Object.freeze([
 export const ROUTE_RENDER_POLICIES = Object.freeze([
   {
     match: 'app/layout.tsx',
-    mode: 'public-cache',
+    mode: 'public-dynamic-exception',
     reason:
-      'Root document shell now owns the canonical public HTML contract without request-scoped locale or CSP runtime APIs.',
+      'Root document shell currently binds locale and CSP nonce from request headers, so it remains a request-scoped public runtime contract.',
   },
   {
     prefix: 'app/api/',
@@ -105,14 +105,10 @@ export const ROUTE_RENDER_POLICIES = Object.freeze([
     reason: 'Wrapped share pages are public but remain request-scoped.',
   },
   {
-    prefix: 'app/match/result/',
+    prefix: 'app/match/',
     mode: 'public-dynamic-exception',
-    reason: 'Match result flow is public but request-specific.',
-  },
-  {
-    prefix: 'app/match/vote/',
-    mode: 'public-dynamic-exception',
-    reason: 'Match vote flow is public but request-specific.',
+    reason:
+      'Match routes remain public but request-scoped while the interactive journey still depends on runtime nonce and CSP handling.',
   },
   {
     prefix: 'app/governance/briefing/',

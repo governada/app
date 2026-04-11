@@ -15,6 +15,10 @@ vi.mock('@/components/hub/HomePageShell', () => ({
   HomePageShell: homePageShellMock,
 }));
 
+vi.mock('next/server', () => ({
+  connection: vi.fn().mockResolvedValue(undefined),
+}));
+
 const { default: MatchPage } = await import('@/app/match/page');
 
 describe('MatchPage', () => {
