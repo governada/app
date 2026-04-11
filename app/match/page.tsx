@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
-import { HomePageShell } from '@/components/hub/HomePageShell';
-import { MatchRouteActivator } from '@/components/governada/match/MatchRouteActivator';
+import { MatchExperienceClient } from './MatchExperienceClient';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,11 +20,6 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function MatchPage() {
-  return (
-    <>
-      <HomePageShell match pageViewEvent="match_page_viewed" />
-      <MatchRouteActivator />
-    </>
-  );
+export default function MatchPage() {
+  return <MatchExperienceClient />;
 }
