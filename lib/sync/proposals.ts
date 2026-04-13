@@ -1,8 +1,7 @@
 import { getSupabaseAdmin } from '@/lib/supabase';
-import { inngest } from '@/lib/inngest';
 import { logger } from '@/lib/logger';
 import { SyncLogger, errMsg, emitPostHog, alertDiscord } from '@/lib/sync-utils';
-import { fetchProposals, fetchProposalVotingSummary } from '@/utils/koios';
+import { fetchProposals } from '@/utils/koios';
 import { classifyProposals } from '@/lib/alignment';
 import { KoiosProposalSchema, validateArray } from '@/utils/koios-schemas';
 import type { ProposalListResponse } from '@/types/koios';
@@ -12,9 +11,9 @@ import {
   fetchProposalsEnriched,
   type BlockfrostProposalDetail,
 } from '@/lib/reconciliation/blockfrost';
+import { runProposalSyncFollowUps, type ProposalSyncOpenRef } from '@/lib/sync/proposals-followups';
 
 const BATCH_SIZE = 100;
-const SUMMARY_CONCURRENCY = 5;
 const TAG = '[proposals]';
 
 /** Map Blockfrost governance_type to our proposal_type enum */
@@ -44,12 +43,12 @@ export async function executeProposalsSync(): Promise<Record<string, unknown>> {
     const fatalErrors: string[] = [];
     const warnings: string[] = [];
     let proposalCount = 0;
+    const voteSnapshotCount = 0;
     let voteSyncsTriggered = 0;
     let summaryCount = 0;
-    const voteSnapshotCount = 0;
     let pushSent = 0;
 
-    let openProposals: { txHash: string; index: number }[] = [];
+    let openProposals: ProposalSyncOpenRef[] = [];
 
     try {
       // --- Fetch, classify, upsert proposals ---
@@ -198,131 +197,11 @@ export async function executeProposalsSync(): Promise<Record<string, unknown>> {
         }
       }
 
-      // --- Trigger the canonical incremental vote sync for open proposals ---
-      if (openProposals.length > 0) {
-        try {
-          await inngest.send({
-            name: 'drepscore/sync.votes',
-            data: {
-              source: 'sync.proposals',
-              openProposalCount: openProposals.length,
-            },
-          });
-          voteSyncsTriggered = 1;
-          logger.info(`${TAG} Triggered incremental vote sync`, {
-            openProposals: openProposals.length,
-          });
-        } catch (err) {
-          warnings.push(`Vote sync trigger: ${errMsg(err)}`);
-          logger.warn(`${TAG} Vote sync trigger failed (non-fatal)`, { error: errMsg(err) });
-        }
-      }
-
-      // --- Refresh voting summaries for open proposals ---
-      if (openProposals.length > 0) {
-        try {
-          const { data: openWithId } = await supabase
-            .from('proposals')
-            .select('tx_hash, proposal_index, proposal_id')
-            .is('ratified_epoch', null)
-            .is('enacted_epoch', null)
-            .is('dropped_epoch', null)
-            .is('expired_epoch', null)
-            .not('proposal_id', 'is', null);
-
-          const proposals = openWithId || [];
-
-          for (let i = 0; i < proposals.length; i += SUMMARY_CONCURRENCY) {
-            const chunk = proposals.slice(i, i + SUMMARY_CONCURRENCY);
-            const results = await Promise.allSettled(
-              chunk.map(async (p) => {
-                const summary = await fetchProposalVotingSummary(p.proposal_id);
-                if (!summary) return false;
-                await supabase.from('proposal_voting_summary').upsert(
-                  {
-                    proposal_tx_hash: p.tx_hash,
-                    proposal_index: p.proposal_index,
-                    epoch_no: summary.epoch_no,
-                    drep_yes_votes_cast: summary.drep_yes_votes_cast,
-                    drep_yes_vote_power: parseInt(summary.drep_active_yes_vote_power || '0', 10),
-                    drep_no_votes_cast: summary.drep_no_votes_cast,
-                    drep_no_vote_power: parseInt(summary.drep_active_no_vote_power || '0', 10),
-                    drep_abstain_votes_cast: summary.drep_abstain_votes_cast,
-                    drep_abstain_vote_power: parseInt(
-                      summary.drep_active_abstain_vote_power || '0',
-                      10,
-                    ),
-                    drep_always_abstain_power: parseInt(
-                      summary.drep_always_abstain_vote_power || '0',
-                      10,
-                    ),
-                    drep_always_no_confidence_power: parseInt(
-                      summary.drep_always_no_confidence_vote_power || '0',
-                      10,
-                    ),
-                    pool_yes_votes_cast: summary.pool_yes_votes_cast,
-                    pool_yes_vote_power: parseInt(summary.pool_active_yes_vote_power || '0', 10),
-                    pool_no_votes_cast: summary.pool_no_votes_cast,
-                    pool_no_vote_power: parseInt(summary.pool_active_no_vote_power || '0', 10),
-                    pool_abstain_votes_cast: summary.pool_abstain_votes_cast,
-                    pool_abstain_vote_power: parseInt(
-                      summary.pool_active_abstain_vote_power || '0',
-                      10,
-                    ),
-                    committee_yes_votes_cast: summary.committee_yes_votes_cast,
-                    committee_no_votes_cast: summary.committee_no_votes_cast,
-                    committee_abstain_votes_cast: summary.committee_abstain_votes_cast,
-                    fetched_at: new Date().toISOString(),
-                  },
-                  { onConflict: 'proposal_tx_hash,proposal_index' },
-                );
-                return true;
-              }),
-            );
-            summaryCount += results.filter((r) => r.status === 'fulfilled' && r.value).length;
-          }
-
-          if (summaryCount > 0)
-            logger.info(`${TAG} Voting summaries refreshed`, { count: summaryCount });
-        } catch (err) {
-          logger.warn(`${TAG} Voting summary refresh error`, { error: errMsg(err) });
-        }
-      }
-
-      // --- Broadcast critical proposal notifications ---
-      try {
-        const { getProposalPriority } = await import('@/utils/proposalPriority');
-        const { data: openCritical } = await supabase
-          .from('proposals')
-          .select('tx_hash, proposal_index, title, proposal_type')
-          .is('ratified_epoch', null)
-          .is('enacted_epoch', null)
-          .is('dropped_epoch', null)
-          .is('expired_epoch', null);
-
-        const critical = (openCritical || []).filter(
-          (p: Record<string, unknown>) =>
-            getProposalPriority(p.proposal_type as string) === 'critical',
-        );
-
-        if (critical.length > 0) {
-          const newest = critical[0];
-          const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://governada.io';
-          const { broadcastEvent, broadcastDiscord } = await import('@/lib/notifications');
-          const event = {
-            eventType: 'critical-proposal-open' as const,
-            title: 'Critical Proposal Open',
-            body:
-              (newest.title as string) || 'A critical governance proposal requires DRep attention.',
-            url: `${baseUrl}/proposals/${newest.tx_hash}/${newest.proposal_index}`,
-            metadata: { txHash: newest.tx_hash, index: newest.proposal_index },
-          };
-          await broadcastDiscord(event).catch(() => {});
-          pushSent = await broadcastEvent(event);
-        }
-      } catch (err) {
-        logger.warn(`${TAG} Notification broadcast skipped`, { error: err });
-      }
+      const followUps = await runProposalSyncFollowUps({ supabase, openProposals });
+      voteSyncsTriggered = followUps.voteSyncsTriggered;
+      summaryCount = followUps.summaryCount;
+      pushSent = followUps.pushSent;
+      warnings.push(...followUps.warnings);
     } catch (err) {
       fatalErrors.push(`Unhandled: ${errMsg(err)}`);
       logger.error(`${TAG} Unhandled error`, { error: errMsg(err) });

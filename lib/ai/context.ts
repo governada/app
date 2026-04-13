@@ -7,6 +7,10 @@
  */
 
 import { getSupabaseAdmin } from '@/lib/supabase';
+import {
+  fetchDrepPersonalContextSeed,
+  fetchGovernanceAlignmentProfile,
+} from '@/lib/governance/drepContext';
 import { logger } from '@/lib/logger';
 
 export interface PersonalContext {
@@ -45,48 +49,17 @@ export async function assemblePersonalContext(
   try {
     // Fetch DRep metadata (objectives, motivations, philosophy)
     if (role === 'drep') {
-      const { data: drep } = await supabase
-        .from('dreps')
-        .select('metadata, drep_id')
-        .eq('drep_id', stakeAddress)
-        .maybeSingle();
-
-      if (drep?.metadata) {
-        const meta = drep.metadata as Record<string, unknown>;
-        const parts: string[] = [];
-        if (meta.objectives) parts.push(`Objectives: ${meta.objectives}`);
-        if (meta.motivations) parts.push(`Motivations: ${meta.motivations}`);
-        if (meta.qualifications) parts.push(`Qualifications: ${meta.qualifications}`);
-        context.philosophy = parts.join('\n') || null;
-      }
-
-      // Fetch recent votes with rationale snippets
-      const { data: votes } = await supabase
-        .from('drep_votes')
-        .select('vote, proposal_tx_hash, proposal_index, block_time, proposals!inner(title)')
-        .eq('drep_id', stakeAddress)
-        .order('block_time', { ascending: false })
-        .limit(10);
-
-      if (votes) {
-        context.recentVotes = votes.map((v) => ({
-          proposalTitle: (v.proposals as { title?: string })?.title ?? 'Unknown',
-          vote: v.vote ?? 'Unknown',
-          rationaleSnippet: null,
-        }));
-      }
+      const drepSeed = await fetchDrepPersonalContextSeed(supabase, stakeAddress);
+      context.philosophy = drepSeed.philosophy;
+      context.recentVotes = drepSeed.recentVotes;
     }
 
     // Fetch alignment profile
-    const { data: profile } = await supabase
-      .from('user_governance_profiles')
-      .select('personality_label, alignment_scores')
-      .eq('wallet_address', stakeAddress)
-      .maybeSingle();
+    const profile = await fetchGovernanceAlignmentProfile(supabase, stakeAddress);
 
     if (profile) {
-      context.personalityLabel = profile.personality_label;
-      context.alignmentScores = profile.alignment_scores as Record<string, number> | null;
+      context.personalityLabel = profile.personalityLabel;
+      context.alignmentScores = profile.alignmentScores;
     }
   } catch (err) {
     logger.error('[AI Context] Failed to assemble personal context', { error: err });

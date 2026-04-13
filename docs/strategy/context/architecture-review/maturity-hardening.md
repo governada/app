@@ -58,3 +58,10 @@ Disallowed hotspot edits:
 - Reduce `lib/data.ts` imports over time rather than adding new ones.
 - Reduce `800+` and `1000+` line hotspots through extraction, not file churn.
 - Keep new feature work on existing domain seams whenever possible.
+
+## Current Progress
+
+- `lib/intelligence/context.ts` now reuses `lib/governance/drepContext.ts` for normalized DRep snapshots and viewer-alignment facts instead of rebuilding them inline.
+- `lib/ai/context.ts` now reuses the same DRep context seam for personal context and alignment-profile reads.
+- `lib/sync/proposals.ts` now delegates post-ingest vote-sync, voting-summary, and critical-notification behavior to `lib/sync/proposals-followups.ts`.
+- `app/workspace/editor/[draftId]/page.tsx` is now a thin route wrapper over `useWorkspaceEditorController()` and `WorkspaceEditorShell` instead of owning the full editor orchestration inline.

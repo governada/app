@@ -49,6 +49,133 @@ The architecture-review series is complete, but the repo still needs an explicit
 - `.github/workflows/pr-template.yml`
 - `scripts/validate-agent-constraints.mjs`
 
+## Chunk 43: Extract Shared DRep Context Seeds From `lib/intelligence/context.ts`
+
+**Priority:** P1
+**Effort:** S
+**Audit dimension(s):** Architecture and Code Health, Intelligence Engine Quality, Testing and Code Quality
+**Expected score impact:** Architecture and Code Health: reduce duplicate DRep context assembly and identity drift across intelligence consumers
+**Depends on:** Chunk 42
+**PR group:** V
+**Implementation status:** Completed in this worktree
+
+### Context
+
+`lib/intelligence/context.ts` and `lib/ai/context.ts` were both assembling DRep-specific facts, but they were not using the same DRep snapshot, treasury record, or viewer-alignment contract. That made future changes likely to fan out across both files and preserved conflicting identity assumptions at the seam.
+
+### Scope
+
+- Add a shared `lib/governance/drepContext.ts` seam for normalized DRep snapshot reads, viewer alignment, and personal-context seeds.
+- Move DRep treasury-track-record, alignment-score normalization, and claimed-DRep personal context reads behind that seam.
+- Reduce `lib/intelligence/context.ts` and `lib/ai/context.ts` to thin consumers of the shared DRep context contract.
+- Add direct unit coverage for the extracted DRep seam and focused coverage for the AI-context consumer.
+
+### Verification
+
+- `lib/intelligence/context.ts` and `lib/ai/context.ts` consume the shared DRep context seam instead of rebuilding those reads inline.
+- Alignment score normalization is consistent for both camelCase and snake_case payloads.
+- Focused DRep-context and AI-context tests pass, along with `npm run type-check`.
+
+### Progress So Far
+
+- Added `lib/governance/drepContext.ts` for normalized DRep snapshots, viewer-alignment profiles, and DRep personal-context seeds.
+- Updated `lib/intelligence/context.ts` to reuse the shared DRep snapshot and viewer-alignment helpers instead of rebuilding those facts inline.
+- Updated `lib/ai/context.ts` to reuse the shared DRep personal-context and alignment-profile helpers.
+- Added `__tests__/lib/governance/drepContext.test.ts` and `__tests__/lib/aiContext.test.ts`.
+- Verified with `npm run test -- __tests__/lib/governance/drepContext.test.ts __tests__/lib/aiContext.test.ts`.
+- Verified with `npm run type-check`.
+
+### Files to Read First
+
+- `lib/governance/drepContext.ts`
+- `lib/intelligence/context.ts`
+- `lib/ai/context.ts`
+- `__tests__/lib/governance/drepContext.test.ts`
+
+## Chunk 44: Extract Proposal Sync Follow-Ups From `lib/sync/proposals.ts`
+
+**Priority:** P1
+**Effort:** S
+**Audit dimension(s):** Architecture and Code Health, Performance and Reliability, Testing and Code Quality
+**Expected score impact:** Architecture and Code Health: reduce background-job fan-out inside the proposals sync orchestrator
+**Depends on:** Chunk 42
+**PR group:** V
+**Implementation status:** Completed in this worktree
+
+### Context
+
+`lib/sync/proposals.ts` still mixed core proposal ingestion with three follow-up behaviors: vote-sync triggering, voting-summary refresh, and critical-proposal notifications. That kept a background-job hotspot responsible for orchestration, downstream reads, and notification side effects at the same time.
+
+### Scope
+
+- Extract the post-ingest side effects from `lib/sync/proposals.ts` into a dedicated helper.
+- Keep the main proposals sync focused on fetch, classify, and persist responsibilities.
+- Preserve warning propagation and summary metrics at the orchestration boundary.
+- Add direct unit coverage for the extracted follow-up helper.
+
+### Verification
+
+- `lib/sync/proposals.ts` delegates post-ingest follow-ups to a dedicated helper.
+- Vote-sync triggering, voting-summary refresh, and critical-notification behavior stay covered by focused tests.
+- Focused proposal-sync tests pass.
+
+### Progress So Far
+
+- Added `lib/sync/proposals-followups.ts` as the dedicated follow-up helper for proposal-sync side effects.
+- Reduced `lib/sync/proposals.ts` to core ingest plus follow-up delegation and result aggregation.
+- Added `__tests__/sync/proposals-followups.test.ts`.
+- Verified with `npm run test -- __tests__/sync/proposals-followups.test.ts __tests__/sync/proposals.test.ts`.
+
+### Files to Read First
+
+- `lib/sync/proposals.ts`
+- `lib/sync/proposals-followups.ts`
+- `__tests__/sync/proposals-followups.test.ts`
+
+## Chunk 45: Split Workspace Editor Route Into Controller And Shell Seams
+
+**Priority:** P1
+**Effort:** M
+**Audit dimension(s):** Architecture and Code Health, Critical User Journeys, Testing and Code Quality
+**Expected score impact:** Architecture and Code Health: reduce the blast radius of the workspace editor hotspot so route ownership, orchestration, and UI composition can evolve more locally
+**Depends on:** Chunk 42
+**PR group:** V
+**Implementation status:** Completed in this worktree
+
+### Context
+
+`app/workspace/editor/[draftId]/page.tsx` had become a route-owned client hotspot that mixed route params, fetch state, autosave orchestration, agent wiring, version-diff coordination, permissions, and panel composition in one file. That shape makes even small editor changes expensive because the route entrypoint itself becomes the integration surface for everything.
+
+### Scope
+
+- Reduce the route file to a thin wrapper that owns only loading and error state selection.
+- Move route params, draft fetch state, editor orchestration, autosave, and controller-level actions into a dedicated controller hook.
+- Move the workspace editor UI composition into a shell component that consumes the controller contract.
+- Add focused regression coverage for the controller contract.
+
+### Verification
+
+- `app/workspace/editor/[draftId]/page.tsx` stays thin.
+- Workspace-editor orchestration lives behind `useWorkspaceEditorController()`.
+- UI composition lives in `WorkspaceEditorShell`.
+- Focused controller tests pass, along with `npm run type-check`.
+
+### Progress So Far
+
+- Added `app/workspace/editor/_hooks/useWorkspaceEditorController.ts` for route params, draft fetch state, permissions, autosave, version-diff orchestration, and agent/editor wiring.
+- Added `components/workspace/editor/WorkspaceEditorShell.tsx` for the workspace editor UI and panel composition.
+- Reduced `app/workspace/editor/[draftId]/page.tsx` to thin loading, error, and shell selection.
+- Added `__tests__/app/workspace-editor-controller.test.ts`.
+- Verified with `npm run test -- __tests__/app/workspace-editor-controller.test.ts`.
+- Verified with `npm run type-check`.
+
+### Files to Read First
+
+- `app/workspace/editor/[draftId]/page.tsx`
+- `app/workspace/editor/_hooks/useWorkspaceEditorController.ts`
+- `components/workspace/editor/WorkspaceEditorShell.tsx`
+- `__tests__/app/workspace-editor-controller.test.ts`
+
 ## Chunk 0: Review Series Scaffold
 
 **Priority:** P0

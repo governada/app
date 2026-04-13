@@ -15,13 +15,17 @@
 import { createClient } from '@/lib/supabase';
 import { parseRoutePath } from '@/lib/entity/entityId';
 import { fetchGovernanceProposalContextSeed } from '@/lib/governance/proposalContext';
+import {
+  computeAlignmentMatchPercent,
+  fetchGovernanceAlignmentProfile,
+  fetchGovernanceDrepSnapshot,
+} from '@/lib/governance/drepContext';
 import { fetchGovernanceTreasuryContext } from '@/lib/governance/treasuryContext';
 import { logger } from '@/lib/logger';
 import { cached } from '@/lib/redis';
 import { getCurrentEpoch } from '@/lib/constants';
 import {
   getNclUtilization,
-  getDRepTreasuryTrackRecord,
   formatAda,
   calculateRunwayMonths,
 } from '@/lib/treasury';
@@ -297,21 +301,12 @@ async function synthesizeDrepContext(
   stakeAddress?: string,
 ): Promise<ContextSynthesisResult> {
   const supabase = createClient();
-
-  const { data: drep } = await supabase
-    .from('dreps')
-    .select(
-      'id, score, info, size_tier, effective_participation, rationale_rate, alignment_treasury_conservative, alignment_treasury_growth, alignment_decentralization, alignment_security, alignment_innovation, alignment_transparency, score_momentum',
-    )
-    .eq('id', drepId)
-    .maybeSingle();
+  const drep = await fetchGovernanceDrepSnapshot(supabase, drepId);
 
   if (!drep) {
     return emptyResult('drep');
   }
 
-  const info = (drep.info ?? {}) as Record<string, unknown>;
-  const name = (info.name as string) || drepId.slice(0, 16);
   const highlights: ContextHighlight[] = [];
   const suggestedActions: SuggestedAction[] = [];
 
@@ -323,23 +318,23 @@ async function synthesizeDrepContext(
   });
 
   // Participation
-  if (drep.effective_participation != null) {
+  if (drep.effectiveParticipation != null) {
     highlights.push({
       label: 'Participation',
-      value: `${Math.round(drep.effective_participation)}%`,
+      value: `${Math.round(drep.effectiveParticipation)}%`,
       sentiment:
-        drep.effective_participation >= 70
+        drep.effectiveParticipation >= 70
           ? 'positive'
-          : drep.effective_participation >= 40
+          : drep.effectiveParticipation >= 40
             ? 'neutral'
             : 'negative',
     });
   }
 
   // Score momentum
-  if (drep.score_momentum != null) {
+  if (drep.scoreMomentum != null) {
     const direction =
-      drep.score_momentum > 0.5 ? 'Rising' : drep.score_momentum < -0.5 ? 'Falling' : 'Stable';
+      drep.scoreMomentum > 0.5 ? 'Rising' : drep.scoreMomentum < -0.5 ? 'Falling' : 'Stable';
     highlights.push({
       label: 'Trend',
       value: direction,
@@ -351,49 +346,25 @@ async function synthesizeDrepContext(
   // Size tier
   highlights.push({
     label: 'Size',
-    value: drep.size_tier ?? 'Unknown',
+    value: drep.sizeTier ?? 'Unknown',
     sentiment: 'neutral',
   });
 
   // Alignment match (if authenticated user)
   if (stakeAddress) {
-    // Check if user has alignment data
-    const { data: userDrep } = await supabase
-      .from('dreps')
-      .select(
-        'alignment_treasury_conservative, alignment_treasury_growth, alignment_decentralization, alignment_security, alignment_innovation, alignment_transparency',
-      )
-      .eq('id', stakeAddress)
-      .maybeSingle();
-
-    if (userDrep) {
-      const userVec = [
-        userDrep.alignment_treasury_conservative ?? 50,
-        userDrep.alignment_treasury_growth ?? 50,
-        userDrep.alignment_decentralization ?? 50,
-        userDrep.alignment_security ?? 50,
-        userDrep.alignment_innovation ?? 50,
-        userDrep.alignment_transparency ?? 50,
-      ];
-      const drepVec = [
-        drep.alignment_treasury_conservative ?? 50,
-        drep.alignment_treasury_growth ?? 50,
-        drep.alignment_decentralization ?? 50,
-        drep.alignment_security ?? 50,
-        drep.alignment_innovation ?? 50,
-        drep.alignment_transparency ?? 50,
-      ];
-      const match = cosineDistance(userVec, drepVec);
+    const viewerProfile = await fetchGovernanceAlignmentProfile(supabase, stakeAddress);
+    const match = computeAlignmentMatchPercent(viewerProfile, drep.alignmentScores);
+    if (match != null) {
       highlights.push({
         label: 'Alignment Match',
-        value: `${Math.round(match * 100)}%`,
-        sentiment: match > 0.7 ? 'positive' : match > 0.4 ? 'neutral' : 'negative',
+        value: `${match}%`,
+        sentiment: match > 70 ? 'positive' : match > 40 ? 'neutral' : 'negative',
       });
     }
   }
 
   // Treasury track record
-  const treasuryRecord = await getDRepTreasuryTrackRecord(drepId).catch(() => null);
+  const treasuryRecord = drep.treasuryTrackRecord;
   if (treasuryRecord && treasuryRecord.totalProposals > 0) {
     const stance =
       treasuryRecord.approvedAda > treasuryRecord.opposedAda * 2
@@ -413,7 +384,7 @@ async function synthesizeDrepContext(
     });
   }
 
-  const briefing = `${name} is a ${drep.size_tier ?? ''} DRep with a score of ${drep.score}/100. Participation rate: ${Math.round(drep.effective_participation ?? 0)}%. Rationale rate: ${Math.round(drep.rationale_rate ?? 0)}%.`;
+  const briefing = `${drep.name} is a ${drep.sizeTier ?? ''} DRep with a score of ${drep.score}/100. Participation rate: ${Math.round(drep.effectiveParticipation ?? 0)}%. Rationale rate: ${Math.round(drep.rationaleRate ?? 0)}%.`;
 
   return {
     briefing,
@@ -1361,17 +1332,4 @@ function emptyResult(routeType: RouteType): ContextSynthesisResult {
     routeType,
     computedAt: new Date().toISOString(),
   };
-}
-
-function cosineDistance(a: number[], b: number[]): number {
-  let dotProduct = 0;
-  let normA = 0;
-  let normB = 0;
-  for (let i = 0; i < a.length; i++) {
-    dotProduct += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-  const denominator = Math.sqrt(normA) * Math.sqrt(normB);
-  return denominator === 0 ? 0 : dotProduct / denominator;
 }

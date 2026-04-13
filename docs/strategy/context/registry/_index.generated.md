@@ -242,7 +242,7 @@
 - `entity/` (1 files)
 - `ghi/` (6 files)
 - `globe/` (19 files)
-- `governance/` (10 files)
+- `governance/` (11 files)
 - `homepage/` (1 files)
 - `i18n/` (4 files)
 - `identity/` (1 files)
@@ -257,7 +257,7 @@
 - `scoring/` (29 files)
 - `security/` (1 files)
 - `spotlight/` (1 files)
-- `sync/` (8 files)
+- `sync/` (9 files)
 - `workspace/` (24 files)
 
 ## Lib Standalone Files
@@ -479,5 +479,5 @@
 
 ---
 
-Checksum: `14078c2f529230c9e0786f49bae83e45e04fc307e54aace4208607f8458f3d76`
-Generated: 2026-04-13T02:37:28Z
+Checksum: `e6bef5f420ae38ea8cad8c2433b76b6d49a039f06c29f1e056cec5d518ae294f`
+Generated: 2026-04-13T13:15:12Z
