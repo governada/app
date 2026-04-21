@@ -237,6 +237,7 @@ function Test-GoneUpstream([string]$Branch) {
 }
 
 try {
+  $expectedOriginRemote = 'git@github-governada:governada/governada-app.git'
   $strict = $false
   foreach ($arg in $args) {
     switch ($arg) {
@@ -265,6 +266,7 @@ try {
 
   $statusLines = Get-Lines ((Invoke-Git -Arguments @('status', '--short') -AllowFailure -WorkingDirectory $repoRoot).Output)
   $stashLines = Get-Lines ((Invoke-Git -Arguments @('stash', 'list') -AllowFailure -WorkingDirectory $repoRoot).Output)
+  $originRemote = (Invoke-Git -Arguments @('remote', 'get-url', 'origin') -AllowFailure -WorkingDirectory $repoRoot).Output
   $worktrees = Parse-Worktrees ((Invoke-Git -Arguments @('worktree', 'list', '--porcelain') -AllowFailure -WorkingDirectory $repoRoot).Output)
   $sharedCheckout = Test-SharedCheckout $repoRoot
   $checkoutLabel = if ($sharedCheckout) { 'shared checkout' } else { 'worktree' }
@@ -309,6 +311,11 @@ try {
     $blockingIssues += "$($goneUpstreamWorktrees.Count) worktree(s) track an upstream branch that is gone."
   }
 
+  if ($originRemote -ne $expectedOriginRemote) {
+    $currentRemote = if ([string]::IsNullOrWhiteSpace($originRemote)) { '(missing)' } else { $originRemote }
+    $blockingIssues += "origin remote should be $expectedOriginRemote. Current: $currentRemote."
+  }
+
   if (@($worktrees).Count -gt 5) {
     $advisories += "Repo has $(@($worktrees).Count) worktrees open. Prune merged or abandoned worktrees before opening more."
   }
@@ -319,6 +326,7 @@ try {
   Write-Output "Branch: $branch"
   Write-Output ("Status: " + ($(if ($statusLines.Count -eq 0) { 'clean' } else { "dirty ($($statusLines.Count) changes)" })))
   Write-Output "Stashes: $($stashLines.Count)"
+  Write-Output "Origin: $(if ([string]::IsNullOrWhiteSpace($originRemote)) { '(missing)' } else { $originRemote })"
   Write-Output "Worktrees: $(@($worktrees).Count)"
   Write-Output ''
 

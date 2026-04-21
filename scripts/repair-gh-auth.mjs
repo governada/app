@@ -3,7 +3,7 @@
 import { commandOutput, getScriptContext } from './lib/runtime.mjs';
 
 const EXPECTED_USER = 'governada';
-const CANONICAL_REMOTE = 'https://github.com/governada/governada-app.git';
+const CANONICAL_REMOTE = 'git@github-governada:governada/governada-app.git';
 const { repoRoot } = getScriptContext(import.meta.url);
 
 function log(message) {
@@ -55,7 +55,7 @@ commandOutput('gh', ['auth', 'setup-git', '--hostname', 'github.com'], { cwd: re
 log(`GitHub auth: ready as ${EXPECTED_USER}.`);
 
 const currentRemote = tryCommand('git', ['remote', 'get-url', 'origin']);
-if (currentRemote && embeddedCredentialRemote(currentRemote)) {
+if (currentRemote && (currentRemote !== CANONICAL_REMOTE || embeddedCredentialRemote(currentRemote))) {
   commandOutput('git', ['remote', 'set-url', 'origin', CANONICAL_REMOTE], { cwd: repoRoot });
-  log('GitHub remote: removed embedded credentials.');
+  log(`GitHub remote: set origin to ${CANONICAL_REMOTE}.`);
 }
