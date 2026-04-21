@@ -20,6 +20,7 @@ function getContext() {
     GH_CONFIG_DIR: ghConfigDir,
     GH_HOST: 'github.com',
     GH_REPO: 'governada/governada-app',
+    OP_ACCOUNT: 'my.1password.com',
   };
 }
 

@@ -8,10 +8,10 @@ Usage:
   npm run git:push -- --branch <name>
   npm run git:push -- --set-upstream
 
-Pushes the current branch with a stable repo wrapper so Windows Codex agents can avoid raw \`git push\`.
+Pushes the current branch with a stable repo wrapper for repeatable agent approvals.
 If the branch has no upstream, the wrapper automatically uses \`git push -u origin <branch>\`.
-The wrapper mirrors the repo's Husky pre-push checks, then disables Husky for the actual push to avoid
-the Windows Git Bash \`sh.exe\` crash that can block agentic pushes in Codex Desktop.
+The wrapper mirrors the repo's Husky pre-push checks, then disables Husky for the actual push so
+Codex Desktop can use one narrow, reviewable command path.
 `;
 
 function parseArgs(argv) {

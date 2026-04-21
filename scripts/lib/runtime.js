@@ -3,6 +3,7 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 const { getContext } = require('../set-gh-context.js');
+const { withGhTokenFromOnePassword } = require('./gh-auth');
 
 const repoRoot = path.resolve(__dirname, '..', '..');
 function resolveCommand(command) {
@@ -133,8 +134,25 @@ function runCommand(command, args, options = {}) {
 }
 
 function runGh(args) {
+  loadLocalEnv();
+  const auth = withGhTokenFromOnePassword(
+    {
+      ...process.env,
+      ...getContext(),
+    },
+    repoRoot,
+  );
+
+  if (auth.error) {
+    return {
+      status: 1,
+      stdout: '',
+      stderr: `${auth.error}\n`,
+    };
+  }
+
   return runCommand('gh', args, {
-    env: getContext(),
+    env: auth.env,
     stripDisabledLocalProxyEnv: true,
   });
 }

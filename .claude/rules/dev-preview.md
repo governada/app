@@ -8,7 +8,7 @@ paths:
 
 # Dev Preview in Worktrees
 
-Rules for running the local dev server via Claude Preview tools. The `sync-worktree.ps1` session-start hook auto-provisions `.env.local` and `node_modules`, so agents can usually start previewing immediately.
+Rules for running the local dev server via Claude Preview tools. The `npm run worktree:sync` session-start hook auto-provisions `.env.local` and `node_modules`, so agents can usually start previewing immediately.
 
 ## Starting the Dev Server
 
@@ -70,16 +70,16 @@ For responsive: `preview_resize` with presets `"mobile"` (375x812), `"tablet"` (
 
 ## Troubleshooting
 
-| Symptom                                                  | Cause                                      | Fix                                                         |
-| -------------------------------------------------------- | ------------------------------------------ | ----------------------------------------------------------- |
-| `MODULE_NOT_FOUND` errors                                | `node_modules` missing or junction broken  | Run `npm install` in the worktree                           |
-| Missing env var errors                                   | `.env.local` not copied                    | Run `npm run worktree:sync`                                 |
-| Port already in use                                      | Another dev server running                 | `autoPort: true` handles this automatically                 |
-| Turbopack panic: "Symlink points out of filesystem root" | `turbopack.root` not set in next.config.ts | Confirm `next.config.ts` sets `turbopack.root`              |
-| Browser hangs / all preview calls timeout                | Globe/Three.js page loaded first           | Stop server, restart, navigate to `/governance` first       |
-| Stale build cache                                        | `.next/` has bad state                     | `Remove-Item -Recurse -Force .next` then restart            |
-| Auth mock returns 401                                    | `DEV_MOCK_AUTH` not set                    | Verify `.env.local` contains `DEV_MOCK_AUTH=true`           |
-| Junction `node_modules` won't create                     | package.json differs from main             | Run `npm install` - the hook only junctions when deps match |
+| Symptom                                                  | Cause                                      | Fix                                                     |
+| -------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------- |
+| `MODULE_NOT_FOUND` errors                                | `node_modules` missing or junction broken  | Run `npm install` in the worktree                       |
+| Missing env var errors                                   | `.env.local` not copied                    | Run `npm run worktree:sync`                             |
+| Port already in use                                      | Another dev server running                 | `autoPort: true` handles this automatically             |
+| Turbopack panic: "Symlink points out of filesystem root" | `turbopack.root` not set in next.config.ts | Confirm `next.config.ts` sets `turbopack.root`          |
+| Browser hangs / all preview calls timeout                | Globe/Three.js page loaded first           | Stop server, restart, navigate to `/governance` first   |
+| Stale build cache                                        | `.next/` has bad state                     | `rm -rf .next` then restart                             |
+| Auth mock returns 401                                    | `DEV_MOCK_AUTH` not set                    | Verify `.env.local` contains `DEV_MOCK_AUTH=true`       |
+| `node_modules` link won't create                         | package.json differs from main             | Run `npm install` - the hook only links when deps match |
 
 ## Compilation Times (Turbopack)
 
@@ -92,23 +92,23 @@ The server accepts connections immediately but holds requests until the route co
 
 ## Prerequisites (Auto-Handled)
 
-The `sync-worktree.ps1` hook runs on session start and handles:
+The `npm run worktree:sync` hook runs on session start and handles:
 
 - Fetching and rebasing onto `origin/main` (skips with warning if the working tree is dirty)
 - Copying `.env.local` from the main checkout if missing
-- Junctioning `node_modules` from the main checkout, with `npm install` fallback when linking is not possible
-- Running `gh auth setup-git` to configure HTTPS push credentials
+- Linking `node_modules` from the main checkout, with `npm install` fallback when linking is not possible
+- Preserving the 1Password-backed SSH alias remote for Git operations
 
 Read the session-start output carefully. Warnings require manual action before starting work.
 
 If the hook did not run, start with the repo sync wrapper:
 
-```powershell
+```bash
 npm run worktree:sync
 ```
 
 If the session still reports missing Git credentials afterward, run:
 
-```powershell
-gh auth setup-git
+```bash
+npm run auth:repair
 ```

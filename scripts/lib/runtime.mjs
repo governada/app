@@ -1,7 +1,12 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+const require = createRequire(import.meta.url);
+const { getContext } = require('../set-gh-context.js');
+const { withGhTokenFromOnePassword } = require('./gh-auth.js');
 
 function findRepoRoot(startDir) {
   let current = startDir;
@@ -113,12 +118,13 @@ export function requireArg(args, index, usage) {
 }
 
 export function commandOutput(command, args, options = {}) {
-  const { allowFailure = false, cwd = process.cwd() } = options;
+  const { allowFailure = false, cwd = process.cwd(), env = process.env } = options;
 
   try {
     return execFileSync(command, args, {
       cwd,
       encoding: 'utf8',
+      env,
       stdio: ['ignore', 'pipe', 'pipe'],
     }).trim();
   } catch (error) {
@@ -138,8 +144,29 @@ export function commandOutput(command, args, options = {}) {
   }
 }
 
+export function ghOutput(args, options = {}) {
+  loadLocalEnv(import.meta.url);
+  const auth = withGhTokenFromOnePassword(
+    {
+      ...process.env,
+      ...getContext(),
+      ...(options.env || {}),
+    },
+    options.cwd || process.cwd(),
+  );
+
+  if (auth.error) {
+    throw new Error(auth.error);
+  }
+
+  return commandOutput('gh', args, {
+    ...options,
+    env: auth.env,
+  });
+}
+
 export function ghJson(args, options = {}) {
-  const output = commandOutput('gh', args, options);
+  const output = ghOutput(args, options);
   return output ? JSON.parse(output) : [];
 }
 
