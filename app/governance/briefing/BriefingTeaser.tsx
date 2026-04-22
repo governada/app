@@ -101,10 +101,12 @@ export function BriefingTeaser() {
   });
 
   if (isLoading) return <BriefingTeaserSkeleton />;
-  if (!data) return null;
 
-  const { epoch, headlines, narrative, epochStats } = data;
-  const treasuryFormatted = epochStats.treasuryBalance
+  const epoch = data?.epoch;
+  const headlines = data?.headlines ?? [];
+  const narrative = data?.narrative ?? null;
+  const epochStats = data?.epochStats;
+  const treasuryFormatted = epochStats?.treasuryBalance
     ? epochStats.treasuryBalance >= 1_000_000_000
       ? `${(epochStats.treasuryBalance / 1_000_000_000).toFixed(1)}B`
       : epochStats.treasuryBalance >= 1_000_000
@@ -118,9 +120,11 @@ export function BriefingTeaser() {
       <div className="space-y-2">
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-primary" />
-          <Badge variant="secondary" className="text-xs">
-            Epoch {epoch}
-          </Badge>
+          {epoch != null && (
+            <Badge variant="secondary" className="text-xs">
+              Epoch {epoch}
+            </Badge>
+          )}
         </div>
         <h1 className="text-2xl font-bold tracking-tight">Governance Briefing</h1>
         <p className="text-sm text-muted-foreground">
@@ -129,23 +133,25 @@ export function BriefingTeaser() {
       </div>
 
       {/* Stats bar */}
-      <div className="grid grid-cols-3 gap-3">
-        <StatCard
-          icon={Vote}
-          label="Active Proposals"
-          value={epochStats.activeProposals.toString()}
-        />
-        <StatCard
-          icon={Users}
-          label="Active DReps"
-          value={epochStats.totalDReps.toLocaleString()}
-        />
-        <StatCard
-          icon={Landmark}
-          label="Treasury"
-          value={treasuryFormatted ? `${treasuryFormatted} ADA` : '—'}
-        />
-      </div>
+      {epochStats && (
+        <div className="grid grid-cols-3 gap-3">
+          <StatCard
+            icon={Vote}
+            label="Active Proposals"
+            value={epochStats.activeProposals.toString()}
+          />
+          <StatCard
+            icon={Users}
+            label="Active DReps"
+            value={epochStats.totalDReps.toLocaleString()}
+          />
+          <StatCard
+            icon={Landmark}
+            label="Treasury"
+            value={treasuryFormatted ? `${treasuryFormatted} ADA` : '—'}
+          />
+        </div>
+      )}
 
       {/* Headlines */}
       {headlines.length > 0 && (
