@@ -96,7 +96,7 @@ Each agent gets:
 - Quality targets from audit pre-screen
 - Patterns to follow and files to read
 - **Visual acceptance criteria** from Phase 2 — the agent MUST verify these before declaring done
-- **The "Robust & Correct" philosophy** from CLAUDE.md — understand deeply, extend existing, root causes
+- **The "Robust & Correct" philosophy** from AGENTS.md — understand deeply, extend existing, root causes
 
 ### Chunk Agent Instructions
 
@@ -105,7 +105,7 @@ Read first. Understand the existing code before writing anything.
 
 Implement the chunk scope per the approved plan.
 
-Follow CLAUDE.md constraints (force-dynamic, TanStack Query, feature flags, etc.).
+Follow AGENTS.md constraints (force-dynamic, TanStack Query, feature flags, etc.).
 
 Search for existing patterns before creating anything new (build-on-existing rule).
 

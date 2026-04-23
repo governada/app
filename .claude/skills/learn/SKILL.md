@@ -17,6 +17,6 @@ A lesson was learned during this session. Record it properly:
 
 4. If it updates an existing lesson, edit the existing entry
 
-5. If the lesson reveals a hard constraint that causes build/deploy failures, also update `governada-app/CLAUDE.md` Hard Constraints section
+5. If the lesson reveals a hard constraint that causes build/deploy failures, also update `governada-app/AGENTS.md` Hard Constraints section
 
 The lesson to record: $ARGUMENTS

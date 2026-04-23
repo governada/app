@@ -17,6 +17,10 @@ function main() {
     }
   }
 
+  if (process.env.GH_TOKEN_OP_REF || process.env.GITHUB_TOKEN_OP_REF) {
+    console.log('GitHub token source: 1Password reference');
+  }
+
   const repo = process.env.GH_REPO || 'governada/governada-app';
   console.log(`Repo context: ${repo}`);
 }

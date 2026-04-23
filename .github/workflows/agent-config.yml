@@ -5,30 +5,28 @@ on:
     paths:
       - '.claude/**'
       - 'AGENTS.md'
-      - 'CLAUDE.md'
       - '.github/CODEOWNERS'
       - '.github/PULL_REQUEST_TEMPLATE.md'
       - '.github/workflows/agent-config.yml'
       - '.github/workflows/pr-template.yml'
       - '.mcp.example.json'
+      - 'scripts/*.js'
       - 'scripts/*.mjs'
       - 'scripts/*.sh'
-      - 'scripts/*.ps1'
       - 'scripts/validate-agent-constraints.mjs'
   push:
     branches: [main]
     paths:
       - '.claude/**'
       - 'AGENTS.md'
-      - 'CLAUDE.md'
       - '.github/CODEOWNERS'
       - '.github/PULL_REQUEST_TEMPLATE.md'
       - '.github/workflows/agent-config.yml'
       - '.github/workflows/pr-template.yml'
       - '.mcp.example.json'
+      - 'scripts/*.js'
       - 'scripts/*.mjs'
       - 'scripts/*.sh'
-      - 'scripts/*.ps1'
       - 'scripts/validate-agent-constraints.mjs'
 
 jobs:
@@ -51,15 +49,9 @@ jobs:
       - name: Validate Node script syntax
         run: |
           shopt -s nullglob
+          for file in scripts/*.js; do
+            node --check "$file"
+          done
           for file in scripts/*.mjs; do
             node --check "$file"
           done
-      - name: Validate PowerShell syntax
-        shell: pwsh
-        run: |
-          $errors = $null
-          [System.Management.Automation.Language.Parser]::ParseFile('scripts/new-worktree.ps1', [ref]$null, [ref]$errors) | Out-Null
-          if ($errors) {
-            $errors | ForEach-Object { Write-Error $_ }
-            exit 1
-          }

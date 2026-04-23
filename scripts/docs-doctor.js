@@ -8,7 +8,6 @@ const {
 } = require('./generate-registry-index.js');
 const { repoRoot } = require('./lib/runtime');
 
-const claudePath = path.join(repoRoot, 'CLAUDE.md');
 const manifestPath = path.join(repoRoot, 'docs', 'strategy', 'context', 'build-manifest.md');
 const visionPath = path.join(repoRoot, 'docs', 'strategy', 'ultimate-vision.md');
 
@@ -133,13 +132,6 @@ function main() {
     path.join(repoRoot, 'inngest', 'functions'),
     (fullPath, name) => name.endsWith('.ts'),
   ).length;
-  compareMinimumCount(
-    results,
-    claudePath,
-    /\((\d+)\+\s+functions,\s+`inngest-server` service\)/,
-    inngestFunctionCount,
-    'CLAUDE Inngest function count',
-  );
   compareExactCount(
     results,
     manifestPath,

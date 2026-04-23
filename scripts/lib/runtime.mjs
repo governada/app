@@ -1,7 +1,12 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+const require = createRequire(import.meta.url);
+const { getContext } = require('../set-gh-context.js');
+const { withGhTokenFromOnePassword } = require('./gh-auth.js');
 
 function findRepoRoot(startDir) {
   let current = startDir;
@@ -28,6 +33,19 @@ export function getScriptContext(metaUrl) {
   return { repoRoot, scriptDir, scriptPath };
 }
 
+function getSharedCheckoutRoot(repoRoot) {
+  const commonDir = commandOutput(
+    'git',
+    ['rev-parse', '--path-format=absolute', '--git-common-dir'],
+    {
+      allowFailure: true,
+      cwd: repoRoot,
+    },
+  );
+
+  return commonDir ? path.dirname(commonDir) : '';
+}
+
 function keyAllowed(key, keyFilter) {
   if (!keyFilter) {
     return true;
@@ -44,14 +62,22 @@ function keyAllowed(key, keyFilter) {
 
 export function loadLocalEnv(metaUrl, keyFilter = null) {
   const { repoRoot } = getScriptContext(metaUrl);
-  const candidates = [path.join(process.cwd(), '.env.local'), path.join(repoRoot, '.env.local')];
+  const sharedRoot = getSharedCheckoutRoot(repoRoot);
+  const candidates = [
+    path.join(process.cwd(), '.env.local'),
+    path.join(repoRoot, '.env.local'),
+    sharedRoot ? path.join(sharedRoot, '.env.local') : '',
+  ].filter(Boolean);
+  const seen = new Set();
 
   for (const envPath of candidates) {
-    if (!existsSync(envPath)) {
+    const resolved = path.resolve(envPath);
+    if (seen.has(resolved) || !existsSync(resolved)) {
       continue;
     }
 
-    const parsed = parseEnvFile(readFileSync(envPath, 'utf8'));
+    seen.add(resolved);
+    const parsed = parseEnvFile(readFileSync(resolved, 'utf8'));
     for (const [key, value] of Object.entries(parsed)) {
       if (!keyAllowed(key, keyFilter)) {
         continue;
@@ -62,7 +88,7 @@ export function loadLocalEnv(metaUrl, keyFilter = null) {
       }
     }
 
-    return envPath;
+    return resolved;
   }
 
   return null;
@@ -113,12 +139,13 @@ export function requireArg(args, index, usage) {
 }
 
 export function commandOutput(command, args, options = {}) {
-  const { allowFailure = false, cwd = process.cwd() } = options;
+  const { allowFailure = false, cwd = process.cwd(), env = process.env } = options;
 
   try {
     return execFileSync(command, args, {
       cwd,
       encoding: 'utf8',
+      env,
       stdio: ['ignore', 'pipe', 'pipe'],
     }).trim();
   } catch (error) {
@@ -138,8 +165,31 @@ export function commandOutput(command, args, options = {}) {
   }
 }
 
+export function ghOutput(args, options = {}) {
+  loadLocalEnv(import.meta.url);
+  const context = getContext();
+  const { GH_HOST: _ghHost, ...ghEnvContext } = context;
+  const auth = withGhTokenFromOnePassword(
+    {
+      ...process.env,
+      ...ghEnvContext,
+      ...(options.env || {}),
+    },
+    options.cwd || process.cwd(),
+  );
+
+  if (auth.error) {
+    throw new Error(auth.error);
+  }
+
+  return commandOutput('gh', args, {
+    ...options,
+    env: auth.env,
+  });
+}
+
 export function ghJson(args, options = {}) {
-  const output = commandOutput('gh', args, options);
+  const output = ghOutput(args, options);
   return output ? JSON.parse(output) : [];
 }
 

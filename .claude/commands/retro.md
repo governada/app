@@ -16,7 +16,7 @@ Skip if nothing notable happened.
 
 ## 2. Audit Rules for Staleness
 
-Read CLAUDE.md and check against the ACTUAL codebase:
+Read AGENTS.md and check against the ACTUAL codebase:
 
 - **Dead references**: Files, functions, tables, or env vars that no longer exist. Remove them.
 - **Outdated counts/lists**: e.g., function counts — verify against actual `serve()` array. Update if wrong.
@@ -27,13 +27,13 @@ Read CLAUDE.md and check against the ACTUAL codebase:
 
 Read `.cursor/tasks/lessons.md` end-to-end:
 
-- **Promote**: Pattern appeared 2+ times → propose adding to CLAUDE.md. Mark as promoted.
+- **Promote**: Pattern appeared 2+ times → propose adding to AGENTS.md. Mark as promoted.
 - **Consolidate**: Multiple lessons about same topic → merge into one entry.
 - **Archive**: One-time issues that can't recur → delete them.
 
 ## 4. Verify Architecture Docs
 
-Check CLAUDE.md against reality:
+Check AGENTS.md against reality:
 
 - **Key Files table**: Are listed files still canonical? Any new key files missing?
 - **Inngest function list**: Does it match `app/api/inngest/route.ts` `serve()` array?
@@ -44,7 +44,7 @@ Check CLAUDE.md against reality:
 After all edits, commit directly to the current branch:
 
 ```bash
-git add CLAUDE.md .cursor/tasks/
+git add AGENTS.md .cursor/tasks/
 git commit -m "docs: retro — <1-line summary>"
 ```
 

@@ -3,8 +3,25 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 const { getContext } = require('../set-gh-context.js');
+const { withGhTokenFromOnePassword } = require('./gh-auth');
 
 const repoRoot = path.resolve(__dirname, '..', '..');
+
+function getSharedCheckoutRoot() {
+  const result = spawnSync('git', ['rev-parse', '--path-format=absolute', '--git-common-dir'], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'ignore'],
+  });
+
+  if (result.status !== 0) {
+    return '';
+  }
+
+  const commonDir = result.stdout.trim();
+  return commonDir ? path.dirname(commonDir) : '';
+}
+
 function resolveCommand(command) {
   if (process.platform !== 'win32') {
     return command;
@@ -26,19 +43,32 @@ function usesShell(command) {
 }
 
 function loadLocalEnv() {
-  const envPath = path.join(repoRoot, '.env.local');
-  if (!fs.existsSync(envPath)) {
-    return false;
-  }
+  const sharedRoot = getSharedCheckoutRoot();
+  const candidates = [
+    path.join(process.cwd(), '.env.local'),
+    path.join(repoRoot, '.env.local'),
+    sharedRoot ? path.join(sharedRoot, '.env.local') : '',
+  ].filter(Boolean);
 
-  const parsed = parseEnvFile(fs.readFileSync(envPath, 'utf8'));
-  for (const [key, value] of Object.entries(parsed)) {
-    if (!(key in process.env)) {
-      process.env[key] = value;
+  const seen = new Set();
+  for (const envPath of candidates) {
+    const resolved = path.resolve(envPath);
+    if (seen.has(resolved) || !fs.existsSync(resolved)) {
+      continue;
     }
+
+    seen.add(resolved);
+    const parsed = parseEnvFile(fs.readFileSync(resolved, 'utf8'));
+    for (const [key, value] of Object.entries(parsed)) {
+      if (!(key in process.env)) {
+        process.env[key] = value;
+      }
+    }
+
+    return true;
   }
 
-  return true;
+  return false;
 }
 
 function parseEnvFile(contents) {
@@ -133,8 +163,27 @@ function runCommand(command, args, options = {}) {
 }
 
 function runGh(args) {
+  loadLocalEnv();
+  const context = getContext();
+  const { GH_HOST: _ghHost, ...ghEnvContext } = context;
+  const auth = withGhTokenFromOnePassword(
+    {
+      ...process.env,
+      ...ghEnvContext,
+    },
+    repoRoot,
+  );
+
+  if (auth.error) {
+    return {
+      status: 1,
+      stdout: '',
+      stderr: `${auth.error}\n`,
+    };
+  }
+
   return runCommand('gh', args, {
-    env: getContext(),
+    env: auth.env,
     stripDisabledLocalProxyEnv: true,
   });
 }

@@ -5,7 +5,7 @@ Usage:
   npm run git:stage -- --all
   npm run git:stage -- <path> [more paths...]
 
-Stages files using a stable repo wrapper so Windows Codex agents can avoid raw \`git add\`.
+Stages files using a stable repo wrapper for repeatable agent approvals.
 `;
 
 function parseArgs(argv) {

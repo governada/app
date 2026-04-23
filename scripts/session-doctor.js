@@ -3,6 +3,8 @@ const path = require('node:path');
 
 const { repoRoot, runCommand } = require('./lib/runtime');
 
+const EXPECTED_ORIGIN_REMOTE = 'git@github-governada:governada/governada-app.git';
+
 function parseArgs(argv) {
   const options = {
     strict: false,
@@ -47,6 +49,10 @@ function getStatusLines(cwd = repoRoot) {
 function getStashLines() {
   const stashes = runOrEmpty('git', ['stash', 'list']);
   return stashes ? stashes.split(/\r?\n/).filter(Boolean) : [];
+}
+
+function getOriginRemote() {
+  return runOrEmpty('git', ['remote', 'get-url', 'origin']);
 }
 
 function parseWorktrees() {
@@ -145,6 +151,7 @@ function main() {
   const branch = getBranch();
   const statusLines = getStatusLines();
   const stashLines = getStashLines();
+  const originRemote = getOriginRemote();
   const worktrees = parseWorktrees();
   const sharedCheckout = isSharedCheckout(topLevel);
   const checkoutLabel = sharedCheckout ? 'shared checkout' : 'worktree';
@@ -180,6 +187,12 @@ function main() {
     );
   }
 
+  if (originRemote !== EXPECTED_ORIGIN_REMOTE) {
+    blockingIssues.push(
+      `origin remote should be ${EXPECTED_ORIGIN_REMOTE}. Current: ${originRemote || '(missing)'}.`,
+    );
+  }
+
   if (worktrees.length > 5) {
     advisories.push(
       `Repo has ${worktrees.length} worktrees open. Prune merged or abandoned worktrees before opening more.`,
@@ -194,6 +207,7 @@ function main() {
     `Status: ${statusLines.length === 0 ? 'clean' : `dirty (${statusLines.length} changes)`}`,
   );
   console.log(`Stashes: ${stashLines.length}`);
+  console.log(`Origin: ${originRemote || '(missing)'}`);
   console.log(`Worktrees: ${worktrees.length}`);
   console.log('');
 

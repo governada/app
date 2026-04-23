@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Legacy compatibility shim.
-# Canonical desktop-agent auth context uses `scripts/set_gh_context.ps1`.
-# This file remains only for Bash fallbacks that need exported env vars.
+# Shell compatibility shim for exporting the canonical repo GH context.
+# The source of truth is `scripts/set-gh-context.js`.
 
 set -euo pipefail
 

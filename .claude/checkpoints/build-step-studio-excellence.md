@@ -316,5 +316,5 @@ Key files to explore:
 - `hooks/useRegisterReviewCommands.ts` — add remaining keyboard shortcuts
 - `components/studio/StudioPanel.tsx` — panel behavior on mobile
 
-After plan approval, chunk into 2-3 shippable PRs and execute the full deploy pipeline per CLAUDE.md.
+After plan approval, chunk into 2-3 shippable PRs and execute the full deploy pipeline per AGENTS.md.
 ```

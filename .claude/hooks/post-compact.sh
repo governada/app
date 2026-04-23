@@ -98,7 +98,7 @@ if [ -n "$open_prs" ]; then
 fi
 
 # 6. Reminder of key constraints
-echo "## Key constraints (from CLAUDE.md):"
+echo "## Key constraints (from AGENTS.md):"
 echo "- force-dynamic on any page/route touching Supabase/env"
 echo "- Register Inngest functions in app/api/inngest/route.ts"
 echo "- Database reads via lib/data.ts only"

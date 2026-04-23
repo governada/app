@@ -1,7 +1,7 @@
 ---
 name: deploy-verifier
 description: Verify a Railway deployment is healthy after merge
-tools: PowerShell, Read
+tools: Bash, Read
 model: sonnet
 ---
 
