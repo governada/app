@@ -167,10 +167,12 @@ export function commandOutput(command, args, options = {}) {
 
 export function ghOutput(args, options = {}) {
   loadLocalEnv(import.meta.url);
+  const context = getContext();
+  const { GH_HOST: _ghHost, ...ghEnvContext } = context;
   const auth = withGhTokenFromOnePassword(
     {
       ...process.env,
-      ...getContext(),
+      ...ghEnvContext,
       ...(options.env || {}),
     },
     options.cwd || process.cwd(),

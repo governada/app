@@ -164,10 +164,12 @@ function runCommand(command, args, options = {}) {
 
 function runGh(args) {
   loadLocalEnv();
+  const context = getContext();
+  const { GH_HOST: _ghHost, ...ghEnvContext } = context;
   const auth = withGhTokenFromOnePassword(
     {
       ...process.env,
-      ...getContext(),
+      ...ghEnvContext,
     },
     repoRoot,
   );
