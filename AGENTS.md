@@ -1,6 +1,6 @@
 # Agent Guide
 
-Provider-agnostic instructions for autonomous agents working in this repo. Treat this file as the portable workflow brief. Provider-specific adapters live under `.claude/`.
+Provider-agnostic instructions for autonomous agents working in this repo. Treat this file as the portable workflow brief and the single canonical agent harness. Provider-specific adapters live under `.claude/`, but they must reference this file and call repo `npm run ...` scripts instead of duplicating workflow, auth, or worktree policy.
 
 ## Core Rules
 
@@ -10,6 +10,7 @@ Provider-agnostic instructions for autonomous agents working in this repo. Treat
 - Non-trivial bugs require root-cause analysis before fixing. Do not patch symptoms first.
 - `.env.local` points at production services. Never perform write-heavy syncs, backfills, or destructive data operations without explicit approval.
 - Risky user-facing work should be feature-flagged.
+- Do not duplicate these rules into provider-specific files. If a provider adapter needs repo policy, point it back here and keep executable behavior in `package.json` scripts or small adapter hooks.
 
 ## Hard Constraints
 
@@ -50,7 +51,7 @@ Keep Codex Desktop in `workspace-write`. The goal is not removing the sandbox; i
 
 - Preferred writable root: the shared repo root that also contains `.claude/worktrees/`, so worktree metadata stays inside the writable area.
 - Open Codex on the shared repo root only. Do not open separate Codex projects rooted at `.claude/worktrees/<name>` or other external worktree directories for this repo.
-- Prefer stable `npm run ...` wrappers for diagnostics, CI, deploy, GitHub operations, and worktree setup. The Mac-first agent path should not require PowerShell.
+- Prefer stable `npm run ...` wrappers for diagnostics, CI, deploy, GitHub operations, and worktree setup. The Mac-first agent path uses Node and shell entrypoints.
 - When local hygiene is in question, use `npm run session:guard` as the blocking gate and `npm run session:doctor` for the human-readable breakdown.
 - For repo orientation, prefer `npm run session:doctor` over one-off `git branch`, `git worktree`, or `git stash` reads when it gives enough context.
 - Persist approvals for safe recurring prefixes such as `npm run worktree:new`, `npm run worktree:sync`, `npm run session:doctor`, `npm run session:guard`, `npm run gh:auth-status`, `npm run auth:repair`, `npm run ci:watch`, `npm run ci:failed`, `npm run pre-merge-check`, `npm run deploy:verify`, `npm run inngest:register`, `git add`, `git commit -m`, `git push`, `git fetch origin main`, `git worktree add`, and `gh api repos/governada/governada-app/pulls`.

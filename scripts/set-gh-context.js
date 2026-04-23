@@ -36,6 +36,7 @@ function main() {
     console.log(`export GH_CONFIG_DIR=${shellEscape(context.GH_CONFIG_DIR)}`);
     console.log(`export GH_HOST=${shellEscape(context.GH_HOST)}`);
     console.log(`export GH_REPO=${shellEscape(context.GH_REPO)}`);
+    console.log(`export OP_ACCOUNT=${shellEscape(context.OP_ACCOUNT)}`);
     return;
   }
 
@@ -47,6 +48,7 @@ function main() {
   console.log(`GH_CONFIG_DIR=${context.GH_CONFIG_DIR}`);
   console.log(`GH_HOST=${context.GH_HOST}`);
   console.log(`GH_REPO=${context.GH_REPO}`);
+  console.log(`OP_ACCOUNT=${context.OP_ACCOUNT}`);
 }
 
 if (require.main === module) {

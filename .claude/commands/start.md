@@ -10,5 +10,5 @@ Initialize the session properly before writing any code.
 6. If a mutating Git/worktree command fails with `EPERM`, access denied, or a likely sandbox error, rerun it immediately with `sandbox_permissions=require_escalated` using an already-approved prefix. Do not ask first unless the prefix is missing.
 7. If `session:doctor` shows a dirty tree or stale stash/worktree state, fix that before planning.
 8. Read `.cursor/tasks/lessons.md` and `.cursor/tasks/todo.md` only if they exist and are relevant to the task.
-9. Before creating the first todo list, state which rules from CLAUDE.md apply to this task.
+9. Before creating the first todo list, state which rules from AGENTS.md apply to this task.
 10. Create task list WITH deploy steps. Last items MUST be the deploy pipeline (commit -> PR -> CI -> merge -> deploy -> validate). A feature not in production is not done.

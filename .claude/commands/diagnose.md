@@ -113,7 +113,7 @@ Examples of prevention layers:
 
 **The litmus test**: If the prevention layer requires an agent to "remember to do X," it's not a prevention layer — it's a wish. Prevention layers are automated checks, hooks, guards, or assertions that fire without human/agent memory.
 
-If no automated prevention is feasible, document the failure mode in the relevant CLAUDE.md troubleshooting table so future agents can self-diagnose.
+If no automated prevention is feasible, document the failure mode in the relevant AGENTS.md troubleshooting table so future agents can self-diagnose.
 
 ## Phase 6: Verify Fix
 

@@ -8,7 +8,7 @@ All code changes compile clean. Execute the full deploy pipeline autonomously. D
 4. **Force-dynamic audit**: Any new `app/` file importing `@/lib/supabase` or `@/lib/data` needs `export const dynamic = 'force-dynamic'`
 5. **Stage + commit**: `git add <specific-files>` → review with `git diff --cached --name-only` → commit
 6. **Push**: `git push -u origin HEAD`
-7. **PR**: `gh pr create -R governada/governada-app --title "feat: description" --body-file PR_BODY.md --base main` → delete PR_BODY.md. PR body MUST include these sections (per CLAUDE.md hygiene rules + build-on-existing):
+7. **PR**: `gh pr create -R governada/governada-app --title "feat: description" --body-file PR_BODY.md --base main` → delete PR_BODY.md. PR body MUST include these sections (per AGENTS.md hygiene rules + build-on-existing):
 
    ```markdown
    ## Summary
@@ -51,7 +51,7 @@ All code changes compile clean. Execute the full deploy pipeline autonomously. D
     Continue immediately to step 13 without waiting.
 14. **Update tracking docs**: If this PR adds features, fixes scoring, changes counts:
     - Update `docs/strategy/context/build-manifest.md` — check off items, add new `[x]` entries with PR #
-    - Update `CLAUDE.md` if counts changed
+    - Update `AGENTS.md` if counts changed
     - Commit doc updates as follow-up on main
 15. **Cleanup**: Switch to main, pull, delete local branch (`git branch -d <branch>`), drop stashes
 16. **Report**: Print PR Impact Recap. Note that deploy verification is running in background.

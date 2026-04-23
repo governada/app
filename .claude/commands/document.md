@@ -19,7 +19,7 @@ For each changed file:
 ## 3. Update Relevant Documentation
 
 - **CHANGELOG.md**: Add entry under "Unreleased" section (Added, Changed, Fixed, Security, Removed)
-- **CLAUDE.md**: Update if architecture, key files, or workflows changed
+- **AGENTS.md**: Update if architecture, key files, or workflows changed
 
 ## 4. Documentation Style Rules
 
