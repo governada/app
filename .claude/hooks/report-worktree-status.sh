@@ -42,8 +42,10 @@ else
 fi
 
 if [ "$checkout_kind" = "worktree" ]; then
-  if [ ! -f ".env.local" ]; then
-    echo ".env.local: missing. Run 'npm run worktree:sync' to copy it from the main checkout."
+  if [ -f ".env.local.refs" ]; then
+    echo ".env.local.refs: present. Use 'npm run env:run -- <command>' for 1Password-backed local env."
+  elif [ ! -f ".env.local" ]; then
+    echo ".env.local.refs: missing. Run 'npm run env:doctor'; worktree sync no longer copies plaintext .env.local."
   fi
 
   if [ ! -d "node_modules" ] && [ ! -L "node_modules" ]; then

@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
-import { copyFileSync, existsSync, mkdirSync, readFileSync, symlinkSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, symlinkSync } from 'node:fs';
 import path from 'node:path';
+import { ENV_LOCAL_FILE, ENV_REFS_FILE } from './lib/env-bootstrap.mjs';
 import { commandOutput, getScriptContext } from './lib/runtime.mjs';
 
 const usage = 'npm run worktree:new -- <name> [--branch <branch>] [--no-node-modules-link]';
@@ -157,6 +158,29 @@ function ensureNodeModulesLink(worktreePath, noNodeModulesLink) {
   }
 }
 
+function reportEnvBootstrap() {
+  const sharedRefs = path.join(repoRoot, ENV_REFS_FILE);
+  const sharedEnv = path.join(repoRoot, ENV_LOCAL_FILE);
+
+  if (existsSync(sharedRefs)) {
+    console.log(
+      `${ENV_REFS_FILE}: available from shared checkout; no env file was copied. Use npm run env:run -- <command>.`,
+    );
+    return;
+  }
+
+  if (existsSync(sharedEnv)) {
+    console.log(
+      `${ENV_LOCAL_FILE}: present in shared checkout but not copied. Run npm run env:doctor for migration status.`,
+    );
+    return;
+  }
+
+  console.log(
+    `${ENV_REFS_FILE}: not found. Run npm run env:doctor before commands that need local secrets.`,
+  );
+}
+
 const { repoRoot } = getScriptContext(import.meta.url);
 
 function main() {
@@ -188,13 +212,7 @@ function main() {
   console.log(`Creating worktree ${worktreePath} on branch ${branchName}...`);
   git(['worktree', 'add', worktreePath, '-b', branchName, 'origin/main']);
 
-  const mainEnv = path.join(repoRoot, '.env.local');
-  const worktreeEnv = path.join(worktreePath, '.env.local');
-  if (existsSync(mainEnv) && !existsSync(worktreeEnv)) {
-    copyFileSync(mainEnv, worktreeEnv);
-    console.log('.env.local copied.');
-  }
-
+  reportEnvBootstrap();
   ensureNodeModulesLink(worktreePath, options.noNodeModulesLink);
 
   console.log('');
@@ -203,7 +221,7 @@ function main() {
   console.log(`  Branch: ${branchName}`);
   console.log('');
   console.log('Next:');
-  console.log(`  Set-Location '${worktreePath}'`);
+  console.log(`  cd '${worktreePath}'`);
   console.log('  git status --short --branch');
 }
 

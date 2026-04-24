@@ -26,6 +26,8 @@
     "gh:auth-status": "node scripts/gh-auth-status.js",
     "auth:doctor": "node scripts/auth-doctor.js",
     "auth:repair": "node scripts/repair-gh-auth.mjs",
+    "env:doctor": "node scripts/env-doctor.mjs",
+    "env:run": "node scripts/env-run.mjs",
     "git:stage": "node scripts/git-stage.js",
     "git:commit": "node scripts/git-commit.js",
     "git:push": "node scripts/git-push.js",

@@ -8,7 +8,7 @@ paths:
 
 # Dev Preview in Worktrees
 
-Rules for running the local dev server via Claude Preview tools. The `npm run worktree:sync` session-start hook auto-provisions `.env.local` and `node_modules`, so agents can usually start previewing immediately.
+Rules for running the local dev server via Claude Preview tools. Worktree sync links `node_modules` when possible, but it no longer copies plaintext `.env.local`. Use `npm run env:doctor` to inspect local env readiness and `npm run env:run -- <command>` for 1Password-backed local env injection.
 
 ## Starting the Dev Server
 
@@ -40,7 +40,7 @@ Test Globe pages only after the rest of the app is confirmed working.
 
 ## Auth Mocking
 
-The dev server supports mock auth via `/api/auth/dev-mock` (requires `DEV_MOCK_AUTH=true` in `.env.local`, which is set by default).
+The dev server supports mock auth via `/api/auth/dev-mock` when `DEV_MOCK_AUTH=true` is available through `npm run env:run -- <command>` or a local fallback env file.
 
 Switch personas with `preview_eval`:
 
@@ -70,16 +70,16 @@ For responsive: `preview_resize` with presets `"mobile"` (375x812), `"tablet"` (
 
 ## Troubleshooting
 
-| Symptom                                                  | Cause                                      | Fix                                                     |
-| -------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------- |
-| `MODULE_NOT_FOUND` errors                                | `node_modules` missing or junction broken  | Run `npm install` in the worktree                       |
-| Missing env var errors                                   | `.env.local` not copied                    | Run `npm run worktree:sync`                             |
-| Port already in use                                      | Another dev server running                 | `autoPort: true` handles this automatically             |
-| Turbopack panic: "Symlink points out of filesystem root" | `turbopack.root` not set in next.config.ts | Confirm `next.config.ts` sets `turbopack.root`          |
-| Browser hangs / all preview calls timeout                | Globe/Three.js page loaded first           | Stop server, restart, navigate to `/governance` first   |
-| Stale build cache                                        | `.next/` has bad state                     | `rm -rf .next` then restart                             |
-| Auth mock returns 401                                    | `DEV_MOCK_AUTH` not set                    | Verify `.env.local` contains `DEV_MOCK_AUTH=true`       |
-| `node_modules` link won't create                         | package.json differs from main             | Run `npm install` - the hook only links when deps match |
+| Symptom                                                  | Cause                                           | Fix                                                      |
+| -------------------------------------------------------- | ----------------------------------------------- | -------------------------------------------------------- |
+| `MODULE_NOT_FOUND` errors                                | `node_modules` missing or junction broken       | Run `npm install` in the worktree                        |
+| Missing env var errors                                   | Local env references missing or fallback absent | Run `npm run env:doctor`                                 |
+| Port already in use                                      | Another dev server running                      | `autoPort: true` handles this automatically              |
+| Turbopack panic: "Symlink points out of filesystem root" | `turbopack.root` not set in next.config.ts      | Confirm `next.config.ts` sets `turbopack.root`           |
+| Browser hangs / all preview calls timeout                | Globe/Three.js page loaded first                | Stop server, restart, navigate to `/governance` first    |
+| Stale build cache                                        | `.next/` has bad state                          | `rm -rf .next` then restart                              |
+| Auth mock returns 401                                    | `DEV_MOCK_AUTH` not set                         | Verify `DEV_MOCK_AUTH=true` through `npm run env:doctor` |
+| `node_modules` link won't create                         | package.json differs from main                  | Run `npm install` - the hook only links when deps match  |
 
 ## Compilation Times (Turbopack)
 
@@ -95,7 +95,7 @@ The server accepts connections immediately but holds requests until the route co
 The `npm run worktree:sync` hook runs on session start and handles:
 
 - Fetching and rebasing onto `origin/main` (skips with warning if the working tree is dirty)
-- Copying `.env.local` from the main checkout if missing
+- Reporting local env bootstrap status without copying `.env.local`
 - Linking `node_modules` from the main checkout, with `npm install` fallback when linking is not possible
 - Preserving the 1Password-backed SSH alias remote for Git operations
 

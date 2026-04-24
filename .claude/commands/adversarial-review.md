@@ -262,7 +262,7 @@ If SHIP:
 - The UX agent MUST take screenshots. Findings without visual evidence are downgraded.
 - Neither agent should pad with minor style nits to seem thorough — only real problems.
 - The code agent reads files directly. The UX agent uses Preview tools exclusively (not Chrome).
-- The UX agent MUST test auth-gated pages using `/api/auth/dev-mock`. Requires `DEV_MOCK_AUTH=true` in `.env.local`.
+- The UX agent MUST test auth-gated pages using `/api/auth/dev-mock`. Requires `DEV_MOCK_AUTH=true` through `npm run env:run -- <command>` or a local fallback env file.
 - For auth-gated pages, test as the most relevant persona (e.g., `/workspace` as `drep`). Test at least 2 personas per auth-gated route if time permits.
 - This command does NOT deploy. It reviews what's ready to deploy. Use `/ship` after.
 - **Entity type coverage**: When reviewing any list/directory/discovery interface, the UX agent MUST test ALL entity types (DReps, proposals, pools, CC members), not just one. Entity types often have different code paths and data shapes. Bugs hide in the less-common types.
