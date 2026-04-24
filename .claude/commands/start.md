@@ -2,8 +2,8 @@ Initialize the session properly before writing any code.
 
 ## Steps
 
-1. Run `npm run session:doctor` and read the snapshot before making changes. Inspect the `Repo bootstrap files` and `Repo-scoped auth and MCP` sections before reaching for GitHub or MCP tooling.
-2. Resolve repo tooling in this order: current checkout first, shared checkout fallback second, repo-scoped user paths referenced by repo files third, global defaults last. In this repo that means `.mcp.json`, `.claude/settings.local.json`, `.env.local`, `package.json`, `scripts/lib/runtime.js`, and `scripts/set-gh-context.*` before generic home-directory config.
+1. Run `npm run session:doctor` and read the snapshot before making changes. Use `npm run env:doctor` for local env readiness and `npm run gh:auth-status` before reaching for GitHub tooling.
+2. Resolve repo tooling in this order: current checkout first, shared checkout fallback second, repo-scoped user paths referenced by repo files third, global defaults last. In this repo that means `.mcp.json`, `.claude/settings.local.json`, `.env.local.refs`, `.env.local`, `package.json`, `scripts/env-doctor.mjs`, `scripts/env-run.mjs`, `scripts/lib/runtime.js`, and `scripts/set-gh-context.*` before generic home-directory config.
 3. If the repo is on main and feature work is needed, create an in-repo worktree with `npm run worktree:new -- <name>` and continue there. Do NOT create branches in the main checkout. Hotfixes (`ALLOW_MAIN_EDIT=1`) are the only exception.
 4. Stay rooted at the shared repo root. Do not open a separate Codex project from an individual worktree folder for this repo.
 5. If GitHub auth or MCP access is missing, use `npm run gh:auth-status`, `npm run auth:repair`, and the wrapper commands referenced by `.mcp.json` before falling back to generic `gh auth status` or global MCP settings.

@@ -66,9 +66,11 @@ Always resolve credentials and tool wrappers from the repo before falling back t
 
 - Search order: current checkout -> shared checkout fallback -> repo-scoped user paths named by repo files -> global/home-directory config.
 - In worktrees, ignored local files may be absent even when they exist in the shared checkout. If `.mcp.json` or `.claude/settings.local.json` is missing in `.claude/worktrees/<name>`, check the shared checkout next before assuming the repo is unconfigured.
-- Treat these files as authoritative when present: `.mcp.json`, `.claude/settings.local.json`, `.env.local`, `package.json`, `scripts/lib/runtime.js`, `scripts/set-gh-context.js`, `scripts/gh-auth-status.js`, and `scripts/repair-gh-auth.mjs`.
+- Treat these files as authoritative when present: `.mcp.json`, `.claude/settings.local.json`, `.env.local.refs`, `.env.local`, `docs/examples/env-local-refs.example.md`, `package.json`, `scripts/env-doctor.mjs`, `scripts/env-run.mjs`, `scripts/lib/runtime.js`, `scripts/set-gh-context.js`, `scripts/gh-auth-status.js`, and `scripts/repair-gh-auth.mjs`.
 - Governada Git remotes should use the 1Password-backed SSH alias `git@github-governada:governada/governada-app.git`. Do not replace it with HTTPS or bare `git@github.com`.
 - GitHub CLI tokens should come from 1Password when possible: set `GH_TOKEN_OP_REF` or `GITHUB_TOKEN_OP_REF` to an `op://...` reference in local environment, never the raw token. Repo `gh` wrappers pin `OP_ACCOUNT=my.1password.com` and resolve that reference with the 1Password CLI without printing the secret.
+- Local app/runtime secrets should use ignored `.env.local.refs` files with `op://...` references and `npm run env:run -- <command>` where possible. Use `npm run env:doctor` to inspect readiness without printing values. Do not place `GH_TOKEN_OP_REF` or `GITHUB_TOKEN_OP_REF` in `.env.local.refs`; keep them unresolved for repo GitHub wrappers.
+- Worktree setup must not copy plaintext `.env.local` from the shared checkout. Existing `.env.local` files are temporary production-connected fallbacks only; never read, print, commit, or propagate them.
 - Repo-scoped user paths referenced by those files are part of the repo bootstrap, not global fallbacks. That includes `GH_CONFIG_DIR` and any wrapper commands referenced by `.mcp.json`.
 - Before generic troubleshooting, run `npm run session:doctor`, then `npm run gh:auth-status`, then inspect `.mcp.json` and the referenced wrapper commands.
 
@@ -76,5 +78,6 @@ Always resolve credentials and tool wrappers from the repo before falling back t
 
 - Local MCP credentials belong in `.mcp.json`, which stays ignored.
 - Local Claude overrides belong in `.claude/settings.local.json`, which stays ignored.
+- Local 1Password env references belong in `.env.local.refs`, which stays ignored. Use `docs/examples/env-local-refs.example.md` as the sanitized template.
 - Use `.mcp.example.json` as the sanitized template for new machines.
 - Use `npm run auth:repair` if GitHub auth or the remote URL needs repair.

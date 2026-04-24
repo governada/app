@@ -1,0 +1,197 @@
+import { spawnSync } from 'node:child_process';
+import { createRequire } from 'node:module';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+
+import { afterEach, describe, expect, it } from 'vitest';
+
+import {
+  forbiddenLiteralEntries,
+  getForbiddenGithubReferenceKeys,
+  parseEnvEntries,
+} from '@/scripts/lib/env-bootstrap.mjs';
+
+const require = createRequire(import.meta.url);
+const { withGhTokenFromOnePassword } = require(path.join(process.cwd(), 'scripts/lib/gh-auth.js'));
+
+const repoRoot = process.cwd();
+const tempPaths: string[] = [];
+
+function createTempDir(prefix = 'governada-env-bootstrap-') {
+  const dir = mkdtempSync(path.join(tmpdir(), prefix));
+  tempPaths.push(dir);
+  return dir;
+}
+
+function createRepoTempDir(prefix = '.tmp-env-bootstrap-') {
+  const dir = mkdtempSync(path.join(repoRoot, prefix));
+  tempPaths.push(dir);
+  return dir;
+}
+
+afterEach(() => {
+  while (tempPaths.length > 0) {
+    const dir = tempPaths.pop();
+    if (dir) {
+      rmSync(dir, { force: true, recursive: true });
+    }
+  }
+});
+
+describe('env bootstrap guardrails', () => {
+  it('detects GitHub token reference keys in .env.local.refs', () => {
+    const dir = createTempDir();
+    const refsPath = path.join(dir, '.env.local.refs');
+    writeFileSync(
+      refsPath,
+      ['GH_TOKEN_OP_REF=op://Governada/item/token', 'GITHUB_TOKEN_OP_REF=op://x/y/z'].join('\n'),
+    );
+
+    expect(getForbiddenGithubReferenceKeys(refsPath)).toEqual([
+      'GH_TOKEN_OP_REF',
+      'GITHUB_TOKEN_OP_REF',
+    ]);
+  });
+
+  it('blocks non-allowlisted literal values while allowing op refs and public literals', () => {
+    const dir = createTempDir();
+    const refsPath = path.join(dir, '.env.local.refs');
+    writeFileSync(
+      refsPath,
+      [
+        'NODE_ENV=development',
+        'NEXT_PUBLIC_SITE_URL=https://governada.local',
+        'DATABASE_URL=postgres://example',
+        'KOIOS_API_KEY=op://Governada/item/koios',
+      ].join('\n'),
+    );
+
+    expect(forbiddenLiteralEntries(parseEnvEntries(refsPath))).toEqual([
+      { key: 'DATABASE_URL', value: 'postgres://example' },
+    ]);
+  });
+
+  it('rejects raw GitHub token env in repo GitHub wrappers', () => {
+    const result = withGhTokenFromOnePassword({ GH_TOKEN: 'dummy-token' }, repoRoot);
+
+    expect(result.error).toContain('raw GH_TOKEN env is not allowed');
+    expect(result.env.GH_TOKEN).toBeUndefined();
+  });
+
+  it('strips inherited raw GitHub tokens from env:run child commands', () => {
+    const cwd = createRepoTempDir();
+    writeFileSync(path.join(cwd, '.env.local'), 'NODE_ENV=test\n');
+
+    const result = spawnSync(
+      'node',
+      [
+        path.join(repoRoot, 'scripts/env-run.mjs'),
+        'node',
+        '-e',
+        "process.stdout.write(process.env.GH_TOKEN ? 'raw-token-present' : 'raw-token-stripped')",
+      ],
+      {
+        cwd,
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          GH_TOKEN: 'dummy-token',
+        },
+      },
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('raw-token-stripped');
+  });
+
+  it('blocks local .env.local fallback when it contains a raw GitHub token', () => {
+    const cwd = createRepoTempDir();
+    writeFileSync(path.join(cwd, '.env.local'), 'GH_TOKEN=dummy-token\n');
+
+    const result = spawnSync(
+      'node',
+      [path.join(repoRoot, 'scripts/env-run.mjs'), 'node', '-e', "console.log('should-not-run')"],
+      {
+        cwd,
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          GH_TOKEN: '',
+          GITHUB_TOKEN: '',
+        },
+      },
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('.env.local must not define GH_TOKEN or GITHUB_TOKEN');
+    expect(result.stdout).not.toContain('should-not-run');
+  });
+
+  it('blocks raw GitHub tokens in local .env.local even when .env.local.refs exists', () => {
+    const cwd = createRepoTempDir();
+    writeFileSync(path.join(cwd, '.env.local'), 'GITHUB_TOKEN=dummy-token\n');
+    writeFileSync(path.join(cwd, '.env.local.refs'), 'NODE_ENV=test\n');
+
+    const result = spawnSync(
+      'node',
+      [path.join(repoRoot, 'scripts/env-run.mjs'), 'node', '-e', "console.log('should-not-run')"],
+      {
+        cwd,
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          GH_TOKEN: '',
+          GITHUB_TOKEN: '',
+        },
+      },
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('.env.local must not define GH_TOKEN or GITHUB_TOKEN');
+    expect(result.stdout).not.toContain('should-not-run');
+  });
+
+  it('keeps worktree setup from copying plaintext .env.local files', () => {
+    const newWorktree = readFileSync(path.join(repoRoot, 'scripts/new-worktree.mjs'), 'utf8');
+    const syncWorktree = readFileSync(path.join(repoRoot, 'scripts/sync-worktree.mjs'), 'utf8');
+
+    expect(newWorktree).not.toContain('copyFileSync');
+    expect(syncWorktree).not.toContain('copyFileSync');
+  });
+
+  it('does not load shared-checkout .env.local from runtime helpers', () => {
+    const cjsRuntime = readFileSync(path.join(repoRoot, 'scripts/lib/runtime.js'), 'utf8');
+    const esmRuntime = readFileSync(path.join(repoRoot, 'scripts/lib/runtime.mjs'), 'utf8');
+
+    expect(cjsRuntime).not.toContain("sharedRoot ? path.join(sharedRoot, '.env.local')");
+    expect(esmRuntime).not.toContain("sharedRoot ? path.join(sharedRoot, '.env.local')");
+  });
+
+  it('keeps direct gh shellouts inside auth-wrapping runtime helpers only', () => {
+    const directGhPatterns = [
+      /runCommand\(['"]gh['"]/u,
+      /commandOutput\(['"]gh['"]/u,
+      /spawnSync\(['"]gh['"]/u,
+      /execFileSync\(['"]gh['"]/u,
+    ];
+    const checkedFiles = [
+      'scripts/pre-merge-check.mjs',
+      'scripts/rollback.js',
+      'scripts/rollback.mjs',
+      'scripts/lib/runtime.js',
+      'scripts/lib/runtime.mjs',
+    ];
+
+    for (const relativePath of checkedFiles) {
+      const content = readFileSync(path.join(repoRoot, relativePath), 'utf8');
+      const violations = directGhPatterns.filter((pattern) => pattern.test(content));
+
+      if (relativePath.includes('runtime.')) {
+        expect(violations).toHaveLength(1);
+      } else {
+        expect(violations, relativePath).toHaveLength(0);
+      }
+    }
+  });
+});

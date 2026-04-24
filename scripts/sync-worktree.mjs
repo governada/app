@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, existsSync, lstatSync, readFileSync, symlinkSync } from 'node:fs';
+import { existsSync, lstatSync, readFileSync, symlinkSync } from 'node:fs';
 import path from 'node:path';
+import { ENV_LOCAL_FILE, ENV_REFS_FILE } from './lib/env-bootstrap.mjs';
 import { getScriptContext } from './lib/runtime.mjs';
 
 const { repoRoot } = getScriptContext(import.meta.url);
@@ -100,17 +101,50 @@ function revCount(range) {
   return Number.isFinite(value) ? value : 0;
 }
 
-function ensureEnvLocal() {
+function reportEnvBootstrap() {
   if (isSharedCheckout) {
+    if (existsSync(path.join(repoRoot, ENV_REFS_FILE))) {
+      console.log(`${ENV_REFS_FILE}: present in shared checkout.`);
+    } else if (existsSync(path.join(repoRoot, ENV_LOCAL_FILE))) {
+      console.log(
+        `${ENV_LOCAL_FILE}: present in shared checkout as a fallback; run npm run env:doctor for migration status.`,
+      );
+    } else {
+      console.log(`${ENV_REFS_FILE}: not found. Run npm run env:doctor.`);
+    }
     return;
   }
 
-  const worktreeEnv = path.join(repoRoot, '.env.local');
-  const mainEnv = path.join(mainCheckoutRoot, '.env.local');
-  if (!existsSync(worktreeEnv) && existsSync(mainEnv)) {
-    copyFileSync(mainEnv, worktreeEnv);
-    console.log('.env.local: copied from main checkout.');
+  const worktreeRefs = path.join(repoRoot, ENV_REFS_FILE);
+  const sharedRefs = path.join(mainCheckoutRoot, ENV_REFS_FILE);
+  const worktreeEnv = path.join(repoRoot, ENV_LOCAL_FILE);
+  const sharedEnv = path.join(mainCheckoutRoot, ENV_LOCAL_FILE);
+
+  if (existsSync(worktreeRefs)) {
+    console.log(`${ENV_REFS_FILE}: present in worktree. Use npm run env:run -- <command>.`);
+    return;
   }
+
+  if (existsSync(sharedRefs)) {
+    console.log(
+      `${ENV_REFS_FILE}: available from shared checkout. Use npm run env:run -- <command>; no env file was copied.`,
+    );
+    return;
+  }
+
+  if (existsSync(worktreeEnv)) {
+    console.log(`${ENV_LOCAL_FILE}: present in worktree as a fallback.`);
+    return;
+  }
+
+  if (existsSync(sharedEnv)) {
+    console.log(
+      `${ENV_LOCAL_FILE}: present in shared checkout but not copied. Run npm run env:doctor for migration status.`,
+    );
+    return;
+  }
+
+  console.log(`${ENV_REFS_FILE}: not found. Run npm run env:doctor.`);
 }
 
 function ensureNodeModulesLink() {
@@ -214,5 +248,5 @@ if (behind > 0) {
   console.log(`Git: already up to date with origin/main (ahead ${ahead} commit(s)).`);
 }
 
-ensureEnvLocal();
+reportEnvBootstrap();
 ensureNodeModulesLink();

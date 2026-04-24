@@ -7,21 +7,6 @@ const { withGhTokenFromOnePassword } = require('./gh-auth');
 
 const repoRoot = path.resolve(__dirname, '..', '..');
 
-function getSharedCheckoutRoot() {
-  const result = spawnSync('git', ['rev-parse', '--path-format=absolute', '--git-common-dir'], {
-    cwd: repoRoot,
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'ignore'],
-  });
-
-  if (result.status !== 0) {
-    return '';
-  }
-
-  const commonDir = result.stdout.trim();
-  return commonDir ? path.dirname(commonDir) : '';
-}
-
 function resolveCommand(command) {
   if (process.platform !== 'win32') {
     return command;
@@ -43,11 +28,9 @@ function usesShell(command) {
 }
 
 function loadLocalEnv() {
-  const sharedRoot = getSharedCheckoutRoot();
   const candidates = [
     path.join(process.cwd(), '.env.local'),
     path.join(repoRoot, '.env.local'),
-    sharedRoot ? path.join(sharedRoot, '.env.local') : '',
   ].filter(Boolean);
 
   const seen = new Set();

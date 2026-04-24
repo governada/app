@@ -55,7 +55,7 @@ Additional stale directory: `.claude/worktrees/auth-cookie-cleanup` is not regis
 - `current-state.md` says Governada has about 93 indexed chunks; live metadata has 278.
 - `governada-retrieval/README.md` still lists adding BlueCargo retrieval as a next step.
 - `tooling-matrix.md` gives a portable absolute wrapper example for Governada only.
-- `scripts/new-worktree.mjs` and `scripts/sync-worktree.mjs` copy `.env.local` into worktrees; this should be replaced with a 1Password-backed reference/injection flow in a later slice.
+- `scripts/new-worktree.mjs` and `scripts/sync-worktree.mjs` copied `.env.local` into worktrees at Phase 0A handoff time; Phase 0B superseded this with `env:doctor`, `env:run`, and no new plaintext `.env.local` worktree copying.
 
 ## Phase 0A Fixes Applied
 
@@ -115,7 +115,7 @@ Additional stale directory: `.claude/worktrees/auth-cookie-cleanup` is not regis
 - Add an auth capability registry entry covering owner, operation classes, account/vault boundary, verification command, fallback, and revocation path.
 - Add a retrieval doctor that reports wrapper availability, PATH exposure, index timestamp, chunk count, vault files newer than index, and domain-policy drift.
 - Reconcile BlueCargo retrieval policy across `retrieval-policy.md`, `autonomy-policy.md`, `bluecargo-context.md`, `retrieval-interfaces.md`, and `tooling-matrix.md`.
-- Replace `.env.local` worktree copying with a 1Password-backed local injection/reference path.
+- Validate and adopt the Phase 0B `env:doctor` / `env:run` local injection/reference path; do not restore plaintext `.env.local` worktree copying.
 - Evaluate GitHub App installation tokens vs a narrow 1Password service account vs an interim fine-grained PAT; do not implement a new auth lane until Tim approves the chosen design.
 - Add a capability registry entry for LM Studio as installed but inactive/unproven; keep Ollama, Open WebUI, and Hammerspoon marked unavailable until installed and tested.
 
@@ -170,7 +170,7 @@ Recommended work slices:
 1. Decide with Tim whether governada-brain, governada-retrieval, and bluecargo-retrieval should be Git-versioned now or have accepted local-loss risk documented.
 2. Extend the auth-runtime design from auth-and-identity.md into an implementation plan: sandbox-compatible autonomous lane, auth capability registry, operation classes, approval posture, fallback, and revocation path.
 3. Decide between GitHub App installation tokens, a narrow 1Password service account, and an interim fine-grained PAT for the first autonomous GitHub lane.
-4. Replace .env.local worktree copying with a 1Password-backed reference/injection design, then implement only after approval.
+4. Validate and adopt the Phase 0B .env.local.refs / env:run path; do not restore plaintext .env.local worktree copying.
 5. Add a retrieval/control-plane doctor that reports wrapper availability, PATH exposure, index timestamp, chunk count, vault files newer than index, and policy drift.
 6. Reconcile BlueCargo retrieval policy drift across retrieval-policy.md, autonomy-policy.md, bluecargo-context.md, retrieval-interfaces.md, and tooling-matrix.md.
 7. Update durable ops notes and/or roadmap current reality after checks and fixes.
