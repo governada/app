@@ -6,18 +6,21 @@ Scope: Phase 0A reality hygiene only. Broader roadmap phases were not implemente
 
 ## Research Performed
 
-- Read the requested control-plane docs in `governada-brain`: roadmap, system overview, agent operating model, tooling matrix, data boundaries, autonomy policy, plus `governada-app/AGENTS.md`.
+- Read the requested control-plane docs in `governada-brain`: roadmap, system overview, agent operating model, tooling matrix, data boundaries, autonomy policy, plus the auth map at `/Users/tim/dev/governada/governada-brain/agents/system/auth-and-identity.md` and `governada-app/AGENTS.md`.
 - Read additional drift targets: `current-state.md`, `milestones.md`, `retrieval-policy.md`, `retrieval-interfaces.md`, BlueCargo agent context and indexing policy, retrieval READMEs, worktree scripts, `docs-doctor`, `session-doctor`, and `gh-auth-status`.
-- Ran `npm run session:guard`, `npm run session:doctor`, `npm run docs:doctor`, and `npm run gh:auth-status`.
+- Ran `npm run session:guard`, `npm run session:doctor`, `npm run docs:doctor`, `npm run gh:auth-status`, and `npm run auth:doctor`.
 - Checked Governada and BlueCargo retrieval wrappers, index timestamps, metadata chunk counts, and vault files newer than indexes.
 - Checked local tool availability for repo, retrieval, auth, browser testing, and local model claims.
 
 ## Current Local Reality
 
 - `session:guard` passed before Phase 0A edits.
-- `session:doctor` passed before Phase 0A edits, with 13 registered worktrees and no dirty or gone-upstream registered worktrees. After creating this Phase 0A worktree, `session:doctor` reports 15 registered worktrees because it also sees an external detached Codex worktree at `/Users/tim/.codex/worktrees/f78c/governada-app`.
+- `session:doctor` passed before Phase 0A edits, with 13 registered worktrees and no dirty or gone-upstream registered worktrees. During PR #901 closeout, `session:doctor` reports 14 registered worktrees because it also sees an external detached Codex worktree at `/Users/tim/.codex/worktrees/f78c/governada-app`.
 - `docs:doctor` failed before Phase 0A edits because `build-manifest.md` had an Inngest count of 57 instead of 59, the manifest was older than `ultimate-vision.md`, and the generated registry index was stale.
 - `gh:auth-status` succeeded with repo context `governada/governada-app` and a 1Password token source, but its old implementation printed the raw `gh auth status` output, including a token-like masked line.
+- PR #901 exposed an auth-runtime gap after CI passed: Codex Desktop sandboxing may block 1Password desktop IPC even when the same `op read` succeeds outside the sandbox. This is an execution-boundary issue, not a reason to switch to global `gh auth login`, raw tokens, generic GitHub remotes, or BlueCargo credentials.
+- During the PR #901 closeout update, `gh:auth-status` and `auth:doctor` both reported the same blocked desktop 1Password lane from Codex. The shared wrapper now redacts secret references and times out deterministically instead of hanging or printing the full `op://...` reference.
+- The current Governada auth map lives at `/Users/tim/dev/governada/governada-brain/agents/system/auth-and-identity.md`. It defines desktop 1Password as the human-present lane and assigns sandbox-compatible autonomous auth design to Phase 0B / Phase 0.5.
 - Governada retrieval runs through `/Users/tim/dev/governada/governada-retrieval/gr`; live metadata has 278 chunks. The index was built at 2026-04-23 18:55:47 -0400. `governada-brain/agents/system/roadmap.md` is newer than that index.
 - BlueCargo retrieval runs through `/Users/tim/dev/bluecargo/bluecargo-retrieval/br`; live metadata has 41 chunks. The index was built at 2026-04-22 00:39:35 -0400 and no BlueCargo vault markdown was newer than the index during this check.
 - Shell `PATH` did not expose `gr`, `gr_task`, `br`, or `br_task`; absolute wrappers are present and executable.
@@ -41,7 +44,6 @@ Scope: Phase 0A reality hygiene only. Broader roadmap phases were not implemente
 | `fix/restore-894-deps`             | `.claude/worktrees/restore-894`                  | unknown         | Clean, one local commit relative to main; no upstream in local branch metadata. |
 | `claude/serene-liskov-38d43a`      | `.claude/worktrees/serene-liskov-38d43a`         | merged/prunable | Clean, no commits ahead of main.                                                |
 | `claude/upbeat-liskov-8f594e`      | `.claude/worktrees/upbeat-liskov-8f594e`         | merged/prunable | Clean, no commits ahead of main.                                                |
-| `claude/vigorous-euclid-f7df65`    | `.claude/worktrees/vigorous-euclid-f7df65`       | merged/prunable | Clean, exactly at main during this check.                                       |
 | `claude/xenodochial-agnesi-ec1509` | `.claude/worktrees/xenodochial-agnesi-ec1509`    | unknown         | Clean, one local commit ahead and behind main.                                  |
 
 Additional stale directory: `.claude/worktrees/auth-cookie-cleanup` is not registered by `git worktree list`; its `.git` pointer references `/Users/tim/governada-app/.git/worktrees/auth-cookie-cleanup`. Treat as unknown/orphaned and do not delete without Tim confirming ownership.
@@ -58,6 +60,9 @@ Additional stale directory: `.claude/worktrees/auth-cookie-cleanup` is not regis
 ## Phase 0A Fixes Applied
 
 - `scripts/gh-auth-status.js` now verifies GitHub API auth and repo access without calling `gh auth status`, avoiding token-like output.
+- `scripts/lib/gh-auth.js` now bounds `op read`, redacts token-like strings and `op://...` references from auth failures, and names desktop IPC/authorization timeout as the likely blocked lane.
+- `npm run auth:doctor` now reports the repo-pinned Governada GitHub lane, verifies the 1Password reference without printing it, classifies Codex sandbox desktop-IPC failure explicitly, and only runs child `gh` checks after the 1Password lane is ready.
+- `scripts/repair-gh-auth.mjs` no longer points agents at `gh auth login`; it directs them back through `auth:doctor` and the repo-scoped 1Password lane.
 - `scripts/session-doctor.js` now reports orphaned `.claude/worktrees/*` directories as advisories.
 - `docs/strategy/context/build-manifest.md` now records 59 Inngest functions.
 - `docs/strategy/context/registry/_index.generated.md` was regenerated.
@@ -69,6 +74,7 @@ Additional stale directory: `.claude/worktrees/auth-cookie-cleanup` is not regis
 - `npm run session:doctor`
 - `npm run session:guard`
 - `npm run gh:auth-status`
+- `npm run auth:doctor`
 - `npm run registry:index:check`
 - `npm run agent:validate`
 
@@ -76,18 +82,23 @@ Additional stale directory: `.claude/worktrees/auth-cookie-cleanup` is not regis
 
 - `npm run docs:doctor`: pass after manifest and registry refresh.
 - `npm run registry:index:check`: pass.
-- `npm run gh:auth-status`: pass; output no longer includes token-like `gh auth status` lines.
-- `npm run session:doctor`: pass as a diagnostic command; reports the current dirty Phase 0A worktree, 15 registered worktrees, and one orphaned `.claude/worktrees` directory.
+- `npm run gh:auth-status`: earlier Phase 0A run passed after the token-like `gh auth status` output was removed. Current PR #901 closeout runs from Codex, including a sandbox-escalated retry, block on 1Password desktop IPC / authorization timeout and now emit a deterministic redacted error.
+- `npm run auth:doctor`: diagnostic block in the Codex sandbox because 1Password desktop IPC is unavailable from this process, then skips child `gh` checks. Output does not print raw tokens or the full `op://...` reference. This is the PR #901 auth-runtime finding to carry into Phase 0B.
+- `npm run session:doctor`: pass as a diagnostic command; reports the current dirty Phase 0A worktree, 14 registered worktrees, and one orphaned `.claude/worktrees` directory.
+- Final strict `npm run session:guard`: pass after committing the auth-runtime closeout; worktree clean, no stashes, no dirty or gone-upstream registered worktrees. Advisories remain for 14 open worktrees and one orphaned `.claude/worktrees` directory.
 - `npm run agent:validate`: pass.
 - `npm run format:check`: pass after formatting this handoff note.
-- Final strict `npm run session:guard`: run after committing this change set so the dirty-current-worktree warning can clear.
 
 ## Phase 0B Recommended Scope
 
 - Decide and implement durability/versioning for `governada-brain`, `governada-retrieval`, and `bluecargo-retrieval`, or record accepted loss risk explicitly.
+- Use `/Users/tim/dev/governada/governada-brain/agents/system/auth-and-identity.md` as the auth/identity control-plane source and reconcile implementation details back to it.
+- Design the durable sandbox-compatible autonomous auth lane; do not treat desktop 1Password IPC as sufficient for unattended Codex work.
+- Add an auth capability registry entry covering owner, operation classes, account/vault boundary, verification command, fallback, and revocation path.
 - Add a retrieval doctor that reports wrapper availability, PATH exposure, index timestamp, chunk count, vault files newer than index, and domain-policy drift.
 - Reconcile BlueCargo retrieval policy across `retrieval-policy.md`, `autonomy-policy.md`, `bluecargo-context.md`, `retrieval-interfaces.md`, and `tooling-matrix.md`.
 - Replace `.env.local` worktree copying with a 1Password-backed local injection/reference path.
+- Evaluate GitHub App installation tokens vs a narrow 1Password service account vs an interim fine-grained PAT; do not implement a new auth lane until Tim approves the chosen design.
 - Add a capability registry entry for LM Studio as installed but inactive/unproven; keep Ollama, Open WebUI, and Hammerspoon marked unavailable until installed and tested.
 
 ## Copy/Paste Prompt For Next Agent
@@ -99,6 +110,7 @@ You are taking over Phase 0B: Brain, Retrieval, and Control-Plane Reliability fo
 
 Start by reading:
 - /Users/tim/dev/governada/governada-app/docs/operations/mac-agent-os-phase-0a-handoff.md
+- /Users/tim/dev/governada/governada-brain/agents/system/auth-and-identity.md
 - /Users/tim/dev/governada/governada-brain/agents/system/roadmap.md
 - /Users/tim/dev/governada/governada-brain/agents/system/system-overview.md
 - /Users/tim/dev/governada/governada-brain/agents/system/agent-operating-model.md
@@ -110,15 +122,19 @@ Start by reading:
 Do not broaden into provider parity, model collaboration, desktop automation, source-of-truth vault writeback, or broader roadmap phases.
 
 Phase 0B goal:
-Make the brain, retrieval, and control-plane layer reliable enough that future agents can trust the doctors and handoff packets before doing deeper implementation.
+Make the brain, retrieval, auth-runtime, and control-plane layer reliable enough that future agents can trust the doctors and handoff packets before doing deeper implementation.
 
 Use the Phase 0A handoff as primary current-state evidence. Refresh reality where it is cheap and important, especially for drift-prone checks.
+
+Phase 0A auth-runtime finding:
+Codex Desktop sandboxing may block 1Password desktop IPC even when `op read` succeeds outside the sandbox. Preserve 1Password as the source of truth. Do not bypass this with global `gh auth login`, raw-token fallbacks, generic GitHub remotes, or cross-domain credentials.
 
 Required first checks:
 - npm run session:guard
 - npm run session:doctor
 - npm run docs:doctor
 - npm run gh:auth-status
+- npm run auth:doctor
 - Governada retrieval wrapper/index status
 - BlueCargo retrieval wrapper/index status
 - Git/versioning status for governada-brain, governada-retrieval, and bluecargo-retrieval
@@ -130,12 +146,16 @@ Boundaries:
 - Do not merge Governada and BlueCargo retrieval indexes.
 - Do not change .env.local or secret flow in this phase unless Tim explicitly approves the exact design.
 - Treat BlueCargo retrieval as local-only until docs and policy say otherwise.
+- Do not implement service accounts, GitHub App auth, or a new token lane until the Phase 0B design is explicit and Tim approves it.
 
 Recommended work slices:
 1. Decide with Tim whether governada-brain, governada-retrieval, and bluecargo-retrieval should be Git-versioned now or have accepted local-loss risk documented.
-2. Add a retrieval/control-plane doctor that reports wrapper availability, PATH exposure, index timestamp, chunk count, vault files newer than index, and policy drift.
-3. Reconcile BlueCargo retrieval policy drift across retrieval-policy.md, autonomy-policy.md, bluecargo-context.md, retrieval-interfaces.md, and tooling-matrix.md.
-4. Update durable ops notes and/or roadmap current reality after checks and fixes.
+2. Extend the auth-runtime design from auth-and-identity.md into an implementation plan: sandbox-compatible autonomous lane, auth capability registry, operation classes, approval posture, fallback, and revocation path.
+3. Decide between GitHub App installation tokens, a narrow 1Password service account, and an interim fine-grained PAT for the first autonomous GitHub lane.
+4. Replace .env.local worktree copying with a 1Password-backed reference/injection design, then implement only after approval.
+5. Add a retrieval/control-plane doctor that reports wrapper availability, PATH exposure, index timestamp, chunk count, vault files newer than index, and policy drift.
+6. Reconcile BlueCargo retrieval policy drift across retrieval-policy.md, autonomy-policy.md, bluecargo-context.md, retrieval-interfaces.md, and tooling-matrix.md.
+7. Update durable ops notes and/or roadmap current reality after checks and fixes.
 
 Before implementing, output:
 - Research Performed
