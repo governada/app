@@ -33,19 +33,6 @@ export function getScriptContext(metaUrl) {
   return { repoRoot, scriptDir, scriptPath };
 }
 
-function getSharedCheckoutRoot(repoRoot) {
-  const commonDir = commandOutput(
-    'git',
-    ['rev-parse', '--path-format=absolute', '--git-common-dir'],
-    {
-      allowFailure: true,
-      cwd: repoRoot,
-    },
-  );
-
-  return commonDir ? path.dirname(commonDir) : '';
-}
-
 function keyAllowed(key, keyFilter) {
   if (!keyFilter) {
     return true;
@@ -62,11 +49,9 @@ function keyAllowed(key, keyFilter) {
 
 export function loadLocalEnv(metaUrl, keyFilter = null) {
   const { repoRoot } = getScriptContext(metaUrl);
-  const sharedRoot = getSharedCheckoutRoot(repoRoot);
   const candidates = [
     path.join(process.cwd(), '.env.local'),
     path.join(repoRoot, '.env.local'),
-    sharedRoot ? path.join(sharedRoot, '.env.local') : '',
   ].filter(Boolean);
   const seen = new Set();
 

@@ -49,6 +49,12 @@ function isLocalFile(repoRoot, filePath) {
   return Boolean(relative && !relative.startsWith('..') && !path.isAbsolute(relative));
 }
 
+function getRawGitHubTokenKeys(filePath) {
+  return parseEnvEntries(filePath)
+    .map((entry) => entry.key)
+    .filter((key) => RAW_GITHUB_TOKEN_KEYS.has(key));
+}
+
 function resolveReference(repoRoot, entry, env) {
   if (!isOpReference(entry.value)) {
     return entry.value;
@@ -108,6 +114,11 @@ function main() {
 
   if (!refsPath) {
     if (envLocalPath && isLocalFile(repoRoot, envLocalPath)) {
+      const rawEnvLocalTokenKeys = getRawGitHubTokenKeys(envLocalPath);
+      if (rawEnvLocalTokenKeys.length > 0) {
+        fail(`${ENV_LOCAL_FILE} must not define GH_TOKEN or GITHUB_TOKEN`);
+      }
+
       console.error(
         `${ENV_REFS_FILE}: absent; running command directly so existing ${ENV_LOCAL_FILE} fallback behavior can apply.`,
       );

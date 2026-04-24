@@ -69,6 +69,12 @@ function isLocalFile(repoRoot, filePath) {
   return Boolean(relative && !relative.startsWith('..') && !path.isAbsolute(relative));
 }
 
+function getRawGitHubTokenKeys(filePath) {
+  return parseEnvEntries(filePath)
+    .map((entry) => entry.key)
+    .filter((key) => RAW_GITHUB_TOKEN_KEYS.has(key));
+}
+
 function main() {
   const blockers = [];
   const warnings = [];
@@ -100,6 +106,17 @@ function main() {
   if (envLocalPath) {
     ok(`${ENV_LOCAL_FILE} is present (${describePath(repoRoot, envLocalPath)})`);
     checkIgnored(blockers, warnings, repoRoot, envLocalPath, ENV_LOCAL_FILE);
+
+    const rawEnvLocalTokenKeys = getRawGitHubTokenKeys(envLocalPath);
+    if (rawEnvLocalTokenKeys.length > 0) {
+      block(
+        blockers,
+        `${ENV_LOCAL_FILE} contains raw GitHub token key(s); remove GH_TOKEN/GITHUB_TOKEN and keep GitHub auth on the 1Password reference lane`,
+      );
+    } else {
+      ok(`${ENV_LOCAL_FILE} does not define raw GitHub token keys`);
+    }
+
     if (!isLocalFile(repoRoot, envLocalPath)) {
       warn(
         warnings,

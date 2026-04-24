@@ -1,6 +1,7 @@
 const { spawnSync } = require('node:child_process');
 
 const OP_READ_TIMEOUT_MS = 15000;
+const RAW_GITHUB_TOKEN_KEYS = ['GH_TOKEN', 'GITHUB_TOKEN'];
 
 function redactSensitiveText(value) {
   return value
@@ -64,9 +65,27 @@ function readOnePasswordToken(tokenRef, env, cwd) {
 function withGhTokenFromOnePassword(env, cwd) {
   const mergedEnv = { ...env };
   const tokenRef = mergedEnv.GH_TOKEN_OP_REF || mergedEnv.GITHUB_TOKEN_OP_REF;
+  const rawTokenKeys = RAW_GITHUB_TOKEN_KEYS.filter((key) => mergedEnv[key]);
 
   if (!tokenRef) {
+    if (rawTokenKeys.length > 0) {
+      for (const key of rawTokenKeys) {
+        delete mergedEnv[key];
+      }
+
+      return {
+        env: mergedEnv,
+        error:
+          `GitHub auth: raw ${rawTokenKeys.join('/')} env is not allowed for repo wrappers. ` +
+          'Set GH_TOKEN_OP_REF or GITHUB_TOKEN_OP_REF to an op:// reference instead.',
+      };
+    }
+
     return { env: mergedEnv };
+  }
+
+  for (const key of RAW_GITHUB_TOKEN_KEYS) {
+    delete mergedEnv[key];
   }
 
   const result = readOnePasswordToken(tokenRef, mergedEnv, cwd);
@@ -74,12 +93,12 @@ function withGhTokenFromOnePassword(env, cwd) {
     return { env: mergedEnv, error: result.error };
   }
 
-  delete mergedEnv.GITHUB_TOKEN;
   mergedEnv.GH_TOKEN = result.token;
   return { env: mergedEnv };
 }
 
 module.exports = {
+  RAW_GITHUB_TOKEN_KEYS,
   redactSensitiveText,
   withGhTokenFromOnePassword,
 };
