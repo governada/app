@@ -6,9 +6,9 @@ const DEFAULT_GITHUB_API_VERSION = '2022-11-28';
 const GITHUB_API_BASE_URL = 'https://api.github.com';
 const RAW_GITHUB_TOKEN_KEYS = ['GH_TOKEN', 'GITHUB_TOKEN'];
 
-export const EXPECTED_REPO = 'governada/governada-app';
+export const EXPECTED_REPO = 'governada/app';
 export const EXPECTED_OWNER = 'governada';
-export const EXPECTED_REPO_NAME = 'governada-app';
+export const EXPECTED_REPO_NAME = 'app';
 export const EXPECTED_READ_PERMISSIONS = Object.freeze({
   actions: 'read',
   checks: 'read',
@@ -270,4 +270,32 @@ export async function mintInstallationToken({ appId, installationId, privateKey 
 export function githubApiErrorMessage(response, prefix) {
   const detail = response.data?.message ? `: ${response.data.message}` : '';
   return redactSensitiveText(`${prefix} (${response.status})${detail}`);
+}
+
+export async function verifyGithubAppOwner({ appId, privateKey, expectedOwner = EXPECTED_OWNER }) {
+  const jwt = createGithubAppJwt({ appId, privateKey });
+  const response = await githubApiRequest({
+    path: '/app',
+    token: jwt,
+  });
+
+  if (!response.ok) {
+    return {
+      error: githubApiErrorMessage(response, 'GitHub App metadata read failed'),
+      status: response.status,
+    };
+  }
+
+  const ownerLogin = response.data?.owner?.login || '';
+  if (ownerLogin !== expectedOwner) {
+    return {
+      error: `GitHub App owner is ${ownerLogin || 'unknown'}, expected ${expectedOwner}`,
+      ownerLogin,
+      status: response.status,
+    };
+  }
+
+  return {
+    ownerLogin,
+  };
 }

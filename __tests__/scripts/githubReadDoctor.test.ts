@@ -11,6 +11,7 @@ import {
   githubReadPermissionFailures,
   redactSensitiveText,
   summarizeGithubReadPermissions,
+  verifyGithubAppOwner,
 } from '@/scripts/lib/github-app-auth.mjs';
 
 function decodeJwtPart(value: string) {
@@ -115,5 +116,35 @@ describe('github read doctor guardrails', () => {
     );
 
     expect(redacted).toBe('op stderr echoed [redacted-sensitive-value] during failure');
+  });
+
+  it('rejects GitHub Apps owned outside the expected Governada org', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () =>
+      new Response(
+        JSON.stringify({
+          owner: {
+            login: 'tim-governada',
+          },
+        }),
+        {
+          status: 200,
+        },
+      );
+
+    try {
+      const { privateKey } = generateKeyPairSync('rsa', {
+        modulusLength: 2048,
+      });
+      const result = await verifyGithubAppOwner({
+        appId: '12345',
+        expectedOwner: 'governada',
+        privateKey: privateKey.export({ format: 'pem', type: 'pkcs8' }).toString(),
+      });
+
+      expect(result.error).toBe('GitHub App owner is tim-governada, expected governada');
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 });

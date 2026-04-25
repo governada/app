@@ -11,7 +11,7 @@ Execute the full Governada deploy pipeline. Do NOT pause between steps.
 4. Audit new `app/` files for `force-dynamic` if they import Supabase/data
 5. Stage relevant files with `git add`, commit with conventional commit message
 6. `git push -u origin HEAD`
-7. Create PR: `gh pr create -R governada/governada-app --title "<type>: <description>" --body "<summary>"`
+7. Create PR: `gh pr create -R governada/app --title "<type>: <description>" --body "<summary>"`
 8. Poll CI with `npm run ci:watch`. If it fails, inspect with `npm run ci:failed`, fix, push, re-check (max 3 attempts)
 9. Pre-merge check: `npm run pre-merge-check -- <PR#>`
 10. If the PR is draft, promote it with `npm run pr:ready -- <PR#>`

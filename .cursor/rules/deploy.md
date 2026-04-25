@@ -56,7 +56,7 @@ Any `app/` file importing `@/lib/supabase` (directly or via `@/lib/data`) that i
 
 - **Supabase project**: `pbfprhbaayvcrxokgicr`
 - **Production URL**: `https://governada.io`
-- **GitHub CLI**: Use `npm run gh:auth-status` to confirm the repo-scoped governada profile before `gh` API calls.
+- **GitHub CLI**: Use `npm run gh:auth-status` to confirm the repo-scoped `tim-governada` profile before `gh` API calls.
 - **MCP config** (`.cursor/mcp.json`): gitignored, contains secrets — NEVER overwrite
 - **Railway CLI**: Installed globally (`railway`). Use `railway logs` for build/deploy logs, `railway status` for current state. Linked to the Governada project
 - **Inngest**: PUT `https://governada.io/api/inngest` after every deploy to sync functions. 22 durable functions total (see `architecture.md`). Verify with `npm run inngest:status`

@@ -19,6 +19,7 @@ import {
   readPrivateKeyFromOnePassword,
   redactSensitiveText,
   summarizeGithubReadPermissions,
+  verifyGithubAppOwner,
 } from './lib/github-app-auth.mjs';
 import { getScriptContext, loadLocalEnv } from './lib/runtime.mjs';
 
@@ -148,6 +149,19 @@ async function main() {
     block(blockers, privateKeyResult.error);
   } else {
     pass('1Password service-account lane resolved the GitHub App private key reference');
+  }
+
+  if (blockers.length === 0) {
+    const appOwnerResult = await verifyGithubAppOwner({
+      appId: config.appId,
+      privateKey: privateKeyResult.privateKey,
+    });
+
+    if (appOwnerResult.error) {
+      block(blockers, appOwnerResult.error);
+    } else {
+      pass(`GitHub App owner is ${appOwnerResult.ownerLogin}`);
+    }
   }
 
   if (blockers.length === 0) {
