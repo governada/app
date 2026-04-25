@@ -19,6 +19,17 @@ export const EXPECTED_RETURNED_READ_PERMISSIONS = Object.freeze({
   ...EXPECTED_READ_PERMISSIONS,
   metadata: 'read',
 });
+export const EXPECTED_WRITE_PR_PERMISSIONS = Object.freeze({
+  actions: 'read',
+  checks: 'read',
+  contents: 'write',
+  issues: 'write',
+  pull_requests: 'write',
+});
+export const EXPECTED_RETURNED_WRITE_PR_PERMISSIONS = Object.freeze({
+  ...EXPECTED_WRITE_PR_PERMISSIONS,
+  metadata: 'read',
+});
 
 export const GITHUB_READ_ENV_KEYS = Object.freeze({
   appId: 'GOVERNADA_GITHUB_APP_ID',
@@ -96,26 +107,33 @@ export function isValidOpReference(value) {
   return /^op:\/\/[^/\s]+\/[^/\s]+\/[^/\s]+/.test(value);
 }
 
-export function buildInstallationTokenRequestBody(repoName = EXPECTED_REPO_NAME) {
+/**
+ * @param {string} repoName
+ * @param {Record<string, string>} permissions
+ */
+export function buildInstallationTokenRequestBody(
+  repoName = EXPECTED_REPO_NAME,
+  permissions = EXPECTED_READ_PERMISSIONS,
+) {
   return {
     repositories: [repoName],
-    permissions: EXPECTED_READ_PERMISSIONS,
+    permissions,
   };
 }
 
-export function githubReadPermissionFailures(permissions = {}) {
-  const expectedKeys = new Set(Object.keys(EXPECTED_RETURNED_READ_PERMISSIONS));
+export function githubPermissionFailures(permissions = {}, expectedPermissions = {}) {
+  const expectedKeys = new Set(Object.keys(expectedPermissions));
   const failures = [];
 
   for (const [key, value] of Object.entries(permissions)) {
     if (!expectedKeys.has(key)) {
       failures.push(`${key}=${value} (unexpected permission)`);
-    } else if (value !== EXPECTED_RETURNED_READ_PERMISSIONS[key]) {
-      failures.push(`${key}=${value} (expected ${EXPECTED_RETURNED_READ_PERMISSIONS[key]})`);
+    } else if (value !== expectedPermissions[key]) {
+      failures.push(`${key}=${value} (expected ${expectedPermissions[key]})`);
     }
   }
 
-  for (const [key, expected] of Object.entries(EXPECTED_RETURNED_READ_PERMISSIONS)) {
+  for (const [key, expected] of Object.entries(expectedPermissions)) {
     if (permissions[key] === undefined) {
       failures.push(`${key}=missing (expected ${expected})`);
     }
@@ -124,16 +142,32 @@ export function githubReadPermissionFailures(permissions = {}) {
   return failures;
 }
 
-export function summarizeGithubReadPermissions(permissions = {}) {
-  const expected = Object.entries(EXPECTED_RETURNED_READ_PERMISSIONS).map(
+export function summarizeGithubPermissions(permissions = {}, expectedPermissions = {}) {
+  const expected = Object.entries(expectedPermissions).map(
     ([key, expectedPermission]) =>
       `${key}=${permissions[key] || 'missing'} (expected ${expectedPermission})`,
   );
   const unexpected = Object.entries(permissions)
-    .filter(([key]) => !Object.hasOwn(EXPECTED_RETURNED_READ_PERMISSIONS, key))
+    .filter(([key]) => !Object.hasOwn(expectedPermissions, key))
     .map(([key, value]) => `${key}=${value} (unexpected permission)`);
 
   return [...expected, ...unexpected].join(', ');
+}
+
+export function githubReadPermissionFailures(permissions = {}) {
+  return githubPermissionFailures(permissions, EXPECTED_RETURNED_READ_PERMISSIONS);
+}
+
+export function summarizeGithubReadPermissions(permissions = {}) {
+  return summarizeGithubPermissions(permissions, EXPECTED_RETURNED_READ_PERMISSIONS);
+}
+
+export function githubWritePrPermissionFailures(permissions = {}) {
+  return githubPermissionFailures(permissions, EXPECTED_RETURNED_WRITE_PR_PERMISSIONS);
+}
+
+export function summarizeGithubWritePrPermissions(permissions = {}) {
+  return summarizeGithubPermissions(permissions, EXPECTED_RETURNED_WRITE_PR_PERMISSIONS);
 }
 
 export function base64UrlEncodeJson(value) {
@@ -240,13 +274,18 @@ export async function githubApiRequest({
   }
 }
 
-export async function mintInstallationToken({ appId, installationId, privateKey }) {
+export async function mintInstallationToken({
+  appId,
+  installationId,
+  privateKey,
+  permissions = EXPECTED_READ_PERMISSIONS,
+}) {
   const jwt = createGithubAppJwt({ appId, privateKey });
   const response = await githubApiRequest({
     path: `/app/installations/${installationId}/access_tokens`,
     token: jwt,
     method: 'POST',
-    body: buildInstallationTokenRequestBody(),
+    body: buildInstallationTokenRequestBody(EXPECTED_REPO_NAME, permissions),
   });
 
   if (!response.ok) {

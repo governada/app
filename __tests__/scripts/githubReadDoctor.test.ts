@@ -5,13 +5,17 @@ import { describe, expect, it } from 'vitest';
 import {
   EXPECTED_READ_PERMISSIONS,
   EXPECTED_RETURNED_READ_PERMISSIONS,
+  EXPECTED_RETURNED_WRITE_PR_PERMISSIONS,
   EXPECTED_REPO_NAME,
+  EXPECTED_WRITE_PR_PERMISSIONS,
   buildInstallationTokenRequestBody,
   createGithubAppJwt,
   getGithubReadLaneConfig,
   githubReadPermissionFailures,
+  githubWritePrPermissionFailures,
   redactSensitiveText,
   summarizeGithubReadPermissions,
+  summarizeGithubWritePrPermissions,
   verifyGithubAppOwner,
 } from '@/scripts/lib/github-app-auth.mjs';
 
@@ -50,6 +54,28 @@ describe('github read doctor guardrails', () => {
     expect(body).not.toHaveProperty('repository_ids');
   });
 
+  it('requests only the expected repository and bounded PR-write permissions for write-lane tokens', () => {
+    const body = buildInstallationTokenRequestBody(
+      EXPECTED_REPO_NAME,
+      EXPECTED_WRITE_PR_PERMISSIONS,
+    );
+
+    expect(body.repositories).toEqual([EXPECTED_REPO_NAME]);
+    expect(body.permissions).toEqual(EXPECTED_WRITE_PR_PERMISSIONS);
+    expect(body.permissions).toEqual({
+      actions: 'read',
+      checks: 'read',
+      contents: 'write',
+      issues: 'write',
+      pull_requests: 'write',
+    });
+    expect(body.permissions).not.toHaveProperty('administration');
+    expect(body.permissions).not.toHaveProperty('deployments');
+    expect(body.permissions).not.toHaveProperty('secrets');
+    expect(body.permissions).not.toHaveProperty('workflows');
+    expect(body).not.toHaveProperty('repository_ids');
+  });
+
   it('rejects extra or elevated installation-token permissions', () => {
     const failures = githubReadPermissionFailures({
       ...EXPECTED_RETURNED_READ_PERMISSIONS,
@@ -74,6 +100,35 @@ describe('github read doctor guardrails', () => {
     expect(summarizeGithubReadPermissions(EXPECTED_RETURNED_READ_PERMISSIONS)).toContain(
       'metadata=read (expected read)',
     );
+  });
+
+  it('accepts GitHub metadata read as an implicit returned write-lane permission', () => {
+    expect(githubWritePrPermissionFailures(EXPECTED_RETURNED_WRITE_PR_PERMISSIONS)).toEqual([]);
+    expect(summarizeGithubWritePrPermissions(EXPECTED_RETURNED_WRITE_PR_PERMISSIONS)).toContain(
+      'metadata=read (expected read)',
+    );
+  });
+
+  it('rejects missing, extra, or elevated write-lane installation-token permissions', () => {
+    const failures = githubWritePrPermissionFailures({
+      ...EXPECTED_RETURNED_WRITE_PR_PERMISSIONS,
+      checks: 'write',
+      administration: 'write',
+    });
+
+    expect(failures).toEqual([
+      'checks=write (expected read)',
+      'administration=write (unexpected permission)',
+    ]);
+    expect(
+      githubWritePrPermissionFailures({
+        actions: 'read',
+        checks: 'read',
+        contents: 'write',
+        pull_requests: 'write',
+        metadata: 'read',
+      }),
+    ).toEqual(['issues=missing (expected write)']);
   });
 
   it('creates a short-lived GitHub App JWT without embedding secret material in claims', () => {
