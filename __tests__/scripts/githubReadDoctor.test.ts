@@ -11,8 +11,10 @@ import {
   buildInstallationTokenRequestBody,
   createGithubAppJwt,
   getGithubReadLaneConfig,
+  githubApiRequest,
   githubReadPermissionFailures,
   githubWritePrPermissionFailures,
+  mintInstallationToken,
   redactSensitiveText,
   summarizeGithubReadPermissions,
   summarizeGithubWritePrPermissions,
@@ -161,6 +163,7 @@ describe('github read doctor guardrails', () => {
         'ghs_abc123',
         'ops_abc123.service-account-token',
         'eyJhbGciOiJSUzI1NiJ9.eyJpc3MiOiIxMjMifQ.signature',
+        '-----BEGIN PRIVATE KEY-----\nsecret\n-----END PRIVATE KEY-----',
       ].join('\n'),
       ['service-account-token-value'],
     );
@@ -170,6 +173,8 @@ describe('github read doctor guardrails', () => {
     expect(redacted).toContain('[redacted-gh-installation-token]');
     expect(redacted).toContain('[redacted-op-service-account-token]');
     expect(redacted).toContain('[redacted-jwt]');
+    expect(redacted).toContain('[redacted-pem-block]');
+    expect(redacted).not.toContain('secret');
   });
 
   it('redacts the configured service-account token value exactly', () => {
@@ -209,5 +214,39 @@ describe('github read doctor guardrails', () => {
     } finally {
       globalThis.fetch = originalFetch;
     }
+  });
+
+  it('classifies GitHub API fetch failures without throwing', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () => {
+      throw new DOMException('network unavailable for test', 'AbortError');
+    };
+
+    try {
+      const result = await githubApiRequest({
+        path: '/repos/governada/app',
+        token: 'ghs_example',
+      });
+
+      expect(result).toMatchObject({
+        ok: false,
+        status: 0,
+      });
+      expect(result.data?.message).toContain('AbortError');
+      expect(result.data?.message).toContain('network unavailable for test');
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('classifies malformed private keys before minting installation tokens', async () => {
+    const result = await mintInstallationToken({
+      appId: '12345',
+      installationId: '67890',
+      privateKey: 'not a pem key',
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.error).toContain('GitHub App installation token mint failed before API request');
   });
 });

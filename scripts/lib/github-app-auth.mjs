@@ -57,6 +57,10 @@ export function redactSensitiveText(
   }
 
   return redacted
+    .replace(
+      /-----BEGIN [^-]+-----[\s\S]*?-----END [^-]+-----/g,
+      '[redacted-pem-block]',
+    )
     .replace(/op:\/\/[^\r\n'"]+/g, 'op://[redacted]')
     .replace(/github_pat_[A-Za-z0-9_]+/g, 'github_pat_[redacted]')
     .replace(/\bghs_[A-Za-z0-9_]+\b/g, '[redacted-gh-installation-token]')
@@ -233,7 +237,7 @@ export async function githubApiRequest({
   path,
   token,
   method = 'GET',
-  body,
+  body = undefined,
   tokenType = 'Bearer',
   timeoutMs = 15000,
 }) {
@@ -269,6 +273,16 @@ export async function githubApiRequest({
       status: response.status,
       data,
     };
+  } catch (error) {
+    const errorName = error?.name || 'Error';
+    const errorMessage = error?.message ? `: ${error.message}` : '';
+    return {
+      ok: false,
+      status: 0,
+      data: {
+        message: redactSensitiveText(`${errorName}${errorMessage}`),
+      },
+    };
   } finally {
     clearTimeout(timeout);
   }
@@ -280,7 +294,18 @@ export async function mintInstallationToken({
   privateKey,
   permissions = EXPECTED_READ_PERMISSIONS,
 }) {
-  const jwt = createGithubAppJwt({ appId, privateKey });
+  let jwt;
+  try {
+    jwt = createGithubAppJwt({ appId, privateKey });
+  } catch (error) {
+    return {
+      error: redactSensitiveText(
+        `GitHub App installation token mint failed before API request: ${error?.message || String(error)}`,
+      ),
+      status: 0,
+    };
+  }
+
   const response = await githubApiRequest({
     path: `/app/installations/${installationId}/access_tokens`,
     token: jwt,
@@ -316,7 +341,18 @@ export function githubApiErrorMessage(response, prefix) {
 }
 
 export async function verifyGithubAppOwner({ appId, privateKey, expectedOwner = EXPECTED_OWNER }) {
-  const jwt = createGithubAppJwt({ appId, privateKey });
+  let jwt;
+  try {
+    jwt = createGithubAppJwt({ appId, privateKey });
+  } catch (error) {
+    return {
+      error: redactSensitiveText(
+        `GitHub App metadata read failed before API request: ${error?.message || String(error)}`,
+      ),
+      status: 0,
+    };
+  }
+
   const response = await githubApiRequest({
     path: '/app',
     token: jwt,
