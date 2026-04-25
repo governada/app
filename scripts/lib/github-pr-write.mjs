@@ -4,7 +4,7 @@ import path from 'node:path';
 import { EXPECTED_REPO } from './github-app-auth.mjs';
 
 export const GITHUB_WRITE_PR_CONFIRMATION = 'github.write.pr';
-export const GITHUB_WRITE_PR_OPERATIONS = new Set(['create', 'update']);
+export const GITHUB_WRITE_PR_OPERATIONS = new Set(['create', 'ready', 'update']);
 
 const BLOCKED_BODY_FILE_BASENAMES = new Set([
   '.env.local',
@@ -20,7 +20,7 @@ export function parseGithubPrWriteArgs(argv) {
   }
 
   if (!GITHUB_WRITE_PR_OPERATIONS.has(operation)) {
-    throw new Error(`Unknown operation: ${operation}. Expected create or update.`);
+    throw new Error(`Unknown operation: ${operation}. Expected create, ready, or update.`);
   }
 
   const args = {
@@ -102,6 +102,10 @@ export function buildGithubPrWritePlan(args, repoRoot) {
     return buildCreatePullRequestPlan(args, repoRoot);
   }
 
+  if (args.operation === 'ready') {
+    return buildReadyPullRequestPlan(args);
+  }
+
   return buildUpdatePullRequestPlan(args, repoRoot);
 }
 
@@ -156,6 +160,23 @@ function buildUpdatePullRequestPlan(args, repoRoot) {
   };
 }
 
+function buildReadyPullRequestPlan(args) {
+  assertPrNumber(args.prNumber);
+
+  return {
+    body: {
+      pullRequestNumber: Number(args.prNumber),
+    },
+    description: `mark PR #${args.prNumber} ready for review`,
+    execute: args.execute,
+    graphQlMutation: 'markPullRequestReadyForReview',
+    method: 'POST',
+    operation: args.operation,
+    path: '/graphql',
+    prNumber: Number(args.prNumber),
+  };
+}
+
 export function assertAllowedGithubPrWritePlan(plan) {
   if (plan.operation === 'create') {
     if (plan.method !== 'POST' || plan.path !== `/repos/${EXPECTED_REPO}/pulls`) {
@@ -167,6 +188,17 @@ export function assertAllowedGithubPrWritePlan(plan) {
   if (plan.operation === 'update') {
     if (plan.method !== 'PATCH' || !/^\/repos\/governada\/app\/pulls\/[1-9]\d*$/u.test(plan.path)) {
       throw new Error('update operation must use PATCH /repos/{repo}/pulls/{number}.');
+    }
+    return;
+  }
+
+  if (plan.operation === 'ready') {
+    if (
+      plan.method !== 'POST' ||
+      plan.path !== '/graphql' ||
+      plan.graphQlMutation !== 'markPullRequestReadyForReview'
+    ) {
+      throw new Error('ready operation must use GraphQL markPullRequestReadyForReview.');
     }
     return;
   }
@@ -194,8 +226,9 @@ export function printGithubPrWriteUsage() {
   console.log(`Usage:
   npm run github:pr-write -- create --head <branch> --title <title> --body-file <path> [--base main] [--execute --confirm ${GITHUB_WRITE_PR_CONFIRMATION}]
   npm run github:pr-write -- update --pr <number> [--title <title>] [--body-file <path>] [--execute --confirm ${GITHUB_WRITE_PR_CONFIRMATION}]
+  npm run github:pr-write -- ready --pr <number> [--execute --confirm ${GITHUB_WRITE_PR_CONFIRMATION}]
 
-Dry-run is the default. Live mode is limited to draft PR creation or title/body update on draft PRs.`);
+Dry-run is the default. Live mode is limited to draft PR creation, title/body update on draft PRs, or marking a draft PR ready for review.`);
 }
 
 function assertPresent(value, message) {

@@ -13,6 +13,7 @@ import {
   getGithubReadLaneConfig,
   githubApiErrorMessage,
   githubApiRequest,
+  githubGraphqlRequest,
   githubWritePrPermissionFailures,
   isValidOpReference,
   mintInstallationToken,
@@ -154,7 +155,7 @@ async function main() {
 
   advisory(
     advisories,
-    'This wrapper is limited to draft PR creation or title/body update on draft PRs; comments, branch pushes, merge, deploy, production mutation, and secret changes remain approval-gated.',
+    'This wrapper is limited to draft PR creation, title/body update on draft PRs, or marking draft PRs ready for review; comments, branch pushes, merge, deploy, production mutation, and secret changes remain approval-gated.',
   );
 
   if (!plan.execute) {
@@ -257,6 +258,11 @@ async function mintWritePrToken({ blockers, config, env, repoRoot }) {
 }
 
 async function executeGithubPrWritePlan(plan, token, blockers) {
+  if (plan.operation === 'ready') {
+    await executeReadyPullRequestPlan(plan, token, blockers);
+    return;
+  }
+
   if (plan.operation === 'update') {
     const existingPull = await githubApiRequest({
       path: plan.path,
@@ -296,6 +302,59 @@ async function executeGithubPrWritePlan(plan, token, blockers) {
   }
 
   pass(`updated PR #${response.data?.number || plan.prNumber}`);
+}
+
+async function executeReadyPullRequestPlan(plan, token, blockers) {
+  const existingPull = await githubApiRequest({
+    path: `/repos/${EXPECTED_REPO}/pulls/${plan.prNumber}`,
+    token,
+  });
+
+  if (!existingPull.ok) {
+    block(blockers, githubApiErrorMessage(existingPull, 'target PR read failed before ready'));
+    return;
+  }
+
+  if (existingPull.data?.state !== 'open') {
+    block(blockers, `target PR #${plan.prNumber} is not open; ready transition is not allowed`);
+    return;
+  }
+
+  if (existingPull.data?.draft !== true) {
+    pass(`target PR #${plan.prNumber} is already ready for review`);
+    return;
+  }
+
+  if (!existingPull.data?.node_id) {
+    block(blockers, `target PR #${plan.prNumber} did not include a GraphQL node ID`);
+    return;
+  }
+
+  const response = await githubGraphqlRequest({
+    query: `mutation MarkPullRequestReadyForReview($pullRequestId: ID!) {
+      markPullRequestReadyForReview(input: {pullRequestId: $pullRequestId}) {
+        pullRequest {
+          number
+          isDraft
+          url
+        }
+      }
+    }`,
+    token,
+    variables: {
+      pullRequestId: existingPull.data.node_id,
+    },
+  });
+
+  if (!response.ok) {
+    block(blockers, githubApiErrorMessage(response, 'mark PR ready request failed'));
+    return;
+  }
+
+  const pullRequest = response.data?.data?.markPullRequestReadyForReview?.pullRequest;
+  pass(
+    `marked PR #${pullRequest?.number || plan.prNumber} ready for review: ${pullRequest?.url || existingPull.data.html_url || 'url unavailable'}`,
+  );
 }
 
 function writeResult(status, blockers, advisories) {

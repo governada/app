@@ -134,6 +134,46 @@ describe('github PR write wrapper guardrails', () => {
     });
   });
 
+  it('builds a ready plan for marking a draft pull request ready for review', () => {
+    const root = tempRepoRoot();
+    const args = parseGithubPrWriteArgs([
+      'ready',
+      '--pr',
+      '912',
+      '--execute',
+      '--confirm',
+      GITHUB_WRITE_PR_CONFIRMATION,
+    ]);
+
+    const plan = buildGithubPrWritePlan(args, root) as any;
+    assertAllowedGithubPrWritePlan(plan);
+
+    expect(plan).toMatchObject({
+      body: {
+        pullRequestNumber: 912,
+      },
+      execute: true,
+      graphQlMutation: 'markPullRequestReadyForReview',
+      method: 'POST',
+      operation: 'ready',
+      path: '/graphql',
+      prNumber: 912,
+    });
+  });
+
+  it('rejects unsafe ready endpoint shapes', () => {
+    expect(() =>
+      assertAllowedGithubPrWritePlan({
+        body: {},
+        execute: true,
+        graphQlMutation: 'addComment',
+        method: 'POST',
+        operation: 'ready',
+        path: '/graphql',
+      }),
+    ).toThrow('ready operation must use GraphQL markPullRequestReadyForReview.');
+  });
+
   it('rejects unsafe update endpoint shapes', () => {
     expect(() =>
       assertAllowedGithubPrWritePlan({

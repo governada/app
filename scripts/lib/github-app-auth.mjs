@@ -281,6 +281,54 @@ export async function githubApiRequest({
   }
 }
 
+export async function githubGraphqlRequest({ query, variables = {}, token, timeoutMs = 15000 }) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(`${GITHUB_API_BASE_URL}/graphql`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/vnd.github+json',
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'User-Agent': 'governada-agent-auth-doctor',
+        'X-GitHub-Api-Version': DEFAULT_GITHUB_API_VERSION,
+      },
+      body: JSON.stringify({ query, variables }),
+      signal: controller.signal,
+    });
+
+    const text = await response.text();
+    let data = null;
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { message: text };
+      }
+    }
+
+    return {
+      ok: response.ok && !data?.errors?.length,
+      status: response.status,
+      data,
+    };
+  } catch (error) {
+    const errorName = error?.name || 'Error';
+    const errorMessage = error?.message ? `: ${error.message}` : '';
+    return {
+      ok: false,
+      status: 0,
+      data: {
+        message: redactSensitiveText(`${errorName}${errorMessage}`),
+      },
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export async function mintInstallationToken({
   appId,
   installationId,
@@ -329,7 +377,15 @@ export async function mintInstallationToken({
 }
 
 export function githubApiErrorMessage(response, prefix) {
-  const detail = response.data?.message ? `: ${response.data.message}` : '';
+  const graphQlErrors = response.data?.errors
+    ?.map((error) => error?.message)
+    .filter(Boolean)
+    .join('; ');
+  const detail = response.data?.message
+    ? `: ${response.data.message}`
+    : graphQlErrors
+      ? `: ${graphQlErrors}`
+      : '';
   return redactSensitiveText(`${prefix} (${response.status})${detail}`);
 }
 
