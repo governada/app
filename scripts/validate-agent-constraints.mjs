@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import {
   validateInngestServeMethods,
@@ -127,9 +127,55 @@ function validateRequiredFiles() {
   }
 }
 
+function validateRepoIdentityReferences() {
+  const activeRoots = [
+    '.claude/commands',
+    '.claude/hooks',
+    '.claude/skills',
+    '.cursor/commands',
+    '.cursor/rules',
+    '.github/runner',
+    'AGENTS.md',
+    'scripts',
+  ];
+  const stalePatterns = [
+    /governada\/governada-app/u,
+    /github-governada:governada\/governada-app/u,
+    /repos\/governada\/governada-app/u,
+    /gh auth switch --user governada\b/u,
+    /must show governada\b/iu,
+    /Verify gh auth \(governada\)/u,
+  ];
+
+  for (const activeRoot of activeRoots) {
+    const absoluteRoot = path.join(root, activeRoot);
+    if (!existsSync(absoluteRoot)) {
+      continue;
+    }
+
+    const targets = statSync(absoluteRoot).isDirectory() ? walk(absoluteRoot) : [absoluteRoot];
+
+    for (const file of targets) {
+      const relativeFile = toPosix(path.relative(root, file));
+      if (relativeFile === 'scripts/validate-agent-constraints.mjs') {
+        continue;
+      }
+
+      const content = readFileSync(file, 'utf8');
+      const stalePattern = stalePatterns.find((pattern) => pattern.test(content));
+      if (stalePattern) {
+        errors.push(
+          `${relativeFile}: stale Governada repo identity reference found (${stalePattern.source}).`,
+        );
+      }
+    }
+  }
+}
+
 validateRequiredFiles();
 
 if (errors.length === 0) {
+  validateRepoIdentityReferences();
   validateRouteRenderPolicy();
   validateInngestRegistration();
 }

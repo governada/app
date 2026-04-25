@@ -54,7 +54,7 @@ Wait ~5 min after push.
 ```powershell
 Start-Sleep -Seconds 120
 $sha = (git rev-parse HEAD)
-gh api repos/governada/governada-app/commits/$sha/status --jq '.statuses[] | {state, description}'
+gh api repos/governada/app/commits/$sha/status --jq '.statuses[] | {state, description}'
 # Repeat every 60s until state is 'success'
 ```
 

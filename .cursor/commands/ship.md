@@ -8,7 +8,7 @@ Before anything else, create these todos. The task is NOT complete until every t
 
 ```
 TodoWrite (use exact IDs):
-- ship-preflight → Verify gh auth (governada) + branch + force-dynamic audit
+- ship-preflight → Verify gh auth (tim-governada) + branch + force-dynamic audit
 - ship-stage    → Stage files (targeted git add), review diff
 - ship-commit   → Write msg to .git/COMMIT_MSG, git commit -F
 - ship-push     → git push -u origin HEAD
@@ -24,7 +24,7 @@ TodoWrite (use exact IDs):
 
 ```powershell
 gh auth status
-# Must show governada. If not: npm run gh:auth-status
+# Must show tim-governada. If not: npm run gh:auth-status
 git branch --show-current
 # Must NOT be main for features
 ```

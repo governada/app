@@ -124,7 +124,7 @@ All `analytics/src/data/*.json.ts` files query Postgres directly at build time. 
 After merging to main, Railway deploys automatically. Monitor via:
 
 ```
-gh api repos/governada/governada-app/commits/<sha>/status --jq '.statuses[] | {state, description}'
+gh api repos/governada/app/commits/<sha>/status --jq '.statuses[] | {state, description}'
 ```
 
 - Railway builds take 3-7 minutes. Poll every 60-120s.

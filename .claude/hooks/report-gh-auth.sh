@@ -15,7 +15,7 @@ fi
 printf '%s\n' "$status_output" | tail -3
 
 current_remote=$(git remote get-url origin 2>/dev/null || echo "")
-expected_remote="git@github-governada:governada/governada-app.git"
+expected_remote="git@github-governada:governada/app.git"
 if [ -n "$current_remote" ] && [ "$current_remote" != "$expected_remote" ]; then
   echo "GitHub remote: expected $expected_remote, found $current_remote. Run 'npm run auth:repair'."
 fi

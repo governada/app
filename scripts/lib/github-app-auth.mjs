@@ -271,3 +271,31 @@ export function githubApiErrorMessage(response, prefix) {
   const detail = response.data?.message ? `: ${response.data.message}` : '';
   return redactSensitiveText(`${prefix} (${response.status})${detail}`);
 }
+
+export async function verifyGithubAppOwner({ appId, privateKey, expectedOwner = EXPECTED_OWNER }) {
+  const jwt = createGithubAppJwt({ appId, privateKey });
+  const response = await githubApiRequest({
+    path: '/app',
+    token: jwt,
+  });
+
+  if (!response.ok) {
+    return {
+      error: githubApiErrorMessage(response, 'GitHub App metadata read failed'),
+      status: response.status,
+    };
+  }
+
+  const ownerLogin = response.data?.owner?.login || '';
+  if (ownerLogin !== expectedOwner) {
+    return {
+      error: `GitHub App owner is ${ownerLogin || 'unknown'}, expected ${expectedOwner}`,
+      ownerLogin,
+      status: response.status,
+    };
+  }
+
+  return {
+    ownerLogin,
+  };
+}

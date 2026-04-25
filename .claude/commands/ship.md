@@ -3,12 +3,12 @@ All code changes compile clean. Execute the full deploy pipeline autonomously. D
 ## Sequence
 
 1. **Preflight**: `npm run preflight:quick *>&1 | Select-Object -Last 5` — fix ALL failures. Uses `test:changed` for speed; CI runs full suite.
-2. **Auth check**: `npm run gh:auth-status` — must show governada and `Repo context: governada/governada-app`
+2. **Auth check**: `npm run gh:auth-status` — must show `tim-governada` and `Repo context: governada/app`
 3. **Branch check**: `git branch --show-current` — must NOT be main for features
 4. **Force-dynamic audit**: Any new `app/` file importing `@/lib/supabase` or `@/lib/data` needs `export const dynamic = 'force-dynamic'`
 5. **Stage + commit**: `git add <specific-files>` → review with `git diff --cached --name-only` → commit
 6. **Push**: `git push -u origin HEAD`
-7. **PR**: `gh pr create -R governada/governada-app --title "feat: description" --body-file PR_BODY.md --base main` → delete PR_BODY.md. PR body MUST include these sections (per AGENTS.md hygiene rules + build-on-existing):
+7. **PR**: `gh pr create -R governada/app --title "feat: description" --body-file PR_BODY.md --base main` → delete PR_BODY.md. PR body MUST include these sections (per AGENTS.md hygiene rules + build-on-existing):
 
    ```markdown
    ## Summary

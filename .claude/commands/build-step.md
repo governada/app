@@ -130,7 +130,7 @@ If ANY acceptance criterion is not met:
 Only after ALL criteria pass:
 - preflight
 - commit (conventional: feat:/fix:/refactor:)
-- gh auth switch --user governada
+- gh auth switch --user tim-governada
 - push, create PR (include Existing Code Audit + Robustness checklist in body)
 - wait for CI (max 3 retries)
 - STOP, report: PR#, files changed, tests, CI status, which acceptance criteria passed, screenshots as evidence
