@@ -253,7 +253,7 @@ export function evaluateGithubChecksForMerge({ checkRuns, combinedStatus, ...opt
     }
   }
 
-  if (combinedStatus?.state && combinedStatus.state !== 'success') {
+  if (statuses.length > 0 && combinedStatus?.state && combinedStatus.state !== 'success') {
     blockers.push(`combined commit status is ${combinedStatus.state}`);
   }
 

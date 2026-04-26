@@ -281,9 +281,18 @@ describe('github merge wrapper guardrails', () => {
         statuses: [],
       },
     });
+    const actionsOnly = evaluateGithubChecksForMerge({
+      checkRuns: [{ conclusion: 'success', name: 'CI', status: 'completed' }],
+      combinedStatus: {
+        state: 'pending',
+        statuses: [],
+      },
+    });
 
     expect(passing.blockers).toEqual([]);
     expect(passing.passes).toEqual(['3 check/status result(s) are green']);
+    expect(actionsOnly.blockers).toEqual([]);
+    expect(actionsOnly.passes).toEqual(['1 check/status result(s) are green']);
     expect(failing.blockers).toContain('check run "test" concluded failure');
     expect(failing.blockers).toContain('combined commit status is failure');
     expect(missing.blockers).toEqual([
