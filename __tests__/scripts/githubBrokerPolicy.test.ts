@@ -80,6 +80,15 @@ describe('github runtime broker policy', () => {
   it('allows merge only through the PR merge endpoint and blocks broader mutation', () => {
     expect(() =>
       assertGithubBrokerRequestAllowed({
+        kind: 'github-api',
+        method: 'GET',
+        operationClass: GITHUB_OPERATION_CLASSES.merge,
+        path: '/repos/governada/app/pulls?state=open&per_page=1',
+      }),
+    ).not.toThrow();
+
+    expect(() =>
+      assertGithubBrokerRequestAllowed({
         body: {
           merge_method: 'squash',
           sha: SHA,

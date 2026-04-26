@@ -131,7 +131,10 @@ function assertShipPrRequestAllowed(method, path, request) {
 }
 
 function assertMergeRequestAllowed(method, path, request) {
-  if (method === 'GET' && (path === REPO_PREFIX || PULL_NUMBER_PATH_RE.test(path))) {
+  if (
+    method === 'GET' &&
+    (path === REPO_PREFIX || PULL_PATH_RE.test(path) || PULL_NUMBER_PATH_RE.test(path))
+  ) {
     return;
   }
 

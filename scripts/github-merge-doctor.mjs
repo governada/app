@@ -423,6 +423,7 @@ async function verifyNonMutatingMergeLaneAccess(token, blockers, args) {
 
   const checkEvaluation = evaluateGithubChecksForMerge({
     checkRuns: checkRuns.data?.check_runs || [],
+    checkRunsTotalCount: checkRuns.data?.total_count,
     combinedStatus: combinedStatus.data || {},
   });
   for (const message of checkEvaluation.passes) {
@@ -503,6 +504,7 @@ async function verifyNonMutatingMergeLaneAccessWithBroker(repoRoot, env, blocker
 
   const checkEvaluation = evaluateGithubChecksForMerge({
     checkRuns: checkRuns.data?.check_runs || [],
+    checkRunsTotalCount: checkRuns.data?.total_count,
     combinedStatus: combinedStatus.data || {},
   });
   for (const message of checkEvaluation.passes) {
