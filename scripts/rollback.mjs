@@ -96,6 +96,15 @@ function createRollbackPr(currentSha, currentMessage) {
       '- **User-facing**: No direct feature change; this restores the prior known-good behavior.',
       '- **Risk**: High - emergency production rollback.',
       '- **Scope**: main branch revert only.',
+      '',
+      '## Brain Freshness',
+      '',
+      '- Incident follow-up should update the relevant feature, initiative, or decision note after root cause is known.',
+      '',
+      '## Review Gate v0',
+      '',
+      '- **Review tier**: L2',
+      '- **Findings**: Emergency rollback PR generated from the current main head; merge still requires the protected `github.merge` path and Tim approval.',
     ].join('\n');
 
     const prUrl = ghOutput(

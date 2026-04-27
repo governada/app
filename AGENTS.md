@@ -34,9 +34,11 @@ These constraints are enforced by `npm run agent:validate`. Run it before shippi
 7. Run `npm run agent:validate` and the relevant local verification for the scope.
 8. Communicate impact explicitly in updates, handoffs, and reviews: what changed, why it matters, which surfaces or constraints it affects, and any real tradeoffs or risks.
 9. For product feature work, update the relevant brain feature note under `/Users/tim/dev/governada/governada-brain/governada/features/` or initiative note under `/Users/tim/dev/governada/governada-brain/governada/initiatives/`. If no note exists and the feature is shaped enough to name, create one from the brain template. Tiny follow-up PRs should update the existing feature note rather than create duplicates.
-10. For feature work, open a PR with `Summary`, `Existing Code Audit`, `Robustness`, `Impact`, and `Brain Freshness` sections.
-11. Before merging, run `npm run pre-merge-check -- <PR#>`.
-12. After merge, verify deploy health and smoke tests with `npm run deploy:verify`.
+10. Publish committed branch changes through `npm run github:ship` and create/update/ready PRs through `npm run github:pr-write` when the brokered lane supports the change class. Use direct `git push` or raw `gh` only as a documented fallback.
+11. For feature work, open a PR with `Summary`, `Existing Code Audit`, `Robustness`, `Impact`, `Brain Freshness`, and `Review Gate v0` sections.
+12. Before merging, run `npm run pre-merge-check -- <PR#>` and `npm run github:merge-doctor -- --pr <PR#> --expected-head <sha>`.
+13. Merge only after Tim gives the exact chat approval for `github.merge` naming `governada/app`, the PR number, and the expected head SHA.
+14. Execute merges through `npm run github:merge -- --pr <PR#> --expected-head <sha> --execute --confirm github.merge`. The wrapper performs synchronous post-merge deploy verification; run `npm run deploy:verify` separately only when extra verification is needed.
 
 ## Autonomy Boundary
 
