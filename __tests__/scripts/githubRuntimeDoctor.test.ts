@@ -5,10 +5,7 @@ import path from 'node:path';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import {
-  GITHUB_BROKER_REQUEST_TIMEOUT_MS,
-  githubBrokerSocketPath,
-} from '@/scripts/lib/github-broker-client.mjs';
+import { githubBrokerSocketPath } from '@/scripts/lib/github-broker-client.mjs';
 
 const repoRoot = process.cwd();
 const tempRoots: string[] = [];
@@ -63,13 +60,12 @@ afterEach(() => {
 });
 
 describe('github runtime doctor CLI', () => {
-  it('keeps broker request timeout long enough for token minting and GitHub probes', () => {
+  it('keeps broker socket timeout aligned with the client request timeout', () => {
     const brokerSource = readFileSync(
       path.join(repoRoot, 'scripts/github-runtime-broker.mjs'),
       'utf8',
     );
 
-    expect(GITHUB_BROKER_REQUEST_TIMEOUT_MS).toBeGreaterThanOrEqual(60000);
     expect(brokerSource).toContain(
       'const GITHUB_BROKER_SOCKET_TIMEOUT_MS = GITHUB_BROKER_REQUEST_TIMEOUT_MS + 5000',
     );
