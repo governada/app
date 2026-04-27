@@ -43,10 +43,15 @@ HEARTBEAT_URL_EPOCH_SUMMARY=op://<vault>/<item>/heartbeat-url-epoch-summary
 # Use only after Tim approves the GitHub App and 1Password service-account setup.
 # The IDs and rotation timestamps are non-secret. The private key and service
 # account token must remain in the narrow automation vault and must not be pasted.
-# OP_SERVICE_ACCOUNT_TOKEN must not live in this file. Preferred live use is
-# Tim starting `npm run github:runtime-broker` from Terminal with that token in
-# process env; agents then call repo-local wrappers without receiving the token.
-# Direct token-bearing doctors/wrappers remain human-present fallback only.
+# OP_SERVICE_ACCOUNT_TOKEN must not live in this file. The broker service may
+# store only an op:// pointer to the 1Password item field containing the
+# service-account token. After the one-time broker service install and
+# human-present `npm run github:broker -- cache-token --confirm
+# github.runtime.cache-token`, agents use `npm run github:broker -- ensure`
+# and repo-local GitHub wrappers. 1Password remains the source of truth; macOS
+# Keychain holds only the local runtime cache, and token values stay out of
+# tracked files, LaunchAgent plists, logs, command arguments, and agent output.
+GOVERNADA_OP_SERVICE_ACCOUNT_TOKEN_OP_REF=op://<automation-vault>/<github-app-item>/service-account-token
 GOVERNADA_GITHUB_APP_ID=123456
 GOVERNADA_GITHUB_APP_INSTALLATION_ID=12345678
 GOVERNADA_GITHUB_APP_PRIVATE_KEY_OP_REF=op://<automation-vault>/<github-app-item>/private-key

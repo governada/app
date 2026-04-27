@@ -7,6 +7,7 @@ import {
   redactSensitiveText,
 } from './lib/github-app-auth.mjs';
 import { callGithubBroker, isGithubBrokerAvailable } from './lib/github-broker-client.mjs';
+import { ensureGithubBrokerRunning } from './lib/github-broker-service.mjs';
 import {
   buildGithubShipPlan,
   parseGithubShipArgs,
@@ -54,12 +55,14 @@ async function main() {
     return;
   }
 
-  if (!isGithubBrokerAvailable(repoRoot)) {
-    block(
-      blockers,
-      'GitHub runtime broker socket is not available; start npm run github:runtime-broker from a human Terminal before live branch publish',
-    );
-  } else {
+  const ensureResult = await ensureGithubBrokerRunning({ repoRoot });
+  if (!ensureResult.ok) {
+    for (const blocker of ensureResult.blockers || []) {
+      block(blockers, blocker);
+    }
+  } else if (ensureResult.started) {
+    pass('GitHub runtime broker service was started for live branch publish');
+  } else if (isGithubBrokerAvailable(repoRoot)) {
     pass('GitHub runtime broker socket is available');
   }
 

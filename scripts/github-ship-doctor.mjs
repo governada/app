@@ -27,7 +27,8 @@ import {
   summarizeGithubShipPrPermissions,
   verifyGithubAppOwner,
 } from './lib/github-app-auth.mjs';
-import { callGithubBroker, isGithubBrokerAvailable } from './lib/github-broker-client.mjs';
+import { callGithubBroker } from './lib/github-broker-client.mjs';
+import { ensureGithubBrokerRunning } from './lib/github-broker-service.mjs';
 import { getScriptContext, loadLocalEnv } from './lib/runtime.mjs';
 
 const require = createRequire(import.meta.url);
@@ -138,14 +139,25 @@ async function main() {
     pass('1Password Connect env is not present');
   }
 
-  const brokerAvailable = isGithubBrokerAvailable(repoRoot, env);
-  if (brokerAvailable) {
-    pass(
-      'GitHub runtime broker socket is available; agent process does not need service-account token',
-    );
+  let brokerAvailable = false;
+  if (!config.serviceAccountTokenPresent && blockers.length === 0) {
+    const brokerResult = await ensureGithubBrokerRunning({ env, repoRoot });
+    if (brokerResult.ok) {
+      brokerAvailable = true;
+      pass(
+        brokerResult.started
+          ? 'GitHub runtime broker service was auto-ensured; agent process does not need service-account token'
+          : 'GitHub runtime broker socket is available; agent process does not need service-account token',
+      );
+    } else {
+      block(
+        blockers,
+        `GitHub runtime broker could not be auto-ensured: ${(brokerResult.blockers || []).join('; ')}`,
+      );
+    }
   }
 
-  const missingKeys = brokerAvailable
+  const missingKeys = !config.serviceAccountTokenPresent
     ? config.missingKeys.filter((key) => key !== GITHUB_READ_ENV_KEYS.serviceAccountToken)
     : config.missingKeys;
   if (missingKeys.length > 0) {

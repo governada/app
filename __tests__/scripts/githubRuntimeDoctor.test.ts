@@ -61,6 +61,7 @@ afterEach(() => {
 
 describe('github runtime doctor CLI', () => {
   it('uses a short default broker socket path for long worktree roots', () => {
+    const originalTmpdir = process.env.TMPDIR;
     const longRoot = path.join(
       tmpdir(),
       'governada-app',
@@ -69,8 +70,15 @@ describe('github runtime doctor CLI', () => {
       'phase-0b-ship-lane-with-a-very-long-name-for-macos-socket-proof',
     );
 
-    const socketPath = githubBrokerSocketPath(longRoot, { NODE_ENV: 'test' } as NodeJS.ProcessEnv);
+    process.env.TMPDIR = path.join(tmpdir(), 'caller-controlled-tmpdir');
+    let socketPath = '';
+    try {
+      socketPath = githubBrokerSocketPath(longRoot, { NODE_ENV: 'test' } as NodeJS.ProcessEnv);
+    } finally {
+      process.env.TMPDIR = originalTmpdir;
+    }
 
+    expect(socketPath).toContain(`${path.sep}tmp${path.sep}gov-gh-`);
     expect(socketPath).toContain(`${path.sep}gov-gh-`);
     expect(socketPath).toMatch(/\.sock$/);
     expect(socketPath.length).toBeLessThan(100);
