@@ -33,6 +33,7 @@ import { ensureGithubBrokerRunning } from './lib/github-broker-service.mjs';
 import {
   assertAllowedGithubPrWritePlan,
   buildGithubPrWritePlan,
+  isCompletedReviewGateBodyOnlyUpdate,
   parseGithubPrWriteArgs,
   printGithubPrWriteUsage,
   redactGithubPrWritePlan,
@@ -327,12 +328,17 @@ async function executeGithubPrWritePlan(plan, token, blockers) {
       return;
     }
 
-    if (existingPull.data?.draft !== true) {
+    const allowReadyReviewGateUpdate = isCompletedReviewGateBodyOnlyUpdate(plan, existingPull.data);
+    if (existingPull.data?.draft !== true && !allowReadyReviewGateUpdate) {
       block(blockers, `target PR #${plan.prNumber} is not a draft; live update is not allowed`);
       return;
     }
 
-    pass(`target PR #${plan.prNumber} is draft; live update may proceed`);
+    pass(
+      allowReadyReviewGateUpdate
+        ? `target PR #${plan.prNumber} is ready; completed Review Gate body update may proceed`
+        : `target PR #${plan.prNumber} is draft; live update may proceed`,
+    );
   }
 
   const response = await githubApiRequest({
@@ -375,12 +381,17 @@ async function executeGithubPrWritePlanWithBroker(plan, repoRoot, env, blockers)
       return;
     }
 
-    if (existingPull.data?.draft !== true) {
+    const allowReadyReviewGateUpdate = isCompletedReviewGateBodyOnlyUpdate(plan, existingPull.data);
+    if (existingPull.data?.draft !== true && !allowReadyReviewGateUpdate) {
       block(blockers, `target PR #${plan.prNumber} is not a draft; live update is not allowed`);
       return;
     }
 
-    pass(`target PR #${plan.prNumber} is draft; live update may proceed`);
+    pass(
+      allowReadyReviewGateUpdate
+        ? `target PR #${plan.prNumber} is ready; completed Review Gate body update may proceed`
+        : `target PR #${plan.prNumber} is draft; live update may proceed`,
+    );
   }
 
   const response = await githubBrokerApiRequest({

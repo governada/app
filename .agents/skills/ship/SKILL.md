@@ -66,7 +66,7 @@ Feature PRs must include:
 ## Review Gate v0
 ```
 
-The Review Gate v0 section must record the review tier, completed status, and findings/resolution. Do not ready a PR for merge with Review Gate wording that says the independent review is pending or still needs to run.
+The Review Gate v0 section must record the review tier, completed status, and findings/resolution. Run the review while the PR is still draft when practical. Do not ready a PR for merge with Review Gate wording that says the independent review is pending or still needs to run. If review completes after the PR is already ready, `github:pr-write update` allows only a body-only completed Review Gate v0 update.
 
 ## Production Mutation Boundaries
 
