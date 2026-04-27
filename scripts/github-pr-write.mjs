@@ -200,7 +200,7 @@ async function main() {
 
   advisory(
     advisories,
-    'This wrapper is limited to draft PR creation, title/body update on draft PRs, or marking draft PRs ready for review; merge, deploy mutation, production sync, secret changes, billing/admin, branch protection, and credential rotation remain separately gated.',
+    'This wrapper is limited to draft PR creation, title/body update on draft PRs, completed Review Gate v0 body-only updates on ready PRs, or marking draft PRs ready for review; merge, deploy mutation, production sync, secret changes, billing/admin, branch protection, and credential rotation remain separately gated.',
   );
 
   if (!plan.execute) {
