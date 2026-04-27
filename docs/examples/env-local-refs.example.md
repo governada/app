@@ -45,12 +45,13 @@ HEARTBEAT_URL_EPOCH_SUMMARY=op://<vault>/<item>/heartbeat-url-epoch-summary
 # account token must remain in the narrow automation vault and must not be pasted.
 # OP_SERVICE_ACCOUNT_TOKEN must not live in this file. The broker service may
 # store only an op:// pointer to the 1Password item field containing the
-# service-account token. After the one-time broker service install and
-# human-present `npm run github:broker -- cache-token --confirm
-# github.runtime.cache-token`, agents use `npm run github:broker -- ensure`
-# and repo-local GitHub wrappers. 1Password remains the source of truth; macOS
-# Keychain holds only the local runtime cache, and token values stay out of
-# tracked files, LaunchAgent plists, logs, command arguments, and agent output.
+# service-account token. After the one-time broker service install from the
+# shared checkout and human-present `npm run github:broker -- cache-token
+# --confirm github.runtime.cache-token`, agents use the ensure command
+# (`npm run github:broker -- ensure`) and repo-local GitHub wrappers.
+# 1Password remains the source of truth; macOS Keychain holds only the local
+# runtime cache, and token values stay out of tracked files, LaunchAgent
+# plists, logs, command arguments, and agent output.
 GOVERNADA_OP_SERVICE_ACCOUNT_TOKEN_OP_REF=op://<automation-vault>/<github-app-item>/service-account-token
 GOVERNADA_GITHUB_APP_ID=123456
 GOVERNADA_GITHUB_APP_INSTALLATION_ID=12345678

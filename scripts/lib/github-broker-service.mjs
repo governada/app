@@ -6,6 +6,7 @@ import {
   mkdirSync,
   readFileSync,
   renameSync,
+  rmSync,
   statSync,
   unlinkSync,
   writeFileSync,
@@ -20,7 +21,7 @@ import {
   getSharedCheckoutRoot,
   parseEnvEntries,
 } from './env-bootstrap.mjs';
-import { redactSensitiveText } from './github-app-auth.mjs';
+import { EXPECTED_REPO, redactSensitiveText } from './github-app-auth.mjs';
 import { callGithubBroker, githubBrokerSocketPath } from './github-broker-client.mjs';
 
 export const GITHUB_BROKER_SERVICE_LABEL = 'io.governada.github-broker';
@@ -37,8 +38,11 @@ export const GITHUB_BROKER_KEYCHAIN_LABEL =
 export const EXPECTED_OP_ACCOUNT = 'my.1password.com';
 
 const SERVICE_START_TIMEOUT_MS = 90000;
+const SERVICE_ENSURE_LOCK_WAIT_MS = 30000;
+const SERVICE_ENSURE_LOCK_STALE_MS = 120000;
 const FIXED_RUNTIME_PATH = '/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin';
 const LAUNCHCTL_PATH = '/bin/launchctl';
+const SECURITY_PATH = '/usr/bin/security';
 const BROKER_METADATA_ENV_KEYS = Object.freeze([
   'GOVERNADA_GITHUB_APP_ID',
   'GOVERNADA_GITHUB_APP_INSTALLATION_ID',
@@ -54,6 +58,10 @@ function sanitizedCompilerEnv(env = process.env) {
 
 function sanitizedHelperEnv(env = process.env) {
   return sanitizedEnvFromKeys(env, [...BASIC_HELPER_ENV_KEYS, ...BROKER_METADATA_ENV_KEYS]);
+}
+
+function sanitizedKeychainCliEnv(env = process.env) {
+  return sanitizedEnvFromKeys(env, BASIC_HELPER_ENV_KEYS);
 }
 
 function sanitizedEnvFromKeys(env, keys) {
@@ -224,11 +232,33 @@ export function getKeychainCacheHelperPath() {
 export function ensureKeychainCacheHelper(env = process.env, { forceBuild = false } = {}) {
   const helperPath = getKeychainCacheHelperPath(env);
   const sourcePath = getKeychainCacheCSourcePath(env);
+  const inspection = inspectKeychainCacheHelper(env);
   if (!existsSync(sourcePath)) {
     return {
       error: `Keychain cache C helper source is missing at ${sourcePath}`,
       ok: false,
       path: helperPath,
+    };
+  }
+
+  if (!forceBuild) {
+    if (inspection.ok && !inspection.stale) {
+      return {
+        built: false,
+        ok: true,
+        path: helperPath,
+      };
+    }
+
+    return {
+      error:
+        inspection.error ||
+        (inspection.stale
+          ? `Keychain cache helper is older than its source at ${sourcePath}; token-bearing cache/start paths will rebuild it`
+          : `Keychain cache helper is not built at ${helperPath}`),
+      ok: false,
+      path: helperPath,
+      stale: Boolean(inspection.stale),
     };
   }
 
@@ -241,15 +271,8 @@ export function ensureKeychainCacheHelper(env = process.env, { forceBuild = fals
     };
   }
 
-  const sourceStat = statSync(sourcePath);
-  const helperStatus = existingKeychainHelperStatus(helperPath);
-  if (!forceBuild && helperStatus.ok && helperStatus.mtimeMs >= sourceStat.mtimeMs) {
-    return {
-      ok: true,
-      path: helperPath,
-    };
-  }
-  if (!forceBuild && helperStatus.exists && !helperStatus.ok) {
+  const helperStatus = inspection;
+  if (helperStatus.exists && !helperStatus.ok) {
     return {
       error: helperStatus.error,
       ok: false,
@@ -298,8 +321,56 @@ export function ensureKeychainCacheHelper(env = process.env, { forceBuild = fals
   chmodSync(tempHelperPath, 0o700);
   renameSync(tempHelperPath, helperPath);
   return {
+    built: true,
     ok: true,
     path: helperPath,
+  };
+}
+
+export function inspectKeychainCacheHelper(env = process.env) {
+  const helperPath = getKeychainCacheHelperPath(env);
+  const sourcePath = getKeychainCacheCSourcePath(env);
+  if (!existsSync(sourcePath)) {
+    return {
+      error: `Keychain cache C helper source is missing at ${sourcePath}`,
+      exists: false,
+      ok: false,
+      path: helperPath,
+      sourcePath,
+      stale: false,
+    };
+  }
+
+  const helperStatus = existingKeychainHelperStatus(helperPath);
+  if (!helperStatus.exists) {
+    return {
+      error: `Keychain cache helper has not been built at ${helperPath}`,
+      exists: false,
+      ok: false,
+      path: helperPath,
+      sourcePath,
+      stale: false,
+    };
+  }
+
+  if (!helperStatus.ok) {
+    return {
+      ...helperStatus,
+      path: helperPath,
+      sourcePath,
+      stale: false,
+    };
+  }
+
+  const sourceStat = statSync(sourcePath);
+  const stale = helperStatus.mtimeMs < sourceStat.mtimeMs;
+  return {
+    exists: true,
+    mtimeMs: helperStatus.mtimeMs,
+    ok: true,
+    path: helperPath,
+    sourcePath,
+    stale,
   };
 }
 
@@ -395,6 +466,15 @@ export async function waitForGithubBroker({
 }
 
 export async function ensureGithubBrokerRunning({ env = process.env, repoRoot }) {
+  const releaseLock = await acquireBrokerEnsureLock({ env, repoRoot });
+  try {
+    return await ensureGithubBrokerRunningUnlocked({ env, repoRoot });
+  } finally {
+    releaseLock();
+  }
+}
+
+async function ensureGithubBrokerRunningUnlocked({ env = process.env, repoRoot }) {
   const before = await getGithubBrokerStatus({ env, repoRoot });
   const paths = getBrokerServicePaths(repoRoot, env);
   if (!existsSync(paths.plistPath)) {
@@ -417,13 +497,36 @@ export async function ensureGithubBrokerRunning({ env = process.env, repoRoot })
   }
 
   const tokenCache = getGithubBrokerTokenCacheStatus(env);
-  if (!tokenCache.present) {
+  if (tokenCache.error) {
     return {
       blockers: [
-        tokenCache.error ||
-          `GitHub broker service-account token runtime cache is not populated; run npm run github:broker -- cache-token --confirm ${GITHUB_BROKER_CACHE_TOKEN_CONFIRMATION} once with human approval`,
+        `GitHub broker service-account token runtime cache could not be inspected: ${tokenCache.error}`,
       ],
       ok: false,
+      status: before,
+    };
+  }
+  const advisories = tokenCache.present
+    ? []
+    : [
+        `GitHub broker service-account token runtime cache is not visible to this process; LaunchAgent start will prove whether the cache exists, and missing-cache failures require npm run github:broker -- cache-token --confirm ${GITHUB_BROKER_CACHE_TOKEN_CONFIRMATION}`,
+      ];
+
+  if (before.running) {
+    if (before.repo !== EXPECTED_REPO) {
+      return {
+        blockers: [
+          `GitHub broker is running for ${before.repo || 'unknown repo'}, expected ${EXPECTED_REPO}; stop/reinstall the broker before using this repo`,
+        ],
+        ok: false,
+        status: before,
+      };
+    }
+
+    return {
+      advisories,
+      ok: true,
+      started: false,
       status: before,
     };
   }
@@ -461,7 +564,10 @@ export async function ensureGithubBrokerRunning({ env = process.env, repoRoot })
   if (!after.running) {
     return {
       blockers: [
-        `GitHub broker service was started but broker did not become healthy at ${after.socketPath}; inspect ${paths.stderrPath}`,
+        [
+          `GitHub broker service was started but broker did not become healthy at ${after.socketPath}; inspect ${paths.stderrPath}`,
+          ...advisories,
+        ].join(' '),
       ],
       ok: false,
       started: true,
@@ -470,10 +576,49 @@ export async function ensureGithubBrokerRunning({ env = process.env, repoRoot })
   }
 
   return {
+    advisories,
     ok: true,
     started: true,
     status: after,
   };
+}
+
+async function acquireBrokerEnsureLock({ env = process.env, repoRoot }) {
+  const lockDir = path.join(
+    path.dirname(githubBrokerSocketPath(repoRoot, env)),
+    'github-broker.ensure.lock',
+  );
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < SERVICE_ENSURE_LOCK_WAIT_MS) {
+    try {
+      mkdirSync(lockDir, { mode: 0o700, recursive: false });
+      return () => {
+        rmSync(lockDir, { force: true, recursive: true });
+      };
+    } catch (error) {
+      if (error?.code !== 'EEXIST') {
+        throw error;
+      }
+
+      if (isStaleBrokerEnsureLock(lockDir)) {
+        rmSync(lockDir, { force: true, recursive: true });
+        continue;
+      }
+
+      await sleep(250);
+    }
+  }
+
+  throw new Error(`timed out waiting for GitHub broker ensure lock at ${lockDir}`);
+}
+
+function isStaleBrokerEnsureLock(lockDir) {
+  try {
+    return Date.now() - statSync(lockDir).mtimeMs > SERVICE_ENSURE_LOCK_STALE_MS;
+  } catch {
+    return true;
+  }
 }
 
 async function runLaunchctlBootstrapWithRetry({ env, plistPath }) {
@@ -515,20 +660,25 @@ function removeCanonicalBrokerSocket(status) {
 }
 
 export function getGithubBrokerTokenCacheStatus(env = process.env) {
-  const helper = ensureKeychainCacheHelper(env, { forceBuild: true });
-  if (!helper.ok) {
+  if (!existsSync(SECURITY_PATH)) {
     return {
-      error: helper.error,
+      error: `macOS security CLI is missing at ${SECURITY_PATH}`,
       present: false,
     };
   }
 
   const result = spawnSync(
-    helper.path,
-    ['status', GITHUB_BROKER_KEYCHAIN_ACCOUNT, GITHUB_BROKER_KEYCHAIN_SERVICE],
+    SECURITY_PATH,
+    [
+      'find-generic-password',
+      '-a',
+      GITHUB_BROKER_KEYCHAIN_ACCOUNT,
+      '-s',
+      GITHUB_BROKER_KEYCHAIN_SERVICE,
+    ],
     {
       encoding: 'utf8',
-      env: sanitizedHelperEnv(env),
+      env: sanitizedKeychainCliEnv(env),
       stdio: ['ignore', 'pipe', 'pipe'],
       timeout: 60000,
     },
@@ -540,15 +690,15 @@ export function getGithubBrokerTokenCacheStatus(env = process.env) {
     };
   }
 
-  if (result.status === 44) {
+  const output = redactSensitiveText(`${result.stdout || ''}${result.stderr || ''}`.trim());
+  if (isKeychainItemMissing(output, result.status)) {
     return {
       present: false,
     };
   }
 
-  const output = redactSensitiveText(`${result.stdout || ''}${result.stderr || ''}`.trim());
   return {
-    error: output || `Keychain status helper exited with status ${result.status}`,
+    error: output || `macOS security keychain status exited with status ${result.status}`,
     present: false,
   };
 }
@@ -670,20 +820,25 @@ export function writeGithubBrokerTokenKeychainCache({ env = process.env, token }
 
 export function deleteGithubBrokerTokenKeychainCache(env = process.env) {
   const before = getGithubBrokerTokenCacheStatus(env);
-  const helper = ensureKeychainCacheHelper(env, { forceBuild: true });
-  if (!helper.ok) {
+  if (before.error) {
     return {
-      error: helper.error,
+      error: before.error,
       ok: false,
     };
   }
 
   const result = spawnSync(
-    helper.path,
-    ['delete', GITHUB_BROKER_KEYCHAIN_ACCOUNT, GITHUB_BROKER_KEYCHAIN_SERVICE],
+    SECURITY_PATH,
+    [
+      'delete-generic-password',
+      '-a',
+      GITHUB_BROKER_KEYCHAIN_ACCOUNT,
+      '-s',
+      GITHUB_BROKER_KEYCHAIN_SERVICE,
+    ],
     {
       encoding: 'utf8',
-      env: sanitizedHelperEnv(env),
+      env: sanitizedKeychainCliEnv(env),
       stdio: ['ignore', 'pipe', 'pipe'],
       timeout: 60000,
     },
@@ -697,10 +852,26 @@ export function deleteGithubBrokerTokenKeychainCache(env = process.env) {
     };
   }
 
+  if (isKeychainItemMissing(output, result.status)) {
+    return {
+      ok: true,
+      removed: false,
+    };
+  }
+
   return {
-    error: output || `Keychain delete helper exited with status ${result.status}`,
+    error: output || `macOS security keychain delete exited with status ${result.status}`,
     ok: false,
   };
+}
+
+function isKeychainItemMissing(output, status) {
+  return (
+    status === 44 ||
+    /could not be found|The specified item could not be found|SecKeychainSearchCopyNext/iu.test(
+      output || '',
+    )
+  );
 }
 
 export function validateBrokerServicePlist({ env = process.env, repoRoot }) {

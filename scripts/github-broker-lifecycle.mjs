@@ -14,7 +14,6 @@ import {
   GITHUB_BROKER_UNINSTALL_CONFIRMATION,
   buildBrokerLaunchAgentPlist,
   deleteGithubBrokerTokenKeychainCache,
-  ensureKeychainCacheHelper,
   ensureGithubBrokerRunning,
   findClangCliPath,
   findNodeForBrokerService,
@@ -25,12 +24,14 @@ import {
   getGithubBrokerStatus,
   getGithubBrokerTokenCacheStatus,
   getLaunchctlDomain,
+  inspectKeychainCacheHelper,
   isBrokerServiceInstalled,
   isSafeServiceAccountTokenOpRef,
   readGithubBrokerRefs,
   readServiceAccountTokenFrom1Password,
   resolveServiceAccountTokenOpRef,
   runLaunchctl,
+  validateBrokerServicePlist,
   writeGithubBrokerTokenKeychainCache,
   writeBrokerServicePlist,
 } from './lib/github-broker-service.mjs';
@@ -117,6 +118,7 @@ function parseArgs(argv) {
     help: argv.includes('--help') || argv.includes('-h'),
     requireRunning: false,
     tail: 80,
+    temporaryWorktreeProof: false,
   };
 
   for (let index = 1; index < argv.length; index += 1) {
@@ -127,6 +129,8 @@ function parseArgs(argv) {
       index += 1;
     } else if (arg === '--allow-worktree-install') {
       result.allowWorktreeInstall = true;
+    } else if (arg === '--temporary-worktree-proof') {
+      result.temporaryWorktreeProof = true;
     } else if (arg === '--require-running') {
       result.requireRunning = true;
     } else if (arg === '--tail') {
@@ -146,15 +150,15 @@ function printUsage() {
   npm run github:broker -- status [--require-running]
   npm run github:broker -- ensure
   npm run github:broker -- start
-  npm run github:broker -- install --confirm ${GITHUB_BROKER_INSTALL_CONFIRMATION} [--allow-worktree-install]
+  npm run github:broker -- install --confirm ${GITHUB_BROKER_INSTALL_CONFIRMATION} [--temporary-worktree-proof]
   npm run github:broker -- cache-token --confirm ${GITHUB_BROKER_CACHE_TOKEN_CONFIRMATION}
   npm run github:broker -- clear-token-cache --confirm ${GITHUB_BROKER_CLEAR_TOKEN_CACHE_CONFIRMATION}
   npm run github:broker -- stop --confirm ${GITHUB_BROKER_STOP_CONFIRMATION}
   npm run github:broker -- logs [--tail 80]
   npm run github:broker -- uninstall --confirm ${GITHUB_BROKER_UNINSTALL_CONFIRMATION}
 
-After one approved install, ensure/start are agent-capable. They kickstart the
-Governada-only LaunchAgent and never expose OP_SERVICE_ACCOUNT_TOKEN, the
+After one approved install, ensure/start are agent-capable. They reuse a
+healthy Governada-only broker or start the LaunchAgent when needed, and never expose OP_SERVICE_ACCOUNT_TOKEN, the
 GitHub App private key, or GitHub installation tokens to the agent process.
 
 cache-token is a one-time or rotation-time human-present command. It reads the
@@ -226,12 +230,22 @@ async function runDoctor({ repoRoot }) {
     blocked(`Keychain C helper source is missing at ${keychainSourcePath}`);
   }
 
-  const helper = ensureKeychainCacheHelper();
-  if (helper.ok) {
-    ok(`Keychain helper is ${helper.path || keychainHelperPath}`);
+  const helper = inspectKeychainCacheHelper();
+  if (helper.ok && !helper.stale) {
+    ok(`Keychain helper is present at ${helper.path || keychainHelperPath}`);
+  } else if (helper.ok && helper.stale) {
+    advisories.push('Keychain helper is older than its source');
+    advisory(
+      `Keychain helper is older than its source; cache-token and service start rebuild it before token-bearing use`,
+    );
+  } else if (!helper.exists) {
+    advisories.push('Keychain helper has not been built yet');
+    advisory(
+      `Keychain helper has not been built yet; cache-token and service start build it before token-bearing use`,
+    );
   } else {
-    blockers.push(helper.error || 'Keychain helper could not be built');
-    blocked(helper.error || 'Keychain helper could not be built');
+    blockers.push(helper.error || 'Keychain helper is not usable');
+    blocked(helper.error || 'Keychain helper is not usable');
   }
 
   if (tokenCache.present) {
@@ -246,14 +260,23 @@ async function runDoctor({ repoRoot }) {
       )}`,
     );
   } else {
-    advisories.push('service-account token runtime cache is not populated yet');
+    advisories.push('service-account token runtime cache is not visible to this process');
     advisory(
-      `service-account token runtime cache is not populated yet; run npm run github:broker -- cache-token --confirm ${GITHUB_BROKER_CACHE_TOKEN_CONFIRMATION} once with human approval`,
+      `service-account token runtime cache is not visible to this process; run npm run github:broker -- ensure to let the LaunchAgent prove cache access, or run npm run github:broker -- cache-token --confirm ${GITHUB_BROKER_CACHE_TOKEN_CONFIRMATION} once with human approval if the cache is truly absent`,
     );
   }
 
   if (isBrokerServiceInstalled(repoRoot)) {
     ok('broker LaunchAgent plist is installed');
+    const plistValidation = validateBrokerServicePlist({ repoRoot });
+    if (plistValidation.ok) {
+      ok('broker LaunchAgent plist matches the expected Governada service definition');
+    } else {
+      for (const blocker of plistValidation.blockers || []) {
+        blockers.push(blocker);
+        blocked(blocker);
+      }
+    }
   } else {
     advisories.push('broker LaunchAgent plist is not installed yet');
     advisory('broker LaunchAgent plist is not installed yet');
@@ -327,6 +350,9 @@ async function runEnsure({ repoRoot }) {
     process.exit(1);
   }
 
+  for (const message of result.advisories || []) {
+    advisory(message);
+  }
   ok(result.started ? 'broker service started and broker is healthy' : 'broker is already running');
   console.log(`Socket: ${result.status.socketPath}`);
   console.log('GitHub broker lifecycle ensure result: RUNNING');
@@ -340,9 +366,16 @@ function runInstall({ parsed, repoRoot }) {
     process.exit(1);
   }
 
-  if (getCheckoutKind(repoRoot) === 'worktree' && !parsed.allowWorktreeInstall) {
+  if (parsed.allowWorktreeInstall) {
     blocked(
-      'durable broker service install must run from the shared checkout after merge; pass --allow-worktree-install only for a temporary live proof from this worktree',
+      'deprecated --allow-worktree-install flag removed; use --temporary-worktree-proof only for a disposable live proof from this worktree',
+    );
+    process.exit(1);
+  }
+
+  if (getCheckoutKind(repoRoot) === 'worktree' && !parsed.temporaryWorktreeProof) {
+    blocked(
+      'durable broker service install must run from the shared checkout after merge; pass --temporary-worktree-proof only for a temporary live proof from this worktree',
     );
     process.exit(1);
   }
@@ -375,11 +408,9 @@ function runInstall({ parsed, repoRoot }) {
     process.exit(1);
   }
 
-  const helper = ensureKeychainCacheHelper();
-  if (!helper.ok) {
-    blocked(helper.error || 'Keychain helper could not be built');
-    process.exit(1);
-  }
+  ok(
+    'Keychain helper source and compiler are available; token-bearing cache/start paths force-build the helper before use',
+  );
 
   const nodePath = findNodeForBrokerService();
   const expectedPlist = buildBrokerLaunchAgentPlist({ nodePath, repoRoot });

@@ -80,9 +80,7 @@ async function main() {
 
   const socketDir = path.dirname(socketPath);
   mkdirSync(socketDir, { mode: 0o700, recursive: true });
-  if (path.basename(socketDir).startsWith('gov-gh-')) {
-    chmodSync(socketDir, 0o700);
-  }
+  chmodSync(socketDir, 0o700);
   if (existsSync(socketPath)) {
     removeManagedBrokerSocket({ repoRoot, socketPath });
   }

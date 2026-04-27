@@ -112,6 +112,8 @@ describe('github broker lifecycle CLI', () => {
     expect(source).not.toContain('DYLD_');
     expect(source).not.toContain('TMPDIR');
     expect(source).not.toContain('GOVERNADA_GITHUB_BROKER_SOCKET');
+    expect(source).not.toContain('strcmp(command, "status")');
+    expect(source).not.toContain('strcmp(command, "delete")');
     expect(source).toContain('NULL, NULL, &item');
   });
 
@@ -144,8 +146,12 @@ describe('github broker lifecycle CLI', () => {
     }
 
     expect(findClangCliPath()).not.toBe('/tmp/should-not-use');
-    expect(serviceSource).not.toContain('if (before.running)');
+    expect(serviceSource).toContain('if (before.running)');
+    expect(serviceSource).toContain('before.repo !== EXPECTED_REPO');
     expect(serviceSource).toContain('removeCanonicalBrokerSocket(before)');
+    expect(serviceSource.indexOf('if (before.running)')).toBeLessThan(
+      serviceSource.indexOf('removeCanonicalBrokerSocket(before)'),
+    );
     expect(serviceSource.indexOf('removeCanonicalBrokerSocket(before)')).toBeLessThan(
       serviceSource.indexOf("runLaunchctl(['bootout'"),
     );
@@ -153,6 +159,15 @@ describe('github broker lifecycle CLI', () => {
       serviceSource.indexOf("runLaunchctl(['bootstrap'"),
     );
     expect(serviceSource).toContain('spawnSync(LAUNCHCTL_PATH');
+    expect(serviceSource).toContain("const SECURITY_PATH = '/usr/bin/security'");
+    expect(serviceSource).toContain("'find-generic-password'");
+    expect(serviceSource).toContain("'delete-generic-password'");
+    expect(serviceSource).not.toContain(
+      "['status', GITHUB_BROKER_KEYCHAIN_ACCOUNT, GITHUB_BROKER_KEYCHAIN_SERVICE]",
+    );
+    expect(serviceSource).not.toContain(
+      "['delete', GITHUB_BROKER_KEYCHAIN_ACCOUNT, GITHUB_BROKER_KEYCHAIN_SERVICE]",
+    );
     expect(serviceSource).toContain('sanitizedLaunchctlEnv');
     expect(serviceSource).not.toContain("spawnSync('launchctl'");
     expect(runnerSource).not.toContain('...process.env');
@@ -182,6 +197,7 @@ describe('github broker lifecycle CLI', () => {
     expect(result.stderr).toContain(
       'durable broker service install must run from the shared checkout',
     );
+    expect(result.stderr).toContain('--temporary-worktree-proof');
   });
 
   it('builds a LaunchAgent plist without token material or op references', () => {

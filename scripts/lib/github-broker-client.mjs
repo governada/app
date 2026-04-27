@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
@@ -6,19 +5,12 @@ import path from 'node:path';
 import { getSharedCheckoutRoot } from './env-bootstrap.mjs';
 import { redactSensitiveText } from './github-app-auth.mjs';
 
-const BROKER_SOCKET_ROOT = '/tmp';
-
 export function githubBrokerSocketPath(repoRoot, _env = process.env) {
   return defaultGithubBrokerSocketPath(repoRoot);
 }
 
 function defaultGithubBrokerSocketPath(repoRoot) {
-  const uid = typeof process.getuid === 'function' ? process.getuid() : 'nouid';
-  const repoHash = createHash('sha256')
-    .update(path.resolve(canonicalGithubBrokerRoot(repoRoot)))
-    .digest('hex')
-    .slice(0, 16);
-  return path.join(BROKER_SOCKET_ROOT, `gov-gh-${uid}`, `${repoHash}.sock`);
+  return path.join(canonicalGithubBrokerRoot(repoRoot), '.agents', 'runtime', 'github-broker.sock');
 }
 
 function canonicalGithubBrokerRoot(repoRoot) {

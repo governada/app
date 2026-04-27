@@ -265,11 +265,13 @@ static const char *find_node_path(void) {
   }
 
   fail("allowlisted Node executable was not found", 70);
+  return NULL;
 }
 
 int main(int argc, char **argv) {
   if (argc < 4) {
-    fail("usage: github-keychain-cache <status|write|delete|run-broker> <account> <service> [args...]", 64);
+    fail("usage: github-keychain-cache <write|run-broker> <account> <service> [args...]",
+         64);
   }
 
   const char *command = argv[1];
@@ -279,23 +281,6 @@ int main(int argc, char **argv) {
   UInt32 service_len = (UInt32)strlen(service);
   validate_helper_location();
   SecKeychainRef keychain = copy_default_keychain();
-
-  if (strcmp(command, "status") == 0) {
-    SecKeychainItemRef item = NULL;
-    OSStatus status = SecKeychainFindGenericPassword(
-        keychain, service_len, service, account_len, account, NULL, NULL, &item);
-    if (item) {
-      CFRelease(item);
-    }
-    CFRelease(keychain);
-    if (status == errSecSuccess) {
-      return 0;
-    }
-    if (status == errSecItemNotFound) {
-      return 44;
-    }
-    fail_status(status);
-  }
 
   if (strcmp(command, "run-broker") == 0) {
     if (argc != 4) {
@@ -328,14 +313,9 @@ int main(int argc, char **argv) {
     (void)comment;
     char *token = read_stdin_token();
 
-    UInt32 password_len = 0;
-    void *password = NULL;
     SecKeychainItemRef item = NULL;
     OSStatus find_status = SecKeychainFindGenericPassword(
-        keychain, service_len, service, account_len, account, &password_len, &password, &item);
-    if (password) {
-      SecKeychainItemFreeContent(NULL, password);
-    }
+        keychain, service_len, service, account_len, account, NULL, NULL, &item);
     if (find_status == errSecSuccess && item) {
       OSStatus update_status =
           SecKeychainItemModifyAttributesAndData(item, NULL, (UInt32)strlen(token), token);
@@ -367,29 +347,6 @@ int main(int argc, char **argv) {
     fail_status(add_status);
   }
 
-  if (strcmp(command, "delete") == 0) {
-    SecKeychainItemRef item = NULL;
-    OSStatus status = SecKeychainFindGenericPassword(
-        keychain, service_len, service, account_len, account, NULL, NULL, &item);
-    if (status == errSecItemNotFound) {
-      CFRelease(keychain);
-      return 0;
-    }
-    if (status != errSecSuccess) {
-      if (item) {
-        CFRelease(item);
-      }
-      CFRelease(keychain);
-      fail_status(status);
-    }
-    status = SecKeychainItemDelete(item);
-    CFRelease(item);
-    CFRelease(keychain);
-    if (status == errSecSuccess || status == errSecItemNotFound) {
-      return 0;
-    }
-    fail_status(status);
-  }
-
+  CFRelease(keychain);
   fail("unknown command", 64);
 }
