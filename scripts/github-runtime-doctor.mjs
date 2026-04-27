@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
 import {
@@ -17,7 +18,7 @@ import {
   getGithubReadLaneConfig,
   isValidOpReference,
 } from './lib/github-app-auth.mjs';
-import { githubBrokerSocketPath, isGithubBrokerAvailable } from './lib/github-broker-client.mjs';
+import { callGithubBroker, githubBrokerSocketPath } from './lib/github-broker-client.mjs';
 import { getScriptContext, loadLocalEnv } from './lib/runtime.mjs';
 
 const require = createRequire(import.meta.url);
@@ -46,7 +47,7 @@ function block(blockers, message) {
   console.log(`BLOCKED: ${message}`);
 }
 
-function main() {
+async function main() {
   const blockers = [];
   const advisories = [];
   const { repoRoot } = getScriptContext(import.meta.url);
@@ -156,13 +157,15 @@ function main() {
     block(blockers, message);
   }
 
-  const brokerSocketPath = githubBrokerSocketPath(repoRoot, env);
-  if (isGithubBrokerAvailable(repoRoot, env)) {
-    pass(`GitHub runtime broker socket is available at ${brokerSocketPath}`);
+  const brokerStatus = await getBrokerStatus({ env, repoRoot });
+  if (brokerStatus.running) {
+    pass(`GitHub runtime broker socket is available at ${brokerStatus.socketPath}`);
   } else {
     advisory(
       advisories,
-      `GitHub runtime broker socket is not running at ${brokerSocketPath}; live brokered GitHub App operations require Tim to start npm run github:runtime-broker from Terminal`,
+      brokerStatus.socketExists
+        ? `GitHub runtime broker socket exists at ${brokerStatus.socketPath} but did not answer: ${brokerStatus.error}`
+        : `GitHub runtime broker socket is not running at ${brokerStatus.socketPath}; live brokered GitHub App operations should use npm run github:broker -- ensure after the one-time broker service install and Keychain cache setup`,
     );
   }
 
@@ -199,4 +202,50 @@ function loadGithubRuntimeReferenceEnv(repoRoot) {
   return refsPath;
 }
 
-main();
+async function getBrokerStatus({ env, repoRoot }) {
+  const socketPath = githubBrokerSocketPath(repoRoot, env);
+  if (!isBrokerSocketPresent(socketPath)) {
+    return {
+      running: false,
+      socketExists: false,
+      socketPath,
+    };
+  }
+
+  try {
+    const response = await callGithubBroker({
+      env,
+      repoRoot,
+      request: { kind: 'status' },
+      timeoutMs: 3000,
+    });
+
+    return {
+      error: response?.error || '',
+      running: Boolean(response?.ok),
+      socketExists: true,
+      socketPath,
+    };
+  } catch (error) {
+    return {
+      error: error?.message || String(error),
+      running: false,
+      socketExists: true,
+      socketPath,
+    };
+  }
+}
+
+function isBrokerSocketPresent(socketPath) {
+  try {
+    return Boolean(socketPath) && existsSync(socketPath);
+  } catch {
+    return false;
+  }
+}
+
+main().catch((error) => {
+  console.log(`BLOCKED: ${error?.message || String(error)}`);
+  console.log('GitHub runtime doctor result: BLOCKED (1)');
+  process.exit(1);
+});

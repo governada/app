@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MobileStickyAction } from '@/components/governada/proposals/MobileStickyAction';
 import { CITIZEN_PROPOSAL_ACTION_ID } from '@/lib/navigation/proposalAction';
 
@@ -14,12 +14,19 @@ vi.mock('@/components/providers/SegmentProvider', () => ({
 
 function showStickyBar() {
   Object.defineProperty(window, 'scrollY', { value: 500, writable: true, configurable: true });
-  fireEvent.scroll(window);
+  act(() => {
+    fireEvent.scroll(window);
+  });
 }
 
 describe('MobileStickyAction', () => {
   beforeEach(() => {
     useSegmentMock.mockReset();
+    Object.defineProperty(window, 'scrollY', { value: 0, writable: true, configurable: true });
+  });
+
+  afterEach(() => {
+    cleanup();
   });
 
   it('routes governance actors to the workspace review flow', () => {

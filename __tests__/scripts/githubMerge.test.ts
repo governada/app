@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -16,6 +16,7 @@ import {
 } from '@/scripts/lib/github-merge.mjs';
 
 const SHA = '1234567890abcdef1234567890abcdef12345678';
+const repoRoot = process.cwd();
 const tempRoots: string[] = [];
 
 function tempRepoRoot() {
@@ -301,6 +302,15 @@ describe('github merge wrapper guardrails', () => {
     expect(truncated.blockers).toContain(
       'check runs response is truncated (1/2); paginate before merge',
     );
+  });
+
+  it('keeps post-merge behavior on read-only deploy verification', () => {
+    const source = readFileSync(path.join(repoRoot, 'scripts/github-merge.mjs'), 'utf8');
+
+    expect(source).toContain("['run', 'deploy:verify', '--', `--expected-sha=${mergeSha}`]");
+    expect(source).not.toContain('railway up');
+    expect(source).not.toContain('inngest:register');
+    expect(source).not.toContain('sync:');
   });
 
   it('recognizes the required Review Gate v0 body shape and redacts merge plans', () => {

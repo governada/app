@@ -1,19 +1,24 @@
-import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import net from 'node:net';
-import { tmpdir } from 'node:os';
 import path from 'node:path';
 
+import { getSharedCheckoutRoot } from './env-bootstrap.mjs';
 import { redactSensitiveText } from './github-app-auth.mjs';
 
-export function githubBrokerSocketPath(repoRoot, env = process.env) {
-  return env.GOVERNADA_GITHUB_BROKER_SOCKET || defaultGithubBrokerSocketPath(repoRoot);
+export function githubBrokerSocketPath(repoRoot, _env = process.env) {
+  return defaultGithubBrokerSocketPath(repoRoot);
 }
 
 function defaultGithubBrokerSocketPath(repoRoot) {
-  const uid = typeof process.getuid === 'function' ? process.getuid() : 'nouid';
-  const repoHash = createHash('sha256').update(path.resolve(repoRoot)).digest('hex').slice(0, 16);
-  return path.join(tmpdir(), `gov-gh-${uid}`, `${repoHash}.sock`);
+  return path.join(canonicalGithubBrokerRoot(repoRoot), '.agents', 'runtime', 'github-broker.sock');
+}
+
+function canonicalGithubBrokerRoot(repoRoot) {
+  try {
+    return getSharedCheckoutRoot(repoRoot) || repoRoot;
+  } catch {
+    return repoRoot;
+  }
 }
 
 export function isGithubBrokerAvailable(repoRoot, env = process.env) {

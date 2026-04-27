@@ -1,4 +1,5 @@
 import { createRequire } from 'node:module';
+import { spawnSync } from 'node:child_process';
 
 import {
   findEnvLocalKeyDefinitions,
@@ -28,6 +29,7 @@ import {
   verifyGithubAppOwner,
 } from './lib/github-app-auth.mjs';
 import { callGithubBroker, isGithubBrokerAvailable } from './lib/github-broker-client.mjs';
+import { ensureGithubBrokerRunning } from './lib/github-broker-service.mjs';
 import {
   assertAllowedGithubMergePlan,
   buildGithubMergePlan,
@@ -168,7 +170,23 @@ async function main() {
   }
 
   const runtime = evaluateGithubServiceAccountRuntime(env);
-  const brokerAvailable = isGithubBrokerAvailable(repoRoot, env);
+  let brokerAvailable = false;
+  if (plan.execute) {
+    const ensureResult = await ensureGithubBrokerRunning({ env, repoRoot });
+    if (!ensureResult.ok) {
+      for (const message of ensureResult.blockers || []) {
+        block(blockers, message);
+      }
+    } else if (ensureResult.started) {
+      pass('GitHub runtime broker service was started for live merge');
+      brokerAvailable = true;
+    } else {
+      brokerAvailable = true;
+    }
+  } else {
+    brokerAvailable = isGithubBrokerAvailable(repoRoot, env);
+  }
+
   if (brokerAvailable) {
     pass(
       'GitHub runtime broker socket is available; agent process does not need service-account token',
@@ -228,7 +246,7 @@ async function main() {
 
   const tokenResult = await mintMergeToken({ config, env, repoRoot, blockers });
   if (tokenResult.token && blockers.length === 0) {
-    await verifyAndExecuteGithubMergePlan(plan, tokenResult.token, blockers);
+    await verifyAndExecuteGithubMergePlan(plan, tokenResult.token, repoRoot, blockers);
   }
 
   writeResult(blockers.length > 0 ? 'BLOCKED' : 'OK', blockers, advisories);
@@ -299,7 +317,7 @@ async function mintMergeToken({ blockers, config, env, repoRoot }) {
   return blockers.length > 0 ? {} : { token: mintResult.token };
 }
 
-async function verifyAndExecuteGithubMergePlan(plan, token, blockers) {
+async function verifyAndExecuteGithubMergePlan(plan, token, repoRoot, blockers) {
   const pull = await githubApiRequest({
     path: `/repos/${EXPECTED_REPO}/pulls/${plan.prNumber}`,
     token,
@@ -372,8 +390,13 @@ async function verifyAndExecuteGithubMergePlan(plan, token, blockers) {
 
   if (response.data?.sha) {
     pass(`merged PR #${plan.prNumber}: ${response.data.sha}`);
+    runPostMergeVerification({ blockers, mergeSha: response.data.sha, repoRoot });
   } else {
     pass(`merged PR #${plan.prNumber}`);
+    block(
+      blockers,
+      'merge response did not include a merge SHA, so automatic post-merge deploy verification could not run',
+    );
   }
 }
 
@@ -459,9 +482,39 @@ async function verifyAndExecuteGithubMergePlanWithBroker(plan, repoRoot, env, bl
 
   if (response.data?.sha) {
     pass(`merged PR #${plan.prNumber} through broker: ${response.data.sha}`);
+    runPostMergeVerification({ blockers, mergeSha: response.data.sha, repoRoot });
   } else {
     pass(`merged PR #${plan.prNumber} through broker`);
+    block(
+      blockers,
+      'merge response did not include a merge SHA, so automatic post-merge deploy verification could not run',
+    );
   }
+}
+
+function runPostMergeVerification({ blockers, mergeSha, repoRoot }) {
+  console.log(`Post-merge verification: npm run deploy:verify -- --expected-sha=${mergeSha}`);
+  const result = spawnSync('npm', ['run', 'deploy:verify', '--', `--expected-sha=${mergeSha}`], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    env: process.env,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    timeout: 300000,
+  });
+  const output = redactSensitiveText(`${result.stdout || ''}${result.stderr || ''}`.trim());
+  if (output) {
+    console.log(output);
+  }
+
+  if (result.status === 0) {
+    pass(`post-merge deploy verification passed for ${mergeSha}`);
+    return;
+  }
+
+  block(
+    blockers,
+    `post-merge deploy verification failed for ${mergeSha}: npm run deploy:verify exited with status ${result.status}`,
+  );
 }
 
 async function githubBrokerApiRequest({

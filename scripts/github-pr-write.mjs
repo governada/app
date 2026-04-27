@@ -29,6 +29,7 @@ import {
   verifyGithubAppOwner,
 } from './lib/github-app-auth.mjs';
 import { callGithubBroker, isGithubBrokerAvailable } from './lib/github-broker-client.mjs';
+import { ensureGithubBrokerRunning } from './lib/github-broker-service.mjs';
 import {
   assertAllowedGithubPrWritePlan,
   buildGithubPrWritePlan,
@@ -162,7 +163,23 @@ async function main() {
   }
 
   const runtime = evaluateGithubServiceAccountRuntime(env);
-  const brokerAvailable = isGithubBrokerAvailable(repoRoot, env);
+  let brokerAvailable = false;
+  if (plan.execute) {
+    const ensureResult = await ensureGithubBrokerRunning({ env, repoRoot });
+    if (!ensureResult.ok) {
+      for (const message of ensureResult.blockers || []) {
+        block(blockers, message);
+      }
+    } else if (ensureResult.started) {
+      pass('GitHub runtime broker service was started for live PR write');
+      brokerAvailable = true;
+    } else {
+      brokerAvailable = true;
+    }
+  } else {
+    brokerAvailable = isGithubBrokerAvailable(repoRoot, env);
+  }
+
   if (brokerAvailable) {
     pass(
       'GitHub runtime broker socket is available; agent process does not need service-account token',

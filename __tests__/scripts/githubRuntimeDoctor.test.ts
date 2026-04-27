@@ -60,20 +60,25 @@ afterEach(() => {
 });
 
 describe('github runtime doctor CLI', () => {
-  it('uses a short default broker socket path for long worktree roots', () => {
-    const longRoot = path.join(
-      tmpdir(),
-      'governada-app',
-      '.claude',
-      'worktrees',
-      'phase-0b-ship-lane-with-a-very-long-name-for-macos-socket-proof',
-    );
+  it('uses a repo-runtime broker socket path instead of caller-controlled temp dirs', () => {
+    const originalTmpdir = process.env.TMPDIR;
+    const callerTmpdir = path.join(tmpdir(), 'caller-controlled-tmpdir');
 
-    const socketPath = githubBrokerSocketPath(longRoot, { NODE_ENV: 'test' } as NodeJS.ProcessEnv);
+    process.env.TMPDIR = callerTmpdir;
+    let socketPath = '';
+    try {
+      socketPath = githubBrokerSocketPath(repoRoot, { NODE_ENV: 'test' } as NodeJS.ProcessEnv);
+    } finally {
+      if (originalTmpdir === undefined) {
+        delete process.env.TMPDIR;
+      } else {
+        process.env.TMPDIR = originalTmpdir;
+      }
+    }
 
-    expect(socketPath).toContain(`${path.sep}gov-gh-`);
-    expect(socketPath).toMatch(/\.sock$/);
-    expect(socketPath.length).toBeLessThan(100);
+    expect(socketPath).not.toContain(callerTmpdir);
+    expect(socketPath).toContain(`${path.sep}.agents${path.sep}runtime${path.sep}`);
+    expect(socketPath).toMatch(/github-broker\.sock$/);
   });
 
   it('passes with advisories when no service-account token is mounted', () => {

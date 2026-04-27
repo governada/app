@@ -1,5 +1,5 @@
 import { createRequire } from 'node:module';
-import { chmodSync, existsSync, mkdirSync, unlinkSync } from 'node:fs';
+import { chmodSync, existsSync, lstatSync, mkdirSync, unlinkSync } from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
 
@@ -80,15 +80,28 @@ async function main() {
 
   const socketDir = path.dirname(socketPath);
   mkdirSync(socketDir, { mode: 0o700, recursive: true });
-  if (path.basename(socketDir).startsWith('gov-gh-')) {
-    chmodSync(socketDir, 0o700);
-  }
+  chmodSync(socketDir, 0o700);
   if (existsSync(socketPath)) {
-    unlinkSync(socketPath);
+    removeManagedBrokerSocket({ repoRoot, socketPath });
   }
 
+  const activeSockets = new Set();
+  const removeSocket = () =>
+    removeManagedBrokerSocket({ allowMissing: true, repoRoot, socketPath });
+  const shutdown = () => {
+    for (const activeSocket of activeSockets) {
+      activeSocket.destroy();
+    }
+    server.close(() => {
+      removeSocket();
+      process.exit(0);
+    });
+  };
   const server = net.createServer((socket) => {
-    handleBrokerSocket({ context, env, repoRoot, socket }).catch((error) => {
+    activeSockets.add(socket);
+    socket.setTimeout(10000, () => socket.destroy());
+    socket.on('close', () => activeSockets.delete(socket));
+    handleBrokerSocket({ context, env, repoRoot, shutdown, socket }).catch((error) => {
       socket.end(
         `${JSON.stringify({
           error: redactSensitiveText(error?.message || String(error)),
@@ -116,11 +129,18 @@ async function main() {
   });
 
   process.on('SIGINT', () => {
-    server.close(() => process.exit(0));
+    server.close(() => {
+      removeSocket();
+      process.exit(0);
+    });
   });
   process.on('SIGTERM', () => {
-    server.close(() => process.exit(0));
+    server.close(() => {
+      removeSocket();
+      process.exit(0);
+    });
   });
+  process.on('exit', removeSocket);
 }
 
 function parseArgs(argv) {
@@ -135,7 +155,10 @@ function printUsage() {
   npm run github:runtime-broker
   npm run github:runtime-broker -- --status
 
-Start this from a human Terminal after exporting OP_SERVICE_ACCOUNT_TOKEN. Agents call the broker socket; the broker never returns service-account tokens, private keys, or GitHub installation tokens.`);
+This low-level broker expects OP_SERVICE_ACCOUNT_TOKEN in process env. Routine
+agent workflows should use npm run github:broker -- ensure after the one-time
+broker service install. Agents call the broker socket; the broker never returns
+service-account tokens, private keys, or GitHub installation tokens.`);
 }
 
 function prepareBrokerEnv(repoRoot) {
@@ -223,7 +246,7 @@ function validateBrokerStartup({ context, env, repoRoot }) {
   }
 }
 
-async function handleBrokerSocket({ context, env, repoRoot, socket }) {
+async function handleBrokerSocket({ context, env, repoRoot, shutdown, socket }) {
   socket.setEncoding('utf8');
   let requestText = '';
   let handled = false;
@@ -238,7 +261,12 @@ async function handleBrokerSocket({ context, env, repoRoot, socket }) {
     try {
       const request = JSON.parse(requestText.trim());
       const response = await handleBrokerRequest({ context, env, repoRoot, request });
-      socket.end(`${JSON.stringify(response)}\n`);
+      const { shutdown: shouldShutdown, ...publicResponse } = response;
+      socket.end(`${JSON.stringify(publicResponse)}\n`, () => {
+        if (shouldShutdown) {
+          shutdown();
+        }
+      });
     } catch (error) {
       socket.end(
         `${JSON.stringify({
@@ -252,6 +280,17 @@ async function handleBrokerSocket({ context, env, repoRoot, socket }) {
 }
 
 async function handleBrokerRequest({ env, repoRoot, request }) {
+  if (request?.kind === 'shutdown') {
+    if (request.confirm !== 'github.runtime.stop') {
+      throw new Error('broker shutdown requires confirm github.runtime.stop');
+    }
+
+    return {
+      ok: true,
+      shutdown: true,
+    };
+  }
+
   if (request?.kind === 'status') {
     return {
       ok: true,
@@ -266,7 +305,7 @@ async function handleBrokerRequest({ env, repoRoot, request }) {
   }
 
   if (request?.kind !== 'github-api') {
-    throw new Error('broker request kind must be status or github-api');
+    throw new Error('broker request kind must be status, shutdown, or github-api');
   }
 
   assertGithubBrokerRequestAllowed(request);
@@ -462,6 +501,41 @@ function loadGithubBrokerReferenceEnv(repoRoot) {
   }
 
   return refsPath;
+}
+
+function removeManagedBrokerSocket({ allowMissing = false, repoRoot, socketPath }) {
+  try {
+    if (!existsSync(socketPath)) {
+      if (allowMissing) {
+        return;
+      }
+      throw new Error(`broker socket path does not exist: ${socketPath}`);
+    }
+
+    const resolvedSocketPath = path.resolve(socketPath);
+    const defaultSocketPath = path.resolve(githubBrokerSocketPath(repoRoot, {}));
+    const repoRuntimeDir = path.resolve(repoRoot, '.agents', 'runtime');
+    const relativeRuntimePath = path.relative(repoRuntimeDir, resolvedSocketPath);
+    const insideRepoRuntimeDir =
+      relativeRuntimePath &&
+      !relativeRuntimePath.startsWith('..') &&
+      !path.isAbsolute(relativeRuntimePath);
+    const managedPath = resolvedSocketPath === defaultSocketPath || insideRepoRuntimeDir;
+    if (!managedPath) {
+      throw new Error(`refusing to remove unmanaged broker socket path: ${resolvedSocketPath}`);
+    }
+
+    const stat = lstatSync(resolvedSocketPath);
+    if (!stat.isSocket()) {
+      throw new Error(`refusing to remove non-socket broker path: ${resolvedSocketPath}`);
+    }
+
+    unlinkSync(resolvedSocketPath);
+  } catch (error) {
+    if (!allowMissing) {
+      throw error;
+    }
+  }
 }
 
 main().catch((error) => {
