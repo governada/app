@@ -54,6 +54,7 @@
     "registry:index": "node scripts/generate-registry-index.js",
     "registry:index:check": "node scripts/generate-registry-index.js --check",
     "docs:doctor": "node scripts/docs-doctor.js",
+    "vault:check": "node scripts/vault-check.js",
     "agent:validate": "node scripts/validate-agent-constraints.mjs",
     "migration:test": "node scripts/test-migration.js",
     "session:doctor": "node scripts/session-doctor.js",
