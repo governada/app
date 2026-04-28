@@ -100,7 +100,7 @@ function main() {
 
   let desktopLaneReady = false;
   if (tokenRef) {
-    const opRead = spawnSync('op', ['read', tokenRef], {
+    const opRead = spawnSync('op', ['read', tokenRef, '--no-newline', '--force'], {
       cwd: repoRoot,
       encoding: 'utf8',
       env,

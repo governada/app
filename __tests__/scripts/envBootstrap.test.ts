@@ -103,6 +103,17 @@ describe('env bootstrap guardrails', () => {
     expect(result.env.GH_TOKEN).toBeUndefined();
   });
 
+  it('uses non-interactive op reads and process-local cache for repo GitHub tokens', () => {
+    const authSource = readFileSync(path.join(repoRoot, 'scripts/lib/gh-auth.js'), 'utf8');
+    const doctorSource = readFileSync(path.join(repoRoot, 'scripts/auth-doctor.js'), 'utf8');
+
+    expect(authSource).toContain("['read', tokenRef, '--no-newline', '--force']");
+    expect(authSource).toContain('let onePasswordTokenCache = null');
+    expect(authSource).toContain('onePasswordTokenCache = { token, tokenRef }');
+    expect(authSource).not.toContain('writeFileSync(token');
+    expect(doctorSource).toContain("['read', tokenRef, '--no-newline', '--force']");
+  });
+
   it('strips inherited raw GitHub tokens from env:run child commands', () => {
     const cwd = createRepoTempDir();
     const fakeBin = createTempDir('governada-env-bootstrap-bin-');

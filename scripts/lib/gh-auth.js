@@ -2,6 +2,7 @@ const { spawnSync } = require('node:child_process');
 
 const OP_READ_TIMEOUT_MS = 15000;
 const RAW_GITHUB_TOKEN_KEYS = ['GH_TOKEN', 'GITHUB_TOKEN'];
+let onePasswordTokenCache = null;
 
 function redactSensitiveText(value) {
   return value
@@ -17,7 +18,11 @@ function hasDesktopIpcFailure(detail) {
 }
 
 function readOnePasswordToken(tokenRef, env, cwd) {
-  const result = spawnSync('op', ['read', tokenRef], {
+  if (onePasswordTokenCache?.tokenRef === tokenRef && onePasswordTokenCache.token) {
+    return { token: onePasswordTokenCache.token };
+  }
+
+  const result = spawnSync('op', ['read', tokenRef, '--no-newline', '--force'], {
     cwd,
     encoding: 'utf8',
     env,
@@ -59,6 +64,7 @@ function readOnePasswordToken(tokenRef, env, cwd) {
     return { error: 'GitHub auth: GH_TOKEN_OP_REF resolved to an empty value.' };
   }
 
+  onePasswordTokenCache = { token, tokenRef };
   return { token };
 }
 
