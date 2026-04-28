@@ -40,6 +40,21 @@ These constraints are enforced by `npm run agent:validate`. Run it before shippi
 13. Merge only after Tim gives the exact chat approval for `github.merge` naming `governada/app`, the PR number, and the expected head SHA.
 14. Execute merges through `npm run github:merge -- --pr <PR#> --expected-head <sha> --execute --confirm github.merge`. The wrapper performs synchronous post-merge deploy verification; run `npm run deploy:verify` separately only when extra verification is needed.
 
+## Repo Vs Vault
+
+- The sibling Obsidian vault at `/Users/tim/dev/governada/governada-brain` is the default home for durable Governada operating knowledge that should persist across sessions but does not need to version with app code: incident notes, runbooks, decisions, product context, and institutional memory.
+- The app repo is for code, tests, migrations, executable scripts, and docs that must ship or review with the codebase.
+- For Governada project, product, strategy, architecture, launch, or operating context, start with the vault entrypoint at `/Users/tim/dev/governada/governada-brain/agents/governada-context.md` before broad repo search. Use repo search after that for implementation details, current code paths, and verification against the live codebase.
+- When work produces durable Governada knowledge, proactively write back to the vault even if the user did not explicitly say "log this." Mention which note you created or updated and why it is the durable home for that knowledge.
+- Treat `inbox/daily/` as intake, not the final resting place for important knowledge. Promote durable decisions, runbooks, incidents, system notes, and product context into stable notes under `decisions/`, `notes/`, or `governada/`, then leave the daily note as the breadcrumb trail.
+- If the user asks to "log" something, "capture" a note, "write this up," or "add a runbook" without naming a destination, prefer the Obsidian vault over adding an ad hoc markdown file to this repo. Say which vault note you created or updated.
+- If the requested documentation changes code behavior, deployment mechanics, validation rules, or contributor workflow for this repo, update the repo docs in version control instead of only writing to the vault.
+- Treat `governada-brain` as an Obsidian vault, not generic markdown storage. When editing there, preserve wiki links, prefer Obsidian-style note structure, and avoid breaking link targets through casual renames or ad hoc file moves.
+- Prefer folder-qualified wikilinks such as `[[governada/roadmap]]` when note names could collide, and use the vault templates/frontmatter conventions instead of ad hoc note shapes.
+- Never store raw secrets, tokens, private keys, or copied `.env` values in the vault. Record variable names, system names, rotation state, and procedures instead.
+- Cross-link repo work and vault context when the connection will help future agents: add the relevant vault note to PR descriptions or repo docs when a code change depends on durable context, and add repo paths, PR numbers, or commit SHAs to the vault note when they materially anchor the note. Do not force cross-links for trivial refactors or low-signal chores.
+- After editing the sibling vault locally, run `npm run vault:check` from this repo when available to verify link hygiene and template/frontmatter expectations.
+
 ## Autonomy Boundary
 
 Routine reads, edits, local verification, git hygiene, and PR preparation should not require approval. Pause for:
@@ -70,9 +85,10 @@ Keep Codex Desktop in `workspace-write`. The goal is not removing the sandbox; i
 - Preferred writable root: the shared repo root that also contains `.claude/worktrees/`, so worktree metadata stays inside the writable area.
 - Open Codex on the shared repo root only. Do not open separate Codex projects rooted at `.claude/worktrees/<name>` or other external worktree directories for this repo.
 - Prefer stable `npm run ...` wrappers for diagnostics, CI, deploy, GitHub operations, and worktree setup. The Mac-first agent path uses Node and shell entrypoints.
+- Use `npm run vault:check` for local Obsidian vault hygiene when work touches `/Users/tim/dev/governada/governada-brain`.
 - When local hygiene is in question, use `npm run session:guard` as the blocking gate and `npm run session:doctor` for the human-readable breakdown.
 - For repo orientation, prefer `npm run session:doctor` over one-off `git branch`, `git worktree`, or `git stash` reads when it gives enough context.
-- Persist approvals for safe recurring prefixes such as `npm run worktree:new`, `npm run worktree:sync`, `npm run session:doctor`, `npm run session:guard`, `npm run gh:auth-status`, `npm run gh:token-cache`, `npm run github:runtime-doctor`, `npm run github:read-doctor`, `npm run github:write-doctor`, `npm run github:ship-doctor`, `npm run github:merge-doctor`, `npm run github:pr-write`, `npm run github:pr-close`, `npm run github:merge`, `npm run auth:repair`, `npm run ci:watch`, `npm run ci:failed`, `npm run pre-merge-check`, `npm run deploy:verify`, `npm run inngest:register`, `git add`, `git commit -m`, `git push`, `git fetch origin main`, `git worktree add`, and `gh api repos/governada/app/pulls`.
+- Persist approvals for safe recurring prefixes such as `npm run worktree:new`, `npm run worktree:sync`, `npm run session:doctor`, `npm run session:guard`, `npm run vault:check`, `npm run gh:auth-status`, `npm run gh:token-cache`, `npm run github:runtime-doctor`, `npm run github:read-doctor`, `npm run github:write-doctor`, `npm run github:ship-doctor`, `npm run github:merge-doctor`, `npm run github:pr-write`, `npm run github:pr-close`, `npm run github:merge`, `npm run auth:repair`, `npm run ci:watch`, `npm run ci:failed`, `npm run pre-merge-check`, `npm run deploy:verify`, `npm run inngest:register`, `git add`, `git commit -m`, `git push`, `git fetch origin main`, `git worktree add`, and `gh api repos/governada/app/pulls`.
 - Live brokered GitHub wrappers may need those persisted repo-wrapper approvals to run outside the default Codex sandbox because the LaunchAgent, macOS Keychain, and broker socket are OS resources. Do not replace this with broad shell, `node`, `gh`, `bash`, or full-disk sandbox relaxation.
 - Do not persist approvals for broad shells or interpreters such as bare `zsh`, `bash`, `node`, `python`, `git`, or `gh`.
 - If a mutating Git/worktree command or an `npm` wrapper that shells out to Git fails in `workspace-write` with `EPERM`, access denied, or a likely sandbox error, rerun it immediately with `sandbox_permissions=require_escalated` using an already-approved prefix. Do not stop to ask first unless the prefix itself is missing.
