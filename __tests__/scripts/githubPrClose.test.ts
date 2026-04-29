@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -60,6 +60,54 @@ afterEach(() => {
 });
 
 describe('github PR close wrapper guardrails', () => {
+  it('routes PR close doctor proof through the stable host while preserving broker-backed execution', () => {
+    const packageJson = JSON.parse(readFileSync(path.join(process.cwd(), 'package.json'), 'utf8'));
+    const doctorWrapper = readFileSync(
+      path.join(process.cwd(), 'scripts/github-pr-close-doctor.mjs'),
+      'utf8',
+    );
+    const legacyDoctor = readFileSync(
+      path.join(process.cwd(), 'scripts/github-pr-close-doctor-app.mjs'),
+      'utf8',
+    );
+    const liveWrapper = readFileSync(
+      path.join(process.cwd(), 'scripts/github-pr-close.mjs'),
+      'utf8',
+    );
+
+    expect(packageJson.scripts['github:pr-close']).toBe('node scripts/github-pr-close.mjs');
+    expect(packageJson.scripts['github:pr-close-doctor']).toBe(
+      'node scripts/github-pr-close-doctor.mjs',
+    );
+    expect(packageJson.scripts['github:pr-close-doctor:legacy']).toBe(
+      'node scripts/github-pr-close-doctor.mjs --legacy',
+    );
+    expect(doctorWrapper).toContain('/Users/tim/dev/agent-runtime/bin/agent-runtime');
+    expect(doctorWrapper).toContain("'github'");
+    expect(doctorWrapper).toContain("'doctor'");
+    expect(doctorWrapper).toContain("'--domain'");
+    expect(doctorWrapper).toContain("'governada'");
+    expect(doctorWrapper).toContain("'--operation'");
+    expect(doctorWrapper).toContain("'github.pr.close'");
+    expect(doctorWrapper).toContain('...parsed.doctorArgs');
+    expect(doctorWrapper).toContain('github-pr-close-doctor-app.mjs');
+    expect(doctorWrapper).toContain('Compatibility fallback');
+    expect(doctorWrapper).toContain('existing broker-backed github:pr-close');
+    expect(doctorWrapper).not.toContain('mintInstallationToken');
+    expect(doctorWrapper).not.toContain('readPrivateKeyFromOnePassword');
+
+    expect(legacyDoctor).toContain('no PR read or close endpoint is called by this doctor');
+    expect(legacyDoctor).toContain('getGithubBrokerStatus');
+    expect(legacyDoctor).not.toContain('ensureGithubBrokerRunning');
+    expect(legacyDoctor).not.toContain('mintInstallationToken');
+    expect(legacyDoctor).not.toContain('readPrivateKeyFromOnePassword');
+    expect(legacyDoctor).not.toContain('githubApiRequest');
+
+    expect(liveWrapper).toContain('ensureGithubBrokerRunning');
+    expect(liveWrapper).toContain('callGithubBroker');
+    expect(liveWrapper).not.toContain('agent-runtime/bin/agent-runtime');
+  });
+
   it('builds a dry-run close plan for an expected PR head', () => {
     const root = tempRepoRoot();
     const args = parseGithubPrCloseArgs(['--pr', '891', '--expected-head', SHA]);

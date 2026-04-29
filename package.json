@@ -34,6 +34,8 @@
     "github:broker": "node scripts/github-broker-lifecycle.mjs",
     "github:ship-doctor": "node scripts/github-ship-doctor.mjs",
     "github:ship-doctor:legacy": "node scripts/github-ship-doctor.mjs --legacy",
+    "github:pr-close-doctor": "node scripts/github-pr-close-doctor.mjs",
+    "github:pr-close-doctor:legacy": "node scripts/github-pr-close-doctor.mjs --legacy",
     "github:merge-doctor": "node scripts/github-merge-doctor.mjs",
     "github:ship": "node scripts/github-ship.mjs",
     "github:pr-write": "node scripts/github-pr-write.mjs",
