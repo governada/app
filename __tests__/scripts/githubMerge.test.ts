@@ -427,6 +427,9 @@ describe('github merge wrapper guardrails', () => {
 
     expect(source).toContain('Exact merge approval prompt:');
     expect(source).toContain('buildGithubMergeApprovalPrompt');
+    expect(source).toContain('blockIfReviewGateRequiresAction');
+    expect(source).toContain('PR #${prNumber} is draft or draft state is unknown');
+    expect(source).toContain('PR #${prNumber} body does not record completed Review Gate v0');
     expect(source).toContain('getPullRequestHeadSha');
   });
 
