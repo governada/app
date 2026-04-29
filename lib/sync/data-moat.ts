@@ -635,9 +635,12 @@ async function syncMetadataArchiveIncremental(
         .order('profile_last_changed_at', { ascending: true });
 
       if (drepCursor !== null) {
-        query = query
-          .not('profile_last_changed_at', 'is', null)
-          .gt('profile_last_changed_at', drepCursor);
+        const nonNullProfileChangedAtQuery = query.not(
+          'profile_last_changed_at',
+          'is',
+          null,
+        ) as typeof query;
+        query = nonNullProfileChangedAtQuery.gt('profile_last_changed_at', drepCursor);
       }
 
       return query;
