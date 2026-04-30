@@ -192,22 +192,18 @@ function reportEnvBootstrap() {
   const sharedEnv = path.join(repoRoot, ENV_LOCAL_FILE);
 
   if (existsSync(sharedRefs)) {
-    console.log(
-      `${ENV_REFS_FILE}: available from shared checkout; no env file was copied. Use npm run env:run -- <command>.`,
-    );
+    console.log(`${ENV_REFS_FILE}: available from shared checkout; no env file was copied.`);
     return;
   }
 
   if (existsSync(sharedEnv)) {
     console.log(
-      `${ENV_LOCAL_FILE}: present in shared checkout but not copied. Run npm run env:doctor for migration status.`,
+      `${ENV_LOCAL_FILE}: present in shared checkout but not copied. Create worktree-local env only when needed.`,
     );
     return;
   }
 
-  console.log(
-    `${ENV_REFS_FILE}: not found. Run npm run env:doctor before commands that need local secrets.`,
-  );
+  console.log(`${ENV_REFS_FILE}: not found. Use explicit local env setup only when needed.`);
 }
 
 const { repoRoot } = getScriptContext(import.meta.url);

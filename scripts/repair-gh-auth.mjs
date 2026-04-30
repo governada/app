@@ -1,73 +1,36 @@
 #!/usr/bin/env node
 
-import { commandOutput, getScriptContext, ghOutput } from './lib/runtime.mjs';
+import { spawnSync } from 'node:child_process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const EXPECTED_USER = 'tim-governada';
-const CANONICAL_REMOTE = 'git@github-governada:governada/app.git';
-const { repoRoot } = getScriptContext(import.meta.url);
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(scriptDir, '..');
 
-function log(message) {
-  console.log(message);
+const result = spawnSync(process.execPath, [path.join(scriptDir, 'gh-auth-status.js')], {
+  cwd: repoRoot,
+  encoding: 'utf8',
+  stdio: ['ignore', 'pipe', 'pipe'],
+});
+
+if (result.stdout) {
+  process.stdout.write(result.stdout);
 }
 
-function tryCommand(command, args) {
-  try {
-    return commandOutput(command, args, { cwd: repoRoot });
-  } catch {
-    return '';
-  }
+if (result.stderr) {
+  process.stderr.write(result.stderr);
 }
 
-function tryGh(args) {
-  try {
-    return ghOutput(args, { cwd: repoRoot });
-  } catch {
-    return '';
-  }
+if (result.status === 0) {
+  process.exit(0);
 }
 
-function embeddedCredentialRemote(remoteUrl) {
-  return /^https:\/\/[^/@]+:[^@]+@github\.com\//u.test(remoteUrl);
-}
+console.error('');
+console.error('Auth repair hint: this repo now uses only SSH + 1Password for git.');
+console.error('1. Open 1Password and ensure Developer -> SSH agent is enabled.');
+console.error('2. Run: ssh -T git@github-governada');
+console.error('3. Run: git remote get-url origin');
+console.error('4. Expected remote: git@github-governada:governada/app.git');
+console.error('No GitHub token, Keychain cache, LaunchAgent, or broker repair is attempted.');
 
-log('Repairing GitHub auth for this repo...');
-
-const currentRemote = tryCommand('git', ['remote', 'get-url', 'origin']);
-if (
-  currentRemote &&
-  (currentRemote !== CANONICAL_REMOTE || embeddedCredentialRemote(currentRemote))
-) {
-  commandOutput('git', ['remote', 'set-url', 'origin', CANONICAL_REMOTE], { cwd: repoRoot });
-  log(`GitHub remote: set origin to ${CANONICAL_REMOTE}.`);
-}
-
-const currentUser = tryGh(['api', 'user', '--jq', '.login']);
-
-if (!currentUser) {
-  console.error(
-    'GitHub auth is not ready. Set GH_TOKEN_OP_REF to a 1Password token reference and run `npm run auth:doctor`.',
-  );
-  process.exit(1);
-}
-
-if (currentUser !== EXPECTED_USER) {
-  log(`Switching gh account from ${currentUser} to ${EXPECTED_USER}...`);
-  try {
-    ghOutput(['auth', 'switch', '--user', EXPECTED_USER], { cwd: repoRoot });
-  } catch {
-    console.error(
-      `Could not switch to ${EXPECTED_USER}. Run \`npm run auth:doctor\` and repair the repo-scoped 1Password lane before retrying.`,
-    );
-    process.exit(1);
-  }
-}
-
-const repairedUser = tryGh(['api', 'user', '--jq', '.login']);
-if (repairedUser !== EXPECTED_USER) {
-  console.error(
-    `GitHub auth is still using '${repairedUser || 'unknown'}' instead of '${EXPECTED_USER}'.`,
-  );
-  process.exit(1);
-}
-
-log(`GitHub auth: ready as ${EXPECTED_USER}.`);
+process.exit(result.status ?? 1);

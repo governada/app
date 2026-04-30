@@ -478,16 +478,14 @@ Use the canonical governed ship path from `AGENTS.md` and `.agents/skills/ship/S
 
 1. Run relevant local verification, including `npm run agent:validate`.
 2. Stage files and commit with a conventional message.
-3. Publish through `npm run github:ship`.
-4. Create/update/ready the PR through `npm run github:pr-write`.
-5. Poll CI with `npm run ci:watch` until green; fix failures and republish through `github:ship`.
-6. Run `npm run pre-merge-check -- <PR#>`.
-7. Run `npm run github:merge-doctor -- --pr <PR#> --expected-head <sha>`.
-8. Pause for Tim's exact `github.merge` chat approval.
-9. Merge only through `npm run github:merge`.
-10. Let the merge wrapper complete synchronous production deploy verification.
-11. Apply migrations, Inngest registration, production flag changes, or Railway deploy mutations only through explicit approval gates.
-12. Clean up branches/worktrees after `npm run session:guard` is clean.
+3. Publish through SSH + 1Password with `git push -u origin <branch>`.
+4. Create/update the PR through the GitHub app connector or normal GitHub UI.
+5. Watch GitHub Actions until green; fix failures and repush.
+6. Pause for Tim's exact merge approval after confirming CI and head SHA.
+7. Merge through the normal GitHub PR merge path.
+8. Run production verification separately when the change needs it.
+9. Apply migrations, Inngest registration, production flag changes, or Railway deploy mutations only through explicit approval gates.
+10. Clean up branches/worktrees after `npm run session:guard` is clean.
 
 ---
 

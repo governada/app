@@ -1,7 +1,13 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+const require = createRequire(import.meta.url);
+const { getContext } = require('../set-gh-context.js');
+const { withGhTokenFromOnePassword } = require('./gh-auth.js');
+const { runGhWithCachedToken } = require('./gh-token-cache.js');
 
 function findRepoRoot(startDir) {
   let current = startDir;
@@ -33,9 +39,45 @@ function keyAllowed(key, keyFilter) {
     return true;
   }
 
-  return keyFilter.some((entry) =>
-    entry.endsWith('*') ? key.startsWith(entry.slice(0, -1)) : key === entry,
-  );
+  return keyFilter.some((entry) => {
+    if (entry.endsWith('*')) {
+      return key.startsWith(entry.slice(0, -1));
+    }
+
+    return key === entry;
+  });
+}
+
+export function loadLocalEnv(metaUrl, keyFilter = null) {
+  const { repoRoot } = getScriptContext(metaUrl);
+  const candidates = [
+    path.join(process.cwd(), '.env.local'),
+    path.join(repoRoot, '.env.local'),
+  ].filter(Boolean);
+  const seen = new Set();
+
+  for (const envPath of candidates) {
+    const resolved = path.resolve(envPath);
+    if (seen.has(resolved) || !existsSync(resolved)) {
+      continue;
+    }
+
+    seen.add(resolved);
+    const parsed = parseEnvFile(readFileSync(resolved, 'utf8'));
+    for (const [key, value] of Object.entries(parsed)) {
+      if (!keyAllowed(key, keyFilter)) {
+        continue;
+      }
+
+      if (process.env[key] === undefined) {
+        process.env[key] = value;
+      }
+    }
+
+    return resolved;
+  }
+
+  return null;
 }
 
 function parseEnvFile(contents) {
@@ -43,6 +85,7 @@ function parseEnvFile(contents) {
 
   for (const rawLine of contents.split(/\r?\n/u)) {
     const line = rawLine.trim();
+
     if (!line || line.startsWith('#')) {
       continue;
     }
@@ -69,35 +112,6 @@ function parseEnvFile(contents) {
   }
 
   return parsed;
-}
-
-export function loadLocalEnv(metaUrl, keyFilter = null) {
-  const { repoRoot } = getScriptContext(metaUrl);
-  const candidates = [path.join(process.cwd(), '.env.local'), path.join(repoRoot, '.env.local')];
-  const seen = new Set();
-
-  for (const envPath of candidates) {
-    const resolved = path.resolve(envPath);
-    if (seen.has(resolved) || !existsSync(resolved)) {
-      continue;
-    }
-
-    seen.add(resolved);
-    const parsed = parseEnvFile(readFileSync(resolved, 'utf8'));
-    for (const [key, value] of Object.entries(parsed)) {
-      if (!keyAllowed(key, keyFilter)) {
-        continue;
-      }
-
-      if (process.env[key] === undefined) {
-        process.env[key] = value;
-      }
-    }
-
-    return resolved;
-  }
-
-  return null;
 }
 
 export function requireArg(args, index, usage) {
@@ -140,7 +154,36 @@ export function commandOutput(command, args, options = {}) {
 
 export function ghOutput(args, options = {}) {
   loadLocalEnv(import.meta.url);
-  return commandOutput('gh', args, options);
+  const context = getContext();
+  const { GH_HOST: _ghHost, ...ghEnvContext } = context;
+  const runtimeEnv = {
+    ...process.env,
+    ...ghEnvContext,
+    ...(options.env || {}),
+  };
+  const cached = runGhWithCachedToken(args, {
+    cwd: options.cwd || process.cwd(),
+    env: runtimeEnv,
+  });
+  if (cached.usedCache) {
+    if (cached.result.status !== 0) {
+      const detail = (cached.result.stderr || cached.result.stdout || '').trim();
+      throw new Error(detail || 'cached gh command failed.');
+    }
+
+    return (cached.result.stdout || '').trim();
+  }
+
+  const auth = withGhTokenFromOnePassword(runtimeEnv, options.cwd || process.cwd());
+
+  if (auth.error) {
+    throw new Error(auth.error);
+  }
+
+  return commandOutput('gh', args, {
+    ...options,
+    env: auth.env,
+  });
 }
 
 export function ghJson(args, options = {}) {

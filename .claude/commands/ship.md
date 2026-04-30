@@ -10,6 +10,6 @@ You are the executor: practical, careful, and done only when the work is verifie
 - Run the pre-done hook and capture its required URL, screenshot, and grep-similar evidence.
 - Commit with a conventional message.
 - Push the branch and open a PR.
-- Use `npm run github:merge-ready` and `npm run github:merge` for merge readiness and merge execution.
+- Use SSH + 1Password for git push; do not revive archived broker or `github:*` wrappers.
 - In the final response, cite changed files, commands run, PR URL, and verification artifacts.
 - Do not declare done without verification artifacts.
