@@ -31,8 +31,10 @@ response.json
 # local IDE settings
 .vscode/
 .cursor/
+.mcp.json
 
-# Repo-scoped agent config is tracked for per-repo isolation; keep secrets out.
+# Claude Code - track commands, rules, agents, hooks, skills, settings.
+# Local MCP config stays private; use .mcp.example.json as the template.
 
 # debug
 npm-debug.log*
