@@ -16,28 +16,33 @@ describe('agent ship workflow guardrails', () => {
 
     expect(gitignore).toContain('!.agents/skills/ship/SKILL.md');
     expect(gitignore).not.toMatch(/^\.agents\/$/mu);
-    expect(skill).toContain('npm run github:ship');
-    expect(skill).toContain('npm run github:merge');
+    expect(skill).toContain('git push -u origin <current-branch>');
+    expect(skill).toContain('npm run gh:auth-status');
+    expect(skill).not.toContain('npm run github:ship');
+    expect(skill).not.toContain('npm run github:merge');
   });
 
-  it('keeps active ship docs on brokered ship and merge lanes', () => {
+  it('keeps active ship docs on the SSH and GitHub PR lane', () => {
     const checkedFiles = ['.agents/skills/ship/SKILL.md', '.claude/commands/ship.md', 'AGENTS.md'];
 
     for (const relativePath of checkedFiles) {
       const content = read(relativePath);
-      expect(content, relativePath).toContain('github:merge');
-      expect(content, relativePath).not.toContain('gh pr create');
-      expect(content, relativePath).not.toContain('git push -u origin HEAD');
+      expect(content, relativePath).toContain('SSH');
+      expect(content, relativePath).not.toContain('github:merge');
+      expect(content, relativePath).not.toContain('github:ship');
       expect(content, relativePath).not.toContain('npm run pr:merge --');
       expect(content, relativePath).not.toContain('npm run pr:ready --');
       expect(content, relativePath).not.toContain('--register-inngest');
     }
   });
 
-  it('retires legacy merge and ready scripts instead of shelling out to gh', () => {
-    const mergeScript = read('scripts/pr-merge.js');
-    const readyScript = read('scripts/pr-ready.js');
+  it('archives legacy merge and ready scripts instead of leaving active wrappers', () => {
+    const packageJson = JSON.parse(read('package.json')) as { scripts: Record<string, string> };
+    const mergeScript = read('docs/archive/auth-runtime/scripts/pr-merge.js');
+    const readyScript = read('docs/archive/auth-runtime/scripts/pr-ready.js');
 
+    expect(packageJson.scripts['pr:merge']).toBeUndefined();
+    expect(packageJson.scripts['pr:ready']).toBeUndefined();
     expect(mergeScript).toContain('npm run pr:merge is retired');
     expect(mergeScript).toContain('npm run github:merge');
     expect(mergeScript).not.toContain('runGh');

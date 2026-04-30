@@ -38,7 +38,7 @@ function classifyAuthFailure(text, options = {}) {
       code: 'timeout',
       summary: timeoutMs ? `${command} timed out after ${timeoutMs}ms` : `${command} timed out`,
       nextStep:
-        'Treat this as a bounded failure; retry from a human Terminal or stable host before changing auth state.',
+        'Treat this as a bounded failure; retry from a human Terminal before changing auth state.',
     };
   }
 
@@ -75,7 +75,7 @@ function classifyAuthFailure(text, options = {}) {
       code: 'ssh-signing-unavailable',
       summary: 'the SSH key may be visible, but the agent could not complete signing',
       nextStep:
-        'Use the broker/stable-host lane for agent automation; for human fallback, unlock or repair 1Password SSH and retry the same alias.',
+        'Unlock or repair the 1Password SSH agent and retry the same github-governada alias.',
     };
   }
 
@@ -120,8 +120,7 @@ function classifyAuthFailure(text, options = {}) {
     return {
       code: 'network-transport-failure',
       summary: 'network transport failed before a reliable auth verdict',
-      nextStep:
-        'Compare sandbox and host-level probes before treating this as SSH or broker failure.',
+      nextStep: 'Compare sandbox and host-level probes before treating this as an SSH failure.',
     };
   }
 
@@ -136,7 +135,7 @@ function classifyAuthFailure(text, options = {}) {
 
   return {
     code: 'unknown',
-    summary: 'failure did not match a known Governada auth/runtime class',
+    summary: 'failure did not match a known Governada SSH auth class',
     nextStep:
       'Capture the command, environment, exit status, and redacted first error line before changing auth state.',
   };

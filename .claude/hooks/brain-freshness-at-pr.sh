@@ -35,7 +35,7 @@ fi
 
 if [ "$hook_mode" -eq 1 ]; then
   command=$(printf '%s\n' "$stdin_payload" | sed -n 's/.*"command"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)
-  if ! printf '%s\n' "$command" | grep -Eq 'gh pr create|github:pr-write|pr:ready|pull request|PR'; then
+  if ! printf '%s\n' "$command" | grep -Eq 'gh pr create|pull request|PR'; then
     exit 0
   fi
 fi

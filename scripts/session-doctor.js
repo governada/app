@@ -4,7 +4,6 @@ const { spawnSync } = require('node:child_process');
 
 const { repoRoot, runCommand } = require('./lib/runtime');
 const { classifyCommandResult, formatClassification } = require('./lib/auth-failure-classifier');
-const { redactSensitiveText } = require('./lib/gh-auth');
 
 const EXPECTED_ORIGIN_REMOTE = 'git@github-governada:governada/app.git';
 const DIRECT_SSH_TIMEOUT_MS = 5000;
@@ -183,6 +182,15 @@ function outputOf(result) {
     .join('\n')
     .trim();
   return redactSensitiveText(output);
+}
+
+function redactSensitiveText(text) {
+  return String(text)
+    .replace(/op:\/\/[^\s'"`]+/gu, 'op://[redacted]')
+    .replace(
+      /\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/gu,
+      '[redacted-token]',
+    );
 }
 
 function firstLine(text) {
