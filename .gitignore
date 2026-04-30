@@ -28,13 +28,13 @@
 *.pem
 response.json
 
-# local IDE / agent settings
+# local IDE settings
 .vscode/
 .cursor/
 .mcp.json
 
-# Claude Code - track commands, rules, agents, hooks, skills, settings; local overrides stay private
-.claude/settings.local.json
+# Claude Code - track commands, rules, agents, hooks, skills, settings.
+# Local MCP config stays private; use .mcp.example.json as the template.
 
 # debug
 npm-debug.log*
