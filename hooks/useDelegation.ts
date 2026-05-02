@@ -132,12 +132,15 @@ export function useDelegation() {
 
         import('@/lib/posthog')
           .then(({ posthog }) => {
-            posthog.capture('delegation_completed', {
+            const delegationPayload = {
               drep_id: drepId,
               previous_drep_id: delegatedDrepId || null,
               tx_hash: result.txHash,
               stake_registered: preflight.stakeRegistered,
-            });
+            };
+            posthog.capture('delegation_completed', delegationPayload);
+            // Phase 0: dual-emit during delegated naming transition
+            posthog.capture('delegated', delegationPayload);
           })
           .catch(() => {});
 

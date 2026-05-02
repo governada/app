@@ -2,9 +2,7 @@
  * Progressive match confidence scoring.
  *
  * Confidence grows as the user provides more data sources:
- * - Quiz answers (Quick Match 3-question quiz): 20% max
- *   OR Conversational match (multi-round pill-based matching): 35% max
- *   (mutually exclusive — whichever gives higher confidence is used)
+ * - Quiz answers (canonical match is 7 questions; legacy confidence cap retained): 20% max
  * - Poll votes (Governance DNA Quiz real-proposal votes): 35% max
  * - Proposal type diversity (votes spanning different proposal types): 10% max
  * - Engagement signals (sentiment, endorsements, concern flags, etc.): 10% max
@@ -13,8 +11,6 @@
  *
  * Total max: 100%
  *
- * Note: When conversational match is active, the quiz source is replaced by
- * conversationalMatch (35% max) and poll votes adjusts to 20% max so total stays 100%.
  */
 
 /* ─── Types ────────────────────────────────────────────── */
@@ -38,7 +34,6 @@ export interface ConfidenceSource {
 
 export type ConfidenceSourceKey =
   | 'quizAnswers'
-  | 'conversationalMatch'
   | 'pollVotes'
   | 'proposalDiversity'
   | 'engagement'
@@ -58,7 +53,6 @@ export interface ConfidenceAction {
   /** Action type for routing */
   type:
     | 'take_quiz'
-    | 'conversational_match'
     | 'vote_proposals'
     | 'diversify_votes'
     | 'engage'
@@ -78,7 +72,6 @@ export interface ConfidenceAction {
 
 const WEIGHTS = {
   quizAnswers: 20,
-  conversationalMatch: 35, // mutually exclusive with quizAnswers — use whichever is higher
   pollVotes: 35,
   proposalDiversity: 10,
   engagement: 10,
@@ -87,8 +80,7 @@ const WEIGHTS = {
 } as const;
 
 const TARGETS = {
-  quizAnswers: 4, // 4 quick match questions (treasury, protocol, transparency, decentralization)
-  conversationalMatch: 1, // binary: completed or not
+  quizAnswers: 4, // Legacy confidence cap retained for Phase 0; canonical Seneca match has 7 questions.
   pollVotes: 15, // 15 proposal votes for full confidence
   proposalDiversity: 4, // 4 out of 6 proposal types
   engagement: 10, // 10 engagement actions
@@ -111,8 +103,6 @@ export interface ConfidenceInputs {
   hasDelegation: boolean;
   /** Number of treasury accountability judgments (poll votes on funded proposal outcomes) */
   treasuryJudgmentCount?: number;
-  /** Whether user has completed conversational matching (binary: 0 or 1) */
-  hasConversationalMatch?: boolean;
 }
 
 /* ─── Core calculation ─────────────────────────────────── */
@@ -122,45 +112,23 @@ export interface ConfidenceInputs {
  * Returns a full breakdown with source contributions and next-action CTA.
  */
 export function calculateProgressiveConfidence(inputs: ConfidenceInputs): ConfidenceBreakdown {
-  // Conversational match and quiz are mutually exclusive.
-  // Conversational match = 35% (binary), quiz = 20% (progressive).
-  // When conversational match is used, poll votes adjusts to 20% (from 35%)
-  // so the total max stays 100% in both paths:
-  //   Quiz path:         20 + 35 + 10 + 10 + 15 + 10 = 100
-  //   Conversational path: 35 + 20 + 10 + 10 + 15 + 10 = 100
-  const hasConversationalMatch = inputs.hasConversationalMatch ?? false;
-  const conversationalMatchScore = hasConversationalMatch ? WEIGHTS.conversationalMatch : 0;
   const quizScore = sourceScore(inputs.quizAnswerCount, TARGETS.quizAnswers, WEIGHTS.quizAnswers);
-  const useConversational = conversationalMatchScore > quizScore;
-
-  // Adjust poll votes weight to maintain 100% total
-  const effectivePollWeight = useConversational ? WEIGHTS.quizAnswers : WEIGHTS.pollVotes;
 
   const sources: ConfidenceSource[] = [
-    useConversational
-      ? {
-          key: 'conversationalMatch' as const,
-          label: 'Conversation Match',
-          score: conversationalMatchScore,
-          maxScore: WEIGHTS.conversationalMatch,
-          current: hasConversationalMatch ? 1 : 0,
-          target: 1,
-          active: hasConversationalMatch,
-        }
-      : {
-          key: 'quizAnswers' as const,
-          label: 'Quick Match quiz',
-          score: quizScore,
-          maxScore: WEIGHTS.quizAnswers,
-          current: Math.min(inputs.quizAnswerCount, TARGETS.quizAnswers),
-          target: TARGETS.quizAnswers,
-          active: inputs.quizAnswerCount > 0,
-        },
+    {
+      key: 'quizAnswers' as const,
+      label: 'Quick Match quiz',
+      score: quizScore,
+      maxScore: WEIGHTS.quizAnswers,
+      current: Math.min(inputs.quizAnswerCount, TARGETS.quizAnswers),
+      target: TARGETS.quizAnswers,
+      active: inputs.quizAnswerCount > 0,
+    },
     {
       key: 'pollVotes',
       label: 'Proposal votes',
-      score: sourceScore(inputs.pollVoteCount, TARGETS.pollVotes, effectivePollWeight),
-      maxScore: effectivePollWeight,
+      score: sourceScore(inputs.pollVoteCount, TARGETS.pollVotes, WEIGHTS.pollVotes),
+      maxScore: WEIGHTS.pollVotes,
       current: Math.min(inputs.pollVoteCount, TARGETS.pollVotes),
       target: TARGETS.pollVotes,
       active: inputs.pollVoteCount > 0,
@@ -244,18 +212,6 @@ function getNextAction(
             description:
               'Answer 4 questions about your governance values to establish a baseline match profile.',
             href: '/match',
-            potentialGain: gap,
-          });
-        }
-        break;
-      case 'conversationalMatch':
-        if (!inputs.hasConversationalMatch) {
-          actions.push({
-            type: 'conversational_match',
-            label: 'Try Conversation Match',
-            description:
-              'Answer governance questions in a guided conversation to find DReps who share your values.',
-            href: '/match/conversation',
             potentialGain: gap,
           });
         }
