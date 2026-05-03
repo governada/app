@@ -4,6 +4,16 @@
 
 BEGIN;
 
+CREATE OR REPLACE FUNCTION public.set_updated_at() RETURNS trigger
+  LANGUAGE plpgsql
+  SET search_path TO 'public'
+  AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$;
+
 CREATE TABLE IF NOT EXISTS systems_reviews (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   review_date DATE NOT NULL DEFAULT CURRENT_DATE,
