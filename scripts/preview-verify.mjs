@@ -7,7 +7,36 @@ function parseArgValue(args, flag) {
   return match ? match.slice(flag.length + 1) : null;
 }
 
+function parseIntegerValue(raw, label, min = 0) {
+  if (!/^\d+$/.test(raw)) {
+    throw new Error(`${label} must be an integer`);
+  }
+
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isSafeInteger(parsed) || parsed < min) {
+    throw new Error(`${label} must be at least ${min}`);
+  }
+
+  return parsed;
+}
+
+function parseEnvInteger(name, fallback, min = 0) {
+  const raw = process.env[name];
+  if (raw == null || raw === '') return fallback;
+  return parseIntegerValue(raw, name, min);
+}
+
+function parseIntegerArg(args, flag, fallback, min = 0) {
+  const raw = parseArgValue(args, flag);
+  if (raw == null || raw === '') return fallback;
+  return parseIntegerValue(raw, flag, min);
+}
+
 function parseArgs(args) {
+  if (args.includes('--help') || args.includes('-h')) {
+    return { help: true };
+  }
+
   const url = parseArgValue(args, '--url');
   const pr = parseArgValue(args, '--pr');
   const expectedSha =
@@ -17,10 +46,17 @@ function parseArgs(args) {
     process.env.RAILWAY_PREVIEW_URL_TEMPLATE ??
     process.env.PREVIEW_URL_TEMPLATE ??
     DEFAULT_PREVIEW_TEMPLATE;
-
-  if (args.includes('--help') || args.includes('-h')) {
-    return { help: true };
-  }
+  const waitMs = parseIntegerArg(
+    args,
+    '--wait-ms',
+    parseEnvInteger('PREVIEW_VERIFY_WAIT_MS', 0),
+  );
+  const intervalMs = parseIntegerArg(
+    args,
+    '--interval-ms',
+    parseEnvInteger('PREVIEW_VERIFY_INTERVAL_MS', 10_000, 1),
+    1,
+  );
 
   if (!url && !pr) {
     throw new Error('Provide --url=<preview-url> or --pr=<number>');
@@ -30,7 +66,7 @@ function parseArgs(args) {
     throw new Error('Use only one of --url or --pr');
   }
 
-  return { expectedSha, pr, template, url };
+  return { expectedSha, intervalMs, pr, template, url, waitMs };
 }
 
 function normalizeBaseUrl(rawUrl) {
@@ -67,6 +103,12 @@ async function fetchWithTimeout(url, options = {}) {
     signal: AbortSignal.timeout(options.timeoutMs ?? 15_000),
   });
   return response;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 async function checkReady(baseUrl, expectedSha) {
@@ -108,11 +150,28 @@ async function checkHomepage(baseUrl) {
   return null;
 }
 
+async function runChecks(checks) {
+  let failed = 0;
+  for (const [name, check] of checks) {
+    const error = await check();
+    if (error) {
+      failed += 1;
+      console.log(`[FAIL] ${name} - ${error}`);
+    } else {
+      console.log(`[PASS] ${name}`);
+    }
+  }
+
+  return failed;
+}
+
 async function runPreviewVerify({
   expectedSha = null,
+  intervalMs = 10_000,
   pr = null,
   template = DEFAULT_PREVIEW_TEMPLATE,
   url,
+  waitMs = 0,
 }) {
   const baseUrl = resolvePreviewUrl({ pr, template, url });
   const checks = [
@@ -126,15 +185,25 @@ async function runPreviewVerify({
   }
   console.log('');
 
-  let failed = 0;
-  for (const [name, check] of checks) {
-    const error = await check();
-    if (error) {
-      failed += 1;
-      console.log(`[FAIL] ${name} - ${error}`);
-    } else {
-      console.log(`[PASS] ${name}`);
+  const deadline = Date.now() + waitMs;
+  let attempt = 0;
+  let failed = checks.length;
+
+  while (true) {
+    attempt += 1;
+    if (waitMs > 0) {
+      console.log(`Attempt ${attempt}`);
     }
+
+    failed = await runChecks(checks);
+    if (failed === 0 || waitMs === 0) break;
+
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 0) break;
+
+    const delayMs = Math.min(intervalMs, remainingMs);
+    console.log(`Retrying in ${Math.ceil(delayMs / 1000)}s...\n`);
+    await sleep(delayMs);
   }
 
   console.log(`\n${checks.length - failed}/${checks.length} preview checks passed.\n`);
@@ -150,6 +219,8 @@ Options:
   --pr=<number>          Resolve URL from RAILWAY_PREVIEW_URL_TEMPLATE or --template
   --template=<template>  URL template containing {pr}
   --expected-sha=<sha>   Assert /api/health/ready serves the expected release
+  --wait-ms=<ms>         Retry failed checks until this timeout expires
+  --interval-ms=<ms>     Retry interval when --wait-ms is set
   --help                Show this help
 `);
 }
@@ -179,6 +250,7 @@ export {
   checkReady,
   normalizeBaseUrl,
   parseArgs,
+  parseIntegerValue,
   releaseMatchesExpected,
   resolvePreviewUrl,
   runPreviewVerify,

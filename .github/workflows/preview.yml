@@ -66,7 +66,7 @@ jobs:
           echo "preview_url=$PREVIEW_URL" >> $GITHUB_OUTPUT
 
       - name: Verify preview release
-        run: npm run preview:verify -- --url=${{ steps.preview.outputs.preview_url }} --expected-sha=${{ github.event.pull_request.head.sha }}
+        run: npm run preview:verify -- --url=${{ steps.preview.outputs.preview_url }} --expected-sha=${{ github.event.pull_request.head.sha }} --wait-ms=420000 --interval-ms=10000
 
       - name: Comment preview URL on PR
         if: success()

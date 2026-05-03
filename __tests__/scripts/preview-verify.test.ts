@@ -20,6 +20,29 @@ describe('preview verifier helpers', () => {
     ).toBe('https://governada-app-pr-947.up.railway.app');
   });
 
+  it('parses retry options', async () => {
+    const { parseArgs } = await import('../../scripts/preview-verify.mjs');
+
+    expect(
+      parseArgs([
+        '--url=https://governada-app-app-pr-948.up.railway.app',
+        '--wait-ms=420000',
+        '--interval-ms=10000',
+      ]),
+    ).toMatchObject({
+      intervalMs: 10_000,
+      waitMs: 420_000,
+    });
+  });
+
+  it('rejects invalid retry intervals', async () => {
+    const { parseArgs } = await import('../../scripts/preview-verify.mjs');
+
+    expect(() =>
+      parseArgs(['--url=https://governada-app-app-pr-948.up.railway.app', '--interval-ms=0']),
+    ).toThrow('--interval-ms must be at least 1');
+  });
+
   it('matches short and full release SHAs', async () => {
     const { releaseMatchesExpected } = await import('../../scripts/preview-verify.mjs');
 
