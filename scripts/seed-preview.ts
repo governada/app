@@ -417,7 +417,7 @@ export function buildPreviewVotes(): TablesInsert<'drep_votes'>[] {
       has_rationale: i % 2 === 0,
       meta_hash: `preview-meta-${i + 1}`,
       meta_url: `https://preview.governada.local/rationale/${i + 1}`,
-      power_source: 'preview-seed',
+      power_source: i % 2 === 0 ? 'exact' : 'nearest',
       proposal_index: proposal.proposal_index,
       proposal_tx_hash: proposal.tx_hash,
       rationale_ai_summary:

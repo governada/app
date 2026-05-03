@@ -90,4 +90,12 @@ describe('preview seed safety checks', () => {
 
     expect(new Set(pairs)).toHaveLength(pairs.length);
   });
+
+  it('uses allowed DRep vote power source values', async () => {
+    const { buildPreviewVotes } = await import('../../scripts/seed-preview');
+
+    expect(
+      buildPreviewVotes().every((row) => ['exact', 'nearest'].includes(row.power_source!)),
+    ).toBe(true);
+  });
 });
