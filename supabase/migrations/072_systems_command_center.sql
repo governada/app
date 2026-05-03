@@ -335,6 +335,9 @@ CREATE POLICY "systems_journey_verifications_service_role_full_access"
   ON systems_journey_verifications FOR ALL
   USING (auth.role() = 'service_role');
 
+DO $systems_backfill$
+BEGIN
+IF to_regclass('public.admin_audit_log') IS NOT NULL THEN
 WITH latest_incidents AS (
   SELECT DISTINCT ON (target)
     target,
@@ -760,5 +763,9 @@ WHERE action = 'systems_review_draft_generated'
     WHERE existing.created_at = admin_audit_log.created_at
       AND existing.review_date = (admin_audit_log.payload ->> 'reviewDate')::date
   );
+
+END IF;
+END;
+$systems_backfill$;
 
 COMMIT;
