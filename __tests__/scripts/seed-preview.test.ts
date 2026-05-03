@@ -44,6 +44,22 @@ describe('preview seed safety checks', () => {
     ).not.toThrow();
   });
 
+  it('strips quoted Supabase CLI env values', async () => {
+    const { resolvePreviewSeedConfig } = await import('../../scripts/seed-preview');
+
+    expect(
+      resolvePreviewSeedConfig({
+        GOVERNADA_DELEGATION_MODE: 'sandbox',
+        NEXT_PUBLIC_SUPABASE_URL: '"https://rjcpcmbumdhxfhcypoxs.supabase.co"',
+        SUPABASE_PREVIEW_BRANCH: '1',
+        SUPABASE_SECRET_KEY: '"sb_secret_preview"',
+      }),
+    ).toEqual({
+      supabaseSecretKey: 'sb_secret_preview',
+      supabaseUrl: 'https://rjcpcmbumdhxfhcypoxs.supabase.co',
+    });
+  });
+
   it('builds deterministic fixture sizes', async () => {
     const { buildPreviewDReps, buildPreviewSentimentRows, buildPreviewVotes } =
       await import('../../scripts/seed-preview');

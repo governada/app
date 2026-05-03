@@ -66,20 +66,40 @@ jobs:
             PARENT_REF="pbfprhbaayvcrxokgicr"
           fi
 
-          supabase --experimental branches get "$GITHUB_HEAD_REF" --project-ref "$PARENT_REF" -o env >> "$GITHUB_ENV"
+          SUPABASE_ENV_FILE="$(mktemp)"
+          supabase --experimental branches get "$GITHUB_HEAD_REF" --project-ref "$PARENT_REF" -o env > "$SUPABASE_ENV_FILE"
 
-      - name: Seed Supabase preview data
-        run: |
-          PREVIEW_URL="${NEXT_PUBLIC_SUPABASE_URL:-${SUPABASE_URL:-${API_URL:-${SUPABASE_API_URL:-}}}}"
-          PREVIEW_SECRET="${SUPABASE_SECRET_KEY:-${SUPABASE_SERVICE_ROLE_KEY:-${SERVICE_ROLE_KEY:-}}}"
+          unquote() {
+            local value="$1"
+            value="${value%\"}"
+            value="${value#\"}"
+            printf '%s' "$value"
+          }
+
+          PREVIEW_URL="$(grep '^SUPABASE_URL=' "$SUPABASE_ENV_FILE" | cut -d= -f2-)"
+          PREVIEW_SECRET="$(grep '^SUPABASE_SERVICE_ROLE_KEY=' "$SUPABASE_ENV_FILE" | cut -d= -f2-)"
+          PREVIEW_URL="$(unquote "$PREVIEW_URL")"
+          PREVIEW_SECRET="$(unquote "$PREVIEW_SECRET")"
+          rm -f "$SUPABASE_ENV_FILE"
 
           if [ -z "$PREVIEW_URL" ] || [ -z "$PREVIEW_SECRET" ]; then
             echo "Supabase preview credentials were not exported by the CLI"
             exit 1
           fi
 
-          NEXT_PUBLIC_SUPABASE_URL="$PREVIEW_URL" \
-            SUPABASE_SECRET_KEY="$PREVIEW_SECRET" \
+          echo "::add-mask::$PREVIEW_SECRET"
+          echo "PREVIEW_SUPABASE_URL=$PREVIEW_URL" >> "$GITHUB_ENV"
+          echo "PREVIEW_SUPABASE_SECRET_KEY=$PREVIEW_SECRET" >> "$GITHUB_ENV"
+
+      - name: Seed Supabase preview data
+        run: |
+          if [ -z "$PREVIEW_SUPABASE_URL" ] || [ -z "$PREVIEW_SUPABASE_SECRET_KEY" ]; then
+            echo "Supabase preview credentials were not resolved"
+            exit 1
+          fi
+
+          NEXT_PUBLIC_SUPABASE_URL="$PREVIEW_SUPABASE_URL" \
+            SUPABASE_SECRET_KEY="$PREVIEW_SUPABASE_SECRET_KEY" \
             GOVERNADA_DELEGATION_MODE=sandbox \
             SUPABASE_PREVIEW_BRANCH=1 \
             npm run seed:preview

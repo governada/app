@@ -179,9 +179,20 @@ function deterministicUuid(index: number): string {
 function pickEnv(env: SeedEnv, names: string[]): string | undefined {
   for (const name of names) {
     const value = env[name];
-    if (value) return value;
+    if (value) return stripOuterQuotes(value);
   }
   return undefined;
+}
+
+function stripOuterQuotes(value: string): string {
+  const trimmed = value.trim();
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    return trimmed.slice(1, -1);
+  }
+  return trimmed;
 }
 
 export function resolvePreviewSeedConfig(env: SeedEnv = process.env): PreviewSeedConfig {
