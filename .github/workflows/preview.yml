@@ -59,7 +59,7 @@ jobs:
         run: |
           PREVIEW_TEMPLATE="${{ vars.RAILWAY_PREVIEW_URL_TEMPLATE }}"
           if [ -z "$PREVIEW_TEMPLATE" ]; then
-            PREVIEW_TEMPLATE="https://pr-{pr}-governada-app.up.railway.app"
+            PREVIEW_TEMPLATE="https://governada-app-app-pr-{pr}.up.railway.app"
           fi
 
           PREVIEW_URL="${PREVIEW_TEMPLATE//\{pr\}/${{ github.event.pull_request.number }}}"

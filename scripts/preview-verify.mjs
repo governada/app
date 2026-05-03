@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const DEFAULT_PREVIEW_TEMPLATE = 'https://pr-{pr}-governada-app.up.railway.app';
+const DEFAULT_PREVIEW_TEMPLATE = 'https://governada-app-app-pr-{pr}.up.railway.app';
 
 function parseArgValue(args, flag) {
   const match = args.find((arg) => arg.startsWith(`${flag}=`));
@@ -98,10 +98,7 @@ async function checkHomepage(baseUrl) {
   }
 
   const html = await response.text();
-  if (
-    !html.includes('type="application/ld+json"') &&
-    !html.includes("type='application/ld+json'")
-  ) {
+  if (!html.includes('application/ld+json')) {
     return 'homepage is missing application/ld+json structured data';
   }
   if (!html.includes('https://schema.org')) {
