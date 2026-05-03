@@ -84,6 +84,10 @@ export function useSenecaProactiveWhispers(
   const dismissWhisper = useCallback(() => {
     if (currentWhisper) {
       posthog.capture('seneca_whisper_dismissed', { whisper: currentWhisper });
+      posthog.capture('seneca_interaction', {
+        kind: 'observation_dismissed',
+        source: 'proactive_whisper',
+      });
     }
     setCurrentWhisper(null);
     if (displayTimerRef.current) {
@@ -103,6 +107,10 @@ export function useSenecaProactiveWhispers(
     addSessionShown(unshown);
     setCurrentWhisper(unshown);
     posthog.capture('seneca_whisper_shown', { whisper: unshown, source: 'proactive' });
+    posthog.capture('seneca_interaction', {
+      kind: 'observation_emitted',
+      source: 'proactive_whisper',
+    });
 
     // Auto-dismiss after display duration
     displayTimerRef.current = setTimeout(() => {

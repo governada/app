@@ -55,6 +55,8 @@ interface Constellation2DProps {
   onReady?: () => void;
   onNodeSelect?: (node: ConstellationNode3D) => void;
   breathing?: boolean;
+  /** Global 0-1 motion-strength primitive. Phase 2 applies it to animation intensity. */
+  motionStrength?: number;
 }
 
 interface CanvasState {
@@ -75,7 +77,14 @@ interface CanvasState {
 // ---------------------------------------------------------------------------
 
 export const Constellation2D = forwardRef(function Constellation2D(
-  { interactive, className, onReady, onNodeSelect, breathing }: Constellation2DProps,
+  {
+    interactive,
+    className,
+    onReady,
+    onNodeSelect,
+    breathing,
+    motionStrength = 1,
+  }: Constellation2DProps,
   ref: Ref<ConstellationRef>,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -429,6 +438,7 @@ export const Constellation2D = forwardRef(function Constellation2D(
   return (
     <canvas
       ref={canvasRef}
+      data-motion-strength={motionStrength}
       className={`w-full h-full touch-none ${className || ''}`}
       style={{ background: BG_COLOR }}
       onClick={handleClick}

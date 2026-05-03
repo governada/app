@@ -4,6 +4,7 @@ import { HomepageMatchWorkspace } from '@/components/hub/HomepageMatchWorkspace'
 import { headers } from 'next/headers';
 import Script from 'next/script';
 import { isHomepageMatchMode } from '@/lib/matching/routes';
+import { MotionStrengthProvider } from '@/lib/motion/motionStrength';
 
 interface HomePageShellProps {
   filter?: string;
@@ -45,12 +46,14 @@ export async function HomePageShell({ filter, entity, mode, sort }: HomePageShel
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(HOME_JSON_LD) }}
       />
-      <PageViewTracker event="homepage_viewed" />
-      {isMatchWorkspace ? (
-        <HomepageMatchWorkspace />
-      ) : (
-        <GlobeLayout initialFilter={filter} initialEntity={entity} initialSort={sort} />
-      )}
+      <MotionStrengthProvider>
+        <PageViewTracker event="homepage_viewed" />
+        {isMatchWorkspace ? (
+          <HomepageMatchWorkspace />
+        ) : (
+          <GlobeLayout initialFilter={filter} initialEntity={entity} initialSort={sort} />
+        )}
+      </MotionStrengthProvider>
     </>
   );
 }

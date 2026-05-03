@@ -905,6 +905,10 @@ function MatchResults({
   const handleChipClick = useCallback(
     (query: string, chipLabel: string) => {
       posthog.capture('match_suggestion_chip_tapped', { chip: chipLabel });
+      posthog.capture('seneca_interaction', {
+        kind: 'suggestion_chip_tapped',
+        chip: chipLabel,
+      });
       onStartConversation?.(query);
     },
     [onStartConversation],

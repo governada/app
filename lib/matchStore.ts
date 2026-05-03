@@ -58,59 +58,6 @@ export function hasMatchProfile(): boolean {
   }
 }
 
-/* ─── Conversational Match Profile ─────────────────────── */
-
-const CONV_STORAGE_KEY = 'governada_conv_match_profile';
-
-export interface StoredConversationalProfile {
-  personalityLabel: string;
-  identityColor: string;
-  alignments: AlignmentScores;
-  matchResults: Array<{
-    drepId: string;
-    drepName: string | null;
-    score: number;
-    agreeDimensions: string[];
-    differDimensions: string[];
-    identityColor: string;
-  }>;
-  timestamp: number;
-}
-
-/** Save conversational match profile to localStorage. */
-export function saveConversationalProfile(profile: StoredConversationalProfile): void {
-  try {
-    localStorage.setItem(CONV_STORAGE_KEY, JSON.stringify(profile));
-  } catch {
-    // localStorage may be unavailable
-  }
-}
-
-/** Load conversational match profile. Returns null if not found or expired (>30 days). */
-export function loadConversationalProfile(): StoredConversationalProfile | null {
-  try {
-    const raw = localStorage.getItem(CONV_STORAGE_KEY);
-    if (!raw) return null;
-    const profile: StoredConversationalProfile = JSON.parse(raw);
-    if (Date.now() - profile.timestamp > 30 * 24 * 60 * 60 * 1000) {
-      localStorage.removeItem(CONV_STORAGE_KEY);
-      return null;
-    }
-    return profile;
-  } catch {
-    return null;
-  }
-}
-
-/** Clear stored conversational match profile. */
-export function clearConversationalProfile(): void {
-  try {
-    localStorage.removeItem(CONV_STORAGE_KEY);
-  } catch {
-    // Ignore
-  }
-}
-
 /* ─── Alignment History (evolution tracking) ──────────── */
 
 const ALIGNMENT_HISTORY_KEY = 'governada_alignment_history';

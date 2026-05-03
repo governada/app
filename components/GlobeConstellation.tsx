@@ -101,6 +101,8 @@ interface GlobeConstellationProps {
   clusters?: Array<{ memberIds: string[] }>;
   /** Capability tier determined by the homepage device probe. */
   gpuTier?: GPUTier;
+  /** Global 0-1 motion-strength primitive. Phase 2 applies it to animation intensity. */
+  motionStrength?: number;
   /** When false, disables the reactive focus engine tick + shared state sync.
    *  Decorative/background globe instances should set this to false to prevent
    *  multiple engine ticks fighting over the shared window globals. */
@@ -137,6 +139,7 @@ export const GlobeConstellation = forwardRef<
     children,
     clusters,
     gpuTier,
+    motionStrength = 1,
     engineEnabled = true,
   },
   ref,
@@ -474,6 +477,7 @@ export const GlobeConstellation = forwardRef<
   return (
     <div
       className={`relative z-0 w-full ${className || ''}`}
+      data-motion-strength={motionStrength}
       style={{ background: '#0a0b14' }}
       onPointerMove={handlePointerMove}
     >

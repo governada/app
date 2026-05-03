@@ -61,6 +61,8 @@ interface ConstellationSceneProps {
   clusters?: Array<{ memberIds: string[] }>;
   /** Capability tier from the homepage device probe. Reused by 3D scene quality. */
   gpuTier?: GPUTier;
+  /** Global 0-1 motion-strength primitive. Phase 2 applies it to animation intensity. */
+  motionStrength?: number;
   /** When false, disables the reactive focus engine tick + shared state sync.
    *  Decorative/background globes should set this to false. */
   engineEnabled?: boolean;

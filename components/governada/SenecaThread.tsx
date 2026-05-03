@@ -110,6 +110,7 @@ export function SenecaThread({
   const prefersReducedMotion = useReducedMotion();
   const scrollRef = useRef<HTMLDivElement>(null);
   const prevRouteRef = useRef<PanelRoute>(panelRoute);
+  const wasOpenRef = useRef(false);
 
   // ── Streaming state ──
   const { epoch, day, totalDays, activeProposalCount } = useEpochContext();
@@ -143,6 +144,18 @@ export function SenecaThread({
       return () => clearTimeout(t);
     }
   }, [panelRoute]);
+
+  useEffect(() => {
+    if (isOpen && !wasOpenRef.current) {
+      posthog.capture('seneca_interaction', {
+        kind: 'panel_opened',
+        source: 'user',
+        mode,
+        panel_route: panelRoute,
+      });
+    }
+    wasOpenRef.current = isOpen;
+  }, [isOpen, mode, panelRoute]);
 
   // 2C: Navigation-aware context — auto-fire advisor response on route change
   const pendingNavRef = useRef<{
@@ -223,6 +236,12 @@ export function SenecaThread({
         ts: Date.now(),
       };
       onAddMessage(userMsg);
+      posthog.capture('seneca_interaction', {
+        kind: 'question_asked',
+        intent: 'observational',
+        source: 'seneca_panel',
+        panel_route: panelRoute,
+      });
     }
 
     // Always add the assistant placeholder
@@ -377,6 +396,11 @@ export function SenecaThread({
   // Quick action handler
   const handleQuickAction = useCallback(
     (action: QuickAction) => {
+      posthog.capture('seneca_interaction', {
+        kind: 'path_chosen',
+        path: action.href ?? action.query ?? action.label,
+        source: 'quick_action',
+      });
       // Dispatch globe hint immediately so the globe reacts while Seneca processes
       if (action.globeHint) {
         dispatchGlobeCommand({ type: 'warmTopic', topic: action.globeHint });
@@ -411,6 +435,11 @@ export function SenecaThread({
   // Anon option handler
   const handleAnonOption = useCallback(
     (option: GuidedOption) => {
+      posthog.capture('seneca_interaction', {
+        kind: 'path_chosen',
+        path: option.href ?? option.query ?? option.label,
+        source: 'onboarding',
+      });
       switch (option.action) {
         case 'conversation':
           onStartConversation(option.query);

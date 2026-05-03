@@ -45,6 +45,7 @@ import { ClusterNebulae } from './ClusterNebula';
 import { setClusterCache } from '@/lib/globe/behaviors/clusterBehavior';
 import { useFeatureFlag } from '@/components/FeatureGate';
 import { STORAGE_KEYS, readStoredValue } from '@/lib/persistence';
+import { useMotionStrength } from '@/lib/motion/motionStrength';
 
 const WorkspaceCards = dynamic(
   () => import('./WorkspaceCards').then((m) => ({ default: m.WorkspaceCards })),
@@ -114,6 +115,7 @@ export function GlobeLayout({
   const seneca = useSenecaThread();
   const bridge = useSenecaGlobeBridge(globeRef);
   const { handleNodeClick: bridgeNodeClick, executeGlobeCommand } = bridge;
+  const motionStrength = useMotionStrength();
 
   // Listen for globe commands from Seneca (via centralized command bus)
   useGlobeCommandListener(bridge);
@@ -186,11 +188,14 @@ export function GlobeLayout({
       const parsed = parseEntityParam(entityParam);
       setActiveEntity(parsed);
       if (parsed) {
-        posthog.capture('entity_selected', {
+        const entityPayload = {
           type: parsed.type,
           id: parsed.id,
           source: 'homepage',
-        });
+        };
+        posthog.capture('entity_selected', entityPayload);
+        // Phase 0: dual-emit during entity_inspected naming transition
+        posthog.capture('entity_inspected', entityPayload);
         const nodeId =
           parsed.type === 'proposal' ? `${parsed.id}_${parsed.secondaryId}` : parsed.id;
         bridge.executeGlobeCommand({ type: 'flyTo', nodeId });
@@ -492,6 +497,7 @@ export function GlobeLayout({
             onReady={handleGlobeReady}
             onNodeSelect={handleNodeSelect}
             breathing
+            motionStrength={motionStrength}
           />
         ) : (
           <ConstellationScene
@@ -506,6 +512,7 @@ export function GlobeLayout({
             proposalNodes={proposalNodes}
             delegationBond={delegationBond}
             clusters={clusterLabels}
+            motionStrength={motionStrength}
           >
             {clusterLabels.length > 0 && (
               <>
