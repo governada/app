@@ -74,4 +74,11 @@ describe('preview seed safety checks', () => {
 
     expect(buildPreviewDReps().every((drep) => Number.isInteger(drep.confidence))).toBe(true);
   });
+
+  it('uses UUID auth user ids for sentiment fixtures', async () => {
+    const { buildPreviewSentimentRows } = await import('../../scripts/seed-preview');
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+    expect(buildPreviewSentimentRows().every((row) => uuidPattern.test(row.user_id))).toBe(true);
+  });
 });

@@ -20,6 +20,7 @@ const SEED_MARKER = 'homepage-phase-0-5-preview-seed-v1';
 const SEEDED_AT = '2026-05-03T00:00:00.000Z';
 const CURRENT_EPOCH = 560;
 const FIXTURE_STAKE_ADDRESS = 'stake1upreviewfixture0000000000000000000000000000000000000000000000';
+const PREVIEW_AUTH_USER_COUNT = 10;
 
 type SeedEnv = Record<string, string | undefined>;
 type TypedSupabase = SupabaseClient<Database>;
@@ -169,6 +170,10 @@ function previewDRepId(index: number): string {
 
 function previewVoteHash(index: number): string {
   return `70${index.toString(16).padStart(2, '0')}`.padEnd(64, '0');
+}
+
+function previewAuthEmail(index: number): string {
+  return `preview-seed-${index.toString().padStart(2, '0')}@preview.governada.local`;
 }
 
 function deterministicUuid(index: number): string {
@@ -366,7 +371,17 @@ function buildAlignmentProfile(
   return base;
 }
 
-export function buildPreviewSentimentRows(): TablesInsert<'citizen_sentiment'>[] {
+export function buildPreviewAuthUserIds(count = PREVIEW_AUTH_USER_COUNT): string[] {
+  return Array.from({ length: count }, (_, i) => deterministicUuid(1_000 + i + 1));
+}
+
+export function buildPreviewSentimentRows(
+  userIds = buildPreviewAuthUserIds(),
+): TablesInsert<'citizen_sentiment'>[] {
+  if (userIds.length === 0) {
+    throw new Error('Preview sentiment seed requires at least one auth user id');
+  }
+
   return Array.from({ length: 50 }, (_, i) => {
     const proposal = PROPOSALS[i % PROPOSALS.length];
     const drepId = previewDRepId((i % 24) + 1);
@@ -382,7 +397,7 @@ export function buildPreviewSentimentRows(): TablesInsert<'citizen_sentiment'>[]
       proposal_tx_hash: proposal.tx_hash,
       sentiment,
       stake_address: `${FIXTURE_STAKE_ADDRESS}${i.toString().padStart(2, '0')}`,
-      user_id: `preview-user-${(i + 1).toString().padStart(2, '0')}`,
+      user_id: userIds[i % userIds.length],
       wallet_address: `preview-wallet-${(i + 1).toString().padStart(2, '0')}`,
     };
   });
@@ -480,12 +495,64 @@ async function runWrite(
   if (error) throw new Error(`Failed to seed ${label}: ${error.message}`);
 }
 
+async function listPreviewAuthUsers(supabase: TypedSupabase): Promise<Map<string, string>> {
+  const expectedEmails = new Set(
+    Array.from({ length: PREVIEW_AUTH_USER_COUNT }, (_, i) => previewAuthEmail(i + 1)),
+  );
+  const usersByEmail = new Map<string, string>();
+
+  for (let page = 1; page <= 10; page += 1) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 100 });
+    if (error) throw new Error(`Failed to list preview auth users: ${error.message}`);
+
+    for (const user of data.users) {
+      const email = user.email?.toLowerCase();
+      if (email && expectedEmails.has(email)) {
+        usersByEmail.set(email, user.id);
+      }
+    }
+
+    if (data.users.length < 100 || usersByEmail.size === expectedEmails.size) break;
+  }
+
+  return usersByEmail;
+}
+
+export async function ensurePreviewAuthUsers(supabase: TypedSupabase): Promise<string[]> {
+  const emails = Array.from({ length: PREVIEW_AUTH_USER_COUNT }, (_, i) => previewAuthEmail(i + 1));
+  const usersByEmail = await listPreviewAuthUsers(supabase);
+
+  for (const email of emails) {
+    if (usersByEmail.has(email)) continue;
+
+    const { data, error } = await supabase.auth.admin.createUser({
+      app_metadata: { preview_seed: SEED_MARKER },
+      ban_duration: '876000h',
+      email,
+      email_confirm: true,
+      password: `PreviewSeedOnly-${SEED_MARKER}`,
+      user_metadata: { preview_seed: SEED_MARKER },
+    });
+
+    if (error) throw new Error(`Failed to create preview auth user ${email}: ${error.message}`);
+    if (!data.user?.id) throw new Error(`Preview auth user ${email} was created without an id`);
+    usersByEmail.set(email, data.user.id);
+  }
+
+  return emails.map((email) => {
+    const userId = usersByEmail.get(email);
+    if (!userId) throw new Error(`Preview auth user ${email} was not resolved`);
+    return userId;
+  });
+}
+
 export async function seedPreviewSupabase(
   supabase: TypedSupabase,
 ): Promise<Record<string, number>> {
   const dreps = buildPreviewDReps();
   const proposals = PROPOSALS;
-  const sentiment = buildPreviewSentimentRows();
+  const authUserIds = await ensurePreviewAuthUsers(supabase);
+  const sentiment = buildPreviewSentimentRows(authUserIds);
   const votes = buildPreviewVotes();
   const sandboxDelegation = buildSandboxDelegation();
   const delegatorSnapshots = buildDelegatorSnapshots();
@@ -529,6 +596,7 @@ export async function seedPreviewSupabase(
   return {
     dreps: dreps.length,
     proposals: proposals.length,
+    auth_users: authUserIds.length,
     citizen_sentiment: sentiment.length,
     drep_votes: votes.length,
     sandbox_delegations: 1,
