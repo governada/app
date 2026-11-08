@@ -147,7 +147,7 @@
     "lucide-react": "^1.69.0",
     "ml-matrix": "^6.15.1",
     "next": "16.4.3",
-    "openai": "^6.49.0",
+    "openai": "^7.52.0",
     "posthog-js": "^1.447.0",
     "posthog-node": "^5.63.0",
     "radix-ui": "^1.8.1",
